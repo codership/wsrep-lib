@@ -5,11 +5,16 @@
 #ifndef TRREP_SERVER_CONTEXT_HPP
 #define TRREP_SERVER_CONTEXT_HPP
 
+#include "exception.hpp"
+
+#include "wsrep_api.h"
+
 #include <string>
 
 namespace trrep
 {
     // Forward declarations
+    class provider;
     class client_context;
     class transaction_context;
 
@@ -26,20 +31,62 @@ namespace trrep
         server_context(const std::string& name,
                        const std::string& id,
                        enum rollback_mode rollback_mode)
-            : name_(name)
+            : provider_()
+            , name_(name)
             , id_(id)
             , rollback_mode_(rollback_mode)
-            , client_id_()
-        { }
-        const std::string& name() const { return name_; }
-        const std::string& id() const { return id_; }
-        virtual client_context* local_client_context();
 
-        virtual void on_connect() { }
-        virtual void on_view() { }
-        virtual void on_sync() { }
-        virtual void on_apply(trrep::transaction_context&) { }
-        virtual void on_commit(trrep::transaction_context&) { }
+        { }
+
+        //
+        // Return server name
+        //
+        const std::string& name() const { return name_; }
+
+        //
+        // Return server identifier
+        //
+        const std::string& id() const { return id_; }
+
+        //
+        // Create client context which acts only locally, i.e. does
+        // not participate in replication. However, local client
+        // connection may execute transactions which require ordering,
+        // as when modifying local SR fragment storage requires
+        // strict commit ordering.
+        //
+        virtual client_context* local_client_context() = 0;
+
+        //
+        // Load provider
+        //
+        // @return Zero on success, non-zero on error
+        //
+        int load_provider(const std::string&);
+
+        //
+        // Return reference to provider
+        //
+        // @return Reference to provider
+        // @throw trrep::runtime_error if provider has not been loaded
+        //
+        virtual trrep::provider& provider() const
+        {
+            if (provider_ == 0)
+            {
+                throw trrep::runtime_error("provider not loaded");
+            }
+            return *provider_;
+        }
+
+        //
+        //
+        //
+        virtual void on_connect() = 0;
+        virtual void on_view() = 0;
+        virtual void on_sync() = 0;
+        virtual void on_apply(trrep::transaction_context&) = 0;
+        virtual void on_commit(trrep::transaction_context&) = 0;
 
 
         virtual bool statement_allowed_for_streaming(
@@ -50,11 +97,14 @@ namespace trrep
             return false;
         }
     private:
+
+        server_context(const server_context&);
+        server_context& operator=(const server_context&);
+
+        trrep::provider* provider_;
         std::string name_;
         std::string id_;
         enum rollback_mode rollback_mode_;
-        // TODO: This should be part of server mock
-        unsigned long long client_id_;
     };
 }
 

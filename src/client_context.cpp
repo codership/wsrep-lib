@@ -5,6 +5,11 @@
 #include "client_context.hpp"
 #include "transaction_context.hpp"
 
+trrep::provider& trrep::client_context::provider() const
+{
+    return server_context_.provider();
+}
+
 // TODO: This should be pure virtual method, implemented by
 // DBMS integration or mock classes only.
 int trrep::client_context::replay(trrep::transaction_context& tc)

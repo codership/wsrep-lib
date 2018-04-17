@@ -55,39 +55,10 @@ namespace trrep
             s_replaying
         };
         static const int n_states = s_replaying + 1;
-        transaction_context(trrep::provider& provider,
-                            trrep::client_context& client_context)
-            : provider_(provider)
-            , client_context_(client_context)
-            , id_(transaction_id::invalid())
-            , state_(s_executing)
-            , state_hist_()
-            , ws_handle_()
-            , trx_meta_()
-            , pa_unsafe_(false)
-            , certified_(false)
-            , fragments_()
-            , rollback_replicated_for_(false)
-        { }
-
-        transaction_context(trrep::provider& provider,
-                            trrep::client_context& client_context,
+        transaction_context(trrep::client_context& client_context);
+        transaction_context(trrep::client_context& client_context,
                             const wsrep_ws_handle_t& ws_handle,
-                            const wsrep_trx_meta_t& trx_meta)
-            : provider_(provider)
-            , client_context_(client_context)
-            , id_(trx_meta.stid.trx)
-            , state_(s_executing)
-            , state_hist_()
-            , ws_handle_(ws_handle)
-            , trx_meta_(trx_meta)
-            , pa_unsafe_()
-            , certified_(true)
-            , fragments_()
-            , rollback_replicated_for_(false)
-        { }
-
-
+                            const wsrep_trx_meta_t& trx_meta);
         ~transaction_context();
 #if 0
         transaction_context(trrep::provider& provider,

@@ -5,7 +5,7 @@
 #ifndef TRREP_CLIENT_CONTEXT_HPP
 #define TRREP_CLIENT_CONTEXT_HPP
 
-#include "provider.hpp"
+#include "server_context.hpp"
 #include "mutex.hpp"
 #include "lock.hpp"
 #include "data.hpp"
@@ -13,7 +13,7 @@
 namespace trrep
 {
     class server_context;
-    class transaction_context;
+    class provider;
 
     enum client_error
     {
@@ -68,6 +68,7 @@ namespace trrep
         trrep::mutex& mutex() { return mutex_; }
         trrep::server_context& server_context() const
         { return server_context_; }
+        trrep::provider& provider() const;
 
         client_id id() const { return id_; }
         client_id id(const client_id& id)
@@ -100,7 +101,8 @@ namespace trrep
         virtual int replay(trrep::transaction_context& tc);
 
 
-        virtual int apply(const trrep::data&) { return 0; }
+        virtual int apply(trrep::transaction_context&,
+                          const trrep::data&) { return 0; }
 
         virtual void wait_for_replayers(trrep::unique_lock<trrep::mutex>&)
         { }
@@ -154,7 +156,6 @@ namespace trrep
         client_context& orig_context_;
         client_context& current_context_;
     };
-
 }
 
 #endif // TRREP_CLIENT_CONTEXT_HPP

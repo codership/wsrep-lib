@@ -14,6 +14,39 @@
 
 // Public
 
+trrep::transaction_context::transaction_context(
+    trrep::client_context& client_context)
+    : provider_(client_context.provider())
+    , client_context_(client_context)
+    , id_(transaction_id::invalid())
+    , state_(s_executing)
+    , state_hist_()
+    , ws_handle_()
+    , trx_meta_()
+    , pa_unsafe_(false)
+    , certified_(false)
+    , fragments_()
+    , rollback_replicated_for_(false)
+{ }
+
+trrep::transaction_context::transaction_context(
+    trrep::client_context& client_context,
+    const wsrep_ws_handle_t& ws_handle,
+    const wsrep_trx_meta_t& trx_meta)
+    : provider_(client_context.provider())
+    , client_context_(client_context)
+    , id_(trx_meta.stid.trx)
+    , state_(s_executing)
+    , state_hist_()
+    , ws_handle_(ws_handle)
+    , trx_meta_(trx_meta)
+    , pa_unsafe_()
+    , certified_(true)
+    , fragments_()
+    , rollback_replicated_for_(false)
+{ }
+
+
 trrep::transaction_context::~transaction_context()
 {
     if (state() != s_committed && state() != s_aborted)
@@ -388,6 +421,8 @@ void trrep::transaction_context::state(
 int trrep::transaction_context::certify_fragment(
     trrep::unique_lock<trrep::mutex>& lock)
 {
+    // This method is not fully implemented and tested yet.
+    throw trrep::not_implemented_error();
     assert(lock.owns_lock());
 
     assert(client_context_.mode() == trrep::client_context::m_replicating);
@@ -426,8 +461,7 @@ int trrep::transaction_context::certify_fragment(
     trrep::client_context_switch client_context_switch(
         client_context_,
         *sr_client_context);
-    trrep::transaction_context sr_transaction_context(provider_,
-                                                      *sr_client_context);
+    trrep::transaction_context sr_transaction_context(*sr_client_context);
     if (sr_client_context->append_fragment(sr_transaction_context, flags, data))
     {
         lock.lock();

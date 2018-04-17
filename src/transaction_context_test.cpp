@@ -4,7 +4,7 @@
 
 #include "transaction_context.hpp"
 #include "client_context.hpp"
-#include "server_context.hpp"
+#include "mock_server_context.hpp"
 #include "provider.hpp"
 #include "mock_provider_impl.hpp"
 
@@ -24,14 +24,13 @@ namespace
     }
 
     // BF abort method to abort transactions via provider
-    void bf_abort_provider(trrep::mock_provider_impl& provider,
+    void bf_abort_provider(trrep::mock_server_context& sc,
                            const trrep::client_context& cc,
                            const trrep::transaction_context& tc,
                            wsrep_seqno_t seqno)
     {
-        provider.bf_abort(cc.id().get(), tc.id().get(), seqno);
+        sc.mock_provider().bf_abort(cc.id().get(), tc.id().get(), seqno);
     }
-
 
 }
 
@@ -40,12 +39,10 @@ namespace
 //
 BOOST_AUTO_TEST_CASE(transaction_context_1pc)
 {
-    trrep::mock_provider_impl mock_provider;
-    trrep::provider provider(&mock_provider);
-    trrep::server_context sc("s1", "s1",
-                                 trrep::server_context::rm_sync);
+    trrep::mock_server_context sc("s1", "s1",
+                                  trrep::server_context::rm_sync);
     trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(provider, cc);
+    trrep::transaction_context tc(cc);
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -82,12 +79,10 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc)
 //
 BOOST_AUTO_TEST_CASE(transaction_context_2pc)
 {
-    trrep::mock_provider_impl mock_provider;
-    trrep::provider provider(&mock_provider);
-    trrep::server_context sc("s1", "s1",
+    trrep::mock_server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
     trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(provider, cc);
+    trrep::transaction_context tc(cc);
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -131,12 +126,10 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc)
 //
 BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_before_before_commit)
 {
-    trrep::mock_provider_impl mock_provider;
-    trrep::provider provider(&mock_provider);
-    trrep::server_context sc("s1", "s1",
+    trrep::mock_server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
     trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(provider, cc);
+    trrep::transaction_context tc(cc);
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -174,12 +167,10 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_before_before_commit)
 //
 BOOST_AUTO_TEST_CASE(transaction_context_2pc_bf_before_before_prepare)
 {
-    trrep::mock_provider_impl mock_provider;
-    trrep::provider provider(&mock_provider);
-    trrep::server_context sc("s1", "s1",
+    trrep::mock_server_context sc("s1", "s1",
                              trrep::server_context::rm_sync);
     trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(provider, cc);
+    trrep::transaction_context tc(cc);
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -217,12 +208,10 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc_bf_before_before_prepare)
 //
 BOOST_AUTO_TEST_CASE(transaction_context_2pc_bf_before_after_prepare)
 {
-    trrep::mock_provider_impl mock_provider;
-    trrep::provider provider(&mock_provider);
-    trrep::server_context sc("s1", "s1",
+    trrep::mock_server_context sc("s1", "s1",
                              trrep::server_context::rm_sync);
     trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(provider, cc);
+    trrep::transaction_context tc(cc);
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -265,12 +254,10 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc_bf_before_after_prepare)
 //
 BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_uncertified)
 {
-    trrep::mock_provider_impl mock_provider;
-    trrep::provider provider(&mock_provider);
-    trrep::server_context sc("s1", "s1",
+    trrep::mock_server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
     trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(provider, cc);
+    trrep::transaction_context tc(cc);
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -282,7 +269,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_uncertified
     BOOST_REQUIRE(tc.id() == trrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
 
-    bf_abort_provider(mock_provider, cc, tc, WSREP_SEQNO_UNDEFINED);
+    bf_abort_provider(sc, cc, tc, WSREP_SEQNO_UNDEFINED);
 
     // Run before commit
     BOOST_REQUIRE(tc.before_commit());
@@ -310,12 +297,10 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_uncertified
 //
 BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_certified)
 {
-    trrep::mock_provider_impl mock_provider;
-    trrep::provider provider(&mock_provider);
-    trrep::server_context sc("s1", "s1",
+    trrep::mock_server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
     trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(provider, cc);
+    trrep::transaction_context tc(cc);
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -327,7 +312,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_certified)
     BOOST_REQUIRE(tc.id() == trrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
 
-    bf_abort_provider(mock_provider, cc, tc, 1);
+    bf_abort_provider(sc, cc, tc, 1);
 
     // Run before commit
     BOOST_REQUIRE(tc.before_commit());

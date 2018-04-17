@@ -17,6 +17,7 @@ namespace trrep
     class provider;
     class client_context;
     class transaction_context;
+    class data;
 
     class server_context
     {
@@ -85,9 +86,15 @@ namespace trrep
         virtual void on_connect() = 0;
         virtual void on_view() = 0;
         virtual void on_sync() = 0;
-        virtual void on_apply(trrep::transaction_context&) = 0;
-        virtual void on_commit(trrep::transaction_context&) = 0;
 
+        //
+        // This method will be called by the applier thread when
+        // a remote write set is being applied. It is the responsibility
+        // of the caller to set up transaction context and data properly.
+        //
+        int on_apply(trrep::client_context& client_context,
+                     trrep::transaction_context& transaction_context,
+                     const trrep::data& data);
 
         virtual bool statement_allowed_for_streaming(
             const trrep::client_context&,

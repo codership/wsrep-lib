@@ -34,8 +34,8 @@ namespace trrep
         void on_connect() { }
         void on_view() { }
         void on_sync() { }
-        void on_apply(trrep::transaction_context&) { }
-        void on_commit(trrep::transaction_context&) { }
+        // void on_apply(trrep::transaction_context&) { }
+        // void on_commit(trrep::transaction_context&) { }
 
     private:
         mutable trrep::mock_provider_impl mock_provider_impl_;

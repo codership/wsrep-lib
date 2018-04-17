@@ -47,28 +47,14 @@ namespace
         assert(client_context->mode() == trrep::client_context::m_applier);
 
         trrep::data data(buf->ptr, buf->len);
-
-        if (starts_transaction(flags) && commits_transaction(flags))
+        trrep::transaction_context transaction_context(*client_context,
+                                                       *wsh,
+                                                       *meta,
+                                                       flags);
+        if (client_context->server_context().on_apply(
+                *client_context, transaction_context, data))
         {
-            trrep::transaction_context transaction_context(
-                *client_context,
-                *wsh,
-                *meta);
-            assert(transaction_context.active() == false);
-            transaction_context.start_transaction(meta->stid.trx);
-            if (client_context->apply(transaction_context, data))
-            {
-                ret = WSREP_CB_FAILURE;
-            }
-            else if (client_context->commit(transaction_context))
-            {
-                ret = WSREP_CB_FAILURE;
-            }
-        }
-        else
-        {
-            // SR not implemented yet
-            assert(0);
+            ret = WSREP_CB_FAILURE;
         }
         return ret;
     }
@@ -88,4 +74,37 @@ int trrep::server_context::load_provider(const std::string& provider_spec)
             new trrep::wsrep_provider_v26(&init_args));
     }
     return 0;
+}
+
+int trrep::server_context::on_apply(
+    trrep::client_context& client_context,
+    trrep::transaction_context& transaction_context,
+    const trrep::data& data)
+{
+    int ret(0);
+    if (starts_transaction(transaction_context.flags()) &&
+        commits_transaction(transaction_context.flags()))
+    {
+        assert(transaction_context.active() == false);
+        transaction_context.start_transaction();
+        if (client_context.apply(transaction_context, data))
+        {
+            ret = 1;
+        }
+        else if (client_context.commit(transaction_context))
+        {
+            ret = 1;
+        }
+    }
+    else
+    {
+        // SR not implemented yet
+        assert(0);
+    }
+
+    if (ret)
+    {
+        client_context.rollback(transaction_context);
+    }
+    return ret;
 }

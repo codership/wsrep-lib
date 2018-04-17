@@ -32,6 +32,23 @@ namespace
         sc.mock_provider().bf_abort(cc.id().get(), tc.id().get(), seqno);
     }
 
+    trrep::transaction_context applying_transaction(
+        trrep::client_context& cc,
+        trrep::transaction_id id,
+        wsrep_seqno_t seqno,
+        uint32_t flags)
+    {
+        wsrep_ws_handle_t ws_handle = { id.get(), 0 };
+        wsrep_trx_meta_t meta = {
+            { {1 }, seqno }, /* gtid */
+            { { static_cast<uint8_t>(cc.id().get()) }, id.get(), cc.id().get() }, /* stid */
+            seqno - 1
+        };
+        trrep::transaction_context ret(cc, ws_handle, meta, flags);
+        return ret;
+    }
+
+
 }
 
 //
@@ -331,4 +348,53 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_certified)
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(tc.ordered() == false);
     BOOST_REQUIRE(tc.certified() == false);
+}
+
+BOOST_AUTO_TEST_CASE(transaction_context_1pc_applying)
+{
+    trrep::mock_server_context sc("s1", "s1",
+                                  trrep::server_context::rm_sync);
+    trrep::client_context cc(sc,
+                             trrep::client_id(1),
+                             trrep::client_context::m_applier);
+    trrep::transaction_context tc(applying_transaction(
+                                      cc, 1, 1,
+                                      WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
+
+    BOOST_REQUIRE(tc.active() == false);
+    BOOST_REQUIRE(tc.start_transaction() == 0);
+    BOOST_REQUIRE(tc.active() == true);
+    BOOST_REQUIRE(tc.certified() == true);
+    BOOST_REQUIRE(tc.ordered() == true);
+
+    BOOST_REQUIRE(tc.before_commit() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committing);
+    BOOST_REQUIRE(tc.ordered_commit() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_ordered_commit);
+    BOOST_REQUIRE(tc.after_commit() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committed);
+}
+
+BOOST_AUTO_TEST_CASE(transaction_context_2pc_applying)
+{
+    trrep::mock_server_context sc("s1", "s1",
+                                  trrep::server_context::rm_sync);
+    trrep::client_context cc(sc,
+                             trrep::client_id(1),
+                             trrep::client_context::m_applier);
+    trrep::transaction_context tc(applying_transaction(
+                                      cc, 1, 1,
+                                      WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
+
+    BOOST_REQUIRE(tc.active() == false);
+    BOOST_REQUIRE(tc.start_transaction() == 0);
+    BOOST_REQUIRE(tc.active() == true);
+    BOOST_REQUIRE(tc.certified() == true);
+    BOOST_REQUIRE(tc.ordered() == true);
+
+    BOOST_REQUIRE(tc.before_prepare() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_preparing);
+    BOOST_REQUIRE(tc.after_prepare() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committing);
+
 }

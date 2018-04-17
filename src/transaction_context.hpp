@@ -58,20 +58,9 @@ namespace trrep
         transaction_context(trrep::client_context& client_context);
         transaction_context(trrep::client_context& client_context,
                             const wsrep_ws_handle_t& ws_handle,
-                            const wsrep_trx_meta_t& trx_meta);
+                            const wsrep_trx_meta_t& trx_meta,
+                            uint32_t flags);
         ~transaction_context();
-#if 0
-        transaction_context(trrep::provider& provider,
-                            trrep::client_context& client_context,
-                            const transaction_id& id)
-            : provider_(provider)
-            , client_context_(client_context)
-            , id_(id)
-            , state_(s_executing)
-            , ws_handle_()
-            , gtid_()
-        { }
-#endif
         // Accessors
         trrep::transaction_id id() const
         { return id_; }
@@ -101,13 +90,14 @@ namespace trrep
         bool pa_unsafe() const { return pa_unsafe_; }
         void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }
         //
-        int start_transaction(const trrep::transaction_id& id)
+        int start_transaction()
         {
             assert(active() == false);
-            id_ = id;
-            ws_handle_.trx_id = id_.get();
-            return provider_.start_transaction(&ws_handle_);
+            assert(trx_meta_.stid.trx != transaction_id::invalid());
+            return start_transaction(trx_meta_.stid.trx);
         }
+
+        int start_transaction(const trrep::transaction_id& id);
 
         int append_key(const trrep::key&);
 
@@ -133,14 +123,11 @@ namespace trrep
 
         int after_statement();
 
-    private:
         uint32_t flags() const
         {
-            uint32_t ret(0);
-            if (is_streaming() == false) ret |= WSREP_FLAG_TRX_START;
-            if (pa_unsafe()) ret |= WSREP_FLAG_PA_UNSAFE;
-            return ret;
+            return flags_;
         }
+    private:
         int certify_fragment(trrep::unique_lock<trrep::mutex>&);
         int certify_commit(trrep::unique_lock<trrep::mutex>&);
         void remove_fragments();
@@ -153,6 +140,7 @@ namespace trrep
         std::vector<enum state> state_hist_;
         wsrep_ws_handle_t ws_handle_;
         wsrep_trx_meta_t trx_meta_;
+        uint32_t flags_;
         bool pa_unsafe_;
         bool certified_;
 
@@ -165,6 +153,7 @@ namespace trrep
         switch (state)
         {
         case trrep::transaction_context::s_executing: return "executing";
+        case trrep::transaction_context::s_preparing: return "preparing";
         case trrep::transaction_context::s_certifying: return "certifying";
         case trrep::transaction_context::s_committing: return "committing";
         case trrep::transaction_context::s_ordered_commit: return "ordered_commit";

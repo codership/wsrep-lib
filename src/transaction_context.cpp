@@ -23,6 +23,7 @@ trrep::transaction_context::transaction_context(
     , state_hist_()
     , ws_handle_()
     , trx_meta_()
+    , flags_()
     , pa_unsafe_(false)
     , certified_(false)
     , fragments_()
@@ -32,14 +33,16 @@ trrep::transaction_context::transaction_context(
 trrep::transaction_context::transaction_context(
     trrep::client_context& client_context,
     const wsrep_ws_handle_t& ws_handle,
-    const wsrep_trx_meta_t& trx_meta)
+    const wsrep_trx_meta_t& trx_meta,
+    uint32_t flags)
     : provider_(client_context.provider())
     , client_context_(client_context)
-    , id_(trx_meta.stid.trx)
+    , id_(transaction_id::invalid())
     , state_(s_executing)
     , state_hist_()
     , ws_handle_(ws_handle)
     , trx_meta_(trx_meta)
+    , flags_(flags)
     , pa_unsafe_()
     , certified_(true)
     , fragments_()
@@ -54,6 +57,27 @@ trrep::transaction_context::~transaction_context()
         client_context_.rollback(*this);
     }
 }
+
+int trrep::transaction_context::start_transaction(
+    const trrep::transaction_id& id)
+{
+    assert(active() == false);
+    id_ = id;
+    ws_handle_.trx_id = id_.get();
+    flags_ |= WSREP_FLAG_TRX_START;
+    switch (client_context_.mode())
+    {
+    case trrep::client_context::m_local:
+    case trrep::client_context::m_applier:
+        return 0;
+    case trrep::client_context::m_replicating:
+        return provider_.start_transaction(&ws_handle_);
+    default:
+        assert(0);
+        return 1;
+    }
+}
+
 
 int trrep::transaction_context::append_key(const trrep::key& key)
 {
@@ -73,35 +97,44 @@ int trrep::transaction_context::before_prepare()
 
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
 
-    assert(client_context_.mode() == trrep::client_context::m_replicating);
     assert(state() == s_executing || state() == s_must_abort);
 
     if (state() == s_must_abort)
     {
+        assert(client_context_.mode() == trrep::client_context::m_replicating);
         return 1;
     }
 
     state(lock, s_preparing);
-    if (is_streaming())
+
+    switch (client_context_.mode())
     {
-        client_context_.debug_suicide(
-            "crash_last_fragment_commit_before_fragment_removal");
-        lock.unlock();
-        if (client_context_.server_context().statement_allowed_for_streaming(
-                client_context_, *this))
+    case trrep::client_context::m_replicating:
+        if (is_streaming())
         {
-            client_context_.override_error(trrep::e_error_during_commit);
-            ret = 1;
+            client_context_.debug_suicide(
+                "crash_last_fragment_commit_before_fragment_removal");
+            lock.unlock();
+            if (client_context_.server_context().statement_allowed_for_streaming(
+                    client_context_, *this))
+            {
+                client_context_.override_error(trrep::e_error_during_commit);
+                ret = 1;
+            }
+            else
+            {
+                remove_fragments();
+            }
+            lock.lock();
+            client_context_.debug_suicide(
+                "crash_last_fragment_commit_after_fragment_removal");
         }
-        else
-        {
-            remove_fragments();
-        }
-        lock.lock();
-        client_context_.debug_suicide(
-            "crash_last_fragment_commit_after_fragment_removal");
+        break;
+    case trrep::client_context::m_local:
+    case trrep::client_context::m_applier:
+        break;
     }
-    assert(client_context_.mode() == trrep::client_context::m_replicating);
+
     assert(state() == s_preparing);
     return ret;
 }
@@ -111,27 +144,37 @@ int trrep::transaction_context::after_prepare()
     int ret(1);
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
 
-    assert(client_context_.mode() == trrep::client_context::m_replicating);
     assert(state() == s_preparing || state() == s_must_abort);
     if (state() == s_must_abort)
     {
+        assert(client_context_.mode() == trrep::client_context::m_replicating);
         return 1;
     }
 
-    if (state() == s_preparing)
+    switch (client_context_.mode())
     {
-        ret = certify_commit(lock);
-        assert((ret == 0 || state() == s_committing) ||
-               (state() == s_must_abort ||
-                state() == s_must_replay ||
-                state() == s_cert_failed));
+    case trrep::client_context::m_replicating:
+        if (state() == s_preparing)
+        {
+            ret = certify_commit(lock);
+            assert((ret == 0 || state() == s_committing) ||
+                   (state() == s_must_abort ||
+                    state() == s_must_replay ||
+                    state() == s_cert_failed));
+        }
+        else
+        {
+            assert(state() == s_must_abort);
+            client_context_.override_error(trrep::e_deadlock_error);
+        }
+        break;
+    case trrep::client_context::m_local:
+    case trrep::client_context::m_applier:
+        state(lock, s_certifying);
+        state(lock, s_committing);
+        ret = 0;
+        break;
     }
-    else
-    {
-        assert(state() == s_must_abort);
-        client_context_.override_error(trrep::e_deadlock_error);
-    }
-    assert(client_context_.mode() == trrep::client_context::m_replicating);
     return ret;
 }
 
@@ -191,7 +234,6 @@ int trrep::transaction_context::before_commit()
             }
             lock.lock();
         }
-
         break;
     case trrep::client_context::m_applier:
         assert(ordered());
@@ -199,6 +241,15 @@ int trrep::transaction_context::before_commit()
         if (ret)
         {
             state(lock, s_must_abort);
+        }
+        else
+        {
+            if (state() == s_executing)
+            {
+                // 1pc
+                state(lock, s_certifying);
+            }
+            state(lock, s_committing);
         }
         break;
     }

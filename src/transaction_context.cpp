@@ -10,8 +10,17 @@
 
 #include <iostream> // TODO: replace with proper logging utility
 #include <sstream>
+#include <memory>
 
 // Public
+
+trrep::transaction_context::~transaction_context()
+{
+    if (state() != s_committed && state() != s_aborted)
+    {
+        client_context_.rollback(*this);
+    }
+}
 
 int trrep::transaction_context::append_key(const trrep::key& key)
 {
@@ -31,7 +40,7 @@ int trrep::transaction_context::before_prepare()
 
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
 
-    assert(client_context_.mode() == trrep::client_context::m_local);
+    assert(client_context_.mode() == trrep::client_context::m_replicating);
     assert(state() == s_executing || state() == s_must_abort);
 
     if (state() == s_must_abort)
@@ -39,6 +48,7 @@ int trrep::transaction_context::before_prepare()
         return 1;
     }
 
+    state(lock, s_preparing);
     if (is_streaming())
     {
         client_context_.debug_suicide(
@@ -58,8 +68,8 @@ int trrep::transaction_context::before_prepare()
         client_context_.debug_suicide(
             "crash_last_fragment_commit_after_fragment_removal");
     }
-    assert(client_context_.mode() == trrep::client_context::m_local);
-    assert(state() == s_executing);
+    assert(client_context_.mode() == trrep::client_context::m_replicating);
+    assert(state() == s_preparing);
     return ret;
 }
 
@@ -68,14 +78,14 @@ int trrep::transaction_context::after_prepare()
     int ret(1);
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
 
-    assert(client_context_.mode() == trrep::client_context::m_local);
-    assert(state() == s_executing || state() == s_must_abort);
+    assert(client_context_.mode() == trrep::client_context::m_replicating);
+    assert(state() == s_preparing || state() == s_must_abort);
     if (state() == s_must_abort)
     {
         return 1;
     }
 
-    if (state() == s_executing)
+    if (state() == s_preparing)
     {
         ret = certify_commit(lock);
         assert((ret == 0 || state() == s_committing) ||
@@ -88,7 +98,7 @@ int trrep::transaction_context::after_prepare()
         assert(state() == s_must_abort);
         client_context_.override_error(trrep::e_deadlock_error);
     }
-    assert(client_context_.mode() == trrep::client_context::m_local);
+    assert(client_context_.mode() == trrep::client_context::m_replicating);
     return ret;
 }
 
@@ -97,9 +107,18 @@ int trrep::transaction_context::before_commit()
     int ret(1);
 
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
+    assert(state() == s_executing || state() == s_committing ||
+           state() == s_must_abort);
+
     switch (client_context_.mode())
     {
     case trrep::client_context::m_local:
+        if (ordered())
+        {
+            ret = provider_.commit_order_enter(&ws_handle_);
+        }
+        break;
+    case trrep::client_context::m_replicating:
 
         // Commit is one phase - before/after prepare was not called
         if (state() == s_executing)
@@ -142,6 +161,7 @@ int trrep::transaction_context::before_commit()
 
         break;
     case trrep::client_context::m_applier:
+        assert(ordered());
         ret = provider_.commit_order_enter(&ws_handle_);
         if (ret)
         {
@@ -158,6 +178,7 @@ int trrep::transaction_context::ordered_commit()
 
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
     assert(state() == s_committing);
+    assert(ordered());
     ret = provider_.commit_order_leave(&ws_handle_);
     // Should always succeed
     assert(ret == 0);
@@ -176,6 +197,9 @@ int trrep::transaction_context::after_commit()
     switch (client_context_.mode())
     {
     case trrep::client_context::m_local:
+        // Nothing to do
+        break;
+    case trrep::client_context::m_replicating:
         if (is_streaming())
         {
             clear_fragments();
@@ -328,18 +352,19 @@ void trrep::transaction_context::state(
 {
     assert(lock.owns_lock());
     static const char allowed[n_states][n_states] =
-        { /*  ex ce co oc ct cf ma ab ad mr re from/to */
-            { 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0}, /* ex */
-            { 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0}, /* ce */
-            { 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0}, /* co */
-            { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}, /* oc */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ct */
-            { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}, /* cf */
-            { 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0}, /* ma */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0}, /* ab */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ad */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, /* mr */
-            { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}  /* re */
+        { /*  ex pr ce co oc ct cf ma ab ad mr re from/to */
+            { 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0}, /* ex */
+            { 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0}, /* pr */
+            { 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0}, /* ce */
+            { 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0}, /* co */
+            { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}, /* oc */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ct */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}, /* cf */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0}, /* ma */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0}, /* ab */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ad */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, /* mr */
+            { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}  /* re */
         };
     if (allowed[state_][next_state])
     {
@@ -360,9 +385,74 @@ void trrep::transaction_context::state(
     }
 }
 
-int trrep::transaction_context::certify_fragment()
+int trrep::transaction_context::certify_fragment(
+    trrep::unique_lock<trrep::mutex>& lock)
 {
-    throw trrep::not_implemented_error();
+    assert(lock.owns_lock());
+
+    assert(client_context_.mode() == trrep::client_context::m_replicating);
+    assert(rollback_replicated_for_ != id_);
+
+    client_context_.wait_for_replayers(lock);
+    if (state() == s_must_abort)
+    {
+        client_context_.override_error(trrep::e_deadlock_error);
+        return 1;
+    }
+
+    state(lock, s_certifying);
+
+    lock.unlock();
+
+    uint32_t flags(0);
+    if (fragments_.empty())
+    {
+        flags |= WSREP_FLAG_TRX_START;
+    }
+
+    trrep::data data;
+    if (client_context_.prepare_data_for_replication(*this, data))
+    {
+        lock.lock();
+        state(lock, s_must_abort);
+        return 1;
+    }
+
+    // Client context to store fragment in separate transaction
+    // Switch temporarily to sr_transaction_context, switch back
+    // to original when this goes out of scope
+    std::auto_ptr<trrep::client_context> sr_client_context(
+        client_context_.server_context().local_client_context());
+    trrep::client_context_switch client_context_switch(
+        client_context_,
+        *sr_client_context);
+    trrep::transaction_context sr_transaction_context(provider_,
+                                                      *sr_client_context);
+    if (sr_client_context->append_fragment(sr_transaction_context, flags, data))
+    {
+        lock.lock();
+        state(lock, s_must_abort);
+        client_context_.override_error(trrep::e_append_fragment_error);
+        return 1;
+    }
+
+    wsrep_status_t cert_ret(provider_.certify(client_context_.id().get(),
+                                              &sr_transaction_context.ws_handle_,
+                                              flags,
+                                              &sr_transaction_context.trx_meta_));
+    int ret(0);
+    switch (cert_ret)
+    {
+    case WSREP_OK:
+        sr_client_context->commit(sr_transaction_context);
+        break;
+    default:
+        sr_client_context->rollback(sr_transaction_context);
+        ret = 1;
+        break;
+    }
+
+    return ret;
 }
 
 int trrep::transaction_context::certify_commit(
@@ -402,10 +492,10 @@ int trrep::transaction_context::certify_commit(
         return 1;
     }
 
-    wsrep_status cert_ret(provider_.certify_commit(client_context_.id().get(),
-                                                   &ws_handle_,
-                                                   flags() | WSREP_FLAG_TRX_END,
-                                                   &trx_meta_));
+    wsrep_status cert_ret(provider_.certify(client_context_.id().get(),
+                                            &ws_handle_,
+                                            flags() | WSREP_FLAG_TRX_END,
+                                            &trx_meta_));
 
     lock.lock();
 

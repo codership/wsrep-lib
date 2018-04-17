@@ -10,6 +10,7 @@
 namespace trrep
 {
     // Forward declarations
+    class client_context;
     class transaction_context;
 
     class server_context
@@ -28,9 +29,11 @@ namespace trrep
             : name_(name)
             , id_(id)
             , rollback_mode_(rollback_mode)
-            { }
+            , client_id_()
+        { }
         const std::string& name() const { return name_; }
         const std::string& id() const { return id_; }
+        virtual client_context* local_client_context();
 
         virtual void on_connect() { }
         virtual void on_view() { }
@@ -50,6 +53,8 @@ namespace trrep
         std::string name_;
         std::string id_;
         enum rollback_mode rollback_mode_;
+        // TODO: This should be part of server mock
+        unsigned long long client_id_;
     };
 }
 

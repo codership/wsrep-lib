@@ -16,10 +16,10 @@ namespace trrep
         virtual int start_transaction(wsrep_ws_handle_t*) = 0;
         virtual int append_key(wsrep_ws_handle_t*, const wsrep_key_t*) = 0;
         virtual int append_data(wsrep_ws_handle_t*, const wsrep_buf_t*) = 0;
-        virtual wsrep_status
-        certify_commit(wsrep_conn_id_t, wsrep_ws_handle_t*,
-                       uint32_t,
-                       wsrep_trx_meta_t*) = 0;
+        virtual wsrep_status_t
+        certify(wsrep_conn_id_t, wsrep_ws_handle_t*,
+                uint32_t,
+                wsrep_trx_meta_t*) = 0;
         virtual int rollback(const wsrep_trx_id_t) = 0;
         virtual wsrep_status commit_order_enter(wsrep_ws_handle_t*) = 0;
         virtual int commit_order_leave(wsrep_ws_handle_t*) = 0;

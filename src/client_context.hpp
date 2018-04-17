@@ -19,7 +19,8 @@ namespace trrep
     {
         e_success,
         e_error_during_commit,
-        e_deadlock_error
+        e_deadlock_error,
+        e_append_fragment_error
     };
 
     class client_id
@@ -40,8 +41,9 @@ namespace trrep
     public:
         enum mode
         {
-            m_local,
-            m_applier
+            m_local,       // Operates in local only mode, no replication
+            m_replicating, // Generates write sets for replication
+            m_applier      // Applying write sets from provider
         };
 
         enum state
@@ -64,9 +66,16 @@ namespace trrep
         virtual ~client_context() { }
         // Accessors
         trrep::mutex& mutex() { return mutex_; }
-        const trrep::server_context& server_context() const
+        trrep::server_context& server_context() const
         { return server_context_; }
+
         client_id id() const { return id_; }
+        client_id id(const client_id& id)
+        {
+            assert(mode() == m_applier);
+            id_ = id;
+        }
+
         enum mode mode() const { return mode_; }
         enum state state() const { return state_; }
 
@@ -81,10 +90,17 @@ namespace trrep
 
         virtual int after_statement() { return 0; }
 
+        virtual int append_fragment(trrep::transaction_context&,
+                                    uint32_t, const trrep::data&)
+        { return 0; }
+        virtual int commit(trrep::transaction_context&) { return 0; }
         virtual int rollback(trrep::transaction_context&) { return 0; }
 
         virtual void will_replay(trrep::transaction_context&) { }
         virtual int replay(trrep::transaction_context& tc);
+
+
+        virtual int apply(const trrep::data&) { return 0; }
 
         virtual void wait_for_replayers(trrep::unique_lock<trrep::mutex>&)
         { }
@@ -98,6 +114,7 @@ namespace trrep
         virtual void override_error(const trrep::client_error&) { }
         virtual bool killed() const { return 0; }
         virtual void abort() const { ::abort(); }
+        virtual void store_globals() { }
         // Debug helpers
         virtual void debug_sync(const std::string&)
         {
@@ -117,6 +134,27 @@ namespace trrep
         enum mode mode_;
         enum state state_;
     };
+
+
+    class client_context_switch
+    {
+    public:
+        client_context_switch(trrep::client_context& orig_context,
+                              trrep::client_context& current_context)
+            : orig_context_(orig_context)
+            , current_context_(current_context)
+        {
+            current_context_.store_globals();
+        }
+        ~client_context_switch()
+        {
+            orig_context_.store_globals();
+        }
+    private:
+        client_context& orig_context_;
+        client_context& current_context_;
+    };
+
 }
 
 #endif // TRREP_CLIENT_CONTEXT_HPP

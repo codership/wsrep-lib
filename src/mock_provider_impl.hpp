@@ -33,10 +33,10 @@ namespace trrep
         // Provider implemenatation interface
         int start_transaction(wsrep_ws_handle_t*) { return 0; }
         wsrep_status
-        certify_commit(wsrep_conn_id_t conn_id,
-                       wsrep_ws_handle_t* ws_handle,
-                       uint32_t flags,
-                       wsrep_trx_meta_t* trx_meta)
+        certify(wsrep_conn_id_t conn_id,
+                wsrep_ws_handle_t* ws_handle,
+                uint32_t flags,
+                wsrep_trx_meta_t* trx_meta)
         {
             assert(flags | WSREP_FLAG_TRX_END);
             if ((flags | WSREP_FLAG_TRX_END) == 0)

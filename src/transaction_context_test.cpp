@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc)
     trrep::provider provider(&mock_provider);
     trrep::server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
-    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_local);
+    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
     trrep::transaction_context tc(provider, cc);
 
     // Verify initial state
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc)
     trrep::provider provider(&mock_provider);
     trrep::server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
-    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_local);
+    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
     trrep::transaction_context tc(provider, cc);
 
     // Verify initial state
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc)
 
     // Run before prepare
     BOOST_REQUIRE(tc.before_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_preparing);
 
     // Run after prepare
     BOOST_REQUIRE(tc.after_prepare() == 0);
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_before_before_commit)
     trrep::provider provider(&mock_provider);
     trrep::server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
-    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_local);
+    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
     trrep::transaction_context tc(provider, cc);
 
     // Verify initial state
@@ -172,13 +172,13 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_before_before_commit)
 //
 // Test a 2PC transaction which gets BF aborted before before_prepare
 //
-BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_before_before_prepare)
+BOOST_AUTO_TEST_CASE(transaction_context_2pc_bf_before_before_prepare)
 {
     trrep::mock_provider_impl mock_provider;
     trrep::provider provider(&mock_provider);
     trrep::server_context sc("s1", "s1",
                              trrep::server_context::rm_sync);
-    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_local);
+    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
     trrep::transaction_context tc(provider, cc);
 
     // Verify initial state
@@ -215,13 +215,13 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_before_before_prepare)
 //
 // Test a 2PC transaction which gets BF aborted before before_prepare
 //
-BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_before_after_prepare)
+BOOST_AUTO_TEST_CASE(transaction_context_2pc_bf_before_after_prepare)
 {
     trrep::mock_provider_impl mock_provider;
     trrep::provider provider(&mock_provider);
     trrep::server_context sc("s1", "s1",
                              trrep::server_context::rm_sync);
-    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_local);
+    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
     trrep::transaction_context tc(provider, cc);
 
     // Verify initial state
@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_before_after_prepare)
 
     // Run before prepare
     BOOST_REQUIRE(tc.before_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_preparing);
 
     bf_abort_unordered(cc, tc);
 
@@ -269,7 +269,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_uncertified
     trrep::provider provider(&mock_provider);
     trrep::server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
-    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_local);
+    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
     trrep::transaction_context tc(provider, cc);
 
     // Verify initial state
@@ -314,7 +314,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_certified)
     trrep::provider provider(&mock_provider);
     trrep::server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
-    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_local);
+    trrep::client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
     trrep::transaction_context tc(provider, cc);
 
     // Verify initial state

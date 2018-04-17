@@ -27,10 +27,10 @@ namespace trrep
         { return impl_->append_key(wsh, key); }
         int append_data(wsrep_ws_handle_t* wsh, const wsrep_buf_t* buf)
         { return impl_->append_data(wsh, buf); }
-        wsrep_status certify_commit(wsrep_conn_id_t conn_id,
-                                    wsrep_ws_handle_t* wsh,
-                                    uint32_t flags, wsrep_trx_meta_t* trx_meta)
-        { return impl_->certify_commit(conn_id, wsh, flags, trx_meta); }
+        wsrep_status certify(wsrep_conn_id_t conn_id,
+                             wsrep_ws_handle_t* wsh,
+                             uint32_t flags, wsrep_trx_meta_t* trx_meta)
+        { return impl_->certify(conn_id, wsh, flags, trx_meta); }
         int rollback(const wsrep_trx_id_t trx_id)
         { return impl_->rollback(trx_id); }
         wsrep_status commit_order_enter(wsrep_ws_handle_t* wsh)

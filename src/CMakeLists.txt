@@ -7,6 +7,7 @@
 add_library(trrep
   provider.cpp
   client_context.cpp
+  server_context.cpp
   transaction_context.cpp)
 
 add_executable(trrep_test

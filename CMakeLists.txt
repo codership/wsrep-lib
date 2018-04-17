@@ -40,4 +40,14 @@ add_custom_target(coverage_report
   COMMAND genhtml --output-directory coverage_report lcov.info)
 
 
+if (WITH_DOCUMENTATION)
+  find_package(Doxygen REQUIRED)
+  add_custom_target(doc ALL
+    COMMAND doxygen ${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/doc
+    COMMENT "Generating documentation with Doxygen"
+    VERBATIM)
+endif()
+
+
 add_subdirectory(src)

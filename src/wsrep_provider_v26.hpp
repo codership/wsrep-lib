@@ -5,7 +5,7 @@
 #ifndef TRREP_WSREP_PROVIDER_V26_HPP
 #define TRREP_WSREP_PROVIDER_V26_HPP
 
-#include "provider_impl.hpp"
+#include "provider.hpp"
 
 #include <wsrep_api.h>
 
@@ -15,8 +15,8 @@ namespace trrep
     {
     public:
 
-        wsrep_provider_v26(struct wsrep_init_args*)
-        { }
+        wsrep_provider_v26(const char*, struct wsrep_init_args*);
+
         int start_transaction(wsrep_ws_handle_t*) { return 0; }
         int append_key(wsrep_ws_handle_t*, const wsrep_key_t*) { return 0; }
         int append_data(wsrep_ws_handle_t*, const wsrep_buf_t*) { return 0; }
@@ -31,7 +31,8 @@ namespace trrep
         wsrep_status commit_order_enter(wsrep_ws_handle_t*) { return WSREP_OK; }
         int commit_order_leave(wsrep_ws_handle_t*) { return 0; }
         int release(wsrep_ws_handle_t*) { return 0; }
-
+    private:
+        struct wsrep* wsrep_;
     };
 }
 

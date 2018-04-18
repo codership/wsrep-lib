@@ -14,10 +14,12 @@ if (NOT WITH_WSREP_API)
 else()
   check_include_file("${WITH_WSREP_API}/wsrep_api.h" HAVE_WSREP_API_HPP)
   include_directories("${WITH_WSREP_API}")
+  link_directories("${WITH_WSREP_API}")
 endif()
 
 find_package(Boost 1.54.0 REQUIRED
   unit_test_framework
+  program_options
   )
 
 # Coverage

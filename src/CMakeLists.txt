@@ -8,7 +8,9 @@ add_library(trrep
   provider.cpp
   client_context.cpp
   server_context.cpp
-  transaction_context.cpp)
+  transaction_context.cpp
+  wsrep_provider_v26.cpp)
+target_link_libraries(trrep wsrep dl)
 
 add_executable(trrep_test
   mock_client_context.cpp
@@ -23,3 +25,7 @@ add_test(NAME trrep_test
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/trrep_test
   )
 
+add_executable(dbms_simulator
+  dbms_simulator.cpp)
+target_link_libraries(dbms_simulator trrep ${Boost_PROGRAM_OPTIONS_LIBRARY})
+set_property(TARGET dbms_simulator PROPERTY CXX_STANDARD 14)

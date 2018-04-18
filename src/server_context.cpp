@@ -60,17 +60,40 @@ namespace
     }
 }
 
-int trrep::server_context::load_provider(const std::string& provider_spec)
+int trrep::server_context::load_provider(const std::string& provider_spec,
+                                         const std::string& provider_options)
 {
+    std::cout << "Loading provider " << provider_spec << "\n";
     if (provider_spec == "mock")
     {
         provider_ = new trrep::mock_provider;
     }
     else
     {
+        std::cerr << "Provider options" << provider_options << "\n";
         struct wsrep_init_args init_args;
+        memset(&init_args, 0, sizeof(init_args));
+        init_args.app_ctx = this;
+        init_args.node_name = name_.c_str();
+        init_args.node_address = "";
+        init_args.node_incoming = "";
+        init_args.data_dir = "./";
+        init_args.options = provider_options.c_str();
+        init_args.proto_ver = 1;
+        init_args.state_id = 0;
+        init_args.state = 0;
+        init_args.logger_cb = 0;
+        init_args.connected_cb = 0;
+        init_args.view_cb = 0;
+        init_args.sst_request_cb = 0;
         init_args.apply_cb = &apply_cb;
-        provider_ = new trrep::wsrep_provider_v26(&init_args);
+        init_args.unordered_cb = 0;
+        init_args.sst_donate_cb = 0;
+        init_args.synced_cb = 0;
+
+        std::cerr << init_args.options << "\n";
+        provider_ = new trrep::wsrep_provider_v26(provider_spec.c_str(),
+                                                  &init_args);
     }
     return 0;
 }

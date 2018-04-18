@@ -118,7 +118,7 @@ namespace trrep
         //
         client_context(trrep::mutex& mutex,
                        trrep::server_context& server_context,
-                       client_id id,
+                       const client_id& id,
                        enum mode mode)
             : mutex_(mutex)
             , server_context_(server_context)

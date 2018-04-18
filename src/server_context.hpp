@@ -62,7 +62,7 @@ namespace trrep
         //
         // @return Zero on success, non-zero on error
         //
-        int load_provider(const std::string&);
+        int load_provider(const std::string&, const std::string& = "");
 
         //
         // Return reference to provider

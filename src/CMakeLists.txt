@@ -11,6 +11,9 @@ add_library(trrep
   transaction_context.cpp)
 
 add_executable(trrep_test
+  mock_client_context.cpp
+  mock_utils.cpp
+  server_context_test.cpp
   transaction_context_test.cpp
   trrep_test.cpp
   )

@@ -62,15 +62,10 @@ namespace trrep
         trrep::provider& provider() const;
 
         client_id id() const { return id_; }
-        client_id id(const client_id& id)
-        {
-            assert(mode() == m_applier);
-            id_ = id;
-        }
-
         enum mode mode() const { return mode_; }
         enum state state() const { return state_; }
 
+        virtual bool do_2pc() const = 0;
         //
         //
         //
@@ -85,15 +80,15 @@ namespace trrep
         virtual int append_fragment(trrep::transaction_context&,
                                     uint32_t, const trrep::data&)
         { return 0; }
-        virtual int commit(trrep::transaction_context&) { return 0; }
-        virtual int rollback(trrep::transaction_context&) { return 0; }
+        virtual int commit(trrep::transaction_context&) = 0;
+        virtual int rollback(trrep::transaction_context&) = 0;
 
         virtual void will_replay(trrep::transaction_context&) { }
         virtual int replay(trrep::transaction_context& tc);
 
 
         virtual int apply(trrep::transaction_context&,
-                          const trrep::data&) { return 0; }
+                          const trrep::data&) = 0;
 
         virtual void wait_for_replayers(trrep::unique_lock<trrep::mutex>&)
         { }

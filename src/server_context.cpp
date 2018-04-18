@@ -94,6 +94,9 @@ int trrep::server_context::on_apply(
         {
             ret = 1;
         }
+        assert(ret ||
+               transaction_context.state() ==
+               trrep::transaction_context::s_committed);
     }
     else
     {

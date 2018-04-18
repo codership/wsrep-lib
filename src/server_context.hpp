@@ -36,7 +36,6 @@ namespace trrep
             , name_(name)
             , id_(id)
             , rollback_mode_(rollback_mode)
-
         { }
 
         //

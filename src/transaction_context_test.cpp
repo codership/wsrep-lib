@@ -7,49 +7,9 @@
 #include "mock_server_context.hpp"
 #include "provider.hpp"
 
+#include "mock_utils.hpp"
+
 #include <boost/test/unit_test.hpp>
-
-//
-// Utility functions
-//
-namespace
-{
-    // Simple BF abort method to BF abort unordered transasctions
-    void bf_abort_unordered(trrep::client_context& cc,
-                            trrep::transaction_context& tc)
-    {
-        trrep::unique_lock<trrep::mutex> lock(cc.mutex());
-        tc.state(lock, trrep::transaction_context::s_must_abort);
-    }
-
-    // BF abort method to abort transactions via provider
-    void bf_abort_provider(trrep::mock_server_context& sc,
-                           const trrep::transaction_context& tc,
-                           wsrep_seqno_t bf_seqno)
-    {
-        wsrep_seqno_t victim_seqno;
-        sc.provider().bf_abort(bf_seqno, tc.id().get(), &victim_seqno);
-        (void)victim_seqno;
-    }
-
-    trrep::transaction_context applying_transaction(
-        trrep::client_context& cc,
-        trrep::transaction_id id,
-        wsrep_seqno_t seqno,
-        uint32_t flags)
-    {
-        wsrep_ws_handle_t ws_handle = { id.get(), 0 };
-        wsrep_trx_meta_t meta = {
-            { {1 }, seqno }, /* gtid */
-            { { static_cast<uint8_t>(cc.id().get()) }, id.get(), cc.id().get() }, /* stid */
-            seqno - 1
-        };
-        trrep::transaction_context ret(cc, ws_handle, meta, flags);
-        return ret;
-    }
-
-
-}
 
 //
 // Test a succesful 1PC transaction lifecycle
@@ -196,7 +156,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_before_before_commit)
     BOOST_REQUIRE(tc.id() == trrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
 
-    bf_abort_unordered(cc, tc);
+    trrep_mock::bf_abort_unordered(cc, tc);
 
     // Run before commit
     BOOST_REQUIRE(tc.before_commit());
@@ -237,7 +197,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc_bf_before_before_prepare)
     BOOST_REQUIRE(tc.id() == trrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
 
-    bf_abort_unordered(cc, tc);
+    trrep_mock::bf_abort_unordered(cc, tc);
 
     // Run before commit
     BOOST_REQUIRE(tc.before_prepare());
@@ -282,7 +242,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc_bf_before_after_prepare)
     BOOST_REQUIRE(tc.before_prepare() == 0);
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_preparing);
 
-    bf_abort_unordered(cc, tc);
+    trrep_mock::bf_abort_unordered(cc, tc);
 
     // Run before commit
     BOOST_REQUIRE(tc.after_prepare());
@@ -324,7 +284,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_uncertified
     BOOST_REQUIRE(tc.id() == trrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
 
-    bf_abort_provider(sc, tc, WSREP_SEQNO_UNDEFINED);
+    trrep_mock::bf_abort_provider(sc, tc, WSREP_SEQNO_UNDEFINED);
 
     // Run before commit
     BOOST_REQUIRE(tc.before_commit());
@@ -367,7 +327,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_certified)
     BOOST_REQUIRE(tc.id() == trrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
 
-    bf_abort_provider(sc, tc, 1);
+    trrep_mock::bf_abort_provider(sc, tc, 1);
 
     // Run before commit
     BOOST_REQUIRE(tc.before_commit());
@@ -395,7 +355,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_applying)
     trrep::mock_client_context cc(sc,
                              trrep::client_id(1),
                              trrep::client_context::m_applier);
-    trrep::transaction_context tc(applying_transaction(
+    trrep::transaction_context tc(trrep_mock::applying_transaction(
                                       cc, 1, 1,
                                       WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
 
@@ -420,7 +380,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc_applying)
     trrep::mock_client_context cc(sc,
                              trrep::client_id(1),
                              trrep::client_context::m_applier);
-    trrep::transaction_context tc(applying_transaction(
+    trrep::transaction_context tc(trrep_mock::applying_transaction(
                                       cc, 1, 1,
                                       WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
 
@@ -449,7 +409,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_applying_rollback)
     trrep::mock_client_context cc(sc,
                              trrep::client_id(1),
                              trrep::client_context::m_applier);
-    trrep::transaction_context tc(applying_transaction(
+    trrep::transaction_context tc(trrep_mock::applying_transaction(
                                       cc, 1, 1,
                                       WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
 

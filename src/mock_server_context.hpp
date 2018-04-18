@@ -22,7 +22,7 @@ namespace trrep
             , provider_()
             , last_client_id_(0)
         { }
-        trrep::provider& provider() const
+        trrep::mock_provider& provider() const
         { return provider_; }
         trrep::client_context* local_client_context()
         {

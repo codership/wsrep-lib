@@ -11,7 +11,7 @@
 
 namespace trrep
 {
-    class wsrep_provider_v26 : public trrep::provider_impl
+    class wsrep_provider_v26 : public trrep::provider
     {
     public:
 
@@ -24,6 +24,9 @@ namespace trrep
         certify(wsrep_conn_id_t, wsrep_ws_handle_t*,
                 uint32_t,
                 wsrep_trx_meta_t*) { return WSREP_OK; }
+        wsrep_status_t bf_abort(wsrep_seqno_t,
+                                wsrep_trx_id_t,
+                                wsrep_seqno_t*) { return WSREP_OK; }
         int rollback(const wsrep_trx_id_t) { return 0; }
         wsrep_status commit_order_enter(wsrep_ws_handle_t*) { return WSREP_OK; }
         int commit_order_leave(wsrep_ws_handle_t*) { return 0; }

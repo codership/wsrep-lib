@@ -7,7 +7,7 @@
 
 #include "server_context.hpp"
 #include "mock_client_context.hpp"
-#include "mock_provider_impl.hpp"
+#include "mock_provider.hpp"
 
 
 namespace trrep
@@ -19,14 +19,11 @@ namespace trrep
                             const std::string& id,
                             enum trrep::server_context::rollback_mode rollback_mode)
             : trrep::server_context(name, id, rollback_mode)
-            , mock_provider_impl_()
-            , provider_(&mock_provider_impl_)
+            , provider_()
             , last_client_id_(0)
         { }
         trrep::provider& provider() const
         { return provider_; }
-        trrep::mock_provider_impl& mock_provider() const
-        { return mock_provider_impl_; }
         trrep::client_context* local_client_context()
         {
             return new trrep::mock_client_context(*this, ++last_client_id_,
@@ -40,8 +37,7 @@ namespace trrep
         // void on_commit(trrep::transaction_context&) { }
 
     private:
-        mutable trrep::mock_provider_impl mock_provider_impl_;
-        mutable trrep::provider provider_;
+        mutable trrep::mock_provider provider_;
         unsigned long long last_client_id_;
     };
 }

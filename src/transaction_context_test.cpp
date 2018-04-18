@@ -6,7 +6,6 @@
 #include "mock_client_context.hpp"
 #include "mock_server_context.hpp"
 #include "provider.hpp"
-#include "mock_provider_impl.hpp"
 
 #include <boost/test/unit_test.hpp>
 
@@ -25,11 +24,12 @@ namespace
 
     // BF abort method to abort transactions via provider
     void bf_abort_provider(trrep::mock_server_context& sc,
-                           const trrep::client_context& cc,
                            const trrep::transaction_context& tc,
-                           wsrep_seqno_t seqno)
+                           wsrep_seqno_t bf_seqno)
     {
-        sc.mock_provider().bf_abort(cc.id().get(), tc.id().get(), seqno);
+        wsrep_seqno_t victim_seqno;
+        sc.provider().bf_abort(bf_seqno, tc.id().get(), &victim_seqno);
+        (void)victim_seqno;
     }
 
     trrep::transaction_context applying_transaction(
@@ -287,7 +287,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_uncertified
     BOOST_REQUIRE(tc.id() == trrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
 
-    bf_abort_provider(sc, cc, tc, WSREP_SEQNO_UNDEFINED);
+    bf_abort_provider(sc, tc, WSREP_SEQNO_UNDEFINED);
 
     // Run before commit
     BOOST_REQUIRE(tc.before_commit());
@@ -330,7 +330,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_certified)
     BOOST_REQUIRE(tc.id() == trrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
 
-    bf_abort_provider(sc, cc, tc, 1);
+    bf_abort_provider(sc, tc, 1);
 
     // Run before commit
     BOOST_REQUIRE(tc.before_commit());

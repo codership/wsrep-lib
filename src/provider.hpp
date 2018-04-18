@@ -5,7 +5,7 @@
 #ifndef TRREP_PROVIDER_HPP
 #define TRREP_PROVIDER_HPP
 
-#include "provider_impl.hpp"
+// #include "provider_impl.hpp"
 
 #include <wsrep_api.h>
 
@@ -13,39 +13,35 @@
 
 namespace trrep
 {
+    // Abstract interface for provider implementations
     class provider
     {
-
     public:
-
-        // Construct a provider with give provider implementation
-        // 
-        provider(provider_impl* impl) : impl_(impl) { }
-        int start_transaction(wsrep_ws_handle_t* wsh)
-        { return impl_->start_transaction(wsh); }
-        int append_key(wsrep_ws_handle_t* wsh, const wsrep_key_t* key)
-        { return impl_->append_key(wsh, key); }
-        int append_data(wsrep_ws_handle_t* wsh, const wsrep_buf_t* buf)
-        { return impl_->append_data(wsh, buf); }
-        wsrep_status certify(wsrep_conn_id_t conn_id,
-                             wsrep_ws_handle_t* wsh,
-                             uint32_t flags, wsrep_trx_meta_t* trx_meta)
-        { return impl_->certify(conn_id, wsh, flags, trx_meta); }
-        int rollback(const wsrep_trx_id_t trx_id)
-        { return impl_->rollback(trx_id); }
-        wsrep_status commit_order_enter(wsrep_ws_handle_t* wsh)
-        { return impl_->commit_order_enter(wsh); }
-        int commit_order_leave(wsrep_ws_handle_t* wsh)
-        { return impl_->commit_order_leave(wsh); }
-        int release(wsrep_ws_handle_t* wsh)
-        { return impl_->release(wsh); }
-
-        // Load the provider
-        // @param Path to provider library or "none" to load
-        //        dummy provider
+        virtual int start_transaction(wsrep_ws_handle_t*) = 0;
+        virtual int append_key(wsrep_ws_handle_t*, const wsrep_key_t*) = 0;
+        virtual int append_data(wsrep_ws_handle_t*, const wsrep_buf_t*) = 0;
+        virtual wsrep_status_t
+        certify(wsrep_conn_id_t, wsrep_ws_handle_t*,
+                uint32_t,
+                wsrep_trx_meta_t*) = 0;
+        //!
+        //! BF abort a transaction inside provider.
+        //!
+        //! @param[in] bf_seqno Seqno of the aborter transaction
+        //! @param[in] victim_txt Transaction identifier of the victim
+        //! @param[out] victim_seqno Sequence number of the victim transaction
+        //!              or WSREP_SEQNO_UNDEFINED if the victim was not ordered
+        //!
+        //! @return wsrep_status_t
+        virtual wsrep_status_t bf_abort(wsrep_seqno_t bf_seqno,
+                                        wsrep_trx_id_t victim_trx,
+                                        wsrep_seqno_t* victim_seqno) = 0;
+        virtual int rollback(const wsrep_trx_id_t) = 0;
+        virtual wsrep_status commit_order_enter(wsrep_ws_handle_t*) = 0;
+        virtual int commit_order_leave(wsrep_ws_handle_t*) = 0;
+        virtual int release(wsrep_ws_handle_t*) = 0;
         static provider* make_provider(const std::string& provider);
-    private:
-        provider_impl* impl_;
+
     };
 }
 

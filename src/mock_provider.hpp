@@ -2,10 +2,10 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_MOCK_PROVIDER_IMPL_HPP
-#define TRREP_MOCK_PROVIDER_IMPL_HPP
+#ifndef TRREP_MOCK_PROVIDER_HPP
+#define TRREP_MOCK_PROVIDER_HPP
 
-#include "provider_impl.hpp"
+#include "provider.hpp"
 
 #include <cstring>
 #include <map>
@@ -13,11 +13,11 @@
 
 namespace trrep
 {
-    class mock_provider_impl : public trrep::provider_impl
+    class mock_provider : public trrep::provider
     {
     public:
-        typedef std::map<std::pair<wsrep_conn_id_t, wsrep_trx_id_t>, wsrep_seqno_t > bf_abort_map;
-        mock_provider_impl()
+        typedef std::map<wsrep_trx_id_t, wsrep_seqno_t > bf_abort_map;
+        mock_provider()
             : group_id_()
             , node_id_()
             , group_seqno_(0)
@@ -49,8 +49,7 @@ namespace trrep
             trx_meta->stid.trx = ws_handle->trx_id;
             trx_meta->stid.conn = conn_id;
 
-            std::pair<wsrep_conn_id_t, wsrep_trx_id_t>
-                trx_id(conn_id, ws_handle->trx_id);
+            wsrep_trx_id_t trx_id(ws_handle->trx_id);
             bf_abort_map::iterator it(bf_abort_map_.find(trx_id));
             std::cerr << "bf aborted: "
                       << (it == bf_abort_map_.end() ? "no" : "yes") << "\n";
@@ -100,28 +99,22 @@ namespace trrep
 
         // Inject BF abort event into the provider.
         //
-        // If bf_seqno equals to WSREP_SEQNO_UNDEFINED, the BF abort
-        // is done without ordering and the provider will return
-        // WSREP_TRX_FAIL to the aborted transaction. Otherwise
-        // WSREP_BF_ABORT is returned to the aborted transaction.
-        //
-        // @param conn_id Connection/client identifier to be aborted
-        // @param trx_id Trx id to be aborted
         // @param bf_seqno Aborter sequence number
+        // @param trx_id Trx id to be aborted
+        // @param[out] victim_seqno
         //
-        void bf_abort(wsrep_conn_id_t conn_id,
-                      wsrep_trx_id_t trx_id,
-                      wsrep_seqno_t bf_seqno)
+        wsrep_status_t bf_abort(wsrep_seqno_t bf_seqno,
+                                wsrep_trx_id_t trx_id,
+                                wsrep_seqno_t* victim_seqno)
         {
-            std::cerr << "bf_abort: " << conn_id << ":" << trx_id << "\n";
-            assert(bf_seqno == WSREP_SEQNO_UNDEFINED ||
-                   group_seqno_ < bf_seqno);
-            bf_abort_map_.insert(std::make_pair(std::make_pair(conn_id, trx_id),
-                                                bf_seqno));
+            std::cerr << "bf_abort: " << trx_id << "\n";
+            bf_abort_map_.insert(std::make_pair(trx_id, bf_seqno));
             if (bf_seqno != WSREP_SEQNO_UNDEFINED)
             {
                 group_seqno_ = bf_seqno;
             }
+            *victim_seqno = WSREP_SEQNO_UNDEFINED;
+            return WSREP_OK;
         }
     private:
         wsrep_uuid_t group_id_;
@@ -132,4 +125,4 @@ namespace trrep
 }
 
 
-#endif // TRREP_MOCK_PROVIDER_IMPL_HPP
+#endif // TRREP_MOCK_PROVIDER_HPP

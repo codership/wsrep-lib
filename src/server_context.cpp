@@ -7,7 +7,7 @@
 #include "transaction_context.hpp"
 
 // Todo: refactor into provider factory
-#include "mock_provider_impl.hpp"
+#include "mock_provider.hpp"
 #include "wsrep_provider_v26.hpp"
 
 #include <wsrep_api.h>
@@ -64,14 +64,13 @@ int trrep::server_context::load_provider(const std::string& provider_spec)
 {
     if (provider_spec == "mock")
     {
-        provider_ = new trrep::provider(new trrep::mock_provider_impl);
+        provider_ = new trrep::mock_provider;
     }
     else
     {
         struct wsrep_init_args init_args;
         init_args.apply_cb = &apply_cb;
-        provider_ = new trrep::provider(
-            new trrep::wsrep_provider_v26(&init_args));
+        provider_ = new trrep::wsrep_provider_v26(&init_args);
     }
     return 0;
 }

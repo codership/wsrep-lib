@@ -11,20 +11,35 @@
 
 namespace trrep
 {
-    // Default pthread implementation
-
+    //!
+    //! 
+    //!
     class mutex
     {
     public:
-        mutex()
-            : mutex_()
+        mutex() { }
+        virtual ~mutex() { }
+        virtual void lock() = 0;
+        virtual void unlock() = 0;
+    private:
+        mutex(const mutex& other);
+        mutex& operator=(const mutex& other);
+    };
+
+    // Default pthread implementation
+    class default_mutex : public trrep::mutex
+    {
+    public:
+        default_mutex()
+            : trrep::mutex(),
+              mutex_()
         {
             if (pthread_mutex_init(&mutex_, 0))
             {
                 throw trrep::runtime_error("mutex init failed");
             }
         }
-        ~mutex()
+        ~default_mutex()
         {
             if (pthread_mutex_destroy(&mutex_))
             {
@@ -48,8 +63,6 @@ namespace trrep
             }
         }
     private:
-        mutex(const mutex& other);
-        mutex& operator=(const mutex& other);
         pthread_mutex_t mutex_;
     };
 }

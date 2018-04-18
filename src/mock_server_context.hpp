@@ -6,7 +6,9 @@
 #define TRREP_MOCK_SERVER_CONTEXT_HPP
 
 #include "server_context.hpp"
+#include "mock_client_context.hpp"
 #include "mock_provider_impl.hpp"
+
 
 namespace trrep
 {
@@ -27,8 +29,8 @@ namespace trrep
         { return mock_provider_impl_; }
         trrep::client_context* local_client_context()
         {
-            return new trrep::client_context(*this, ++last_client_id_,
-                                             trrep::client_context::m_local);
+            return new trrep::mock_client_context(*this, ++last_client_id_,
+                                                  trrep::client_context::m_local);
         }
 
         void on_connect() { }

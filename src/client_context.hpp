@@ -53,10 +53,14 @@ namespace trrep
             s_quitting
         };
 
-        client_context(trrep::server_context& server_context,
+        //
+        // Client context constuctor
+        //
+        client_context(trrep::mutex& mutex,
+                       trrep::server_context& server_context,
                        client_id id,
                        enum mode mode)
-            : mutex_()
+            : mutex_(mutex)
             , server_context_(server_context)
             , id_(id)
             , mode_(mode)
@@ -130,7 +134,7 @@ namespace trrep
 
         void state(enum state state);
 
-        trrep::mutex mutex_;
+        trrep::mutex& mutex_;
         trrep::server_context& server_context_;
         client_id id_;
         enum mode mode_;

@@ -248,8 +248,8 @@ int trrep::transaction_context::before_commit()
             {
                 // 1pc
                 state(lock, s_certifying);
+                state(lock, s_committing);
             }
-            state(lock, s_committing);
         }
         break;
     }
@@ -437,7 +437,7 @@ void trrep::transaction_context::state(
     assert(lock.owns_lock());
     static const char allowed[n_states][n_states] =
         { /*  ex pr ce co oc ct cf ma ab ad mr re from/to */
-            { 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0}, /* ex */
+            { 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0}, /* ex */
             { 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0}, /* pr */
             { 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0}, /* ce */
             { 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0}, /* co */

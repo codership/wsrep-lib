@@ -53,19 +53,6 @@ namespace trrep
             s_quitting
         };
 
-        //
-        // Client context constuctor
-        //
-        client_context(trrep::mutex& mutex,
-                       trrep::server_context& server_context,
-                       client_id id,
-                       enum mode mode)
-            : mutex_(mutex)
-            , server_context_(server_context)
-            , id_(id)
-            , mode_(mode)
-            , state_(s_idle)
-        { }
 
         virtual ~client_context() { }
         // Accessors
@@ -130,8 +117,22 @@ namespace trrep
         {
             abort();
         }
-    private:
+    protected:
+        //
+        // Client context constuctor
+        //
+        client_context(trrep::mutex& mutex,
+                       trrep::server_context& server_context,
+                       client_id id,
+                       enum mode mode)
+            : mutex_(mutex)
+            , server_context_(server_context)
+            , id_(id)
+            , mode_(mode)
+            , state_(s_idle)
+        { }
 
+    private:
         void state(enum state state);
 
         trrep::mutex& mutex_;

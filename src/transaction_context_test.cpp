@@ -140,6 +140,43 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc)
 }
 
 //
+// Test a voluntary rollback
+//
+BOOST_AUTO_TEST_CASE(transaction_context_rollback)
+{
+    trrep::mock_server_context sc("s1", "s1",
+                                  trrep::server_context::rm_sync);
+    trrep::mock_client_context cc(sc,trrep::client_id(1),
+                             trrep::client_context::m_replicating);
+    trrep::transaction_context tc(cc);
+
+    // Verify initial state
+    BOOST_REQUIRE(tc.active() == false);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
+
+    // Start a new transaction with ID 1
+    tc.start_transaction(1);
+    BOOST_REQUIRE(tc.active());
+    BOOST_REQUIRE(tc.id() == trrep::transaction_id(1));
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_executing);
+
+    // Run before commit
+    BOOST_REQUIRE(tc.before_rollback() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_aborting);
+
+    // Run after commit
+    BOOST_REQUIRE(tc.after_rollback() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_aborted);
+
+    // Cleanup after statement
+    BOOST_REQUIRE(tc.after_statement() == 0);
+    BOOST_REQUIRE(tc.active() == false);
+    BOOST_REQUIRE(tc.ordered() == false);
+    BOOST_REQUIRE(tc.certified() == false);
+
+}
+
+//
 // Test a 1PC transaction which gets BF aborted before before_commit
 //
 BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_before_before_commit)
@@ -397,5 +434,33 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc_applying)
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_preparing);
     BOOST_REQUIRE(tc.after_prepare() == 0);
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committing);
+    BOOST_REQUIRE(tc.before_commit() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committing);
+    BOOST_REQUIRE(tc.ordered_commit() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_ordered_commit);
+    BOOST_REQUIRE(tc.after_commit() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committed);
+}
 
+BOOST_AUTO_TEST_CASE(transaction_context_applying_rollback)
+{
+    trrep::mock_server_context sc("s1", "s1",
+                                  trrep::server_context::rm_sync);
+    trrep::mock_client_context cc(sc,
+                             trrep::client_id(1),
+                             trrep::client_context::m_applier);
+    trrep::transaction_context tc(applying_transaction(
+                                      cc, 1, 1,
+                                      WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
+
+    BOOST_REQUIRE(tc.active() == false);
+    BOOST_REQUIRE(tc.start_transaction() == 0);
+    BOOST_REQUIRE(tc.active() == true);
+    BOOST_REQUIRE(tc.certified() == true);
+    BOOST_REQUIRE(tc.ordered() == true);
+
+    BOOST_REQUIRE(tc.before_rollback() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_aborting);
+    BOOST_REQUIRE(tc.after_rollback() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_aborted);
 }

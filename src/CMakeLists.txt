@@ -10,7 +10,7 @@ add_library(trrep
   server_context.cpp
   transaction_context.cpp
   wsrep_provider_v26.cpp)
-target_link_libraries(trrep wsrep dl)
+target_link_libraries(trrep wsrep pthread dl)
 
 add_executable(trrep_test
   mock_client_context.cpp

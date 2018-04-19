@@ -17,6 +17,7 @@ namespace trrep
     class provider;
     class client_context;
     class transaction_context;
+    class view;
     class data;
 
     class server_context
@@ -38,6 +39,7 @@ namespace trrep
             , rollback_mode_(rollback_mode)
         { }
 
+        virtual ~server_context();
         //
         // Return server name
         //
@@ -83,7 +85,8 @@ namespace trrep
         //
         //
         virtual void on_connect() = 0;
-        virtual void on_view() = 0;
+        virtual void wait_until_connected() = 0;
+        virtual void on_view(const trrep::view&) = 0;
         virtual void on_sync() = 0;
 
         //

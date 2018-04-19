@@ -16,7 +16,12 @@ namespace trrep
     public:
 
         wsrep_provider_v26(const char*, struct wsrep_init_args*);
+        ~wsrep_provider_v26();
+        int connect(const std::string&, const std::string&, const std::string&,
+                    bool);
+        int disconnect();
 
+        wsrep_status_t run_applier(void*);
         int start_transaction(wsrep_ws_handle_t*) { return 0; }
         int append_key(wsrep_ws_handle_t*, const wsrep_key_t*) { return 0; }
         int append_data(wsrep_ws_handle_t*, const wsrep_buf_t*) { return 0; }
@@ -32,6 +37,8 @@ namespace trrep
         int commit_order_leave(wsrep_ws_handle_t*) { return 0; }
         int release(wsrep_ws_handle_t*) { return 0; }
     private:
+        wsrep_provider_v26(const wsrep_provider_v26&);
+        wsrep_provider_v26& operator=(const wsrep_provider_v26);
         struct wsrep* wsrep_;
     };
 }

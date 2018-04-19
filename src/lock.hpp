@@ -46,6 +46,8 @@ namespace trrep
         {
             return locked_;
         }
+
+        M& mutex() { return mutex_; }
     private:
         unique_lock(const unique_lock&);
         unique_lock& operator=(const unique_lock&);

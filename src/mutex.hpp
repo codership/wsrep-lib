@@ -21,6 +21,8 @@ namespace trrep
         virtual ~mutex() { }
         virtual void lock() = 0;
         virtual void unlock() = 0;
+        /* Return native handle */
+        virtual void* native() = 0;
     private:
         mutex(const mutex& other);
         mutex& operator=(const mutex& other);
@@ -61,6 +63,11 @@ namespace trrep
             {
                 throw trrep::runtime_error("mutex unlock failed");
             }
+        }
+
+        void* native()
+        {
+            return &mutex_;
         }
     private:
         pthread_mutex_t mutex_;

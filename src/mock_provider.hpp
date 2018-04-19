@@ -30,6 +30,12 @@ namespace trrep
             memset(&node_id_, 0, sizeof(node_id_));
             node_id_.data[0] = 1;
         }
+
+        int connect(const std::string&, const std::string&, const std::string&,
+                    bool)
+        { return 0; }
+        int disconnect() { return 0; }
+        wsrep_status_t run_applier(void*) { return WSREP_OK; }
         // Provider implemenatation interface
         int start_transaction(wsrep_ws_handle_t*) { return 0; }
         wsrep_status

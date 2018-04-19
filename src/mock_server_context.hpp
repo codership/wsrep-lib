@@ -31,7 +31,8 @@ namespace trrep
         }
 
         void on_connect() { }
-        void on_view() { }
+        void wait_until_connected() { }
+        void on_view(const trrep::view&) { }
         void on_sync() { }
         // void on_apply(trrep::transaction_context&) { }
         // void on_commit(trrep::transaction_context&) { }

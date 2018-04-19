@@ -5,6 +5,7 @@
 #include "server_context.hpp"
 #include "client_context.hpp"
 #include "transaction_context.hpp"
+#include "view.hpp"
 
 // Todo: refactor into provider factory
 #include "mock_provider.hpp"
@@ -30,6 +31,51 @@ namespace
     inline bool rolls_back_transaction(uint32_t flags)
     {
         return (flags & WSREP_FLAG_ROLLBACK);
+    }
+
+    static wsrep_cb_status_t connected_cb(
+        void* app_ctx,
+        const wsrep_view_info_t* view __attribute((unused)))
+    {
+        assert(app_ctx != 0);
+        trrep::server_context& server_context(
+            *reinterpret_cast<trrep::server_context*>(app_ctx));
+        //
+        // TODO: Fetch server id and group id from view infor
+        //
+        try
+        {
+            server_context.on_connect();
+            return WSREP_CB_SUCCESS;
+        }
+        catch (const trrep::runtime_error& e)
+        {
+            std::cerr << "Exception: " << e.what();
+            return WSREP_CB_FAILURE;
+        }
+    }
+
+    static wsrep_cb_status_t view_cb(void* app_ctx,
+                                     void* recv_ctx __attribute__((unused)),
+                                     const wsrep_view_info_t* view_info,
+                                     const char*,
+                                     size_t)
+    {
+        assert(app_ctx);
+        assert(view_info);
+        trrep::server_context& server_context(
+            *reinterpret_cast<trrep::server_context*>(app_ctx));
+        try
+        {
+            trrep::view view(*view_info);
+            server_context.on_view(view);
+            return WSREP_CB_SUCCESS;
+        }
+        catch (const trrep::runtime_error& e)
+        {
+            std::cerr << "Exception: " << e.what();
+            return WSREP_CB_FAILURE;
+        }
     }
 
     static wsrep_cb_status_t apply_cb(void* ctx,
@@ -58,6 +104,23 @@ namespace
         }
         return ret;
     }
+
+    wsrep_cb_status_t synced_cb(void* app_ctx)
+    {
+        assert(app_ctx);
+        trrep::server_context& server_context(
+            *reinterpret_cast<trrep::server_context*>(app_ctx));
+        try
+        {
+            server_context.on_sync();
+            return WSREP_CB_SUCCESS;
+        }
+        catch (const trrep::runtime_error& e)
+        {
+            std::cerr << "On sync failed: " << e.what() << "\n";
+            return WSREP_CB_FAILURE;
+        }
+    }
 }
 
 int trrep::server_context::load_provider(const std::string& provider_spec,
@@ -83,13 +146,13 @@ int trrep::server_context::load_provider(const std::string& provider_spec,
         init_args.state_id = 0;
         init_args.state = 0;
         init_args.logger_cb = 0;
-        init_args.connected_cb = 0;
-        init_args.view_cb = 0;
+        init_args.connected_cb = &connected_cb;
+        init_args.view_cb = &view_cb;
         init_args.sst_request_cb = 0;
         init_args.apply_cb = &apply_cb;
         init_args.unordered_cb = 0;
         init_args.sst_donate_cb = 0;
-        init_args.synced_cb = 0;
+        init_args.synced_cb = &synced_cb;
 
         std::cerr << init_args.options << "\n";
         provider_ = new trrep::wsrep_provider_v26(provider_spec.c_str(),
@@ -97,6 +160,12 @@ int trrep::server_context::load_provider(const std::string& provider_spec,
     }
     return 0;
 }
+
+trrep::server_context::~server_context()
+{
+    delete provider_;
+}
+
 
 int trrep::server_context::on_apply(
     trrep::client_context& client_context,

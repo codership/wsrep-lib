@@ -17,6 +17,20 @@ namespace trrep
     class provider
     {
     public:
+
+        virtual ~provider() { }
+        // Provider state management
+        virtual int connect(const std::string& cluster_name,
+                            const std::string& cluster_url,
+                            const std::string& state_donor,
+                            bool bootstrap) = 0;
+        virtual int disconnect() = 0;
+
+
+        // Applier interface
+        virtual wsrep_status_t run_applier(void* applier_ctx) = 0;
+        // Write set replication
+        // TODO: Rename to assing_read_view()
         virtual int start_transaction(wsrep_ws_handle_t*) = 0;
         virtual int append_key(wsrep_ws_handle_t*, const wsrep_key_t*) = 0;
         virtual int append_data(wsrep_ws_handle_t*, const wsrep_buf_t*) = 0;
@@ -40,8 +54,9 @@ namespace trrep
         virtual wsrep_status commit_order_enter(wsrep_ws_handle_t*) = 0;
         virtual int commit_order_leave(wsrep_ws_handle_t*) = 0;
         virtual int release(wsrep_ws_handle_t*) = 0;
-        static provider* make_provider(const std::string& provider);
 
+        // Factory method
+        static provider* make_provider(const std::string& provider);
     };
 }
 

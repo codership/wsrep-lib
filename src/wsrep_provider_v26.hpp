@@ -23,19 +23,19 @@ namespace trrep
 
         wsrep_status_t run_applier(void*);
         int start_transaction(wsrep_ws_handle_t*) { return 0; }
-        int append_key(wsrep_ws_handle_t*, const wsrep_key_t*) { return 0; }
-        int append_data(wsrep_ws_handle_t*, const wsrep_buf_t*) { return 0; }
+        int append_key(wsrep_ws_handle_t*, const wsrep_key_t*);
+        int append_data(wsrep_ws_handle_t*, const wsrep_buf_t*);
         wsrep_status_t
         certify(wsrep_conn_id_t, wsrep_ws_handle_t*,
                 uint32_t,
-                wsrep_trx_meta_t*) { return WSREP_OK; }
+                wsrep_trx_meta_t*);
         wsrep_status_t bf_abort(wsrep_seqno_t,
                                 wsrep_trx_id_t,
                                 wsrep_seqno_t*) { return WSREP_OK; }
         int rollback(const wsrep_trx_id_t) { return 0; }
-        wsrep_status commit_order_enter(wsrep_ws_handle_t*) { return WSREP_OK; }
-        int commit_order_leave(wsrep_ws_handle_t*) { return 0; }
-        int release(wsrep_ws_handle_t*) { return 0; }
+        wsrep_status commit_order_enter(wsrep_ws_handle_t*);
+        int commit_order_leave(wsrep_ws_handle_t*);
+        int release(wsrep_ws_handle_t*);
         int sst_sent(const wsrep_gtid_t&,int);
         int sst_received(const wsrep_gtid_t& gtid, int);
     private:

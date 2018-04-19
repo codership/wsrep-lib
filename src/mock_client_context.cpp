@@ -7,7 +7,7 @@
 
 
 int trrep::mock_client_context::apply(
-    trrep::transaction_context& transaction_context,
+    trrep::transaction_context& transaction_context __attribute__((unused)),
     const trrep::data& data __attribute__((unused)))
 
 {

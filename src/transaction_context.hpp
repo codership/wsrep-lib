@@ -133,6 +133,7 @@ namespace trrep
         void remove_fragments();
         void clear_fragments();
         void cleanup();
+        void debug_log_state() const;
         trrep::provider& provider_;
         trrep::client_context& client_context_;
         trrep::transaction_id id_;

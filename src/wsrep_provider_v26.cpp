@@ -68,6 +68,44 @@ wsrep_status_t trrep::wsrep_provider_v26::run_applier(void *applier_ctx)
     return wsrep_->recv(wsrep_, applier_ctx);
 }
 
+int trrep::wsrep_provider_v26::append_key(wsrep_ws_handle_t* wsh,
+                                          const wsrep_key_t* key)
+{
+    return (wsrep_->append_key(wsrep_, wsh, key, 1, WSREP_KEY_EXCLUSIVE, true)
+            != WSREP_OK);
+}
+
+int trrep::wsrep_provider_v26::append_data(wsrep_ws_handle_t* wsh,
+                                           const wsrep_buf_t* data)
+{
+    return (wsrep_->append_data(wsrep_, wsh, data, 1, WSREP_DATA_ORDERED, true)
+            != WSREP_OK);
+}
+
+wsrep_status_t trrep::wsrep_provider_v26::certify(wsrep_conn_id_t conn_id,
+                                                  wsrep_ws_handle_t* wsh,
+                                                  uint32_t flags,
+                                                  wsrep_trx_meta_t* meta)
+{
+    return wsrep_->certify(wsrep_, conn_id, wsh, flags, meta);
+}
+
+wsrep_status_t trrep::wsrep_provider_v26::commit_order_enter(
+    wsrep_ws_handle_t* wsh)
+{
+    return wsrep_->commit_order_enter(wsrep_, wsh);
+}
+
+int trrep::wsrep_provider_v26::commit_order_leave(wsrep_ws_handle_t* wsh)
+{
+    return (wsrep_->commit_order_leave(wsrep_, wsh, 0) != WSREP_OK);
+}
+
+int trrep::wsrep_provider_v26::release(wsrep_ws_handle_t* wsh)
+{
+    return (wsrep_->release(wsrep_, wsh) != WSREP_OK);
+}
+
 int trrep::wsrep_provider_v26::sst_sent(const wsrep_gtid_t& gtid, int err)
 {
     if (wsrep_->sst_sent(wsrep_, &gtid, err) != WSREP_OK)

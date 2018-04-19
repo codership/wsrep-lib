@@ -18,7 +18,7 @@ namespace trrep
         mock_server_context(const std::string& name,
                             const std::string& id,
                             enum trrep::server_context::rollback_mode rollback_mode)
-            : trrep::server_context(name, id, rollback_mode)
+            : trrep::server_context(name, id, "./", rollback_mode)
             , provider_()
             , last_client_id_(0)
         { }
@@ -34,6 +34,11 @@ namespace trrep
         void wait_until_connected() { }
         void on_view(const trrep::view&) { }
         void on_sync() { }
+        std::string on_sst_request() { return ""; }
+        void on_sst_donate_request(const std::string&,
+                                   const wsrep_gtid_t&,
+                                   bool) { }
+        void sst_received(const wsrep_gtid_t&) { }
         // void on_apply(trrep::transaction_context&) { }
         // void on_commit(trrep::transaction_context&) { }
 

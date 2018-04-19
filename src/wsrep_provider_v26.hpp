@@ -36,6 +36,8 @@ namespace trrep
         wsrep_status commit_order_enter(wsrep_ws_handle_t*) { return WSREP_OK; }
         int commit_order_leave(wsrep_ws_handle_t*) { return 0; }
         int release(wsrep_ws_handle_t*) { return 0; }
+        int sst_sent(const wsrep_gtid_t&,int);
+        int sst_received(const wsrep_gtid_t& gtid, int);
     private:
         wsrep_provider_v26(const wsrep_provider_v26&);
         wsrep_provider_v26& operator=(const wsrep_provider_v26);

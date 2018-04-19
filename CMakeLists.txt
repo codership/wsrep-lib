@@ -20,6 +20,7 @@ endif()
 find_package(Boost 1.54.0 REQUIRED
   unit_test_framework
   program_options
+  filesystem
   )
 
 # Coverage

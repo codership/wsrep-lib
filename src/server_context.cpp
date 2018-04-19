@@ -33,7 +33,7 @@ namespace
         return (flags & WSREP_FLAG_ROLLBACK);
     }
 
-    static wsrep_cb_status_t connected_cb(
+    wsrep_cb_status_t connected_cb(
         void* app_ctx,
         const wsrep_view_info_t* view __attribute((unused)))
     {
@@ -55,7 +55,7 @@ namespace
         }
     }
 
-    static wsrep_cb_status_t view_cb(void* app_ctx,
+    wsrep_cb_status_t view_cb(void* app_ctx,
                                      void* recv_ctx __attribute__((unused)),
                                      const wsrep_view_info_t* view_info,
                                      const char*,
@@ -78,12 +78,32 @@ namespace
         }
     }
 
-    static wsrep_cb_status_t apply_cb(void* ctx,
-                                      const wsrep_ws_handle_t* wsh,
-                                      uint32_t flags,
-                                      const wsrep_buf_t* buf,
-                                      const wsrep_trx_meta_t* meta,
-                                      wsrep_bool_t* exit_loop __attribute__((unused)))
+    wsrep_cb_status_t sst_request_cb(void* app_ctx,
+                                     void **sst_req, size_t* sst_req_len)
+    {
+        assert(app_ctx);
+        trrep::server_context& server_context(
+            *reinterpret_cast<trrep::server_context*>(app_ctx));
+
+        try
+        {
+            std::string req(server_context.on_sst_request());
+            *sst_req = ::strdup(req.c_str());
+            *sst_req_len = strlen(req.c_str());
+            return WSREP_CB_SUCCESS;
+        }
+        catch (const trrep::runtime_error& e)
+        {
+            return WSREP_CB_FAILURE;
+        }
+    }
+
+    wsrep_cb_status_t apply_cb(void* ctx,
+                               const wsrep_ws_handle_t* wsh,
+                               uint32_t flags,
+                               const wsrep_buf_t* buf,
+                               const wsrep_trx_meta_t* meta,
+                               wsrep_bool_t* exit_loop __attribute__((unused)))
     {
         wsrep_cb_status_t ret(WSREP_CB_SUCCESS);
 
@@ -121,6 +141,30 @@ namespace
             return WSREP_CB_FAILURE;
         }
     }
+
+
+    wsrep_cb_status_t sst_donate_cb(void* app_ctx,
+                                    void* ,
+                                    const wsrep_buf_t* req_buf,
+                                    const wsrep_gtid_t* gtid,
+                                    const wsrep_buf_t*,
+                                    bool bypass)
+    {
+        assert(app_ctx);
+        trrep::server_context& server_context(
+            *reinterpret_cast<trrep::server_context*>(app_ctx));
+        try
+        {
+            std::string req(reinterpret_cast<const char*>(req_buf->ptr),
+                            req_buf->len);
+            server_context.on_sst_donate_request(req, *gtid, bypass);
+            return WSREP_CB_SUCCESS;
+        }
+        catch (const trrep::runtime_error& e)
+        {
+            return WSREP_CB_FAILURE;
+        }
+    }
 }
 
 int trrep::server_context::load_provider(const std::string& provider_spec,
@@ -140,7 +184,7 @@ int trrep::server_context::load_provider(const std::string& provider_spec,
         init_args.node_name = name_.c_str();
         init_args.node_address = "";
         init_args.node_incoming = "";
-        init_args.data_dir = "./";
+        init_args.data_dir = working_dir_.c_str();
         init_args.options = provider_options.c_str();
         init_args.proto_ver = 1;
         init_args.state_id = 0;
@@ -148,10 +192,10 @@ int trrep::server_context::load_provider(const std::string& provider_spec,
         init_args.logger_cb = 0;
         init_args.connected_cb = &connected_cb;
         init_args.view_cb = &view_cb;
-        init_args.sst_request_cb = 0;
+        init_args.sst_request_cb = &sst_request_cb;
         init_args.apply_cb = &apply_cb;
         init_args.unordered_cb = 0;
-        init_args.sst_donate_cb = 0;
+        init_args.sst_donate_cb = &sst_donate_cb;
         init_args.synced_cb = &synced_cb;
 
         std::cerr << init_args.options << "\n";

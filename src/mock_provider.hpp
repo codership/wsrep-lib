@@ -122,6 +122,9 @@ namespace trrep
             *victim_seqno = WSREP_SEQNO_UNDEFINED;
             return WSREP_OK;
         }
+
+        int sst_sent(const wsrep_gtid_t&, int) { return 0; }
+        int sst_received(const wsrep_gtid_t&, int) { return 0; }
     private:
         wsrep_uuid_t group_id_;
         wsrep_uuid_t node_id_;

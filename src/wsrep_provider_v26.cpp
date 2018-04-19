@@ -67,3 +67,21 @@ wsrep_status_t trrep::wsrep_provider_v26::run_applier(void *applier_ctx)
 {
     return wsrep_->recv(wsrep_, applier_ctx);
 }
+
+int trrep::wsrep_provider_v26::sst_sent(const wsrep_gtid_t& gtid, int err)
+{
+    if (wsrep_->sst_sent(wsrep_, &gtid, err) != WSREP_OK)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+int trrep::wsrep_provider_v26::sst_received(const wsrep_gtid_t& gtid, int err)
+{
+    if (wsrep_->sst_received(wsrep_, &gtid, 0, err) != WSREP_OK)
+    {
+        return 1;
+    }
+    return 0;
+}

@@ -32,10 +32,12 @@ namespace trrep
 
         server_context(const std::string& name,
                        const std::string& id,
+                       const std::string& working_dir,
                        enum rollback_mode rollback_mode)
             : provider_()
             , name_(name)
             , id_(id)
+            , working_dir_(working_dir)
             , rollback_mode_(rollback_mode)
         { }
 
@@ -88,7 +90,11 @@ namespace trrep
         virtual void wait_until_connected() = 0;
         virtual void on_view(const trrep::view&) = 0;
         virtual void on_sync() = 0;
-
+        virtual std::string on_sst_request() = 0;
+        virtual void on_sst_donate_request(const std::string&,
+                                           const wsrep_gtid_t&,
+                                           bool) = 0;
+        virtual void sst_received(const wsrep_gtid_t&) = 0;
         //
         // This method will be called by the applier thread when
         // a remote write set is being applied. It is the responsibility
@@ -113,6 +119,7 @@ namespace trrep
         trrep::provider* provider_;
         std::string name_;
         std::string id_;
+        std::string working_dir_;
         enum rollback_mode rollback_mode_;
     };
 }

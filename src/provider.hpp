@@ -55,6 +55,8 @@ namespace trrep
         virtual int commit_order_leave(wsrep_ws_handle_t*) = 0;
         virtual int release(wsrep_ws_handle_t*) = 0;
 
+        virtual int sst_sent(const wsrep_gtid_t&, int) = 0;
+        virtual int sst_received(const wsrep_gtid_t&, int) = 0;
         // Factory method
         static provider* make_provider(const std::string& provider);
     };

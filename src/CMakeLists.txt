@@ -27,5 +27,5 @@ add_test(NAME trrep_test
 
 add_executable(dbms_simulator
   dbms_simulator.cpp)
-target_link_libraries(dbms_simulator trrep ${Boost_PROGRAM_OPTIONS_LIBRARY})
+target_link_libraries(dbms_simulator trrep ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY})
 set_property(TARGET dbms_simulator PROPERTY CXX_STANDARD 14)

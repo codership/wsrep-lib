@@ -37,7 +37,7 @@ namespace
         void* app_ctx,
         const wsrep_view_info_t* view __attribute((unused)))
     {
-        assert(app_ctx != 0);
+        assert(app_ctx);
         trrep::server_context& server_context(
             *reinterpret_cast<trrep::server_context*>(app_ctx));
         //
@@ -182,7 +182,7 @@ int trrep::server_context::load_provider(const std::string& provider_spec,
         memset(&init_args, 0, sizeof(init_args));
         init_args.app_ctx = this;
         init_args.node_name = name_.c_str();
-        init_args.node_address = "";
+        init_args.node_address = address_.c_str();
         init_args.node_incoming = "";
         init_args.data_dir = working_dir_.c_str();
         init_args.options = provider_options.c_str();
@@ -240,6 +240,7 @@ int trrep::server_context::on_apply(
         assert(0);
     }
 
+    transaction_context.after_statement();
     if (ret)
     {
         client_context.rollback(transaction_context);

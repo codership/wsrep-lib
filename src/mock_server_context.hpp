@@ -18,7 +18,7 @@ namespace trrep
         mock_server_context(const std::string& name,
                             const std::string& id,
                             enum trrep::server_context::rollback_mode rollback_mode)
-            : trrep::server_context(name, id, "./", rollback_mode)
+            : trrep::server_context(name, id, "", "./", rollback_mode)
             , provider_()
             , last_client_id_(0)
         { }

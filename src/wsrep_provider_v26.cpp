@@ -7,7 +7,10 @@
 
 #include <wsrep_api.h>
 
+#include <cassert>
+
 #include <iostream>
+#include <sstream>
 
 trrep::wsrep_provider_v26::wsrep_provider_v26(
     const char* path,
@@ -91,14 +94,17 @@ wsrep_status_t trrep::wsrep_provider_v26::certify(wsrep_conn_id_t conn_id,
 }
 
 wsrep_status_t trrep::wsrep_provider_v26::commit_order_enter(
-    wsrep_ws_handle_t* wsh)
+    const wsrep_ws_handle_t* wsh,
+    const wsrep_trx_meta_t* meta)
 {
-    return wsrep_->commit_order_enter(wsrep_, wsh);
+    return wsrep_->commit_order_enter(wsrep_, wsh, meta);
 }
 
-int trrep::wsrep_provider_v26::commit_order_leave(wsrep_ws_handle_t* wsh)
+int trrep::wsrep_provider_v26::commit_order_leave(
+    const wsrep_ws_handle_t* wsh,
+    const wsrep_trx_meta_t* meta)
 {
-    return (wsrep_->commit_order_leave(wsrep_, wsh, 0) != WSREP_OK);
+    return (wsrep_->commit_order_leave(wsrep_, wsh, meta, 0) != WSREP_OK);
 }
 
 int trrep::wsrep_provider_v26::release(wsrep_ws_handle_t* wsh)
@@ -122,4 +128,44 @@ int trrep::wsrep_provider_v26::sst_received(const wsrep_gtid_t& gtid, int err)
         return 1;
     }
     return 0;
+}
+
+std::vector<trrep::provider::status_variable>
+trrep::wsrep_provider_v26::status() const
+{
+    std::vector<status_variable> ret;
+    struct wsrep_stats_var* const stats(wsrep_->stats_get(wsrep_));
+    struct wsrep_stats_var* i(stats);
+    if (i)
+    {
+        while (i->name)
+        {
+            switch (i->type)
+            {
+            case WSREP_VAR_STRING:
+                ret.push_back(status_variable(i->name, i->value._string));
+                break;
+            case WSREP_VAR_INT64:
+            {
+                std::ostringstream os;
+                os << i->value._int64;
+                ret.push_back(status_variable(i->name, os.str()));
+                break;
+            }
+            case WSREP_VAR_DOUBLE:
+            {
+                std::ostringstream os;
+                os << i->value._double;
+                ret.push_back(status_variable(i->name, os.str()));
+                break;
+            }
+            default:
+                assert(0);
+                break;
+            }
+            ++i;
+        }
+        wsrep_->stats_free(wsrep_, stats);
+    }
+    return ret;
 }

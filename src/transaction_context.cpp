@@ -52,9 +52,16 @@ trrep::transaction_context::transaction_context(
 
 trrep::transaction_context::~transaction_context()
 {
-    if (state() != s_committed && state() != s_aborted)
+    if (active())
     {
-        client_context_.rollback(*this);
+        try
+        {
+            (void)client_context_.rollback(*this);
+        }
+        catch (...)
+        {
+            // TODO: Log warning
+        }
     }
 }
 
@@ -194,7 +201,7 @@ int trrep::transaction_context::before_commit()
     case trrep::client_context::m_local:
         if (ordered())
         {
-            ret = provider_.commit_order_enter(&ws_handle_);
+            ret = provider_.commit_order_enter(&ws_handle_, &trx_meta_);
         }
         break;
     case trrep::client_context::m_replicating:
@@ -222,7 +229,7 @@ int trrep::transaction_context::before_commit()
         if (ret == 0)
         {
             lock.unlock();
-            switch(provider_.commit_order_enter(&ws_handle_))
+            switch(provider_.commit_order_enter(&ws_handle_, &trx_meta_))
             {
             case WSREP_OK:
                 break;
@@ -240,7 +247,7 @@ int trrep::transaction_context::before_commit()
         break;
     case trrep::client_context::m_applier:
         assert(ordered());
-        ret = provider_.commit_order_enter(&ws_handle_);
+        ret = provider_.commit_order_enter(&ws_handle_, &trx_meta_);
         if (ret)
         {
             state(lock, s_must_abort);
@@ -268,7 +275,7 @@ int trrep::transaction_context::ordered_commit()
     debug_log_state();
     assert(state() == s_committing);
     assert(ordered());
-    ret = provider_.commit_order_leave(&ws_handle_);
+    ret = provider_.commit_order_leave(&ws_handle_, &trx_meta_);
     // Should always succeed
     assert(ret == 0);
     state(lock, s_ordered_commit);
@@ -427,8 +434,8 @@ int trrep::transaction_context::after_statement()
     {
         if (ordered())
         {
-            ret = provider_.commit_order_enter(&ws_handle_);
-            if (ret == 0) provider_.commit_order_leave(&ws_handle_);
+            ret = provider_.commit_order_enter(&ws_handle_, &trx_meta_);
+            if (ret == 0) provider_.commit_order_leave(&ws_handle_, &trx_meta_);
         }
         provider_.release(&ws_handle_);
     }
@@ -466,9 +473,9 @@ void trrep::transaction_context::state(
         };
     if (allowed[state_][next_state])
     {
-        std::cerr << "state transition: " << trrep::to_string(state_)
-                  << " -> " << trrep::to_string(next_state)
-                  << "\n";
+        // std::cerr << "state transition: " << trrep::to_string(state_)
+        //         << " -> " << trrep::to_string(next_state)
+        //         << "\n";
         state_hist_.push_back(state_);
         state_ = next_state;
     }
@@ -601,7 +608,7 @@ int trrep::transaction_context::certify_commit(
     assert(state() == s_certifying || state() == s_must_abort);
     client_context_.debug_sync("wsrep_after_replication");
 
-    std::cout << "seqno: " << trx_meta_.gtid.seqno << "\n";
+    // std::cout << "seqno: " << trx_meta_.gtid.seqno << "\n";
     int ret(1);
     switch (cert_ret)
     {
@@ -692,9 +699,9 @@ void trrep::transaction_context::clear_fragments()
 
 void trrep::transaction_context::cleanup()
 {
-    std::cerr << "Cleanup transaction "
-              << client_context_.id().get()
-              << ": " << id_.get() << "\n";
+    // std::cerr << "Cleanup transaction "
+    //        << client_context_.id().get()
+    //         << ": " << id_.get() << "\n";
     id_ = trrep::transaction_id::invalid();
     state_ = s_executing;
     state_hist_.clear();
@@ -708,7 +715,7 @@ void trrep::transaction_context::cleanup()
 
 void trrep::transaction_context::debug_log_state() const
 {
-    std::cout << "client: " << client_context_.id().get()
-              << " trx: " << id_.get()
-              << " state: " << state_ << "\n";
+    // std::cout << "client: " << client_context_.id().get()
+    //        << " trx: " << id_.get()
+    //         << " state: " << state_ << "\n";
 }

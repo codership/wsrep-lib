@@ -32,11 +32,13 @@ namespace trrep
 
         server_context(const std::string& name,
                        const std::string& id,
+                       const std::string& address,
                        const std::string& working_dir,
                        enum rollback_mode rollback_mode)
             : provider_()
             , name_(name)
             , id_(id)
+            , address_(address)
             , working_dir_(working_dir)
             , rollback_mode_(rollback_mode)
         { }
@@ -51,6 +53,11 @@ namespace trrep
         // Return server identifier
         //
         const std::string& id() const { return id_; }
+
+        //
+        // Return server group communication address
+        //
+        const std::string& address() const { return address_; }
 
         //
         // Create client context which acts only locally, i.e. does
@@ -119,6 +126,7 @@ namespace trrep
         trrep::provider* provider_;
         std::string name_;
         std::string id_;
+        std::string address_;
         std::string working_dir_;
         enum rollback_mode rollback_mode_;
     };

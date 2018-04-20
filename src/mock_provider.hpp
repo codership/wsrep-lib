@@ -96,9 +96,11 @@ namespace trrep
         int append_key(wsrep_ws_handle_t*, const wsrep_key_t*) { return 0; }
         int append_data(wsrep_ws_handle_t*, const wsrep_buf_t*) { return 0; }
         int rollback(const wsrep_trx_id_t) { return 0; }
-        wsrep_status_t commit_order_enter(wsrep_ws_handle_t*)
+        wsrep_status_t commit_order_enter(const wsrep_ws_handle_t*,
+                                          const wsrep_trx_meta_t*)
         { return WSREP_OK; }
-        int commit_order_leave(wsrep_ws_handle_t*) { return 0;}
+        int commit_order_leave(const wsrep_ws_handle_t*,
+                               const wsrep_trx_meta_t*) { return 0;}
         int release(wsrep_ws_handle_t*) { return 0; }
 
         // Methods to modify mock state
@@ -125,6 +127,11 @@ namespace trrep
 
         int sst_sent(const wsrep_gtid_t&, int) { return 0; }
         int sst_received(const wsrep_gtid_t&, int) { return 0; }
+
+        std::vector<status_variable> status() const
+        {
+            return std::vector<status_variable>();
+        }
     private:
         wsrep_uuid_t group_id_;
         wsrep_uuid_t node_id_;

@@ -10,6 +10,7 @@
 #include <wsrep_api.h>
 
 #include <string>
+#include <vector>
 
 namespace trrep
 {
@@ -18,6 +19,20 @@ namespace trrep
     {
     public:
 
+        class status_variable
+        {
+        public:
+            status_variable(const std::string& name,
+                            const std::string& value)
+                : name_(name)
+                , value_(value)
+            { }
+            const std::string& name() const { return name_; }
+            const std::string& value() const { return value_; }
+        private:
+            std::string name_;
+            std::string value_;
+        };
         virtual ~provider() { }
         // Provider state management
         virtual int connect(const std::string& cluster_name,
@@ -51,12 +66,16 @@ namespace trrep
                                         wsrep_trx_id_t victim_trx,
                                         wsrep_seqno_t* victim_seqno) = 0;
         virtual int rollback(const wsrep_trx_id_t) = 0;
-        virtual wsrep_status commit_order_enter(wsrep_ws_handle_t*) = 0;
-        virtual int commit_order_leave(wsrep_ws_handle_t*) = 0;
+        virtual wsrep_status commit_order_enter(const wsrep_ws_handle_t*,
+                                                const wsrep_trx_meta_t*) = 0;
+        virtual int commit_order_leave(const wsrep_ws_handle_t*,
+                                       const wsrep_trx_meta_t*) = 0;
         virtual int release(wsrep_ws_handle_t*) = 0;
 
         virtual int sst_sent(const wsrep_gtid_t&, int) = 0;
         virtual int sst_received(const wsrep_gtid_t&, int) = 0;
+
+        virtual std::vector<status_variable> status() const = 0;
         // Factory method
         static provider* make_provider(const std::string& provider);
     };

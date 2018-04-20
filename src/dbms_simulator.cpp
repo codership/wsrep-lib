@@ -51,13 +51,29 @@ public:
         : mutex_()
         , params_(params)
         , servers_()
+        , clients_start_()
+        , clients_stop_()
     { }
+    ~dbms_simulator()
+    {
+    }
     void start();
     void stop();
     void donate_sst(dbms_server&,
                     const std::string& req, const wsrep_gtid_t& gtid, bool);
     const dbms_simulator_params& params() const
     { return params_; }
+    std::string stats() const
+    {
+        std::ostringstream os;
+        os << "Number of transactions: " <<
+            (params_.n_servers * params_.n_clients * params_.n_transactions)
+           << "\n"
+           << "Seconds: "
+           << std::chrono::duration<double>(clients_stop_ - clients_start_).count()
+           << "\n";
+        return os.str();
+    }
 private:
     std::string server_port(size_t i) const
     {
@@ -70,6 +86,8 @@ private:
     trrep::default_mutex mutex_;
     const dbms_simulator_params& params_;
     std::map<size_t, std::unique_ptr<dbms_server>> servers_;
+    std::chrono::time_point<std::chrono::steady_clock> clients_start_;
+        std::chrono::time_point<std::chrono::steady_clock> clients_stop_;
 };
 
 class dbms_client;
@@ -84,8 +102,10 @@ public:
         s_synced
     };
     dbms_server(dbms_simulator& simulator,
-                const std::string& name, const std::string& id)
-        : trrep::server_context(name, id, name + "_data",
+                const std::string& name,
+                const std::string& id,
+                const std::string& address)
+        : trrep::server_context(name, id, address, name + "_data",
                                 trrep::server_context::rm_async)
         , simulator_(simulator)
         , mutex_()
@@ -252,7 +272,7 @@ public:
     bool do_2pc() const { return false; }
     int apply(trrep::transaction_context&, const trrep::data&)
     {
-        std::cerr << "applying" << "\n";
+        // std::cerr << "applying" << "\n";
         return 0;
     }
     int commit(trrep::transaction_context& transaction_context)
@@ -261,12 +281,14 @@ public:
         ret = transaction_context.before_commit();
         ret = ret || transaction_context.ordered_commit();
         ret = ret || transaction_context.after_commit();
-        std::cerr << "commit" << "\n";
+        // std::cerr << "commit" << "\n";
         return 0;
     }
     int rollback(trrep::transaction_context& transaction_context)
     {
-        // std::cerr << "rollback: " << transaction_context.id().get() << "\n";
+        std::cerr << "rollback: " << transaction_context.id().get()
+                  << "state: " << trrep::to_string(transaction_context.state())
+                  << "\n";
         transaction_context.before_rollback();
         transaction_context.after_rollback();
         return 0;
@@ -288,22 +310,22 @@ private:
         int err(0);
         key.append_key_part(&trx_id, sizeof(trx_id));
         err = trx.append_key(key);
-        std::cout << "append_key: " << err << "\n";
+        // std::cout << "append_key: " << err << "\n";
         err = err || trx.append_data(trrep::data(os.str().c_str(), os.str().size()));
-        std::cout << "append_data: " << err << "\n";
+        // std::cout << "append_data: " << err << "\n";
         if (do_2pc())
         {
             err = err || trx.before_prepare();
-            std::cout << "before_prepare: " << err << "\n";
+            // std::cout << "before_prepare: " << err << "\n";
             err = err || trx.after_prepare();
-            std::cout << "after_prepare: " << err << "\n";
+            // std::cout << "after_prepare: " << err << "\n";
         }
         err = err || trx.before_commit();
-        std::cout << "before_commit: " << err << "\n";
+        // std::cout << "before_commit: " << err << "\n";
         err = err || trx.ordered_commit();
-        std::cout << "ordered_commit: " << err << "\n";
+        // std::cout << "ordered_commit: " << err << "\n";
         err = err || trx.after_commit();
-        std::cout << "after_commit: " << err << "\n";
+        // std::cout << "after_commit: " << err << "\n";
         trx.after_statement();
 
     }
@@ -378,9 +400,16 @@ void dbms_simulator::start()
         name_os << (i + 1);
         std::ostringstream id_os;
         id_os << (i + 1);
-        auto it(servers_.insert(std::make_pair((i + 1),
-                                               std::make_unique<dbms_server>(
-                                                   *this, name_os.str(), id_os.str()))));
+        std::ostringstream address_os;
+        address_os << "127.0.0.1:" << server_port(i);
+        auto it(servers_.insert(
+                    std::make_pair(
+                        (i + 1),
+                        std::make_unique<dbms_server>(
+                            *this,
+                            name_os.str(),
+                            id_os.str(),
+                            address_os.str()))));
         if (it.second == false)
         {
             throw trrep::runtime_error("Failed to add server");
@@ -390,10 +419,16 @@ void dbms_simulator::start()
 
         dbms_server& server(*it.first->second);
         std::string server_options(params_.wsrep_provider_options);
-        server_options += "; base_port=" + server_port(i);
-        server.load_provider(params_.wsrep_provider, server_options);
-        server.provider().connect("sim_cluster", cluster_address, "",
-                                  i == 0);
+        // server_options += "; base_port=" + server_port(i);
+        if (server.load_provider(params_.wsrep_provider, server_options))
+        {
+            throw trrep::runtime_error("Failed to load provider");
+        }
+        if (server.provider().connect("sim_cluster", cluster_address, "",
+                                      i == 0))
+        {
+            throw trrep::runtime_error("Failed to connect");
+        }
         server.start_applier();
         server.wait_until_connected();
         server.wait_until_state(dbms_server::s_synced);
@@ -401,6 +436,7 @@ void dbms_simulator::start()
 
     // Start client threads
 
+    clients_start_ = std::chrono::steady_clock::now();
     for (auto& i : servers_)
     {
         i.second->start_clients();
@@ -414,9 +450,23 @@ void dbms_simulator::stop()
     {
         dbms_server& server(*i.second);
         server.stop_clients();
+    }
+    clients_stop_ = std::chrono::steady_clock::now();
+    for (auto& i : servers_)
+    {
+        dbms_server& server(*i.second);
+        std::cout << "Status for server: " << server.id() << "\n";
+        auto status(server.provider().status());
+        for_each(status.begin(), status.end(),
+                 [](const trrep::provider::status_variable& sv)
+                 {
+                     std::cout << sv.name() << " = " << sv.value() << "\n";
+                 });
+
         server.provider().disconnect();
         server.wait_until_disconnected();
         server.stop_applier();
+
     }
 }
 
@@ -443,7 +493,8 @@ void dbms_simulator::donate_sst(dbms_server& server,
 }
 std::string dbms_simulator::build_cluster_address() const
 {
-    std::string ret("gcomm://");
+    std::string ret;
+    // std::string ret("gcomm://");
     for (size_t i(0); i < params_.n_servers; ++i)
     {
         std::ostringstream sa_os;
@@ -459,6 +510,7 @@ namespace po = boost::program_options;
 
 int main(int argc, char** argv)
 {
+    std::string stats;
     try
     {
         dbms_simulator_params params;
@@ -489,14 +541,16 @@ int main(int argc, char** argv)
 
         dbms_simulator sim(params);
         sim.start();
-        std::this_thread::sleep_for(std::chrono::seconds(5));
         sim.stop();
+        stats = sim.stats();
     }
     catch (const std::exception& e)
     {
         std::cerr << e.what() << "\n";
         return 1;
     }
+
+    std::cout << "Stats:\n" << stats << "\n";
 
     return 0;
 }

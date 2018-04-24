@@ -65,12 +65,16 @@ public:
     { return params_; }
     std::string stats() const
     {
+        size_t transactions(params_.n_servers * params_.n_clients
+                            * params_.n_transactions);
+        auto duration(std::chrono::duration<double>(
+                          clients_stop_ - clients_start_).count());
         std::ostringstream os;
-        os << "Number of transactions: " <<
-            (params_.n_servers * params_.n_clients * params_.n_transactions)
+        os << "Number of transactions: " << transactions
            << "\n"
-           << "Seconds: "
-           << std::chrono::duration<double>(clients_stop_ - clients_start_).count()
+           << "Seconds: " << duration
+           << " \n"
+           << "Transactions per second: " << transactions/duration
            << "\n";
         return os.str();
     }
@@ -466,7 +470,6 @@ void dbms_simulator::stop()
         server.provider().disconnect();
         server.wait_until_disconnected();
         server.stop_applier();
-
     }
 }
 

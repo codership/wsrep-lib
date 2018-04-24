@@ -70,6 +70,7 @@ int trrep::transaction_context::start_transaction(
 {
     assert(active() == false);
     id_ = id;
+    state_ = s_executing;
     ws_handle_.trx_id = id_.get();
     flags_ |= WSREP_FLAG_TRX_START;
     switch (client_context_.mode())
@@ -419,7 +420,7 @@ int trrep::transaction_context::after_statement()
     case s_aborted:
         break;
     case s_must_replay:
-        ret = client_context_.replay(*this);
+        ret = client_context_.replay(lock, *this);
         break;
     default:
         assert(0);
@@ -703,7 +704,10 @@ void trrep::transaction_context::cleanup()
     //        << client_context_.id().get()
     //         << ": " << id_.get() << "\n";
     id_ = trrep::transaction_id::invalid();
-    state_ = s_executing;
+    if (is_streaming())
+    {
+        state_ = s_executing;
+    }
     state_hist_.clear();
     trx_meta_.gtid = WSREP_GTID_UNDEFINED;
     trx_meta_.stid.node = WSREP_UUID_UNDEFINED;

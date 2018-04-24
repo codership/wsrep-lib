@@ -84,7 +84,8 @@ namespace trrep
         virtual int rollback(trrep::transaction_context&) = 0;
 
         virtual void will_replay(trrep::transaction_context&) { }
-        virtual int replay(trrep::transaction_context& tc);
+        virtual int replay(trrep::unique_lock<trrep::mutex>&,
+                           trrep::transaction_context& tc);
 
 
         virtual int apply(trrep::transaction_context&,

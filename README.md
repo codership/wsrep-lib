@@ -44,13 +44,16 @@ calls the registered callbacks.
 ## Server Context
 
 Server attributes:
+
 * Identifiers (name, uuid)
 
 Server capabilities:
+
 * Rollback mode (async or sync)
 *
 
 Abstract Methods:
+
 * on_connect()
 * on_view()
 * on_sync()
@@ -77,15 +80,22 @@ program which drives the transaction.
 ## Client Context
 
 Attributes
+
 * Identifier
 * Mode (local, applier)
 * State (idle, exec, quit)
 
 Abstract methods:
+
 * before_command() - executed before a command from client is processed
 * after_command() - executed after a command from client has been processed
 * before_statement() - executed before a statement from client is processed
 * after_statement - executed after a statement from a client has been processed
+* apply()
+* commit()
+* rollback()
+* replay()
+
 
 The following subsections briefly describe what would be the
 purpose of the abstract methods in mysql-wsrep implementattion.
@@ -105,6 +115,7 @@ Bookkeeping.
 
 Checks which are run before the actual parsed statement is executed.
 These may include:
+
 * Check if dirty reads are allowed
 * ...
 
@@ -115,6 +126,7 @@ Checks if the statement can and should be retried.
 ## Transaction Context
 
 Attributes
+
 * Client context - pointer or reference to client context
 * Identifier - an identifier which uniquely identifies the transaction
   on the server the client driven execution happens
@@ -124,15 +136,22 @@ Attributes
 See https://github.com/codership/Engineering/wiki/Transaction_coordinator_design
 
 Attributes:
+
 * Identifier (interger, uuid or similar)
 * State (executing, certifying, must_abort, etc)
 
 Methods:
+
 * append_key()
 * append_data()
 * after_row()
 * before_prepare()
 * after_prepare()
+* before_commit()
+* ordered_commit()
+* after_commit()
+* before_rollback()
+* after_rollback()
 
 ### Append Key
 
@@ -163,20 +182,7 @@ on remote servers.
 ## Remote Transaction Applying
 
 Methods:
+
 * apply()
-
-## Commit Order Coordinator
-
-Commit order coordinator is a common for both local and remote
-transaction. Currently this is implemented in transaction_context
-class, check out later if it make sense to refactor commit ordering
-into separate class.
-
-Methods:
-
-* before_commit()
-* ordered_commit()
-* after_commit()
-
 
 

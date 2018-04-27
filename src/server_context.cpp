@@ -210,6 +210,11 @@ trrep::server_context::~server_context()
     delete provider_;
 }
 
+void trrep::server_context::sst_received(const wsrep_gtid_t& gtid)
+{
+    provider_->sst_received(gtid, 0);
+}
+
 
 int trrep::server_context::on_apply(
     trrep::client_context& client_context,
@@ -246,4 +251,12 @@ int trrep::server_context::on_apply(
         client_context.rollback(transaction_context);
     }
     return ret;
+}
+
+bool trrep::server_context::statement_allowed_for_streaming(
+    const trrep::client_context&,
+    const trrep::transaction_context&) const
+{
+    /* Streaming not implemented yet. */
+    return false;
 }

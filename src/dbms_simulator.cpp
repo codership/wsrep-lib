@@ -195,10 +195,6 @@ public:
     {
         provider().sst_sent(gtid, 0);
     }
-    void sst_received(const wsrep_gtid_t& gtid)
-    {
-        provider().sst_received(gtid, 0);
-    }
 
     void wait_until_state(enum state state)
     {
@@ -263,13 +259,19 @@ public:
         , mutex_()
         , server_(server)
         , n_transactions_(n_transactions)
+        , result_()
     { }
 
+    ~dbms_client()
+    {
+        std::cout << "Result: " << result_;
+    }
     void start()
     {
         for (size_t i(0); i < n_transactions_; ++i)
         {
             run_one_transaction();
+            report_progress(i + 1);
         }
     }
 
@@ -304,18 +306,19 @@ private:
         trrep::transaction_context trx(*this);
         trx.start_transaction(server_.next_transaction_id());
         std::ostringstream os;
-        os << trx.id().get();
-        trrep::key key;
-        key.append_key_part("dbms", 4);
-        wsrep_conn_id_t client_id(id().get());
-        key.append_key_part(&client_id, sizeof(client_id));
-        wsrep_trx_id_t trx_id(trx.id().get());
-
         int err(0);
-        key.append_key_part(&trx_id, sizeof(trx_id));
-        err = trx.append_key(key);
-        // std::cout << "append_key: " << err << "\n";
-        err = err || trx.append_data(trrep::data(os.str().c_str(), os.str().size()));
+        for (int i(0); i < 1 && err == 0; ++i)
+        {
+            int data(std::rand() % 10000000);
+            os << data;
+            trrep::key key;
+            key.append_key_part("dbms", 4);
+            wsrep_conn_id_t client_id(id().get());
+            key.append_key_part(&client_id, sizeof(client_id));
+            key.append_key_part(&data, sizeof(data));
+            err = trx.append_key(key);
+            err = err || trx.append_data(trrep::data(os.str().c_str(), os.str().size()));
+        }
         // std::cout << "append_data: " << err << "\n";
         if (do_2pc())
         {
@@ -331,13 +334,22 @@ private:
         err = err || trx.after_commit();
         // std::cout << "after_commit: " << err << "\n";
         trx.after_statement();
-
     }
 
+    void report_progress(size_t i) const
+    {
+        if ((i % 100) == 0)
+        {
+            std::cout << "client: " << id().get()
+                      << " transactions: " << i
+                      << " " << 100*double(i)/n_transactions_ << "%"
+                      << std::endl;
+        }
+    }
     trrep::default_mutex mutex_;
     dbms_server& server_;
     const size_t n_transactions_;
-
+    size_t result_;
 };
 
 
@@ -439,7 +451,7 @@ void dbms_simulator::start()
     }
 
     // Start client threads
-
+    std::cout << "####################### Starting client load" << "\n";
     clients_start_ = std::chrono::steady_clock::now();
     for (auto& i : servers_)
     {
@@ -456,6 +468,11 @@ void dbms_simulator::stop()
         server.stop_clients();
     }
     clients_stop_ = std::chrono::steady_clock::now();
+    std::cout << "######## Stats ############\n";
+    std::cout << stats();
+    std::cout << "######## Stats ############\n";
+    // REMOVEME: Temporary shortcut
+    exit(0);
     for (auto& i : servers_)
     {
         dbms_server& server(*i.second);
@@ -497,7 +514,11 @@ void dbms_simulator::donate_sst(dbms_server& server,
 std::string dbms_simulator::build_cluster_address() const
 {
     std::string ret;
-    // std::string ret("gcomm://");
+    if (params_.wsrep_provider.find("galera_smm") != std::string::npos)
+    {
+        ret += "gcomm://";
+    }
+
     for (size_t i(0); i < params_.n_servers; ++i)
     {
         std::ostringstream sa_os;
@@ -543,8 +564,15 @@ int main(int argc, char** argv)
         }
 
         dbms_simulator sim(params);
-        sim.start();
-        sim.stop();
+        try
+        {
+            sim.start();
+            sim.stop();
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "Caught exception: " << e.what();
+        }
         stats = sim.stats();
     }
     catch (const std::exception& e)

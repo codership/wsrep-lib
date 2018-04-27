@@ -9,13 +9,10 @@ include(CTest)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Weffc++ -Woverloaded-virtual -Wno-non-virtual-dtor -g")
 
-if (NOT WITH_WSREP_API)
-  message(ERROR "Wsrep API location must be provided")
-else()
-  check_include_file("${WITH_WSREP_API}/wsrep_api.h" HAVE_WSREP_API_HPP)
-  include_directories("${WITH_WSREP_API}")
-  link_directories("${WITH_WSREP_API}")
-endif()
+check_include_file("${CMAKE_CURRENT_SOURCE_DIR}/wsrep/wsrep_api.h" HAVE_WSREP_API_HPP)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep")
+link_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep")
+
 
 find_package(Boost 1.54.0 REQUIRED
   unit_test_framework
@@ -51,6 +48,5 @@ if (WITH_DOCUMENTATION)
     COMMENT "Generating documentation with Doxygen"
     VERBATIM)
 endif()
-
 
 add_subdirectory(src)

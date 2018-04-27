@@ -28,6 +28,19 @@ The rest of the document dscribes the proposed API in more detail
 and should be replaced with automatically generated documentation
 later on (doxygen).
 
+Doxygen documentation style:
+
+* Use Qt style for documentation comment blocks
+```
+/*!
+ * A documentation comment block
+ */
+```
+* For regular code comments C++ style is preferred
+```
+// This is a code comment
+```
+
 # High Level Design
 
 ## Provider

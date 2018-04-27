@@ -1,0 +1,3 @@
+[submodule "wsrep"]
+	path = wsrep
+	url = git@github.com:codership/wsrep-API.git

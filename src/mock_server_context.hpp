@@ -9,6 +9,7 @@
 #include "mock_client_context.hpp"
 #include "mock_provider.hpp"
 
+#include "compiler.hpp"
 
 namespace trrep
 {
@@ -18,7 +19,8 @@ namespace trrep
         mock_server_context(const std::string& name,
                             const std::string& id,
                             enum trrep::server_context::rollback_mode rollback_mode)
-            : trrep::server_context(name, id, "", "./", rollback_mode)
+            : trrep::server_context(mutex_, name, id, "", "./", rollback_mode)
+            , mutex_()
             , provider_()
             , last_client_id_(0)
         { }
@@ -30,19 +32,21 @@ namespace trrep
                                                   trrep::client_context::m_local);
         }
 
-        void on_connect() { }
-        void wait_until_connected() { }
-        void on_view(const trrep::view&) { }
-        void on_sync() { }
-        std::string on_sst_request() { return ""; }
+        void on_connect() TRREP_OVERRIDE { }
+        void wait_until_connected() TRREP_OVERRIDE { }
+        void on_view(const trrep::view&) TRREP_OVERRIDE { }
+        void on_sync() TRREP_OVERRIDE { }
+        bool sst_before_init() const TRREP_OVERRIDE { return false; }
+        std::string on_sst_request() TRREP_OVERRIDE { return ""; }
         void on_sst_donate_request(const std::string&,
                                    const wsrep_gtid_t&,
-                                   bool) { }
-        void sst_received(const wsrep_gtid_t&) { }
+                                   bool) TRREP_OVERRIDE { }
+        void sst_received(const wsrep_gtid_t&) TRREP_OVERRIDE { }
         // void on_apply(trrep::transaction_context&) { }
         // void on_commit(trrep::transaction_context&) { }
 
     private:
+        trrep::default_mutex mutex_;
         mutable trrep::mock_provider provider_;
         unsigned long long last_client_id_;
     };

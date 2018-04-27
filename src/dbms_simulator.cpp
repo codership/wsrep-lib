@@ -109,7 +109,8 @@ public:
                 const std::string& name,
                 const std::string& id,
                 const std::string& address)
-        : trrep::server_context(name, id, address, name + "_data",
+        : trrep::server_context(mutex_,
+                                name, id, address, name + "_data",
                                 trrep::server_context::rm_async)
         , simulator_(simulator)
         , mutex_()
@@ -179,6 +180,7 @@ public:
         cond_.notify_all();
     }
 
+    bool sst_before_init() const override  { return false; }
     std::string on_sst_request()
     {
         return id();

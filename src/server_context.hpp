@@ -51,13 +51,22 @@
  * In asynchronous mode the BFA victim transaction is just marked
  * to be aborted or in case of fully optimistic concurrency control,
  * the conflict is detected at commit.
+ *
+ * SST
+ * ===
+ *
+ * Depending on SST type (physical or logical), the server storage
+ * engine initialization must be done before or after SST happens.
+ * In case of physical SST method (typically rsync, filesystem snapshot)
+ * the SST happens before the storage engine is initialized, in case
+ * of logical backup typically after the storage engine initialization.
  */
 
 #ifndef TRREP_SERVER_CONTEXT_HPP
 #define TRREP_SERVER_CONTEXT_HPP
 
 #include "exception.hpp"
-
+#include "mutex.hpp"
 #include "wsrep_api.h"
 
 #include <string>
@@ -78,9 +87,57 @@ namespace trrep
     class server_context
     {
     public:
-
-        /*! Rollback Mode enumeration
+        /*!
+         * Server state enumeration.
          *
+         * \todo Fix UML generation
+         *
+         * Server state diagram if the sst_before_init() returns false.
+         *
+         * [*] --> disconnected
+         * disconnected --> initializing
+         * initializing --> initialized
+         * initialized --> connected
+         * connected --> joiner
+         * joiner --> joined
+         * joined --> synced
+         * synced --> donor
+         * donor --> joined
+         *
+         * Server state diagram if the sst_before_init() returns true.
+         *
+         * [*] --> disconnected
+         * disconnected --> connected
+         * connected --> joiner
+         * joiner --> initializing
+         * initializing --> initialized
+         * initialized --> joined
+         * joined --> synced
+         * synced --> donor
+         * donor --> joined
+         */
+        enum state
+        {
+            /*! Server is in disconnected state. */
+            s_disconnected,
+            /*! Server is initializing */
+            s_initializing,
+            /*! Server has been initialized */
+            s_initialized,
+            /*! Server is connected to the cluster */
+            s_connected,
+            /*! Server is receiving SST */
+            s_joiner,
+            /*! Server has received SST succesfully but has not synced
+              with rest of the cluster yet. */
+            s_joined,
+            /*! Server is donating state snapshot transfer */
+            s_donor,
+            /*! Server has synced with the cluster */
+            s_synced
+        };
+        /*!
+         * Rollback Mode enumeration
          */
         enum rollback_mode
         {
@@ -90,29 +147,6 @@ namespace trrep
             rm_sync
         };
 
-        /*! Server Context constructor
-         *
-         * \param name Human Readable Server Name.
-         * \param id Server Identifier String, UUID or some unique
-         *        identifier.
-         * \param address Server address in form of IPv4 address, IPv6 address
-         *        or hostname.
-         * \param working_dir Working directory for replication specific
-         *        data files.
-         * \param rollback_mode Rollback mode which server operates on.
-         */
-        server_context(const std::string& name,
-                       const std::string& id,
-                       const std::string& address,
-                       const std::string& working_dir,
-                       enum rollback_mode rollback_mode)
-            : provider_()
-            , name_(name)
-            , id_(id)
-            , address_(address)
-            , working_dir_(working_dir)
-            , rollback_mode_(rollback_mode)
-        { }
 
         virtual ~server_context();
         /*!
@@ -135,6 +169,13 @@ namespace trrep
          * \return Return server group communication address.
          */
         const std::string& address() const { return address_; }
+
+        /*!
+         * Get the rollback mode which server is operating in.
+         *
+         * \return Rollback mode.
+         */
+        enum rollback_mode rollback_mode() const { return rollback_mode_; }
 
         /*!
          * Create client context which acts only locally, i.e. does
@@ -208,6 +249,12 @@ namespace trrep
         virtual void on_sync() = 0;
 
         /*!
+         * Virtual method to return true if the configured SST
+         * method requires SST to be performed before DBMS storage
+         * engine initialization, false otherwise.
+         */
+        virtual bool sst_before_init() const = 0;
+        /*!
          * Virtual method which will be called on *joiner* when the provider
          * requests the SST request information. This method should
          * provide a string containing an information which the donor
@@ -275,11 +322,40 @@ namespace trrep
         virtual bool statement_allowed_for_streaming(
             const trrep::client_context& client_context,
             const trrep::transaction_context& transaction_context) const;
+    protected:
+                /*! Server Context constructor
+         *
+         * \param mutex Mutex provided by the DBMS implementation.
+         * \param name Human Readable Server Name.
+         * \param id Server Identifier String, UUID or some unique
+         *        identifier.
+         * \param address Server address in form of IPv4 address, IPv6 address
+         *        or hostname.
+         * \param working_dir Working directory for replication specific
+         *        data files.
+         * \param rollback_mode Rollback mode which server operates on.
+         */
+        server_context(trrep::mutex& mutex,
+                       const std::string& name,
+                       const std::string& id,
+                       const std::string& address,
+                       const std::string& working_dir,
+                       enum rollback_mode rollback_mode)
+            : mutex_(mutex)
+            , provider_()
+            , name_(name)
+            , id_(id)
+            , address_(address)
+            , working_dir_(working_dir)
+            , rollback_mode_(rollback_mode)
+        { }
+
     private:
 
         server_context(const server_context&);
         server_context& operator=(const server_context&);
 
+        trrep::mutex& mutex_;
         trrep::provider* provider_;
         std::string name_;
         std::string id_;

@@ -215,6 +215,55 @@ void trrep::server_context::sst_received(const wsrep_gtid_t& gtid)
     provider_->sst_received(gtid, 0);
 }
 
+void trrep::server_context::wait_until_state(
+    enum trrep::server_context::state state) const
+{
+    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    while (state_ != state)
+    {
+        cond_.wait(lock);
+    }
+}
+
+void trrep::server_context::on_connect()
+{
+    std::cout << "Server " << name_ << " connected to cluster" << "\n";
+    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    state_ = s_connected;
+    cond_.notify_all();
+}
+
+void trrep::server_context::on_view(const trrep::view& view)
+{
+    std::cout << "================================================\nView:\n"
+              << "id: " << view.id() << "\n"
+              << "status: " << view.status() << "\n"
+              << "own_index: " << view.own_index() << "\n"
+              << "final: " << view.final() << "\n"
+              << "members: \n";
+    const std::vector<trrep::view::member>& members(view.members());
+    for (std::vector<trrep::view::member>::const_iterator i(members.begin());
+         i != members.end(); ++i)
+    {
+        std::cout << "id: " << i->id() << " "
+                  << "name: " << i->name() << "\n";
+    }
+    std::cout << "=================================================\n";
+    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    if (view.final())
+    {
+        state_ = s_disconnected;
+        cond_.notify_all();
+    }
+}
+
+void trrep::server_context::on_sync()
+{
+    std::cout << "Synced with group" << "\n";
+    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    state_ = s_synced;
+    cond_.notify_all();
+}
 
 int trrep::server_context::on_apply(
     trrep::client_context& client_context,

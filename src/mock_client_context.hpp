@@ -7,6 +7,7 @@
 
 #include "client_context.hpp"
 #include "mutex.hpp"
+#include "compiler.hpp"
 
 namespace trrep
 {
@@ -28,6 +29,25 @@ namespace trrep
         int commit(trrep::transaction_context&);
         int rollback(trrep::transaction_context&);
         bool do_2pc() const { return do_2pc_; }
+        void will_replay(trrep::transaction_context&) TRREP_OVERRIDE { }
+        int replay(trrep::unique_lock<trrep::mutex>& lock,
+                   trrep::transaction_context& tc) TRREP_OVERRIDE
+        {
+            tc.state(lock, trrep::transaction_context::s_replaying);
+            tc.state(lock, trrep::transaction_context::s_committed);
+            return 0;
+        }
+        void wait_for_replayers(trrep::unique_lock<trrep::mutex>&) const
+            TRREP_OVERRIDE { }
+        void override_error(const trrep::client_error&) TRREP_OVERRIDE { }
+        bool killed() const TRREP_OVERRIDE { return false; }
+        void abort() const TRREP_OVERRIDE { }
+        void store_globals() TRREP_OVERRIDE { }
+        void debug_sync(const std::string&) TRREP_OVERRIDE { }
+        void debug_suicide(const std::string&) TRREP_OVERRIDE
+        {
+            ::abort();
+        }
 
         // Mock state modifiers
         void fail_next_applying(bool fail_next_applying)

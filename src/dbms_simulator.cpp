@@ -110,6 +110,7 @@ public:
                 const std::string& id,
                 const std::string& address)
         : trrep::server_context(mutex_,
+                                cond_,
                                 name, id, address, name + "_data",
                                 trrep::server_context::rm_async)
         , simulator_(simulator)
@@ -140,46 +141,6 @@ public:
         appliers_.erase(appliers_.begin());
     }
 
-    void on_connect()
-    {
-        std::cerr << "dbms_server: connected" << "\n";
-        trrep::unique_lock<trrep::mutex> lock(mutex_);
-        state_ = s_connected;
-        cond_.notify_all();
-    }
-
-    void on_view(const trrep::view& view)
-    {
-        std::cerr << "================================================\nView:\n"
-                  << "id: " << view.id() << "\n"
-                  << "status: " << view.status() << "\n"
-                  << "own_index: " << view.own_index() << "\n"
-                  << "final: " << view.final() << "\n"
-                  << "members: \n";
-        auto members(view.members());
-        for (const auto& m : members)
-        {
-            std::cerr << "id: " << m.id() << " "
-                      << "name: " << m.name() << "\n";
-
-        }
-        std::cerr << "=================================================\n";
-        trrep::unique_lock<trrep::mutex> lock(mutex_);
-        if (view.final())
-        {
-            state_ = s_disconnected;
-            cond_.notify_all();
-        }
-    }
-
-    void on_sync()
-    {
-        std::cerr << "Synced with group" << "\n";
-        trrep::unique_lock<trrep::mutex> lock(mutex_);
-        state_ = s_synced;
-        cond_.notify_all();
-    }
-
     bool sst_before_init() const override  { return false; }
     std::string on_sst_request()
     {
@@ -196,32 +157,6 @@ public:
     void sst_sent(const wsrep_gtid_t& gtid)
     {
         provider().sst_sent(gtid, 0);
-    }
-
-    void wait_until_state(enum state state)
-    {
-        trrep::unique_lock<trrep::mutex> lock(mutex_);
-        while (state_ != state)
-        {
-            cond_.wait(lock);
-        }
-    }
-    void wait_until_connected()
-    {
-        trrep::unique_lock<trrep::mutex> lock(mutex_);
-        while (state_ != s_connected)
-        {
-            cond_.wait(lock);
-        }
-    }
-
-    void wait_until_disconnected()
-    {
-        trrep::unique_lock<trrep::mutex> lock(mutex_);
-        while (state_ != s_disconnected)
-        {
-            cond_.wait(lock);
-        }
     }
 
     // Client context management
@@ -277,13 +212,14 @@ public:
         }
     }
 
-    bool do_2pc() const { return false; }
-    int apply(trrep::transaction_context&, const trrep::data&)
+private:
+    bool do_2pc() const override { return false; }
+    int apply(trrep::transaction_context&, const trrep::data&) override
     {
         // std::cerr << "applying" << "\n";
         return 0;
     }
-    int commit(trrep::transaction_context& transaction_context)
+    int commit(trrep::transaction_context& transaction_context) override
     {
         int ret(0);
         ret = transaction_context.before_commit();
@@ -292,7 +228,7 @@ public:
         // std::cerr << "commit" << "\n";
         return 0;
     }
-    int rollback(trrep::transaction_context& transaction_context)
+    int rollback(trrep::transaction_context& transaction_context) override
     {
         std::cerr << "rollback: " << transaction_context.id().get()
                   << "state: " << trrep::to_string(transaction_context.state())
@@ -301,7 +237,23 @@ public:
         transaction_context.after_rollback();
         return 0;
     }
-private:
+
+    void will_replay(trrep::transaction_context&) override { }
+    int replay(trrep::unique_lock<trrep::mutex>& lock,
+               trrep::transaction_context& tc) override
+    {
+        tc.state(lock, trrep::transaction_context::s_replaying);
+        tc.state(lock, trrep::transaction_context::s_committed);
+        return 0;
+    }
+    void wait_for_replayers(trrep::unique_lock<trrep::mutex>&) const override
+    { }
+    void override_error(const trrep::client_error&) override { }
+    bool killed() const override { return false; }
+    void abort() const override { ::abort(); }
+    void store_globals() override { }
+    void debug_sync(const std::string&) override { }
+    void debug_suicide(const std::string&) override { }
 
     void run_one_transaction()
     {
@@ -448,8 +400,7 @@ void dbms_simulator::start()
             throw trrep::runtime_error("Failed to connect");
         }
         server.start_applier();
-        server.wait_until_connected();
-        server.wait_until_state(dbms_server::s_synced);
+        server.wait_until_state(trrep::server_context::s_synced);
     }
 
     // Start client threads
@@ -487,7 +438,7 @@ void dbms_simulator::stop()
                  });
 
         server.provider().disconnect();
-        server.wait_until_disconnected();
+        server.wait_until_state(trrep::server_context::s_disconnected);
         server.stop_applier();
     }
 }

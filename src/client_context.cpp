@@ -74,14 +74,3 @@ int trrep::client_context::after_statement()
 #endif // 0
     return 0;
 }
-
-// TODO: This should be pure virtual method, implemented by
-// DBMS integration or mock classes only.
-int trrep::client_context::replay(
-    trrep::unique_lock<trrep::mutex>& lock,
-    trrep::transaction_context& tc)
-{
-    tc.state(lock, trrep::transaction_context::s_replaying);
-    tc.state(lock, trrep::transaction_context::s_committed);
-    return 0;
-}

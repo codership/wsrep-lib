@@ -199,3 +199,47 @@ Methods:
 * apply()
 
 
+# Example usage
+
+```
+class dbms_server : public trrep::server_context
+{
+  public:
+  // Implementation
+    void start()
+    {
+      // Initialize server components, start accepting client connections
+    }
+};
+
+class dbms_client : public trrep::client_context
+{
+  // Implementation
+};
+
+int main()
+{
+  dbms_server server(name, id);
+
+  if (server.sst_before_init())
+  {
+    server.start();
+    server.wait_until_state(trrep::server_context::s_joined);
+
+  }
+  // Initialize dbms code here
+  if (server.sst_before_init() == false)
+  {
+    server.start();
+    server.wait_until_state(trrep::server_context::s_joined);
+  }
+
+  // Start accepting client connections
+  server.wait_until_state(trrep::server_context::s_synced);
+
+  // Clients can read and write here
+
+
+}
+
+```

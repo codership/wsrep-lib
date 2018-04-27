@@ -7,6 +7,8 @@
 
 #include "lock.hpp"
 
+#include <cstdlib>
+
 namespace trrep
 {
     class condition_variable
@@ -23,7 +25,7 @@ namespace trrep
     };
 
     // Default pthreads based condition variable implementation
-    class default_condition_variable : condition_variable
+    class default_condition_variable : public condition_variable
     {
     public:
         default_condition_variable()

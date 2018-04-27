@@ -67,6 +67,7 @@
 
 #include "exception.hpp"
 #include "mutex.hpp"
+#include "condition_variable.hpp"
 #include "wsrep_api.h"
 
 #include <string>
@@ -216,37 +217,43 @@ namespace trrep
             return *provider_;
         }
 
+
+
         /*!
          * Virtual method which will be called when the server
          * has been joined to the cluster. Must be provided by
          * the implementation.
-         */
-        virtual void on_connect() = 0;
-
-        /*!
-         * Wait until the server has connected to the cluster.
          *
-         * \todo This should not be pure virtual method,
-         * this base class should provide the server state
-         * machine and proper synchronization.
+         * \todo Document overriding.
          */
-        virtual void wait_until_connected() = 0;
+        virtual void on_connect();
 
         /*!
          * Virtual method which will be called when a view
          * notification event has been delivered by the
          * provider.
          *
+         * \todo Document overriding.
+         *
          * \params view trrep::view object which holds the new view
          *         information.
          */
-        virtual void on_view(const trrep::view& view) = 0;
+        virtual void on_view(const trrep::view& view);
 
         /*!
          * Virtual method which will be called when the server
          * has been synchronized with the cluster.
+         *
+         * \todo Document overriding.
          */
-        virtual void on_sync() = 0;
+        virtual void on_sync();
+
+        /*!
+         * Wait until server reaches given state.
+         *
+         * \todo Waiting for transitional states may not be reliable.
+         */
+        void wait_until_state(trrep::server_context::state) const;
 
         /*!
          * Virtual method to return true if the configured SST
@@ -336,12 +343,15 @@ namespace trrep
          * \param rollback_mode Rollback mode which server operates on.
          */
         server_context(trrep::mutex& mutex,
+                       trrep::condition_variable& cond,
                        const std::string& name,
                        const std::string& id,
                        const std::string& address,
                        const std::string& working_dir,
                        enum rollback_mode rollback_mode)
             : mutex_(mutex)
+            , cond_(cond)
+            , state_(s_disconnected)
             , provider_()
             , name_(name)
             , id_(id)
@@ -356,6 +366,8 @@ namespace trrep
         server_context& operator=(const server_context&);
 
         trrep::mutex& mutex_;
+        trrep::condition_variable& cond_;
+        enum state state_;
         trrep::provider* provider_;
         std::string name_;
         std::string id_;

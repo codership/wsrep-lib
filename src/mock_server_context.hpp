@@ -19,8 +19,10 @@ namespace trrep
         mock_server_context(const std::string& name,
                             const std::string& id,
                             enum trrep::server_context::rollback_mode rollback_mode)
-            : trrep::server_context(mutex_, name, id, "", "./", rollback_mode)
+            : trrep::server_context(mutex_, cond_,
+                                    name, id, "", "./", rollback_mode)
             , mutex_()
+            , cond_()
             , provider_()
             , last_client_id_(0)
         { }
@@ -47,6 +49,7 @@ namespace trrep
 
     private:
         trrep::default_mutex mutex_;
+        trrep::default_condition_variable cond_;
         mutable trrep::mock_provider provider_;
         unsigned long long last_client_id_;
     };

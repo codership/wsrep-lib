@@ -113,66 +113,10 @@ namespace trrep
             s_quitting
         };
 
-
+        /*!
+         * Destructor.
+         */
         virtual ~client_context() { }
-
-        /*!
-         * Get reference to the client mutex.
-         *
-         * \return Reference to the client mutex.
-         */
-        trrep::mutex& mutex() { return mutex_; }
-
-        /*!
-         * Get server context associated the the client session.
-         *
-         * \return Reference to server context.
-         */
-        trrep::server_context& server_context() const
-        { return server_context_; }
-
-        /*!
-         * Get reference to the Provider which is associated
-         * with the client context.
-         *
-         * \return Reference to the provider.
-         * \throw trrep::runtime_error if no providers are associated
-         *        with the client context.
-         */
-        trrep::provider& provider() const;
-
-        /*!
-         * Get Client identifier.
-         *
-         * \return Client Identifier
-         */
-        client_id id() const { return id_; }
-
-        /*!
-         * Get Client mode.
-         *
-         * \todo Enforce mutex protection if called from other threads.
-         *
-         * \return Client mode.
-         */
-        enum mode mode() const { return mode_; }
-
-        /*!
-         * Get Client state.
-         *
-         * \todo Enforce mutex protection if called from other threads.
-         *
-         * \return Client state
-         */
-        enum state state() const { return state_; }
-
-        /*!
-         * Virtual method to return true if the client operates
-         * in two phase commit mode.
-         *
-         * \return True if two phase commit is required, false otherwise.
-         */
-        virtual bool do_2pc() const = 0;
 
         /*!
          * Virtual method which should be called before the client
@@ -229,55 +173,50 @@ namespace trrep
         virtual int after_statement();
 
         /*!
-         * Append SR fragment to the transaction.
+         * Get reference to the client mutex.
+         *
+         * \return Reference to the client mutex.
          */
-        virtual int append_fragment(trrep::transaction_context&,
-                                    uint32_t, const trrep::data&)
-        { return 0; }
+        trrep::mutex& mutex() { return mutex_; }
 
         /*!
-         * Commit the transaction.
+         * Get server context associated the the client session.
+         *
+         * \return Reference to server context.
          */
-        virtual int commit(trrep::transaction_context&) = 0;
+        trrep::server_context& server_context() const
+        { return server_context_; }
 
         /*!
-         * Rollback the transaction.
+         * Get reference to the Provider which is associated
+         * with the client context.
+         *
+         * \return Reference to the provider.
+         * \throw trrep::runtime_error if no providers are associated
+         *        with the client context.
          */
-        virtual int rollback(trrep::transaction_context&) = 0;
+        trrep::provider& provider() const;
 
-        virtual void will_replay(trrep::transaction_context&) { }
-        virtual int replay(trrep::unique_lock<trrep::mutex>&,
-                           trrep::transaction_context& tc);
+        /*!
+         * Get Client identifier.
+         *
+         * \return Client Identifier
+         */
+        client_id id() const { return id_; }
 
+        /*!
+         * Get Client mode.
+         *
+         * \todo Enforce mutex protection if called from other threads.
+         *
+         * \return Client mode.
+         */
+        enum mode mode() const { return mode_; }
 
-        virtual int apply(trrep::transaction_context&,
-                          const trrep::data&) = 0;
-
-        virtual void wait_for_replayers(trrep::unique_lock<trrep::mutex>&)
-        { }
-        virtual int prepare_data_for_replication(
-            const trrep::transaction_context&, trrep::data& data)
-        {
-            static const char buf[1] = { 1 };
-            data.assign(buf, 1);
-            return 0;
-        }
-        virtual void override_error(const trrep::client_error&) { }
-        virtual bool killed() const { return 0; }
-        virtual void abort() const { ::abort(); }
-        virtual void store_globals() { }
-        // Debug helpers
-        virtual void debug_sync(const std::string&)
-        {
-
-        }
-        virtual void debug_suicide(const std::string&)
-        {
-            abort();
-        }
     protected:
         /*!
-         * Client context constuctor
+         * Client context constuctor. This is protected so that it
+         * can be called from derived class constructors only.
          */
         client_context(trrep::mutex& mutex,
                        trrep::server_context& server_context,
@@ -293,6 +232,105 @@ namespace trrep
         { }
 
     private:
+        /*
+         * Friend declarations
+         */
+        friend int server_context::on_apply(client_context&,
+                                            trrep::transaction_context&,
+                                            const trrep::data&);
+        friend class client_context_switch;
+        friend class transaction_context;
+
+        /*!
+         * Get Client state.
+         *
+         * \todo Enforce mutex protection if called from other threads.
+         *
+         * \return Client state
+         */
+        enum state state() const { return state_; }
+
+        /*!
+         * Virtual method to return true if the client operates
+         * in two phase commit mode.
+         *
+         * \return True if two phase commit is required, false otherwise.
+         */
+        virtual bool do_2pc() const = 0;
+
+
+        /*!
+         * Append SR fragment to the transaction.
+         */
+        virtual int append_fragment(trrep::transaction_context&,
+                                    uint32_t, const trrep::data&)
+        { return 0; }
+
+
+        /*!
+         * This method applies a write set give in data buffer.
+         * This must be implemented by the DBMS integration.
+         *
+         * \return Zero on success, non-zero on applying failure.
+         */
+        virtual int apply(trrep::transaction_context& transaction,
+                          const trrep::data& data) = 0;
+
+        /*!
+         * Virtual method which will be called
+         * in order to commit the transaction into
+         * storage engine.
+         *
+         * \return Zero on success, non-zero on failure.
+         */
+        virtual int commit(trrep::transaction_context&) = 0;
+
+        /*!
+         * Rollback the transaction.
+         *
+         * This metod must be implemented by DBMS integration.
+         *
+         * \return Zero on success, no-zero on failure.
+         */
+        virtual int rollback(trrep::transaction_context&) = 0;
+
+        /*!
+         * Notify a implementation that the client is about
+         * to replay the transaction.
+         */
+        virtual void will_replay(trrep::transaction_context&) = 0;
+
+        /*!
+         * Replay the transaction.
+         */
+        virtual int replay(trrep::unique_lock<trrep::mutex>&,
+                           trrep::transaction_context& tc) = 0;
+
+
+        /*!
+         * Wait until all of the replaying transactions have been committed.
+         */
+        virtual void wait_for_replayers(trrep::unique_lock<trrep::mutex>&) const = 0;
+
+        virtual int prepare_data_for_replication(
+            const trrep::transaction_context&, trrep::data& data)
+        {
+            static const char buf[1] = { 1 };
+            data.assign(buf, 1);
+            return 0;
+        }
+
+        /*!
+         *
+         */
+        virtual void override_error(const trrep::client_error&) = 0;
+        virtual bool killed() const = 0;
+        virtual void abort() const = 0;
+        virtual void store_globals() = 0;
+        // Debug helpers
+        virtual void debug_sync(const std::string&) = 0;
+        virtual void debug_suicide(const std::string&) = 0;
+
         void state(enum state state);
 
         trrep::mutex& mutex_;

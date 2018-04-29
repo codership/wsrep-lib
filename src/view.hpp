@@ -73,7 +73,7 @@ namespace trrep
         //
         bool final() const
         {
-            return (my_idx_ == -1);
+            return (members_.empty() && my_idx_ == -1);
         }
 
     private:

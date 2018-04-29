@@ -6,6 +6,7 @@
 #include "client_context.hpp"
 #include "transaction_context.hpp"
 #include "view.hpp"
+#include "compiler.hpp"
 
 // Todo: refactor into provider factory
 #include "mock_provider.hpp"
@@ -14,6 +15,8 @@
 #include <wsrep_api.h>
 
 #include <cassert>
+
+#include <sstream>
 
 namespace
 {
@@ -206,6 +209,24 @@ int trrep::server_context::load_provider(const std::string& provider_spec,
     return 0;
 }
 
+int trrep::server_context::connect(const std::string& cluster_name,
+                                   const std::string& cluster_address,
+                                   const std::string& state_donor,
+                                   bool bootstrap)
+{
+    return provider().connect(cluster_name, cluster_address, state_donor,
+                              bootstrap);
+}
+
+int trrep::server_context::disconnect()
+{
+    {
+        trrep::unique_lock<trrep::mutex> lock(mutex_);
+        state(lock, s_disconnecting);
+    }
+    return provider().disconnect();
+}
+
 trrep::server_context::~server_context()
 {
     delete provider_;
@@ -220,18 +241,20 @@ void trrep::server_context::wait_until_state(
     enum trrep::server_context::state state) const
 {
     trrep::unique_lock<trrep::mutex> lock(mutex_);
+    ++state_waiters_[state];
     while (state_ != state)
     {
         cond_.wait(lock);
     }
+    --state_waiters_[state];
+    cond_.notify_all();
 }
 
 void trrep::server_context::on_connect()
 {
     std::cout << "Server " << name_ << " connected to cluster" << "\n";
     trrep::unique_lock<trrep::mutex> lock(mutex_);
-    state_ = s_connected;
-    cond_.notify_all();
+    state(lock, s_connected);
 }
 
 void trrep::server_context::on_view(const trrep::view& view)
@@ -253,8 +276,7 @@ void trrep::server_context::on_view(const trrep::view& view)
     trrep::unique_lock<trrep::mutex> lock(mutex_);
     if (view.final())
     {
-        state_ = s_disconnected;
-        cond_.notify_all();
+        state(lock, s_disconnected);
     }
 }
 
@@ -262,8 +284,10 @@ void trrep::server_context::on_sync()
 {
     std::cout << "Synced with group" << "\n";
     trrep::unique_lock<trrep::mutex> lock(mutex_);
-    state_ = s_synced;
-    cond_.notify_all();
+    if (state_ != s_synced)
+    {
+        state(lock, s_synced);
+    }
 }
 
 int trrep::server_context::on_apply(
@@ -311,4 +335,47 @@ bool trrep::server_context::statement_allowed_for_streaming(
 {
     /* Streaming not implemented yet. */
     return false;
+}
+
+// Private
+
+void trrep::server_context::state(
+    trrep::unique_lock<trrep::mutex>& lock TRREP_UNUSED,
+    enum trrep::server_context::state state)
+{
+    assert(lock.owns_lock());
+    static const char allowed[n_states_][n_states_] =
+        {
+            /* dis, ing, ized, cted, jer, jed, dor, sed, ding */
+            {  0,   1,   0,    1,    0,   0,   0,   0,   0}, /* dis */
+            {  0,   0,   1,    0,    0,   0,   0,   0,   0}, /* ing */
+            {  0,   0,   0,    1,    0,   1,   0,   0,   0}, /* ized */
+            {  0,   0,   0,    0,    1,   0,   0,   1,   0}, /* cted */
+            {  0,   0,   0,    0,    0,   1,   0,   1,   0}, /* jer */
+            {  0,   0,   0,    0,    0,   0,   0,   1,   1}, /* jed */
+            {  0,   0,   0,    0,    0,   1,   0,   0,   1}, /* dor */
+            {  0,   0,   0,    0,    0,   1,   1,   0,   1}, /* sed */
+            {  1,   0,   0,    0,    0,   0,   0,   0,   0}  /* ding */
+        };
+
+    if (allowed[state_][state])
+    {
+        std::cout << "server " << name_ << " state change: "
+                  << state_ << " -> " << state;
+        state_ = state;
+        cond_.notify_all();
+        while (state_waiters_[state_])
+        {
+            cond_.wait(lock);
+        }
+    }
+    else
+    {
+        std::ostringstream os;
+        os << "server: " << name_ << " unallowed state transition: "
+           << trrep::to_string(state_) << " -> " << trrep::to_string(state);
+        std::cerr << os.str() << "\n";
+        ::abort();
+        // throw trrep::runtime_error(os.str());
+    }
 }

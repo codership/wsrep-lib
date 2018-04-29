@@ -170,8 +170,8 @@ namespace trrep
         case trrep::transaction_context::s_aborted: return "aborted";
         case trrep::transaction_context::s_must_replay: return "must_replay";
         case trrep::transaction_context::s_replaying: return "replaying";
-        default: return "unknown";
         }
+        return "unknown";
     }
 
 }

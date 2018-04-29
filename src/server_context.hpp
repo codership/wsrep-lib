@@ -67,6 +67,7 @@
 #include "wsrep_api.h"
 
 #include <string>
+#include <vector>
 
 namespace trrep
 {
@@ -79,7 +80,7 @@ namespace trrep
 
     /*! \class Server Context
      *
-     * 
+     *
      */
     class server_context
     {
@@ -135,6 +136,9 @@ namespace trrep
             /*! Server is disconnecting from group */
             s_disconnecting
         };
+
+        static const int n_states_ = s_disconnecting + 1;
+
         /*!
          * Rollback Mode enumeration
          */
@@ -215,8 +219,12 @@ namespace trrep
             return *provider_;
         }
 
+        int connect(const std::string& cluster_name,
+                    const std::string& cluster_address,
+                    const std::string& state_donor,
+                    bool bootstrap);
 
-
+        int disconnect();
         /*!
          * Virtual method which will be called when the server
          * has been joined to the cluster. Must be provided by
@@ -248,12 +256,6 @@ namespace trrep
 
         /*!
          * Wait until server reaches given state.
-         *
-         * \todo Waiting for transitional states may not be reliable.
-         *       Should introduce array of waiter counts per state,
-         *       on state change the state changing thread is
-         *       not allowed to proceed until all waiters have
-         *       woken up.
          */
         void wait_until_state(trrep::server_context::state) const;
 
@@ -356,6 +358,7 @@ namespace trrep
             : mutex_(mutex)
             , cond_(cond)
             , state_(s_disconnected)
+            , state_waiters_(n_states_)
             , provider_()
             , name_(name)
             , id_(id)
@@ -369,9 +372,12 @@ namespace trrep
         server_context(const server_context&);
         server_context& operator=(const server_context&);
 
+        void state(trrep::unique_lock<trrep::mutex>&, enum state);
+
         trrep::mutex& mutex_;
         trrep::condition_variable& cond_;
         enum state state_;
+        mutable std::vector<int> state_waiters_;
         trrep::provider* provider_;
         std::string name_;
         std::string id_;
@@ -379,6 +385,24 @@ namespace trrep
         std::string working_dir_;
         enum rollback_mode rollback_mode_;
     };
+
+    static inline std::string to_string(enum trrep::server_context::state state)
+    {
+        switch (state)
+        {
+        case trrep::server_context::s_disconnected:  return "disconnected";
+        case trrep::server_context::s_initializing:  return "initilizing";
+        case trrep::server_context::s_initialized:   return "initilized";
+        case trrep::server_context::s_connected:     return "connected";
+        case trrep::server_context::s_joiner:        return "joiner";
+        case trrep::server_context::s_joined:        return "joined";
+        case trrep::server_context::s_donor:         return "donor";
+        case trrep::server_context::s_synced:        return "synced";
+        case trrep::server_context::s_disconnecting: return "disconnecting";
+        }
+        return "unknown";
+    }
+
 }
 
 #endif // TRREP_SERVER_CONTEXT_HPP

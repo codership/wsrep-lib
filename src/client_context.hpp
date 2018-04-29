@@ -206,11 +206,13 @@ namespace trrep
             assert(state_ == s_exec);
             return transaction_.before_prepare();
         }
+
         int after_prepare()
         {
             assert(state_ == s_exec);
             return transaction_.after_prepare();
         }
+
         int before_commit()
         {
             assert(state_ == s_exec);

@@ -89,7 +89,7 @@ void trrep::client_context::state(
     enum trrep::client_context::state state)
 {
     assert(lock.owns_lock());
-    char allowed[state_max_][state_max_] =
+    static const char allowed[state_max_][state_max_] =
         {
             /* idle exec quit */
             {  0,   1,   1}, /* idle */

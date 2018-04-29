@@ -316,7 +316,7 @@ void dbms_server::applier_thread()
     dbms_client applier(*this, client_id,
                         trrep::client_context::m_applier, 0);
     wsrep_status_t ret(provider().run_applier(&applier));
-    std::cerr << "Applier thread exited with error code " << ret << "\n";
+    std::cout << "Applier thread exited with error code " << ret << "\n";
 }
 
 trrep::client_context* dbms_server::local_client_context()
@@ -391,12 +391,12 @@ void dbms_simulator::start()
 
         dbms_server& server(*it.first->second);
         std::string server_options(params_.wsrep_provider_options);
-        // server_options += "; base_port=" + server_port(i);
+
         if (server.load_provider(params_.wsrep_provider, server_options))
         {
             throw trrep::runtime_error("Failed to load provider");
         }
-        if (server.provider().connect("sim_cluster", cluster_address, "",
+        if (server.connect("sim_cluster", cluster_address, "",
                                       i == 0))
         {
             throw trrep::runtime_error("Failed to connect");
@@ -427,7 +427,7 @@ void dbms_simulator::stop()
     std::cout << stats();
     std::cout << "######## Stats ############\n";
     // REMOVEME: Temporary shortcut
-    exit(0);
+    // exit(0);
     for (auto& i : servers_)
     {
         dbms_server& server(*i.second);
@@ -439,7 +439,7 @@ void dbms_simulator::stop()
                      std::cout << sv.name() << " = " << sv.value() << "\n";
                  });
 
-        server.provider().disconnect();
+        server.disconnect();
         server.wait_until_state(trrep::server_context::s_disconnected);
         server.stop_applier();
     }

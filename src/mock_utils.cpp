@@ -25,7 +25,7 @@ void trrep_mock::bf_abort_provider(trrep::mock_server_context& sc,
     (void)victim_seqno;
 }
 
-trrep::transaction_context trrep_mock::applying_transaction(
+trrep::transaction_context& trrep_mock::start_applying_transaction(
     trrep::client_context& cc,
     const trrep::transaction_id& id,
     wsrep_seqno_t seqno,
@@ -33,10 +33,14 @@ trrep::transaction_context trrep_mock::applying_transaction(
 {
     wsrep_ws_handle_t ws_handle = { id.get(), 0 };
     wsrep_trx_meta_t meta = {
-            { {1 }, seqno }, /* gtid */
-            { { static_cast<uint8_t>(cc.id().get()) }, id.get(), cc.id().get() }, /* stid */
-            seqno - 1
+        { {1 }, seqno }, /* gtid */
+        { { static_cast<uint8_t>(cc.id().get()) }, id.get(), cc.id().get() }, /* stid */
+        seqno - 1
     };
-    trrep::transaction_context ret(cc, ws_handle, meta, flags);
-    return ret;
+    int ret(cc.start_transaction(ws_handle, meta, flags));
+    if (ret != 0)
+    {
+        throw trrep::runtime_error("failed to start applying transaction");
+    }
+    return cc.transaction();
 }

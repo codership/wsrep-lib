@@ -21,7 +21,11 @@
  * State Snapshot Transfer
  * -----------------------
  *
- * TODO
+ * Depending on SST type (physical or logical), the server storage
+ * engine initialization must be done before or after SST happens.
+ * In case of physical SST method (typically rsync, filesystem snapshot)
+ * the SST happens before the storage engine is initialized, in case
+ * of logical backup typically after the storage engine initialization.
  *
  * Rollback Mode
  * -------------
@@ -52,14 +56,6 @@
  * to be aborted or in case of fully optimistic concurrency control,
  * the conflict is detected at commit.
  *
- * SST
- * ===
- *
- * Depending on SST type (physical or logical), the server storage
- * engine initialization must be done before or after SST happens.
- * In case of physical SST method (typically rsync, filesystem snapshot)
- * the SST happens before the storage engine is initialized, in case
- * of logical backup typically after the storage engine initialization.
  */
 
 #ifndef TRREP_SERVER_CONTEXT_HPP
@@ -135,7 +131,9 @@ namespace trrep
             /*! Server is donating state snapshot transfer */
             s_donor,
             /*! Server has synced with the cluster */
-            s_synced
+            s_synced,
+            /*! Server is disconnecting from group */
+            s_disconnecting
         };
         /*!
          * Rollback Mode enumeration
@@ -252,6 +250,10 @@ namespace trrep
          * Wait until server reaches given state.
          *
          * \todo Waiting for transitional states may not be reliable.
+         *       Should introduce array of waiter counts per state,
+         *       on state change the state changing thread is
+         *       not allowed to proceed until all waiters have
+         *       woken up.
          */
         void wait_until_state(trrep::server_context::state) const;
 
@@ -261,6 +263,7 @@ namespace trrep
          * engine initialization, false otherwise.
          */
         virtual bool sst_before_init() const = 0;
+
         /*!
          * Virtual method which will be called on *joiner* when the provider
          * requests the SST request information. This method should
@@ -329,6 +332,7 @@ namespace trrep
         virtual bool statement_allowed_for_streaming(
             const trrep::client_context& client_context,
             const trrep::transaction_context& transaction_context) const;
+
     protected:
                 /*! Server Context constructor
          *

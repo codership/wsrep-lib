@@ -113,12 +113,13 @@ namespace
         assert(client_context->mode() == trrep::client_context::m_applier);
 
         trrep::data data(buf->ptr, buf->len);
-        trrep::transaction_context transaction_context(*client_context,
-                                                       *wsh,
-                                                       *meta,
-                                                       flags);
-        if (client_context->server_context().on_apply(
-                *client_context, transaction_context, data))
+        if (client_context->start_transaction(*wsh, *meta, flags))
+        {
+            ret = WSREP_CB_FAILURE;
+        }
+        if (ret == WSREP_CB_SUCCESS &&
+            client_context->server_context().on_apply(
+                *client_context, client_context->transaction(), data))
         {
             ret = WSREP_CB_FAILURE;
         }
@@ -294,11 +295,13 @@ int trrep::server_context::on_apply(
         assert(0);
     }
 
-    transaction_context.after_statement();
     if (ret)
     {
         client_context.rollback(transaction_context);
     }
+
+    transaction_context.after_statement();
+    assert(transaction_context.active() == false);
     return ret;
 }
 

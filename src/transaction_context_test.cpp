@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc)
                                   trrep::server_context::rm_sync);
     trrep::mock_client_context cc(sc,trrep::client_id(1),
                              trrep::client_context::m_replicating);
-    trrep::transaction_context tc(cc);
+    trrep::transaction_context& tc(cc.transaction());
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc)
     trrep::mock_server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
     trrep::mock_client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(cc);
+    trrep::transaction_context& tc(cc.transaction());
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_rollback)
                                   trrep::server_context::rm_sync);
     trrep::mock_client_context cc(sc,trrep::client_id(1),
                              trrep::client_context::m_replicating);
-    trrep::transaction_context tc(cc);
+    trrep::transaction_context& tc(cc.transaction());
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_before_before_commit)
     trrep::mock_server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
     trrep::mock_client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(cc);
+    trrep::transaction_context& tc(cc.transaction());
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc_bf_before_before_prepare)
     trrep::mock_server_context sc("s1", "s1",
                              trrep::server_context::rm_sync);
     trrep::mock_client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(cc);
+    trrep::transaction_context& tc(cc.transaction());
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -226,7 +226,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc_bf_before_after_prepare)
     trrep::mock_server_context sc("s1", "s1",
                              trrep::server_context::rm_sync);
     trrep::mock_client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(cc);
+    trrep::transaction_context& tc(cc.transaction());
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_uncertified
     trrep::mock_server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
     trrep::mock_client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(cc);
+    trrep::transaction_context& tc(cc.transaction());
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -315,7 +315,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_bf_during_before_commit_certified)
     trrep::mock_server_context sc("s1", "s1",
                                  trrep::server_context::rm_sync);
     trrep::mock_client_context cc(sc, trrep::client_id(1), trrep::client_context::m_replicating);
-    trrep::transaction_context tc(cc);
+    trrep::transaction_context& tc(cc.transaction());
 
     // Verify initial state
     BOOST_REQUIRE(tc.active() == false);
@@ -355,9 +355,9 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_applying)
     trrep::mock_client_context cc(sc,
                              trrep::client_id(1),
                              trrep::client_context::m_applier);
-    trrep::transaction_context tc(trrep_mock::applying_transaction(
-                                      cc, 1, 1,
-                                      WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
+    trrep::transaction_context& tc(trrep_mock::start_applying_transaction(
+                                       cc, 1, 1,
+                                       WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
 
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(tc.start_transaction() == 0);
@@ -371,6 +371,9 @@ BOOST_AUTO_TEST_CASE(transaction_context_1pc_applying)
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_ordered_commit);
     BOOST_REQUIRE(tc.after_commit() == 0);
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committed);
+    BOOST_REQUIRE(tc.after_statement() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committed);
+    BOOST_REQUIRE(tc.active() == false);
 }
 
 BOOST_AUTO_TEST_CASE(transaction_context_2pc_applying)
@@ -380,9 +383,9 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc_applying)
     trrep::mock_client_context cc(sc,
                              trrep::client_id(1),
                              trrep::client_context::m_applier);
-    trrep::transaction_context tc(trrep_mock::applying_transaction(
-                                      cc, 1, 1,
-                                      WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
+    trrep::transaction_context& tc(trrep_mock::start_applying_transaction(
+                                       cc, 1, 1,
+                                       WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
 
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(tc.start_transaction() == 0);
@@ -400,6 +403,9 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc_applying)
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_ordered_commit);
     BOOST_REQUIRE(tc.after_commit() == 0);
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committed);
+    BOOST_REQUIRE(tc.after_statement() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committed);
+    BOOST_REQUIRE(tc.active() == false);
 }
 
 BOOST_AUTO_TEST_CASE(transaction_context_applying_rollback)
@@ -409,9 +415,9 @@ BOOST_AUTO_TEST_CASE(transaction_context_applying_rollback)
     trrep::mock_client_context cc(sc,
                              trrep::client_id(1),
                              trrep::client_context::m_applier);
-    trrep::transaction_context tc(trrep_mock::applying_transaction(
-                                      cc, 1, 1,
-                                      WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
+    trrep::transaction_context& tc(trrep_mock::start_applying_transaction(
+                                       cc, 1, 1,
+                                       WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
 
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(tc.start_transaction() == 0);
@@ -423,4 +429,8 @@ BOOST_AUTO_TEST_CASE(transaction_context_applying_rollback)
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_aborting);
     BOOST_REQUIRE(tc.after_rollback() == 0);
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_aborted);
+    BOOST_REQUIRE(tc.after_statement() == 0);
+    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_aborted);
+    BOOST_REQUIRE(tc.active() == false);
+
 }

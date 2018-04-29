@@ -28,7 +28,7 @@ namespace trrep_mock
                            const trrep::transaction_context& tc,
                            wsrep_seqno_t bf_seqno);
 
-    trrep::transaction_context applying_transaction(
+    trrep::transaction_context& start_applying_transaction(
         trrep::client_context& cc,
         const trrep::transaction_id& id,
         wsrep_seqno_t seqno,

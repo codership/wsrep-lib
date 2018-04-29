@@ -16,8 +16,8 @@ BOOST_AUTO_TEST_CASE(server_context_applying_1pc)
                                   trrep::client_id(1),
                                   trrep::client_context::m_applier,
                                   false);
-    trrep::transaction_context tc(
-        trrep_mock::applying_transaction(
+    trrep::transaction_context& tc(
+        trrep_mock::start_applying_transaction(
             cc, 1, 1,
             WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
     char buf[1] = { 1 };
@@ -34,8 +34,8 @@ BOOST_AUTO_TEST_CASE(server_context_applying_2pc)
                                   trrep::client_id(1),
                                   trrep::client_context::m_applier,
                                   true);
-    trrep::transaction_context tc(
-        trrep_mock::applying_transaction(
+    trrep::transaction_context& tc(
+        trrep_mock::start_applying_transaction(
             cc, 1, 1,
             WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
     char buf[1] = { 1 };
@@ -54,11 +54,12 @@ BOOST_AUTO_TEST_CASE(server_context_applying_1pc_rollback)
                                   trrep::client_context::m_applier,
                                   false);
     cc.fail_next_applying(true);
-    trrep::transaction_context tc(
-        trrep_mock::applying_transaction(
+    trrep::transaction_context& tc(
+        trrep_mock::start_applying_transaction(
             cc, 1, 1,
             WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
     char buf[1] = { 1 };
+
     BOOST_REQUIRE(sc.on_apply(cc, tc, trrep::data(buf, 1)) == 1);
     BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_aborted);
 }
@@ -74,8 +75,8 @@ BOOST_AUTO_TEST_CASE(server_context_applying_2pc_rollback)
                                   trrep::client_context::m_applier,
                                   true);
     cc.fail_next_applying(true);
-    trrep::transaction_context tc(
-        trrep_mock::applying_transaction(
+    trrep::transaction_context& tc(
+        trrep_mock::start_applying_transaction(
             cc, 1, 1,
             WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
     char buf[1] = { 1 };

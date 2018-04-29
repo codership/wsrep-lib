@@ -7,6 +7,7 @@
 #include "server_context.hpp"
 #include "key.hpp"
 #include "data.hpp"
+#include "compiler.hpp"
 
 #include <iostream> // TODO: replace with proper logging utility
 #include <sstream>
@@ -30,40 +31,9 @@ trrep::transaction_context::transaction_context(
     , rollback_replicated_for_(false)
 { }
 
-trrep::transaction_context::transaction_context(
-    trrep::client_context& client_context,
-    const wsrep_ws_handle_t& ws_handle,
-    const wsrep_trx_meta_t& trx_meta,
-    uint32_t flags)
-    : provider_(client_context.provider())
-    , client_context_(client_context)
-    , id_(transaction_id::invalid())
-    , state_(s_executing)
-    , state_hist_()
-    , ws_handle_(ws_handle)
-    , trx_meta_(trx_meta)
-    , flags_(flags)
-    , pa_unsafe_()
-    , certified_(true)
-    , fragments_()
-    , rollback_replicated_for_(false)
-{ }
-
 
 trrep::transaction_context::~transaction_context()
-{
-    if (active())
-    {
-        try
-        {
-            (void)client_context_.rollback(*this);
-        }
-        catch (...)
-        {
-            // TODO: Log warning
-        }
-    }
-}
+{ }
 
 int trrep::transaction_context::start_transaction(
     const trrep::transaction_id& id)
@@ -86,6 +56,21 @@ int trrep::transaction_context::start_transaction(
     }
 }
 
+int trrep::transaction_context::start_transaction(
+    const wsrep_ws_handle_t& ws_handle,
+    const wsrep_trx_meta_t& trx_meta,
+    uint32_t flags)
+{
+    assert(active() == false);
+    assert(client_context_.mode() == trrep::client_context::m_applier);
+    state_ = s_executing;
+    ws_handle_ = ws_handle;
+    trx_meta_ = trx_meta;
+    flags_ = flags;
+    certified_ = true;
+    return 0;
+}
+
 
 int trrep::transaction_context::append_key(const trrep::key& key)
 {
@@ -104,7 +89,7 @@ int trrep::transaction_context::before_prepare()
     int ret(0);
 
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
-    debug_log_state();
+    debug_log_state("before_prepare_enter");
     assert(state() == s_executing || state() == s_must_abort);
 
     if (state() == s_must_abort)
@@ -144,7 +129,7 @@ int trrep::transaction_context::before_prepare()
     }
 
     assert(state() == s_preparing);
-    debug_log_state();
+    debug_log_state("before_prepare_leave");
     return ret;
 }
 
@@ -152,7 +137,7 @@ int trrep::transaction_context::after_prepare()
 {
     int ret(1);
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
-    debug_log_state();
+    debug_log_state("after_prepare_enter");
     assert(state() == s_preparing || state() == s_must_abort);
     if (state() == s_must_abort)
     {
@@ -184,7 +169,7 @@ int trrep::transaction_context::after_prepare()
         ret = 0;
         break;
     }
-    debug_log_state();
+    debug_log_state("after_prepare_leave");
     return ret;
 }
 
@@ -193,7 +178,7 @@ int trrep::transaction_context::before_commit()
     int ret(1);
 
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
-    debug_log_state();
+    debug_log_state("before_commit_enter");
     assert(state() == s_executing || state() == s_committing ||
            state() == s_must_abort);
 
@@ -264,7 +249,7 @@ int trrep::transaction_context::before_commit()
         }
         break;
     }
-    debug_log_state();
+    debug_log_state("before_commit_leave");
     return ret;
 }
 
@@ -273,14 +258,14 @@ int trrep::transaction_context::ordered_commit()
     int ret(1);
 
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
-    debug_log_state();
+    debug_log_state("ordered_commit_enter");
     assert(state() == s_committing);
     assert(ordered());
     ret = provider_.commit_order_leave(&ws_handle_, &trx_meta_);
     // Should always succeed
     assert(ret == 0);
     state(lock, s_ordered_commit);
-    debug_log_state();
+    debug_log_state("ordered_commit_leave");
     return ret;
 }
 
@@ -289,7 +274,7 @@ int trrep::transaction_context::after_commit()
     int ret(0);
 
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
-    debug_log_state();
+    debug_log_state("after_commit_enter");
     assert(state() == s_ordered_commit);
 
     switch (client_context_.mode())
@@ -309,14 +294,14 @@ int trrep::transaction_context::after_commit()
     }
     assert(ret == 0);
     state(lock, s_committed);
-    debug_log_state();
+    debug_log_state("after_commit_leave");
     return ret;
 }
 
 int trrep::transaction_context::before_rollback()
 {
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
-    debug_log_state();
+    debug_log_state("before_rollback_enter");
     assert(state() == s_executing ||
            state() == s_must_abort ||
            state() == s_cert_failed ||
@@ -362,14 +347,14 @@ int trrep::transaction_context::before_rollback()
         assert(0);
         break;
     }
-    debug_log_state();
+    debug_log_state("before_rollback_leave");
     return 0;
 }
 
 int trrep::transaction_context::after_rollback()
 {
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
-    debug_log_state();
+    debug_log_state("after_rollback_enter");
     assert(state() == s_aborting ||
            state() == s_must_replay);
 
@@ -384,7 +369,7 @@ int trrep::transaction_context::after_rollback()
     // during actual rollback. If the transaction has been ordered,
     // releasing the commit ordering critical section should be
     // also postponed until all resources have been released.
-    debug_log_state();
+    debug_log_state("after_rollback_leave");
     return 0;
 }
 
@@ -392,7 +377,7 @@ int trrep::transaction_context::after_statement()
 {
     int ret(0);
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
-    debug_log_state();
+    debug_log_state("after_statement_enter");
     assert(state() == s_executing ||
            state() == s_committed ||
            state() == s_aborted ||
@@ -446,7 +431,7 @@ int trrep::transaction_context::after_statement()
         cleanup();
     }
 
-    debug_log_state();
+    debug_log_state("after_statement_leave");
     return ret;
 }
 
@@ -458,7 +443,7 @@ void trrep::transaction_context::state(
 {
     assert(lock.owns_lock());
     static const char allowed[n_states][n_states] =
-        { /*  ex pr ce co oc ct cf ma ab ad mr re from/to */
+        { /*  ex pr ce co oc ct cf ma ab ad mr re */
             { 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0}, /* ex */
             { 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0}, /* pr */
             { 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0}, /* ce */
@@ -700,9 +685,7 @@ void trrep::transaction_context::clear_fragments()
 
 void trrep::transaction_context::cleanup()
 {
-    // std::cerr << "Cleanup transaction "
-    //        << client_context_.id().get()
-    //         << ": " << id_.get() << "\n";
+    debug_log_state("cleanup_enter");
     id_ = trrep::transaction_id::invalid();
     if (is_streaming())
     {
@@ -715,11 +698,17 @@ void trrep::transaction_context::cleanup()
     trx_meta_.stid.conn = trrep::client_id::invalid();
     certified_ = false;
     pa_unsafe_ = false;
+    debug_log_state("cleanup_leave");
 }
 
-void trrep::transaction_context::debug_log_state() const
+void trrep::transaction_context::debug_log_state(
+    const std::string& context TRREP_UNUSED)
+    const
 {
-    // std::cout << "client: " << client_context_.id().get()
-    //        << " trx: " << id_.get()
-    //         << " state: " << state_ << "\n";
+#if 0
+    std::cout << context
+              << ": client: " << client_context_.id().get()
+              << " trx: " << int64_t(id_.get())
+              << " state: " << trrep::to_string(state_) << "\n";
+#endif /* 0 */
 }

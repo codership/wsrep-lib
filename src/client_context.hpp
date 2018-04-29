@@ -113,10 +113,14 @@ namespace trrep
             s_quitting
         };
 
+        const static int state_max_ = s_quitting + 1;
         /*!
          * Destructor.
          */
-        virtual ~client_context() { }
+        virtual ~client_context()
+        {
+            assert(transaction_.active() == false);
+        }
 
         /*!
          * Virtual method which should be called before the client
@@ -172,6 +176,68 @@ namespace trrep
          */
         virtual int after_statement();
 
+        int start_transaction(const trrep::transaction_id& id)
+        {
+            assert(state_ == s_exec);
+            return transaction_.start_transaction(id);
+        }
+
+        int start_transaction(const wsrep_ws_handle_t& wsh,
+                              const wsrep_trx_meta_t& meta,
+                              uint32_t flags)
+        {
+            assert(mode_ == m_applier);
+            return transaction_.start_transaction(wsh, meta, flags);
+        }
+
+        int append_key(const trrep::key& key)
+        {
+            assert(state_ == s_exec);
+            return transaction_.append_key(key);
+        }
+
+        int append_data(const trrep::data& data)
+        {
+            assert(state_ == s_exec);
+            return transaction_.append_data(data);
+        }
+        int before_prepare()
+        {
+            assert(state_ == s_exec);
+            return transaction_.before_prepare();
+        }
+        int after_prepare()
+        {
+            assert(state_ == s_exec);
+            return transaction_.after_prepare();
+        }
+        int before_commit()
+        {
+            assert(state_ == s_exec);
+            return transaction_.before_commit();
+        }
+
+        int ordered_commit()
+        {
+            assert(state_ == s_exec);
+            return transaction_.ordered_commit();
+        }
+
+        int after_commit()
+        {
+            assert(state_ == s_exec);
+            return transaction_.after_commit();
+        }
+        int before_rollback()
+        {
+            assert(state_ == s_exec);
+            return transaction_.before_rollback();
+        }
+        int after_rollback()
+        {
+            assert(state_ == s_exec);
+            return transaction_.after_rollback();
+        }
         /*!
          * Get reference to the client mutex.
          *
@@ -213,6 +279,10 @@ namespace trrep
          */
         enum mode mode() const { return mode_; }
 
+        trrep::transaction_context& transaction()
+        {
+            return transaction_;
+        }
     protected:
         /*!
          * Client context constuctor. This is protected so that it
@@ -232,6 +302,9 @@ namespace trrep
         { }
 
     private:
+        client_context(const client_context&);
+        client_context& operator=(client_context&);
+
         /*
          * Friend declarations
          */
@@ -249,6 +322,11 @@ namespace trrep
          * \return Client state
          */
         enum state state() const { return state_; }
+
+        /*!
+         * Set client state.
+         */
+        void state(trrep::unique_lock<trrep::mutex>& lock, enum state state);
 
         /*!
          * Virtual method to return true if the client operates
@@ -324,14 +402,34 @@ namespace trrep
          *
          */
         virtual void override_error(const trrep::client_error&) = 0;
+
+        /*!
+         * Return true if the current client operation was killed.
+         */
         virtual bool killed() const = 0;
+
+        /*!
+         * Abort server operation on fatal error. This should be used
+         * only for critical conditions which would sacrifice data
+         * consistency.
+         */
         virtual void abort() const = 0;
+
+        /*!
+         * Set up thread global variables for client connection.
+         */
         virtual void store_globals() = 0;
-        // Debug helpers
+
+        /*!
+         * Enter debug synchronization point.
+         */
         virtual void debug_sync(const std::string&) = 0;
+
+        /*!
+         *
+         */
         virtual void debug_suicide(const std::string&) = 0;
 
-        void state(enum state state);
 
         trrep::mutex& mutex_;
         trrep::server_context& server_context_;

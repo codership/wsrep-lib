@@ -25,6 +25,13 @@ namespace trrep
             , do_2pc_(do_2pc)
             , fail_next_applying_()
         { }
+        ~mock_client_context()
+        {
+            if (transaction().active())
+            {
+                (void)rollback(transaction());
+            }
+        }
         int apply(trrep::transaction_context&, const trrep::data&);
         int commit(trrep::transaction_context&);
         int rollback(trrep::transaction_context&);

@@ -19,12 +19,14 @@
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
 
 #include <iostream>
 #include <memory>
 #include <map>
 #include <atomic>
-#include <thread>
+#include <chrono>
+// #include <thread>
 
 class dbms_server;
 
@@ -99,12 +101,6 @@ class dbms_client;
 class dbms_server : public trrep::server_context
 {
 public:
-    enum state
-    {
-        s_disconnected,
-        s_connected,
-        s_synced
-    };
     dbms_server(dbms_simulator& simulator,
                 const std::string& name,
                 const std::string& id,
@@ -116,7 +112,6 @@ public:
         , simulator_(simulator)
         , mutex_()
         , cond_()
-        , state_(s_disconnected)
         , last_client_id_(0)
         , last_transaction_id_(0)
         , appliers_()
@@ -131,7 +126,7 @@ public:
     void start_applier()
     {
         trrep::unique_lock<trrep::mutex> lock(mutex_);
-        appliers_.push_back(std::thread(&dbms_server::applier_thread, this));
+        appliers_.push_back(boost::thread(&dbms_server::applier_thread, this));
     }
 
     void stop_applier()
@@ -177,12 +172,11 @@ private:
     dbms_simulator& simulator_;
     trrep::default_mutex mutex_;
     trrep::default_condition_variable cond_;
-    enum state state_;
     std::atomic<size_t> last_client_id_;
     std::atomic<size_t> last_transaction_id_;
-    std::vector<std::thread> appliers_;
+    std::vector<boost::thread> appliers_;
     std::map<size_t, std::unique_ptr<dbms_client>> clients_;
-    std::vector<std::thread> client_threads_;
+    std::vector<boost::thread> client_threads_;
 };
 
 class dbms_client : public trrep::client_context
@@ -196,13 +190,10 @@ public:
         , mutex_()
         , server_(server)
         , n_transactions_(n_transactions)
-        , result_()
     { }
 
-    ~dbms_client()
-    {
-        std::cout << "Result: " << result_;
-    }
+    ~dbms_client() { }
+
     void start()
     {
         for (size_t i(0); i < n_transactions_; ++i)
@@ -257,12 +248,18 @@ private:
 
     void run_one_transaction()
     {
-        trrep::transaction_context trx(*this);
-        trx.start_transaction(server_.next_transaction_id());
-        std::ostringstream os;
+        before_command();
+        before_statement();
+        start_transaction(server_.next_transaction_id());
+        after_statement();
+        after_command();
+
         int err(0);
         for (int i(0); i < 1 && err == 0; ++i)
         {
+            std::ostringstream os;
+            before_command();
+            before_statement();
             int data(std::rand() % 10000000);
             os << data;
             trrep::key key;
@@ -270,24 +267,30 @@ private:
             wsrep_conn_id_t client_id(id().get());
             key.append_key_part(&client_id, sizeof(client_id));
             key.append_key_part(&data, sizeof(data));
-            err = trx.append_key(key);
-            err = err || trx.append_data(trrep::data(os.str().c_str(), os.str().size()));
+            err = append_key(key);
+            err = err || append_data(trrep::data(os.str().c_str(), os.str().size()));
+            after_statement();
+            after_command();
         }
+
+        before_command();
+        before_statement();
         // std::cout << "append_data: " << err << "\n";
-        if (do_2pc())
+        if (err == 0 && do_2pc())
         {
-            err = err || trx.before_prepare();
+            err = err || before_prepare();
             // std::cout << "before_prepare: " << err << "\n";
-            err = err || trx.after_prepare();
+            err = err || after_prepare();
             // std::cout << "after_prepare: " << err << "\n";
         }
-        err = err || trx.before_commit();
+        err = err || before_commit();
         // std::cout << "before_commit: " << err << "\n";
-        err = err || trx.ordered_commit();
+        err = err || ordered_commit();
         // std::cout << "ordered_commit: " << err << "\n";
-        err = err || trx.after_commit();
+        err = err || after_commit();
         // std::cout << "after_commit: " << err << "\n";
-        trx.after_statement();
+        after_statement();
+        after_command();
     }
 
     void report_progress(size_t i) const
@@ -303,7 +306,6 @@ private:
     trrep::default_mutex mutex_;
     dbms_server& server_;
     const size_t n_transactions_;
-    size_t result_;
 };
 
 
@@ -353,7 +355,7 @@ void dbms_server::start_client(size_t id)
                     trrep::client_context::m_replicating,
                     simulator_.params().n_transactions));
     client_threads_.push_back(
-        std::thread(&dbms_server::client_thread, this, client));
+        boost::thread(&dbms_server::client_thread, this, client));
 }
 
 

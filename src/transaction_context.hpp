@@ -6,6 +6,7 @@
 #define TRREP_TRANSACTION_CONTEXT_HPP
 
 #include "provider.hpp"
+#include "server_context.hpp"
 #include "lock.hpp"
 
 #include <wsrep_api.h>
@@ -55,11 +56,10 @@ namespace trrep
             s_replaying
         };
         static const int n_states = s_replaying + 1;
+        enum state state() const
+        { return state_; }
+
         transaction_context(trrep::client_context& client_context);
-        transaction_context(trrep::client_context& client_context,
-                            const wsrep_ws_handle_t& ws_handle,
-                            const wsrep_trx_meta_t& trx_meta,
-                            uint32_t flags);
         ~transaction_context();
         // Accessors
         trrep::transaction_id id() const
@@ -68,8 +68,6 @@ namespace trrep
         bool active() const
         { return (id_ != trrep::transaction_id::invalid()); }
 
-        enum state state() const
-        { return state_; }
 
         void state(trrep::unique_lock<trrep::mutex>&, enum state);
 
@@ -98,6 +96,10 @@ namespace trrep
         }
 
         int start_transaction(const trrep::transaction_id& id);
+
+        int start_transaction(const wsrep_ws_handle_t& ws_handle,
+                              const wsrep_trx_meta_t& trx_meta,
+                              uint32_t flags);
 
         int append_key(const trrep::key&);
 
@@ -128,12 +130,15 @@ namespace trrep
             return flags_;
         }
     private:
+        transaction_context(const transaction_context&);
+        transaction_context operator=(const transaction_context&);
+
         int certify_fragment(trrep::unique_lock<trrep::mutex>&);
         int certify_commit(trrep::unique_lock<trrep::mutex>&);
         void remove_fragments();
         void clear_fragments();
         void cleanup();
-        void debug_log_state() const;
+        void debug_log_state(const std::string&) const;
         trrep::provider& provider_;
         trrep::client_context& client_context_;
         trrep::transaction_id id_;

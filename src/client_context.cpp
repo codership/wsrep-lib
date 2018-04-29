@@ -4,6 +4,11 @@
 
 #include "client_context.hpp"
 #include "transaction_context.hpp"
+#include "compiler.hpp"
+
+#include <sstream>
+#include <iostream>
+
 
 trrep::provider& trrep::client_context::provider() const
 {
@@ -12,6 +17,7 @@ trrep::provider& trrep::client_context::provider() const
 
 int trrep::client_context::before_command()
 {
+    trrep::unique_lock<trrep::mutex> lock(mutex_);
     assert(state_ == s_idle);
     if (server_context_.rollback_mode() == trrep::server_context::rm_sync)
     {
@@ -26,7 +32,7 @@ int trrep::client_context::before_command()
             // cond_.wait(lock);
         }
     }
-    state_ = s_exec;
+    state(lock, s_exec);
     if (transaction_.state() == trrep::transaction_context::s_must_abort)
     {
         return 1;
@@ -45,7 +51,7 @@ int trrep::client_context::after_command()
         lock.lock();
         ret = 1;
     }
-    state_ = s_idle;
+    state(lock, s_idle);
     return ret;
 }
 
@@ -72,5 +78,33 @@ int trrep::client_context::after_statement()
      * \todo Check for replay state, do rollback if requested.
      */
 #endif // 0
+    transaction_.after_statement();
     return 0;
+}
+
+// Private
+
+void trrep::client_context::state(
+    trrep::unique_lock<trrep::mutex>& lock TRREP_UNUSED,
+    enum trrep::client_context::state state)
+{
+    assert(lock.owns_lock());
+    char allowed[state_max_][state_max_] =
+        {
+            /* idle exec quit */
+            {  0,   1,   1}, /* idle */
+            {  1,   0,   1}, /* exec */
+            {  0,   0,   0}
+        };
+    if (allowed[state_][state])
+    {
+        state_ = state;
+    }
+    else
+    {
+        std::ostringstream os;
+        os << "client_context: Unallowed state transition: "
+           << state_ << " -> " << state << "\n";
+        throw trrep::runtime_error(os.str());
+    }
 }

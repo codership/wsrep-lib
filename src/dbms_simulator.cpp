@@ -16,17 +16,19 @@
 #include "provider.hpp"
 #include "condition_variable.hpp"
 #include "view.hpp"
+#include "logger.hpp"
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 
-#include <iostream>
 #include <memory>
 #include <map>
 #include <atomic>
 #include <chrono>
-// #include <thread>
+#include <iostream>
+#include <unordered_set>
+#include <thread>
 
 class dbms_server;
 
@@ -44,6 +46,83 @@ struct dbms_simulator_params
         , wsrep_provider()
         , wsrep_provider_options()
     { }
+};
+
+class dbms_storage_engine
+{
+public:
+    dbms_storage_engine()
+        : mutex_()
+        , transactions_()
+        , alg_freq_(1)
+        , bf_aborts_()
+    { }
+
+    class transaction
+    {
+    public:
+        transaction(dbms_storage_engine& se)
+            : se_(se)
+            , txc_()
+        {
+        }
+        void start(trrep::transaction_context* txc)
+        {
+            trrep::unique_lock<trrep::mutex> lock(se_.mutex_);
+            if (se_.transactions_.insert(txc).second == false)
+            {
+                ::abort();
+            }
+            txc_ = txc;
+
+        }
+
+        ~transaction()
+        {
+            if (txc_)
+            {
+                trrep::unique_lock<trrep::mutex> lock(se_.mutex_);
+                se_.transactions_.erase(txc_);
+            }
+        }
+
+        transaction(const transaction&) = delete;
+        transaction& operator=(const transaction&) = delete;
+
+    private:
+        dbms_storage_engine& se_;
+        trrep::transaction_context* txc_;
+    };
+
+    void bf_abort_some(const trrep::transaction_context& txc)
+    {
+        trrep::unique_lock<trrep::mutex> lock(mutex_);
+        if ((std::rand() % alg_freq_) == 0)
+        {
+            if (transactions_.empty() == false)
+            {
+                auto* victim_txc(*transactions_.begin());
+                trrep::unique_lock<trrep::mutex> victim_txc_lock(
+                    victim_txc->mutex());
+                lock.unlock();
+                if (victim_txc->bf_abort(victim_txc_lock, txc))
+                {
+                    trrep::log() << "BF aborted " << victim_txc->id().get();
+                    ++bf_aborts_;
+                }
+            }
+        }
+    }
+
+    long long bf_aborts()
+    {
+        return bf_aborts_;
+    }
+private:
+    trrep::default_mutex mutex_;
+    std::unordered_set<trrep::transaction_context*> transactions_;
+    size_t alg_freq_;
+    std::atomic<long long> bf_aborts_;
 };
 
 class dbms_simulator
@@ -65,21 +144,7 @@ public:
                     const std::string& req, const wsrep_gtid_t& gtid, bool);
     const dbms_simulator_params& params() const
     { return params_; }
-    std::string stats() const
-    {
-        size_t transactions(params_.n_servers * params_.n_clients
-                            * params_.n_transactions);
-        auto duration(std::chrono::duration<double>(
-                          clients_stop_ - clients_start_).count());
-        std::ostringstream os;
-        os << "Number of transactions: " << transactions
-           << "\n"
-           << "Seconds: " << duration
-           << " \n"
-           << "Transactions per second: " << transactions/duration
-           << "\n";
-        return os.str();
-    }
+    std::string stats() const;
 private:
     std::string server_port(size_t i) const
     {
@@ -93,7 +158,7 @@ private:
     const dbms_simulator_params& params_;
     std::map<size_t, std::unique_ptr<dbms_server>> servers_;
     std::chrono::time_point<std::chrono::steady_clock> clients_start_;
-        std::chrono::time_point<std::chrono::steady_clock> clients_stop_;
+    std::chrono::time_point<std::chrono::steady_clock> clients_stop_;
 };
 
 class dbms_client;
@@ -110,6 +175,7 @@ public:
                                 name, id, address, name + "_data",
                                 trrep::server_context::rm_async)
         , simulator_(simulator)
+        , storage_engine_()
         , mutex_()
         , cond_()
         , last_client_id_(0)
@@ -162,6 +228,15 @@ public:
         return (last_transaction_id_.fetch_add(1) + 1);
     }
 
+    dbms_storage_engine& storage_engine() { return storage_engine_; }
+
+    int apply_to_storage_engine(const trrep::transaction_context& txc,
+                                const trrep::data&)
+    {
+        storage_engine_.bf_abort_some(txc);
+        return 0;
+    }
+
     void start_clients();
     void stop_clients();
     void client_thread(const std::shared_ptr<dbms_client>& client);
@@ -170,6 +245,7 @@ private:
     void start_client(size_t id);
 
     dbms_simulator& simulator_;
+    dbms_storage_engine storage_engine_;
     trrep::default_mutex mutex_;
     trrep::default_condition_variable cond_;
     std::atomic<size_t> last_client_id_;
@@ -192,7 +268,10 @@ public:
         , n_transactions_(n_transactions)
     { }
 
-    ~dbms_client() { }
+    ~dbms_client()
+    {
+        trrep::unique_lock<trrep::mutex> lock(mutex_);
+    }
 
     void start()
     {
@@ -205,10 +284,9 @@ public:
 
 private:
     bool do_2pc() const override { return false; }
-    int apply(trrep::transaction_context&, const trrep::data&) override
+    int apply(trrep::transaction_context& txc, const trrep::data& data) override
     {
-        // std::cerr << "applying" << "\n";
-        return 0;
+        return server_.apply_to_storage_engine(txc, data);
     }
     int commit(trrep::transaction_context& transaction_context) override
     {
@@ -216,26 +294,24 @@ private:
         ret = transaction_context.before_commit();
         ret = ret || transaction_context.ordered_commit();
         ret = ret || transaction_context.after_commit();
-        // std::cerr << "commit" << "\n";
         return 0;
     }
     int rollback(trrep::transaction_context& transaction_context) override
     {
-        std::cerr << "rollback: " << transaction_context.id().get()
-                  << "state: " << trrep::to_string(transaction_context.state())
-                  << "\n";
+        trrep::log() << "rollback: " << transaction_context.id().get()
+                     << "state: "
+                     << trrep::to_string(transaction_context.state());
         transaction_context.before_rollback();
         transaction_context.after_rollback();
         return 0;
     }
 
     void will_replay(trrep::transaction_context&) override { }
-    int replay(trrep::unique_lock<trrep::mutex>& lock,
-               trrep::transaction_context& tc) override
+    int replay(trrep::transaction_context& txc) override
     {
-        tc.state(lock, trrep::transaction_context::s_replaying);
-        tc.state(lock, trrep::transaction_context::s_committed);
-        return 0;
+        trrep::log() << "replay: " << txc.id().get();
+        trrep::client_applier_mode applier_mode(*this);
+        return provider().replay(&txc.ws_handle(), this);
     }
     void wait_for_replayers(trrep::unique_lock<trrep::mutex>&) const override
     { }
@@ -248,59 +324,75 @@ private:
 
     void run_one_transaction()
     {
-        before_command();
-        before_statement();
-        start_transaction(server_.next_transaction_id());
-        after_statement();
+        int err(before_command());
+        dbms_storage_engine::transaction se_trx(server_.storage_engine());
+        if (err == 0)
+        {
+            err = before_statement();
+            if (err == 0)
+            {
+                err = start_transaction(server_.next_transaction_id());
+                se_trx.start(&transaction());
+            }
+            after_statement();
+        }
         after_command();
-
-        int err(0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         for (int i(0); i < 1 && err == 0; ++i)
         {
             std::ostringstream os;
-            before_command();
-            before_statement();
-            int data(std::rand() % 10000000);
-            os << data;
-            trrep::key key;
-            key.append_key_part("dbms", 4);
-            wsrep_conn_id_t client_id(id().get());
-            key.append_key_part(&client_id, sizeof(client_id));
-            key.append_key_part(&data, sizeof(data));
-            err = append_key(key);
-            err = err || append_data(trrep::data(os.str().c_str(), os.str().size()));
-            after_statement();
+            err = before_command();
+            if (err == 0)
+            {
+                err = before_statement();
+                if (err == 0)
+                {
+                    int data(std::rand() % 10000000);
+                    os << data;
+                    trrep::key key;
+                    key.append_key_part("dbms", 4);
+                    wsrep_conn_id_t client_id(id().get());
+                    key.append_key_part(&client_id, sizeof(client_id));
+                    key.append_key_part(&data, sizeof(data));
+                    err = append_key(key);
+                    err = append_data(trrep::data(os.str().c_str(), os.str().size()));
+                }
+                after_statement();
+            }
             after_command();
         }
-
-        before_command();
-        before_statement();
-        // std::cout << "append_data: " << err << "\n";
-        if (err == 0 && do_2pc())
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (err == 0)
         {
-            err = err || before_prepare();
-            // std::cout << "before_prepare: " << err << "\n";
-            err = err || after_prepare();
-            // std::cout << "after_prepare: " << err << "\n";
+            err = before_command();
+            if (err == 0)
+            {
+                err = before_statement();
+
+                if (err == 0 && do_2pc())
+                {
+                    err = err || before_prepare();
+                    err = err || after_prepare();
+                }
+                err = err || before_commit();
+                err = err || ordered_commit();
+                err = err || after_commit();
+                after_statement();
+            }
+            after_command();
         }
-        err = err || before_commit();
-        // std::cout << "before_commit: " << err << "\n";
-        err = err || ordered_commit();
-        // std::cout << "ordered_commit: " << err << "\n";
-        err = err || after_commit();
-        // std::cout << "after_commit: " << err << "\n";
-        after_statement();
-        after_command();
+        assert(transaction().state() == trrep::transaction_context::s_committed
+               ||
+               transaction().state() == trrep::transaction_context::s_aborted);
     }
 
     void report_progress(size_t i) const
     {
         if ((i % 100) == 0)
         {
-            std::cout << "client: " << id().get()
-                      << " transactions: " << i
-                      << " " << 100*double(i)/n_transactions_ << "%"
-                      << std::endl;
+            trrep::log() << "client: " << id().get()
+                         << " transactions: " << i
+                         << " " << 100*double(i)/n_transactions_ << "%";
         }
     }
     trrep::default_mutex mutex_;
@@ -316,7 +408,7 @@ void dbms_server::applier_thread()
     dbms_client applier(*this, client_id,
                         trrep::client_context::m_applier, 0);
     wsrep_status_t ret(provider().run_applier(&applier));
-    std::cout << "Applier thread exited with error code " << ret << "\n";
+    trrep::log() << "Applier thread exited with error code " << ret;
 }
 
 trrep::client_context* dbms_server::local_client_context()
@@ -362,10 +454,10 @@ void dbms_server::start_client(size_t id)
 
 void dbms_simulator::start()
 {
-    std::cout << "Provider: " << params_.wsrep_provider << "\n";
+    trrep::log() << "Provider: " << params_.wsrep_provider;
 
     std::string cluster_address(build_cluster_address());
-    std::cout << "Cluster address: " << cluster_address << "\n";
+    trrep::log() << "Cluster address: " << cluster_address;
     for (size_t i(0); i < params_.n_servers; ++i)
     {
         std::ostringstream name_os;
@@ -406,7 +498,7 @@ void dbms_simulator::start()
     }
 
     // Start client threads
-    std::cout << "####################### Starting client load" << "\n";
+    trrep::log() << "####################### Starting client load";
     clients_start_ = std::chrono::steady_clock::now();
     for (auto& i : servers_)
     {
@@ -423,26 +515,49 @@ void dbms_simulator::stop()
         server.stop_clients();
     }
     clients_stop_ = std::chrono::steady_clock::now();
-    std::cout << "######## Stats ############\n";
-    std::cout << stats();
-    std::cout << "######## Stats ############\n";
+    trrep::log() << "######## Stats ############";
+    trrep::log()  << stats();
+    trrep::log() << "######## Stats ############";
     // REMOVEME: Temporary shortcut
     // exit(0);
     for (auto& i : servers_)
     {
         dbms_server& server(*i.second);
-        std::cout << "Status for server: " << server.id() << "\n";
+        trrep::log() << "Status for server: " << server.id();
         auto status(server.provider().status());
         for_each(status.begin(), status.end(),
                  [](const trrep::provider::status_variable& sv)
                  {
-                     std::cout << sv.name() << " = " << sv.value() << "\n";
+                     trrep::log() << sv.name() << " = " << sv.value();
                  });
 
         server.disconnect();
         server.wait_until_state(trrep::server_context::s_disconnected);
         server.stop_applier();
     }
+}
+
+std::string dbms_simulator::stats() const
+{
+    size_t transactions(params_.n_servers * params_.n_clients
+                        * params_.n_transactions);
+    auto duration(std::chrono::duration<double>(
+                      clients_stop_ - clients_start_).count());
+    long long bf_aborts(0);
+    for (const auto& s : servers_)
+    {
+        bf_aborts += s.second->storage_engine().bf_aborts();
+    }
+    std::ostringstream os;
+    os << "Number of transactions: " << transactions
+       << "\n"
+       << "Seconds: " << duration
+       << " \n"
+       << "Transactions per second: " << transactions/duration
+       << "\n"
+       << "BF aborts: "
+       << bf_aborts;
+    return os.str();
 }
 
 void dbms_simulator::donate_sst(dbms_server& server,
@@ -461,7 +576,7 @@ void dbms_simulator::donate_sst(dbms_server& server,
     }
     if (bypass == false)
     {
-        std::cout << "SST " << server.id() << " -> " << id << "\n";
+        trrep::log() << "SST " << server.id() << " -> " << id;
     }
     i->second->sst_received(gtid);
     server.sst_sent(gtid);
@@ -514,7 +629,7 @@ int main(int argc, char** argv)
 
         if (vm.count("help"))
         {
-            std::cout << desc << "\n";
+            std::cerr << desc << "\n";
             return 1;
         }
 
@@ -526,17 +641,17 @@ int main(int argc, char** argv)
         }
         catch (const std::exception& e)
         {
-            std::cerr << "Caught exception: " << e.what();
+            trrep::log() << "Caught exception: " << e.what();
         }
         stats = sim.stats();
     }
     catch (const std::exception& e)
     {
-        std::cerr << e.what() << "\n";
+        trrep::log() << e.what();
         return 1;
     }
 
-    std::cout << "Stats:\n" << stats << "\n";
+    trrep::log() << "Stats:\n" << stats << "\n";
 
     return 0;
 }

@@ -93,6 +93,15 @@ wsrep_status_t trrep::wsrep_provider_v26::certify(wsrep_conn_id_t conn_id,
     return wsrep_->certify(wsrep_, conn_id, wsh, flags, meta);
 }
 
+wsrep_status_t trrep::wsrep_provider_v26::bf_abort(
+    wsrep_seqno_t bf_seqno,
+    wsrep_trx_id_t victim_id,
+    wsrep_seqno_t *victim_seqno)
+{
+    return wsrep_->abort_certification(
+        wsrep_, bf_seqno, victim_id, victim_seqno);
+}
+
 wsrep_status_t trrep::wsrep_provider_v26::commit_order_enter(
     const wsrep_ws_handle_t* wsh,
     const wsrep_trx_meta_t* meta)
@@ -110,6 +119,12 @@ int trrep::wsrep_provider_v26::commit_order_leave(
 int trrep::wsrep_provider_v26::release(wsrep_ws_handle_t* wsh)
 {
     return (wsrep_->release(wsrep_, wsh) != WSREP_OK);
+}
+
+int trrep::wsrep_provider_v26::replay(wsrep_ws_handle_t* wsh,
+                                      void* applier_ctx)
+{
+    return (wsrep_->replay_trx(wsrep_, wsh, applier_ctx) != WSREP_OK);
 }
 
 int trrep::wsrep_provider_v26::sst_sent(const wsrep_gtid_t& gtid, int err)

@@ -37,10 +37,11 @@ namespace trrep
         int rollback(trrep::transaction_context&);
         bool do_2pc() const { return do_2pc_; }
         void will_replay(trrep::transaction_context&) TRREP_OVERRIDE { }
-        int replay(trrep::unique_lock<trrep::mutex>& lock,
-                   trrep::transaction_context& tc) TRREP_OVERRIDE
+        int replay(trrep::transaction_context& tc) TRREP_OVERRIDE
         {
-            tc.state(lock, trrep::transaction_context::s_replaying);
+            trrep::unique_lock<trrep::mutex> lock(mutex_);
+            tc.state(lock, trrep::transaction_context::s_committing);
+            tc.state(lock, trrep::transaction_context::s_ordered_commit);
             tc.state(lock, trrep::transaction_context::s_committed);
             return 0;
         }

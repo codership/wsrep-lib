@@ -31,13 +31,14 @@ namespace trrep
                 wsrep_trx_meta_t*);
         wsrep_status_t bf_abort(wsrep_seqno_t,
                                 wsrep_trx_id_t,
-                                wsrep_seqno_t*) { return WSREP_OK; }
-        int rollback(const wsrep_trx_id_t) { return 0; }
+                                wsrep_seqno_t*);
+        int rollback(const wsrep_trx_id_t) { ::abort(); return 0; }
         wsrep_status commit_order_enter(const wsrep_ws_handle_t*,
                                         const wsrep_trx_meta_t*);
         int commit_order_leave(const wsrep_ws_handle_t*,
                                const wsrep_trx_meta_t*);
         int release(wsrep_ws_handle_t*);
+        int replay(wsrep_ws_handle_t*, void*);
         int sst_sent(const wsrep_gtid_t&,int);
         int sst_received(const wsrep_gtid_t& gtid, int);
 

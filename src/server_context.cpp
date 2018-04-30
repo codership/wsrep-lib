@@ -6,6 +6,7 @@
 #include "client_context.hpp"
 #include "transaction_context.hpp"
 #include "view.hpp"
+#include "logger.hpp"
 #include "compiler.hpp"
 
 // Todo: refactor into provider factory
@@ -15,7 +16,6 @@
 #include <wsrep_api.h>
 
 #include <cassert>
-
 #include <sstream>
 
 namespace
@@ -116,7 +116,7 @@ namespace
         assert(client_context->mode() == trrep::client_context::m_applier);
 
         trrep::data data(buf->ptr, buf->len);
-        if (client_context->start_transaction(*wsh, *meta, flags))
+        if (client_context->transaction().state() != trrep::transaction_context::s_replaying && client_context->start_transaction(*wsh, *meta, flags))
         {
             ret = WSREP_CB_FAILURE;
         }
@@ -174,7 +174,7 @@ namespace
 int trrep::server_context::load_provider(const std::string& provider_spec,
                                          const std::string& provider_options)
 {
-    std::cout << "Loading provider " << provider_spec << "\n";
+    trrep::log() << "Loading provider " << provider_spec;
     if (provider_spec == "mock")
     {
         provider_ = new trrep::mock_provider;
@@ -252,27 +252,27 @@ void trrep::server_context::wait_until_state(
 
 void trrep::server_context::on_connect()
 {
-    std::cout << "Server " << name_ << " connected to cluster" << "\n";
+    trrep::log() << "Server " << name_ << " connected to cluster";
     trrep::unique_lock<trrep::mutex> lock(mutex_);
     state(lock, s_connected);
 }
 
 void trrep::server_context::on_view(const trrep::view& view)
 {
-    std::cout << "================================================\nView:\n"
-              << "id: " << view.id() << "\n"
-              << "status: " << view.status() << "\n"
-              << "own_index: " << view.own_index() << "\n"
-              << "final: " << view.final() << "\n"
-              << "members: \n";
+    trrep::log() << "================================================\nView:\n"
+                 << "id: " << view.id() << "\n"
+                 << "status: " << view.status() << "\n"
+                 << "own_index: " << view.own_index() << "\n"
+                 << "final: " << view.final() << "\n"
+                 << "members";
     const std::vector<trrep::view::member>& members(view.members());
     for (std::vector<trrep::view::member>::const_iterator i(members.begin());
          i != members.end(); ++i)
     {
-        std::cout << "id: " << i->id() << " "
-                  << "name: " << i->name() << "\n";
+        trrep::log() << "id: " << i->id() << " "
+                     << "name: " << i->name();
     }
-    std::cout << "=================================================\n";
+    trrep::log() << "=================================================";
     trrep::unique_lock<trrep::mutex> lock(mutex_);
     if (view.final())
     {
@@ -282,7 +282,7 @@ void trrep::server_context::on_view(const trrep::view& view)
 
 void trrep::server_context::on_sync()
 {
-    std::cout << "Synced with group" << "\n";
+    trrep::log() << "Server " << name_ << " synced with group";
     trrep::unique_lock<trrep::mutex> lock(mutex_);
     if (state_ != s_synced)
     {
@@ -299,8 +299,11 @@ int trrep::server_context::on_apply(
     if (starts_transaction(transaction_context.flags()) &&
         commits_transaction(transaction_context.flags()))
     {
-        assert(transaction_context.active() == false);
-        transaction_context.start_transaction();
+        if (transaction_context.state() != trrep::transaction_context::s_replaying)
+        {
+            assert(transaction_context.active() == false);
+            transaction_context.start_transaction();
+        }
         if (client_context.apply(transaction_context, data))
         {
             ret = 1;
@@ -360,8 +363,8 @@ void trrep::server_context::state(
 
     if (allowed[state_][state])
     {
-        std::cout << "server " << name_ << " state change: "
-                  << state_ << " -> " << state;
+        trrep::log() << "server " << name_ << " state change: "
+                     << state_ << " -> " << state;
         state_ = state;
         cond_.notify_all();
         while (state_waiters_[state_])

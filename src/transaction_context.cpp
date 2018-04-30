@@ -7,9 +7,9 @@
 #include "server_context.hpp"
 #include "key.hpp"
 #include "data.hpp"
+#include "logger.hpp"
 #include "compiler.hpp"
 
-#include <iostream> // TODO: replace with proper logging utility
 #include <sstream>
 #include <memory>
 
@@ -33,7 +33,8 @@ trrep::transaction_context::transaction_context(
 
 
 trrep::transaction_context::~transaction_context()
-{ }
+{
+}
 
 int trrep::transaction_context::start_transaction(
     const trrep::transaction_id& id)
@@ -179,8 +180,10 @@ int trrep::transaction_context::before_commit()
 
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
     debug_log_state("before_commit_enter");
-    assert(state() == s_executing || state() == s_committing ||
-           state() == s_must_abort);
+    assert(state() == s_executing ||
+           state() == s_committing ||
+           state() == s_must_abort ||
+           state() == s_replaying);
 
     switch (client_context_.mode())
     {
@@ -244,6 +247,10 @@ int trrep::transaction_context::before_commit()
             {
                 // 1pc
                 state(lock, s_certifying);
+                state(lock, s_committing);
+            }
+            else if (state() == s_replaying)
+            {
                 state(lock, s_committing);
             }
         }
@@ -405,7 +412,11 @@ int trrep::transaction_context::after_statement()
     case s_aborted:
         break;
     case s_must_replay:
-        ret = client_context_.replay(lock, *this);
+        state(lock, s_replaying);
+        lock.unlock();
+        ret = client_context_.replay(*this);
+        lock.lock();
+        provider_.release(&ws_handle_);
         break;
     default:
         assert(0);
@@ -432,9 +443,62 @@ int trrep::transaction_context::after_statement()
     }
 
     debug_log_state("after_statement_leave");
+    assert(ret == 0 || state() == s_aborted);
     return ret;
 }
 
+bool trrep::transaction_context::bf_abort(
+    trrep::unique_lock<trrep::mutex>& lock TRREP_UNUSED,
+    const trrep::transaction_context& txc)
+{
+    bool ret(false);
+    assert(lock.owns_lock());
+    switch (state())
+    {
+    case s_executing:
+    case s_preparing:
+    case s_certifying:
+    case s_committing:
+    {
+        wsrep_seqno_t victim_seqno(WSREP_SEQNO_UNDEFINED);
+        wsrep_status_t status(client_context_.provider().bf_abort(
+                                  txc.seqno(), id_.get(), &victim_seqno));
+        switch (status)
+        {
+        case WSREP_OK:
+            trrep::log() << "Seqno " << txc.seqno()
+                         << " succesfully BF aborted " << id_.get()
+                         << " victim_seqno " << victim_seqno;
+            state(lock, s_must_abort);
+            ret = true;
+            break;
+        default:
+            trrep::log() << "Seqno " << txc.seqno()
+                         << " failed to BF abort " << id_.get()
+                         << " with status " << status
+                         << " victim_seqno " << victim_seqno;
+            break;
+        }
+        break;
+    }
+    default:
+        trrep::log() << "BF abort not allowed in state "
+                     << trrep::to_string(state()) << "\n";
+        break;
+    }
+
+    if (client_context_.server_context().rollback_mode() == trrep::server_context::rm_sync)
+    {
+        //! \todo Launch background rollbacker.
+        assert(0);
+    }
+    return ret;
+}
+
+trrep::mutex& trrep::transaction_context::mutex()
+{
+    return client_context_.mutex();
+}
 // Private
 
 void trrep::transaction_context::state(
@@ -455,13 +519,10 @@ void trrep::transaction_context::state(
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0}, /* ab */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ad */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, /* mr */
-            { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}  /* re */
+            { 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0}  /* re */
         };
     if (allowed[state_][next_state])
     {
-        // std::cerr << "state transition: " << trrep::to_string(state_)
-        //         << " -> " << trrep::to_string(next_state)
-        //         << "\n";
         state_hist_.push_back(state_);
         state_ = next_state;
     }
@@ -471,7 +532,7 @@ void trrep::transaction_context::state(
         os << "unallowed state transition for transaction "
            << id_.get() << ": " << trrep::to_string(state_)
            << " -> " << trrep::to_string(next_state);
-        std::cerr << os.str() << "\n";
+        trrep::log() << os.str();
         throw trrep::runtime_error(os.str());
     }
 }
@@ -565,6 +626,7 @@ int trrep::transaction_context::certify_commit(
 
     state(lock, s_certifying);
 
+    flags(flags() | WSREP_FLAG_TRX_END);
     lock.unlock();
 
     trrep::data data;
@@ -586,7 +648,7 @@ int trrep::transaction_context::certify_commit(
 
     wsrep_status cert_ret(provider_.certify(client_context_.id().get(),
                                             &ws_handle_,
-                                            flags() | WSREP_FLAG_TRX_END,
+                                            flags(),
                                             &trx_meta_));
 
     lock.lock();
@@ -594,7 +656,6 @@ int trrep::transaction_context::certify_commit(
     assert(state() == s_certifying || state() == s_must_abort);
     client_context_.debug_sync("wsrep_after_replication");
 
-    // std::cout << "seqno: " << trx_meta_.gtid.seqno << "\n";
     int ret(1);
     switch (cert_ret)
     {
@@ -640,7 +701,10 @@ int trrep::transaction_context::certify_commit(
         // transaction or to determine failed certification status.
         assert(ordered());
         client_context_.will_replay(*this);
-        state(lock, s_must_abort);
+        if (state() != s_must_abort)
+        {
+            state(lock, s_must_abort);
+        }
         state(lock, s_must_replay);
         break;
     case WSREP_TRX_FAIL:
@@ -653,7 +717,12 @@ int trrep::transaction_context::certify_commit(
         break;
     case WSREP_CONN_FAIL:
     case WSREP_NODE_FAIL:
-        state(lock, s_must_abort);
+        // Galera provider may return CONN_FAIL if the trx is
+        // BF aborted O_o
+        if (state() != s_must_abort)
+        {
+            state(lock, s_must_abort);
+        }
         client_context_.override_error(trrep::e_error_during_commit);
         break;
     case WSREP_FATAL:
@@ -687,6 +756,7 @@ void trrep::transaction_context::cleanup()
 {
     debug_log_state("cleanup_enter");
     id_ = trrep::transaction_id::invalid();
+    ws_handle_.trx_id = -1;
     if (is_streaming())
     {
         state_ = s_executing;
@@ -702,13 +772,13 @@ void trrep::transaction_context::cleanup()
 }
 
 void trrep::transaction_context::debug_log_state(
-    const std::string& context TRREP_UNUSED)
-    const
+    const std::string& context TRREP_UNUSED) const
 {
 #if 0
-    std::cout << context
-              << ": client: " << client_context_.id().get()
-              << " trx: " << int64_t(id_.get())
-              << " state: " << trrep::to_string(state_) << "\n";
+    trrep::log() << context
+                 << ": server: " << client_context_.server_context().name()
+                 << ": client: " << client_context_.id().get()
+                 << " trx: " << int64_t(id_.get())
+                 << " state: " << trrep::to_string(state_);
 #endif /* 0 */
 }

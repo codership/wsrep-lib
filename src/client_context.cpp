@@ -33,30 +33,29 @@ int trrep::client_context::before_command()
         }
     }
     state(lock, s_exec);
-    if (transaction_.state() == trrep::transaction_context::s_must_abort)
+    if (transaction_.state() == trrep::transaction_context::s_must_abort ||
+        transaction_.state() == trrep::transaction_context::s_aborted)
     {
         return 1;
     }
     return 0;
 }
 
-int trrep::client_context::after_command()
+void trrep::client_context::after_command()
 {
-    int ret(0);
     trrep::unique_lock<trrep::mutex> lock(mutex_);
     if (transaction_.state() == trrep::transaction_context::s_must_abort)
     {
         lock.unlock();
         rollback(transaction_);
         lock.lock();
-        ret = 1;
     }
     state(lock, s_idle);
-    return ret;
 }
 
 int trrep::client_context::before_statement()
 {
+    trrep::unique_lock<trrep::mutex> lock(mutex_);
 #if 0
     /*!
      * \todo It might be beneficial to implement timed wait for
@@ -68,18 +67,25 @@ int trrep::client_context::before_statement()
         return 1;
     }
 #endif // 0
+
+    if (transaction_.state() == trrep::transaction_context::s_must_abort)
+    {
+        lock.unlock();
+        rollback(transaction_);
+        lock.lock();
+        return 1;
+    }
     return 0;
 }
 
-int trrep::client_context::after_statement()
+void trrep::client_context::after_statement()
 {
 #if 0
     /*!
      * \todo Check for replay state, do rollback if requested.
      */
 #endif // 0
-    transaction_.after_statement();
-    return 0;
+    (void)transaction_.after_statement();
 }
 
 // Private

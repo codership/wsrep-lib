@@ -53,15 +53,16 @@ namespace trrep
         certify(wsrep_conn_id_t, wsrep_ws_handle_t*,
                 uint32_t,
                 wsrep_trx_meta_t*) = 0;
-        //!
-        //! BF abort a transaction inside provider.
-        //!
-        //! @param[in] bf_seqno Seqno of the aborter transaction
-        //! @param[in] victim_txt Transaction identifier of the victim
-        //! @param[out] victim_seqno Sequence number of the victim transaction
-        //!              or WSREP_SEQNO_UNDEFINED if the victim was not ordered
-        //!
-        //! @return wsrep_status_t
+        /*!
+         * BF abort a transaction inside provider.
+         *
+         * @param[in] bf_seqno Seqno of the aborter transaction
+         * @param[in] victim_txt Transaction identifier of the victim
+         * @param[out] victim_seqno Sequence number of the victim transaction
+         * or WSREP_SEQNO_UNDEFINED if the victim was not ordered
+         *
+         * @return wsrep_status_t
+         */
         virtual wsrep_status_t bf_abort(wsrep_seqno_t bf_seqno,
                                         wsrep_trx_id_t victim_trx,
                                         wsrep_seqno_t* victim_seqno) = 0;
@@ -71,6 +72,13 @@ namespace trrep
         virtual int commit_order_leave(const wsrep_ws_handle_t*,
                                        const wsrep_trx_meta_t*) = 0;
         virtual int release(wsrep_ws_handle_t*) = 0;
+
+        /*!
+         * Replay a transaction.
+         *
+         * @return Zero in case of success, non-zero on failure.
+         */
+        virtual int replay(wsrep_ws_handle_t* ws_handle, void* applier_ctx) = 0;
 
         virtual int sst_sent(const wsrep_gtid_t&, int) = 0;
         virtual int sst_received(const wsrep_gtid_t&, int) = 0;

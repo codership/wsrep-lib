@@ -5,6 +5,7 @@
 
 
 add_library(trrep
+  logger.cpp
   provider.cpp
   client_context.cpp
   server_context.cpp
@@ -15,6 +16,7 @@ target_link_libraries(trrep wsrep pthread dl)
 add_executable(trrep_test
   mock_client_context.cpp
   mock_utils.cpp
+  client_context_test.cpp
   server_context_test.cpp
   transaction_context_test.cpp
   trrep_test.cpp

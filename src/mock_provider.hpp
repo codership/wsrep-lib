@@ -103,6 +103,8 @@ namespace trrep
                                const wsrep_trx_meta_t*) { return 0;}
         int release(wsrep_ws_handle_t*) { return 0; }
 
+        int replay(wsrep_ws_handle_t*, void*) { ::abort(); /* not impl */}
+
         // Methods to modify mock state
 
         // Inject BF abort event into the provider.

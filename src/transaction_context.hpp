@@ -75,9 +75,13 @@ namespace trrep
         // fragment succeeded
         bool certified() { return certified_; }
 
+        wsrep_seqno_t seqno() const
+        {
+            return trx_meta_.gtid.seqno;
+        }
         // Return true if the last fragment was ordered by the
         // provider
-        bool ordered() { return (trx_meta_.gtid.seqno > 0); }
+        bool ordered() const { return (trx_meta_.gtid.seqno > 0); }
 
         bool is_streaming() const
         {
@@ -125,20 +129,29 @@ namespace trrep
 
         int after_statement();
 
+        bool bf_abort(trrep::unique_lock<trrep::mutex>& lock,
+                      const transaction_context& txc);
+
         uint32_t flags() const
         {
             return flags_;
         }
+
+        trrep::mutex& mutex();
+
+        wsrep_ws_handle_t& ws_handle() { return ws_handle_; }
     private:
         transaction_context(const transaction_context&);
         transaction_context operator=(const transaction_context&);
 
+        void flags(uint32_t flags) { flags_ = flags; }
         int certify_fragment(trrep::unique_lock<trrep::mutex>&);
         int certify_commit(trrep::unique_lock<trrep::mutex>&);
         void remove_fragments();
         void clear_fragments();
         void cleanup();
         void debug_log_state(const std::string&) const;
+
         trrep::provider& provider_;
         trrep::client_context& client_context_;
         trrep::transaction_id id_;

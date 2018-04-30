@@ -24,8 +24,10 @@ namespace trrep
         }
         ~unique_lock()
         {
-            assert(locked_);
-            mutex_.unlock();
+            if (locked_)
+            {
+                unlock();
+            }
         }
 
         void lock()

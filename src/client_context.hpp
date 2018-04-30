@@ -148,7 +148,7 @@ namespace trrep
          * If overridden, the implementation should call base
          * class metods after any implementation specifict operations.
          */
-        virtual int after_command();
+        virtual void after_command();
 
         /*!
          * Before statement execution operations.
@@ -174,7 +174,7 @@ namespace trrep
          * If overridden by the implementation, base class method
          * should be called after any implementation specific operations.
          */
-        virtual int after_statement();
+        virtual void after_statement();
 
         int start_transaction(const trrep::transaction_id& id)
         {
@@ -314,6 +314,7 @@ namespace trrep
                                             trrep::transaction_context&,
                                             const trrep::data&);
         friend class client_context_switch;
+        friend class client_applier_mode;
         friend class transaction_context;
 
         /*!
@@ -383,8 +384,7 @@ namespace trrep
         /*!
          * Replay the transaction.
          */
-        virtual int replay(trrep::unique_lock<trrep::mutex>&,
-                           trrep::transaction_context& tc) = 0;
+        virtual int replay(trrep::transaction_context& tc) = 0;
 
 
         /*!
@@ -464,6 +464,24 @@ namespace trrep
     private:
         client_context& orig_context_;
         client_context& current_context_;
+    };
+
+    class client_applier_mode
+    {
+    public:
+        client_applier_mode(trrep::client_context& client)
+            : client_(client)
+            , orig_mode_(client.mode_)
+        {
+            client_.mode_ = trrep::client_context::m_applier;
+        }
+        ~client_applier_mode()
+        {
+            client_.mode_ = orig_mode_;
+        }
+    private:
+        trrep::client_context& client_;
+        enum trrep::client_context::mode orig_mode_;
     };
 }
 

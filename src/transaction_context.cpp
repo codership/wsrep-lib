@@ -22,6 +22,8 @@ trrep::transaction_context::transaction_context(
     , id_(transaction_id::invalid())
     , state_(s_executing)
     , state_hist_()
+    , bf_abort_state_(s_executing)
+    , bf_abort_client_state_()
     , ws_handle_()
     , trx_meta_()
     , flags_()
@@ -42,6 +44,7 @@ int trrep::transaction_context::start_transaction(
     assert(active() == false);
     id_ = id;
     state_ = s_executing;
+    state_hist_.clear();
     ws_handle_.trx_id = id_.get();
     flags_ |= WSREP_FLAG_TRX_START;
     switch (client_context_.mode())
@@ -96,6 +99,7 @@ int trrep::transaction_context::before_prepare()
     if (state() == s_must_abort)
     {
         assert(client_context_.mode() == trrep::client_context::m_replicating);
+        client_context_.override_error(trrep::e_deadlock_error);
         return 1;
     }
 
@@ -143,6 +147,7 @@ int trrep::transaction_context::after_prepare()
     if (state() == s_must_abort)
     {
         assert(client_context_.mode() == trrep::client_context::m_replicating);
+        client_context_.override_error(trrep::e_deadlock_error);
         return 1;
     }
 
@@ -218,12 +223,17 @@ int trrep::transaction_context::before_commit()
         if (ret == 0)
         {
             lock.unlock();
-            switch(provider_.commit_order_enter(&ws_handle_, &trx_meta_))
+            wsrep_status_t status(provider_.commit_order_enter(&ws_handle_, &trx_meta_));
+            lock.lock();
+            switch (status)
             {
             case WSREP_OK:
                 break;
             case WSREP_BF_ABORT:
-                state(lock, s_must_abort);
+                if (state() != s_must_abort)
+                {
+                    state(lock, s_must_abort);
+                }
                 ret = 1;
                 break;
             default:
@@ -231,7 +241,7 @@ int trrep::transaction_context::before_commit()
                 assert(0);
                 break;
             }
-            lock.lock();
+
         }
         break;
     case trrep::client_context::m_applier:
@@ -405,6 +415,7 @@ int trrep::transaction_context::after_statement()
         break;
     case s_must_abort:
     case s_cert_failed:
+        client_context_.override_error(trrep::e_deadlock_error);
         lock.unlock();
         ret = client_context_.rollback(*this);
         lock.lock();
@@ -453,44 +464,64 @@ bool trrep::transaction_context::bf_abort(
 {
     bool ret(false);
     assert(lock.owns_lock());
-    switch (state())
+    assert(&lock.mutex() == &mutex());
+
+    if (active() == false)
     {
-    case s_executing:
-    case s_preparing:
-    case s_certifying:
-    case s_committing:
+        trrep::log() << "Transaction not active, skipping bf abort";
+    }
+    else if (ordered() && seqno() < txc.seqno())
     {
-        wsrep_seqno_t victim_seqno(WSREP_SEQNO_UNDEFINED);
-        wsrep_status_t status(client_context_.provider().bf_abort(
-                                  txc.seqno(), id_.get(), &victim_seqno));
-        switch (status)
+        trrep::log() << "Not allowed to BF abort transaction ordered before "
+                     << "aborter: " << seqno() << " < " << txc.seqno();
+    }
+    else
+    {
+        switch (state())
         {
-        case WSREP_OK:
-            trrep::log() << "Seqno " << txc.seqno()
-                         << " succesfully BF aborted " << id_.get()
-                         << " victim_seqno " << victim_seqno;
-            state(lock, s_must_abort);
-            ret = true;
-            break;
-        default:
-            trrep::log() << "Seqno " << txc.seqno()
-                         << " failed to BF abort " << id_.get()
-                         << " with status " << status
-                         << " victim_seqno " << victim_seqno;
+        case s_executing:
+        case s_preparing:
+        case s_certifying:
+        case s_committing:
+        {
+            wsrep_seqno_t victim_seqno(WSREP_SEQNO_UNDEFINED);
+            wsrep_status_t status(client_context_.provider().bf_abort(
+                                      txc.seqno(), id_.get(), &victim_seqno));
+            switch (status)
+            {
+            case WSREP_OK:
+                trrep::log() << "Seqno " << txc.seqno()
+                             << " succesfully BF aborted " << id_.get()
+                             << " victim_seqno " << victim_seqno;
+                bf_abort_state_ = state();
+                state(lock, s_must_abort);
+                ret = true;
+                break;
+            default:
+                trrep::log() << "Seqno " << txc.seqno()
+                             << " failed to BF abort " << id_.get()
+                             << " with status " << status
+                             << " victim_seqno " << victim_seqno;
+                break;
+            }
             break;
         }
-        break;
-    }
-    default:
-        trrep::log() << "BF abort not allowed in state "
-                     << trrep::to_string(state()) << "\n";
-        break;
+        default:
+            trrep::log() << "BF abort not allowed in state "
+                         << trrep::to_string(state());
+            break;
+        }
     }
 
-    if (client_context_.server_context().rollback_mode() == trrep::server_context::rm_sync)
+    if (ret)
     {
-        //! \todo Launch background rollbacker.
-        assert(0);
+        bf_abort_client_state_ = client_context_.state();
+        if (client_context_.server_context().rollback_mode() ==
+            trrep::server_context::rm_sync)
+        {
+            //! \todo Launch background rollbacker.
+            assert(0);
+        }
     }
     return ret;
 }
@@ -761,7 +792,8 @@ void trrep::transaction_context::cleanup()
     {
         state_ = s_executing;
     }
-    state_hist_.clear();
+    // Keep the state history for troubleshooting. Reset at start_transaction().
+    // state_hist_.clear();
     trx_meta_.gtid = WSREP_GTID_UNDEFINED;
     trx_meta_.stid.node = WSREP_UUID_UNDEFINED;
     trx_meta_.stid.trx = trrep::transaction_id::invalid();
@@ -774,11 +806,14 @@ void trrep::transaction_context::cleanup()
 void trrep::transaction_context::debug_log_state(
     const std::string& context TRREP_UNUSED) const
 {
-#if 0
-    trrep::log() << context
-                 << ": server: " << client_context_.server_context().name()
-                 << ": client: " << client_context_.id().get()
-                 << " trx: " << int64_t(id_.get())
-                 << " state: " << trrep::to_string(state_);
-#endif /* 0 */
+    if (client_context_.debug_log_level() >= 1)
+    {
+        trrep::log_debug() << context
+                           << ": server: " << client_context_.server_context().name()
+                           << ": client: " << client_context_.id().get()
+                           << " trx: " << int64_t(id_.get())
+                           << " state: " << trrep::to_string(state_)
+                           << " error: "
+                           << trrep::to_string(client_context_.current_error());
+    }
 }

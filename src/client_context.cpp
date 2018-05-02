@@ -3,7 +3,6 @@
 //
 
 #include "client_context.hpp"
-#include "transaction_context.hpp"
 #include "compiler.hpp"
 
 #include <sstream>
@@ -26,15 +25,15 @@ int trrep::client_context::before_command()
          * \todo Wait until the possible synchronous rollback
          * has been finished.
          */
-        trrep::unique_lock<trrep::mutex> lock(mutex_);
         while (transaction_.state() == trrep::transaction_context::s_aborting)
         {
             // cond_.wait(lock);
         }
     }
     state(lock, s_exec);
-    if (transaction_.state() == trrep::transaction_context::s_must_abort ||
-        transaction_.state() == trrep::transaction_context::s_aborted)
+    if (transaction_.active() &&
+        (transaction_.state() == trrep::transaction_context::s_must_abort ||
+         transaction_.state() == trrep::transaction_context::s_aborted))
     {
         return 1;
     }
@@ -44,11 +43,15 @@ int trrep::client_context::before_command()
 void trrep::client_context::after_command()
 {
     trrep::unique_lock<trrep::mutex> lock(mutex_);
-    if (transaction_.state() == trrep::transaction_context::s_must_abort)
+    if (transaction_.active() &&
+        transaction_.state() == trrep::transaction_context::s_must_abort)
     {
+        override_error(trrep::e_deadlock_error);
         lock.unlock();
         rollback(transaction_);
+        transaction_.after_statement();
         lock.lock();
+        assert(transaction_.state() == trrep::transaction_context::s_aborted);
     }
     state(lock, s_idle);
 }
@@ -68,8 +71,10 @@ int trrep::client_context::before_statement()
     }
 #endif // 0
 
-    if (transaction_.state() == trrep::transaction_context::s_must_abort)
+    if (transaction_.active() &&
+        transaction_.state() == trrep::transaction_context::s_must_abort)
     {
+        override_error(trrep::e_deadlock_error);
         lock.unlock();
         rollback(transaction_);
         lock.lock();

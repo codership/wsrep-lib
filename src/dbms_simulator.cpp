@@ -8,6 +8,7 @@
 // through trrep interface.
 //
 
+
 #include "server_context.hpp"
 #include "client_context.hpp"
 #include "transaction_context.hpp"
@@ -39,12 +40,14 @@ struct dbms_simulator_params
     size_t n_transactions;
     std::string wsrep_provider;
     std::string wsrep_provider_options;
+    int debug_log_level;
     dbms_simulator_params()
         : n_servers(0)
         , n_clients(0)
         , n_transactions(0)
         , wsrep_provider()
         , wsrep_provider_options()
+        , debug_log_level(0)
     { }
 };
 
@@ -54,7 +57,7 @@ public:
     dbms_storage_engine()
         : mutex_()
         , transactions_()
-        , alg_freq_(1)
+        , alg_freq_(100)
         , bf_aborts_()
     { }
 
@@ -66,6 +69,9 @@ public:
             , txc_()
         {
         }
+
+        bool active() const { return txc_ != nullptr; }
+
         void start(trrep::transaction_context* txc)
         {
             trrep::unique_lock<trrep::mutex> lock(se_.mutex_);
@@ -74,16 +80,32 @@ public:
                 ::abort();
             }
             txc_ = txc;
-
         }
 
-        ~transaction()
+        void commit()
         {
             if (txc_)
             {
                 trrep::unique_lock<trrep::mutex> lock(se_.mutex_);
                 se_.transactions_.erase(txc_);
             }
+            txc_ = nullptr;
+        }
+
+
+        void abort()
+        {
+            if (txc_)
+            {
+                trrep::unique_lock<trrep::mutex> lock(se_.mutex_);
+                se_.transactions_.erase(txc_);
+            }
+            txc_ = nullptr;
+        }
+
+        ~transaction()
+        {
+            abort();
         }
 
         transaction(const transaction&) = delete;
@@ -97,7 +119,7 @@ public:
     void bf_abort_some(const trrep::transaction_context& txc)
     {
         trrep::unique_lock<trrep::mutex> lock(mutex_);
-        if ((std::rand() % alg_freq_) == 0)
+        if (alg_freq_ && (std::rand() % alg_freq_) == 0)
         {
             if (transactions_.empty() == false)
             {
@@ -265,6 +287,7 @@ public:
         : trrep::client_context(mutex_, server, id, mode)
         , mutex_()
         , server_(server)
+        , se_trx_(server_.storage_engine())
         , n_transactions_(n_transactions)
     { }
 
@@ -302,6 +325,7 @@ private:
                      << "state: "
                      << trrep::to_string(transaction_context.state());
         transaction_context.before_rollback();
+        se_trx_.abort();
         transaction_context.after_rollback();
         return 0;
     }
@@ -315,75 +339,82 @@ private:
     }
     void wait_for_replayers(trrep::unique_lock<trrep::mutex>&) const override
     { }
-    void override_error(const trrep::client_error&) override { }
     bool killed() const override { return false; }
     void abort() const override { ::abort(); }
     void store_globals() override { }
     void debug_sync(const std::string&) override { }
     void debug_suicide(const std::string&) override { }
+    void on_error(enum trrep::client_error) override { }
 
-    void run_one_transaction()
+    template <class Func>
+    int client_command(Func f)
     {
         int err(before_command());
-        dbms_storage_engine::transaction se_trx(server_.storage_engine());
         if (err == 0)
         {
             err = before_statement();
             if (err == 0)
             {
-                err = start_transaction(server_.next_transaction_id());
-                se_trx.start(&transaction());
+                err = f();
             }
             after_statement();
         }
         after_command();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        for (int i(0); i < 1 && err == 0; ++i)
-        {
-            std::ostringstream os;
-            err = before_command();
-            if (err == 0)
-            {
-                err = before_statement();
-                if (err == 0)
-                {
-                    int data(std::rand() % 10000000);
-                    os << data;
-                    trrep::key key;
-                    key.append_key_part("dbms", 4);
-                    wsrep_conn_id_t client_id(id().get());
-                    key.append_key_part(&client_id, sizeof(client_id));
-                    key.append_key_part(&data, sizeof(data));
-                    err = append_key(key);
-                    err = append_data(trrep::data(os.str().c_str(), os.str().size()));
-                }
-                after_statement();
-            }
-            after_command();
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        if (err == 0)
-        {
-            err = before_command();
-            if (err == 0)
-            {
-                err = before_statement();
+        return err;
+    }
 
-                if (err == 0 && do_2pc())
+    void run_one_transaction()
+    {
+        reset_error();
+        int err = client_command(
+            [&]()
+            {
+                err = start_transaction(server_.next_transaction_id());
+                assert(err == 0);
+                se_trx_.start(&transaction());
+                return err;
+            });
+        err = err || current_error();
+        err = err || client_command(
+            [&]()
+            {
+                assert(transaction().active());
+                assert(err == 0);
+                int data(std::rand() % 10000000);
+                std::ostringstream os;
+                os << data;
+                trrep::key key;
+                key.append_key_part("dbms", 4);
+                wsrep_conn_id_t client_id(id().get());
+                key.append_key_part(&client_id, sizeof(client_id));
+                key.append_key_part(&data, sizeof(data));
+                err = append_key(key);
+                err = err || append_data(trrep::data(os.str().c_str(),
+                                                     os.str().size()));
+                return err;
+            });
+        err = err || current_error();
+        err = err || client_command(
+            [&]()
+            {
+                assert(err == 0);
+                if (do_2pc())
                 {
                     err = err || before_prepare();
                     err = err || after_prepare();
                 }
                 err = err || before_commit();
+                se_trx_.commit();
                 err = err || ordered_commit();
                 err = err || after_commit();
-                after_statement();
-            }
-            after_command();
-        }
-        assert(transaction().state() == trrep::transaction_context::s_committed
-               ||
-               transaction().state() == trrep::transaction_context::s_aborted);
+                return err;
+            });
+
+        assert((current_error() &&
+                transaction().state() == trrep::transaction_context::s_aborted) ||
+               transaction().state() == trrep::transaction_context::s_committed);
+        assert(se_trx_.active() == false);
+        assert(transaction().active() == false);
     }
 
     void report_progress(size_t i) const
@@ -397,6 +428,7 @@ private:
     }
     trrep::default_mutex mutex_;
     dbms_server& server_;
+    dbms_storage_engine::transaction se_trx_;
     const size_t n_transactions_;
 };
 
@@ -482,6 +514,7 @@ void dbms_simulator::start()
         boost::filesystem::create_directory(dir);
 
         dbms_server& server(*it.first->second);
+        server.debug_log_level(params_.debug_log_level);
         std::string server_options(params_.wsrep_provider_options);
 
         if (server.load_provider(params_.wsrep_provider, server_options))
@@ -622,7 +655,9 @@ int main(int argc, char** argv)
             ("clients", po::value<size_t>(&params.n_clients)->required(),
              "number of clients to start per server")
             ("transactions", po::value<size_t>(&params.n_transactions),
-             "number of transactions run by a client");
+             "number of transactions run by a client")
+            ("debug-log-level", po::value<int>(&params.debug_log_level),
+             "debug logging level: 0 - none, 1 - verbose");
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);

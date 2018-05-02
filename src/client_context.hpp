@@ -57,6 +57,17 @@ namespace trrep
         e_append_fragment_error
     };
 
+    static inline std::string to_string(enum client_error error)
+    {
+        switch (error)
+        {
+        case e_success: return "success";
+        case e_error_during_commit: return "error_during_commit";
+        case e_deadlock_error: return "deadlock_error";
+        case e_append_fragment_error: return "append_fragment_error";
+        }
+        return "unknown";
+    }
     class client_id
     {
     public:
@@ -285,6 +296,23 @@ namespace trrep
         {
             return transaction_;
         }
+
+        void debug_log_level(int level) { debug_log_level_ = level; }
+        int debug_log_level() const
+        {
+            return std::max(debug_log_level_,
+                            server_context_.debug_log_level());
+        }
+
+        void reset_error()
+        {
+            current_error_ = trrep::e_success;
+        }
+
+        enum trrep::client_error current_error() const
+        {
+            return current_error_;
+        }
     protected:
         /*!
          * Client context constuctor. This is protected so that it
@@ -301,6 +329,8 @@ namespace trrep
             , state_(s_idle)
             , transaction_(*this)
             , allow_dirty_reads_()
+            , debug_log_level_(0)
+            , current_error_(trrep::e_success)
         { }
 
     private:
@@ -401,11 +431,6 @@ namespace trrep
         }
 
         /*!
-         *
-         */
-        virtual void override_error(const trrep::client_error&) = 0;
-
-        /*!
          * Return true if the current client operation was killed.
          */
         virtual bool killed() const = 0;
@@ -432,6 +457,22 @@ namespace trrep
          */
         virtual void debug_suicide(const std::string&) = 0;
 
+        /*!
+         * Notify the implementation about an error.
+         */
+        virtual void on_error(enum trrep::client_error error) = 0;
+        /*!
+         *
+         */
+        void override_error(enum trrep::client_error error)
+        {
+            if (current_error_ != trrep::e_success &&
+                error == trrep::e_success)
+            {
+                throw trrep::runtime_error("Overriding error with success");
+            }
+            current_error_ = error;
+        }
 
         trrep::mutex& mutex_;
         trrep::server_context& server_context_;
@@ -444,6 +485,8 @@ namespace trrep
          * semantics.
          */
         bool allow_dirty_reads_;
+        int debug_log_level_;
+        trrep::client_error current_error_;
     };
 
 

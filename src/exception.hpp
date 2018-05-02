@@ -6,6 +6,7 @@
 #define TRREP_EXCEPTION_HPP
 
 #include <stdexcept>
+#include <cstdlib>
 
 namespace trrep
 {
@@ -14,7 +15,9 @@ namespace trrep
     public:
         runtime_error(const std::string& msg)
             : std::runtime_error(msg)
-        { }
+        {
+            ::abort();
+        }
     };
 
     class not_implemented_error : public std::exception
@@ -22,7 +25,9 @@ namespace trrep
     public:
         not_implemented_error()
             : std::exception()
-        { }
+        {
+            ::abort();
+        }
     };
 
 }

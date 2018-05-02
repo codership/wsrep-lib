@@ -157,6 +157,8 @@ namespace trrep
         trrep::transaction_id id_;
         enum state state_;
         std::vector<enum state> state_hist_;
+        enum state bf_abort_state_;
+        int bf_abort_client_state_;
         wsrep_ws_handle_t ws_handle_;
         wsrep_trx_meta_t trx_meta_;
         uint32_t flags_;

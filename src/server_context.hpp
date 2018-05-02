@@ -335,6 +335,9 @@ namespace trrep
             const trrep::client_context& client_context,
             const trrep::transaction_context& transaction_context) const;
 
+        void debug_log_level(int level) { debug_log_level_ = level; }
+        int debug_log_level() const { return debug_log_level_; }
+
     protected:
                 /*! Server Context constructor
          *
@@ -365,6 +368,7 @@ namespace trrep
             , address_(address)
             , working_dir_(working_dir)
             , rollback_mode_(rollback_mode)
+            , debug_log_level_(0)
         { }
 
     private:
@@ -384,6 +388,7 @@ namespace trrep
         std::string address_;
         std::string working_dir_;
         enum rollback_mode rollback_mode_;
+        int debug_log_level_;
     };
 
     static inline std::string to_string(enum trrep::server_context::state state)

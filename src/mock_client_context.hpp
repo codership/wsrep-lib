@@ -47,7 +47,6 @@ namespace trrep
         }
         void wait_for_replayers(trrep::unique_lock<trrep::mutex>&) const
             TRREP_OVERRIDE { }
-        void override_error(const trrep::client_error&) TRREP_OVERRIDE { }
         bool killed() const TRREP_OVERRIDE { return false; }
         void abort() const TRREP_OVERRIDE { }
         void store_globals() TRREP_OVERRIDE { }
@@ -56,7 +55,7 @@ namespace trrep
         {
             ::abort();
         }
-
+        void on_error(enum trrep::client_error) { }
         // Mock state modifiers
         void fail_next_applying(bool fail_next_applying)
         { fail_next_applying_ = fail_next_applying; }

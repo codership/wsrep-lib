@@ -156,6 +156,7 @@ public:
         , servers_()
         , clients_start_()
         , clients_stop_()
+        , stats_()
     { }
     ~dbms_simulator()
     {
@@ -181,6 +182,18 @@ private:
     std::map<size_t, std::unique_ptr<dbms_server>> servers_;
     std::chrono::time_point<std::chrono::steady_clock> clients_start_;
     std::chrono::time_point<std::chrono::steady_clock> clients_stop_;
+public:
+    struct stats
+    {
+        long long commits;
+        long long aborts;
+        long long replays;
+        stats()
+            : commits(0)
+            , aborts(0)
+            , replays(0)
+        { }
+    } stats_;
 };
 
 class dbms_client;
@@ -273,7 +286,7 @@ private:
     std::atomic<size_t> last_client_id_;
     std::atomic<size_t> last_transaction_id_;
     std::vector<boost::thread> appliers_;
-    std::map<size_t, std::unique_ptr<dbms_client>> clients_;
+    std::vector<std::shared_ptr<dbms_client>> clients_;
     std::vector<boost::thread> client_threads_;
 };
 
@@ -289,6 +302,7 @@ public:
         , server_(server)
         , se_trx_(server_.storage_engine())
         , n_transactions_(n_transactions)
+        , stats_()
     { }
 
     ~dbms_client()
@@ -305,6 +319,22 @@ public:
         }
     }
 
+    struct stats
+    {
+        long long commits;
+        long long aborts;
+        long long replays;
+        stats()
+            : commits(0)
+            , aborts(0)
+            , replays(0)
+        { }
+    };
+
+    const struct stats stats() const
+    {
+        return stats_;
+    }
 private:
     bool do_2pc() const override { return false; }
     int apply(trrep::transaction_context& txc, const trrep::data& data) override
@@ -335,6 +365,7 @@ private:
     {
         trrep::log() << "replay: " << txc.id().get();
         trrep::client_applier_mode applier_mode(*this);
+        ++stats_.replays;
         return provider().replay(&txc.ws_handle(), this);
     }
     void wait_for_replayers(trrep::unique_lock<trrep::mutex>&) const override
@@ -415,6 +446,17 @@ private:
                transaction().state() == trrep::transaction_context::s_committed);
         assert(se_trx_.active() == false);
         assert(transaction().active() == false);
+        switch (transaction().state())
+        {
+        case trrep::transaction_context::s_committed:
+            ++stats_.commits;
+            break;
+        case trrep::transaction_context::s_aborted:
+            ++stats_.aborts;
+            break;
+        default:
+            assert(0);
+        }
     }
 
     void report_progress(size_t i) const
@@ -430,6 +472,7 @@ private:
     dbms_server& server_;
     dbms_storage_engine::transaction se_trx_;
     const size_t n_transactions_;
+    struct stats stats_;
 };
 
 
@@ -465,6 +508,13 @@ void dbms_server::stop_clients()
     {
         i.join();
     }
+    for (const auto& i : clients_)
+    {
+        struct dbms_client::stats stats(i->stats());
+        simulator_.stats_.commits += stats.commits;
+        simulator_.stats_.aborts  += stats.aborts;
+        simulator_.stats_.replays += stats.replays;
+    }
 }
 
 void dbms_server::client_thread(const std::shared_ptr<dbms_client>& client)
@@ -478,6 +528,7 @@ void dbms_server::start_client(size_t id)
                     *this, id,
                     trrep::client_context::m_replicating,
                     simulator_.params().n_transactions));
+    clients_.push_back(client);
     client_threads_.push_back(
         boost::thread(&dbms_server::client_thread, this, client));
 }
@@ -589,7 +640,13 @@ std::string dbms_simulator::stats() const
        << "Transactions per second: " << transactions/duration
        << "\n"
        << "BF aborts: "
-       << bf_aborts;
+       << bf_aborts
+       << "\n"
+       << "Client commits: " << stats_.commits
+       << "\n"
+       << "Client aborts: " << stats_.aborts
+       << "\n"
+       << "Client replays:" << stats_.replays;
     return os.str();
 }
 

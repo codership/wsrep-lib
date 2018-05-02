@@ -52,6 +52,7 @@ void trrep::client_context::after_command()
         transaction_.after_statement();
         lock.lock();
         assert(transaction_.state() == trrep::transaction_context::s_aborted);
+        assert(current_error() != trrep::e_success);
     }
     state(lock, s_idle);
 }

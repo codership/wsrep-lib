@@ -105,14 +105,23 @@ namespace trrep
 
         int replay(wsrep_ws_handle_t*, void*) { ::abort(); /* not impl */}
 
+        int sst_sent(const wsrep_gtid_t&, int) { return 0; }
+        int sst_received(const wsrep_gtid_t&, int) { return 0; }
+
+        std::vector<status_variable> status() const
+        {
+            return std::vector<status_variable>();
+        }
+
+
         // Methods to modify mock state
 
-        // Inject BF abort event into the provider.
-        //
-        // @param bf_seqno Aborter sequence number
-        // @param trx_id Trx id to be aborted
-        // @param[out] victim_seqno
-        //
+        /*! Inject BF abort event into the provider.
+         *
+         * \param bf_seqno Aborter sequence number
+         * \param trx_id Trx id to be aborted
+         * \param[out] victim_seqno
+         */
         wsrep_status_t bf_abort(wsrep_seqno_t bf_seqno,
                                 wsrep_trx_id_t trx_id,
                                 wsrep_seqno_t* victim_seqno)
@@ -127,13 +136,11 @@ namespace trrep
             return WSREP_OK;
         }
 
-        int sst_sent(const wsrep_gtid_t&, int) { return 0; }
-        int sst_received(const wsrep_gtid_t&, int) { return 0; }
-
-        std::vector<status_variable> status() const
-        {
-            return std::vector<status_variable>();
-        }
+        /*!
+         * \todo Inject an error so that the next call to any
+         *       provider call will return the given error.
+         */
+        void inject_error(wsrep_status_t);
     private:
         wsrep_uuid_t group_id_;
         wsrep_uuid_t node_id_;

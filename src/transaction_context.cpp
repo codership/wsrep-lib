@@ -189,6 +189,8 @@ int trrep::transaction_context::before_commit()
            state() == s_committing ||
            state() == s_must_abort ||
            state() == s_replaying);
+    assert((client_context_.mode() == trrep::client_context::m_replicating &&
+            state() == s_executing) || certified());
 
     switch (client_context_.mode())
     {

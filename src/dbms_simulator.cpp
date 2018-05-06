@@ -57,7 +57,7 @@ public:
     dbms_storage_engine()
         : mutex_()
         , transactions_()
-        , alg_freq_(100)
+        , alg_freq_(0)
         , bf_aborts_()
     { }
 
@@ -343,6 +343,7 @@ private:
     }
     int commit(trrep::transaction_context& transaction_context) override
     {
+        assert(mode() == trrep::client_context::m_applier);
         int ret(0);
         ret = transaction_context.before_commit();
         ret = ret || transaction_context.ordered_commit();
@@ -461,7 +462,7 @@ private:
 
     void report_progress(size_t i) const
     {
-        if ((i % 100) == 0)
+        if ((i % 1000) == 0)
         {
             trrep::log() << "client: " << id().get()
                          << " transactions: " << i

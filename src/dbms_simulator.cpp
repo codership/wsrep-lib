@@ -238,22 +238,18 @@ public:
     }
 
     bool sst_before_init() const override  { return false; }
-    std::string on_sst_request()
+    std::string on_sst_required()
     {
         return id();
     }
 
-    void on_sst_donate_request(const std::string& req,
-                               const wsrep_gtid_t& gtid,
-                               bool bypass)
+    void on_sst_request(const std::string& req,
+                        const wsrep_gtid_t& gtid,
+                        bool bypass)
     {
         simulator_.donate_sst(*this, req, gtid, bypass);
     }
 
-    void sst_sent(const wsrep_gtid_t& gtid)
-    {
-        provider().sst_sent(gtid, 0);
-    }
 
     // Client context management
     trrep::client_context* local_client_context();
@@ -669,8 +665,8 @@ void dbms_simulator::donate_sst(dbms_server& server,
     {
         trrep::log() << "SST " << server.id() << " -> " << id;
     }
-    i->second->sst_received(gtid);
-    server.sst_sent(gtid);
+    i->second->sst_received(gtid, 0);
+    server.sst_sent(gtid, 0);
 }
 std::string dbms_simulator::build_cluster_address() const
 {

@@ -39,11 +39,11 @@ namespace trrep
         void on_view(const trrep::view&) TRREP_OVERRIDE { }
         void on_sync() TRREP_OVERRIDE { }
         bool sst_before_init() const TRREP_OVERRIDE { return false; }
-        std::string on_sst_request() TRREP_OVERRIDE { return ""; }
-        void on_sst_donate_request(const std::string&,
-                                   const wsrep_gtid_t&,
-                                   bool) TRREP_OVERRIDE { }
-        void sst_received(const wsrep_gtid_t&) TRREP_OVERRIDE { }
+        std::string on_sst_required() TRREP_OVERRIDE { return ""; }
+        void on_sst_request(const std::string&,
+                            const wsrep_gtid_t&,
+                            bool) TRREP_OVERRIDE { }
+        // void sst_received(const wsrep_gtid_t&, int) TRREP_OVERRIDE { }
         // void on_apply(trrep::transaction_context&) { }
         // void on_commit(trrep::transaction_context&) { }
 

@@ -272,7 +272,7 @@ namespace trrep
          * provide a string containing an information which the donor
          * server can use to donate SST.
          */
-        virtual std::string on_sst_request() = 0;
+        virtual std::string on_sst_required() = 0;
 
         /*!
          * Virtual method which will be called on *donor* when the
@@ -294,9 +294,15 @@ namespace trrep
          * \param gtid GTID denoting the current replication position.
          * \param bypass Boolean bypass flag.
          */
-        virtual void on_sst_donate_request(const std::string& sst_request,
-                                           const wsrep_gtid_t& gtid,
-                                           bool bypass) = 0;
+        virtual void on_sst_request(const std::string& sst_request,
+                                    const wsrep_gtid_t& gtid,
+                                    bool bypass) = 0;
+
+
+        /*!
+         *
+         */
+        void sst_sent(const wsrep_gtid_t& gtid, int error);
 
         /*!
          * This method must be called by the joiner after the SST
@@ -304,8 +310,11 @@ namespace trrep
          *
          * \param gtid GTID provided by the SST transfer
          */
-        void sst_received(const wsrep_gtid_t& gtid);
+        void sst_received(const wsrep_gtid_t& gtid, int error);
 
+        /*!
+         *
+         */
         /*!
          * This method will be called by the provider hen
          * a remote write set is being applied. It is the responsibility

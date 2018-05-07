@@ -90,7 +90,7 @@ namespace
 
         try
         {
-            std::string req(server_context.on_sst_request());
+            std::string req(server_context.on_sst_required());
             *sst_req = ::strdup(req.c_str());
             *sst_req_len = strlen(req.c_str());
             return WSREP_CB_SUCCESS;
@@ -161,7 +161,7 @@ namespace
         {
             std::string req(reinterpret_cast<const char*>(req_buf->ptr),
                             req_buf->len);
-            server_context.on_sst_donate_request(req, *gtid, bypass);
+            server_context.on_sst_request(req, *gtid, bypass);
             return WSREP_CB_SUCCESS;
         }
         catch (const trrep::runtime_error& e)
@@ -232,9 +232,13 @@ trrep::server_context::~server_context()
     delete provider_;
 }
 
-void trrep::server_context::sst_received(const wsrep_gtid_t& gtid)
+void trrep::server_context::sst_sent(const wsrep_gtid_t& gtid, int error)
 {
-    provider_->sst_received(gtid, 0);
+    provider_->sst_sent(gtid, error);
+}
+void trrep::server_context::sst_received(const wsrep_gtid_t& gtid, int error)
+{
+    provider_->sst_received(gtid, error);
 }
 
 void trrep::server_context::wait_until_state(

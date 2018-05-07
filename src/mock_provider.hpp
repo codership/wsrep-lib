@@ -5,7 +5,7 @@
 #ifndef TRREP_MOCK_PROVIDER_HPP
 #define TRREP_MOCK_PROVIDER_HPP
 
-#include "provider.hpp"
+#include "trrep/provider.hpp"
 
 #include <cstring>
 #include <map>

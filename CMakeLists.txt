@@ -3,13 +3,14 @@
 #
 
 cmake_minimum_required (VERSION 2.8)
-project (wsrep-cpp)
+project (trrep)
 include(CheckIncludeFile)
 include(CTest)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Weffc++ -Woverloaded-virtual -Wno-non-virtual-dtor -g")
 
 check_include_file("${CMAKE_CURRENT_SOURCE_DIR}/wsrep/wsrep_api.h" HAVE_WSREP_API_HPP)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep")
 
@@ -51,3 +52,5 @@ if (WITH_DOCUMENTATION)
 endif()
 
 add_subdirectory(src)
+add_subdirectory(wsrep)
+

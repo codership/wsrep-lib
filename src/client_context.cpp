@@ -2,8 +2,8 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "client_context.hpp"
-#include "compiler.hpp"
+#include "trrep/client_context.hpp"
+#include "trrep/compiler.hpp"
 
 #include <sstream>
 #include <iostream>

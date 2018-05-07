@@ -3,7 +3,7 @@
 //
 
 #include "mock_utils.hpp"
-#include "client_context.hpp"
+#include "trrep/client_context.hpp"
 #include "mock_server_context.hpp"
 
 

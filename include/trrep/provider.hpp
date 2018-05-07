@@ -84,6 +84,13 @@ namespace trrep
         virtual int sst_received(const wsrep_gtid_t&, int) = 0;
 
         virtual std::vector<status_variable> status() const = 0;
+
+        /*!
+         * Return a pointer to native handle.
+         *
+         * \todo This should be eventually deprecated.
+         */
+        // virtual struct wsrep* native() = 0;
         // Factory method
         static provider* make_provider(const std::string& provider);
     };

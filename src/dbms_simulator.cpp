@@ -9,15 +9,15 @@
 //
 
 
-#include "server_context.hpp"
-#include "client_context.hpp"
-#include "transaction_context.hpp"
-#include "key.hpp"
-#include "data.hpp"
-#include "provider.hpp"
-#include "condition_variable.hpp"
-#include "view.hpp"
-#include "logger.hpp"
+#include "trrep/server_context.hpp"
+#include "trrep/client_context.hpp"
+#include "trrep/transaction_context.hpp"
+#include "trrep/key.hpp"
+#include "trrep/data.hpp"
+#include "trrep/provider.hpp"
+#include "trrep/condition_variable.hpp"
+#include "trrep/view.hpp"
+#include "trrep/logger.hpp"
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>

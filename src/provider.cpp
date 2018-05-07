@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "provider.hpp"
+#include "trrep/provider.hpp"
 
 #include "provider_impl.hpp"
 

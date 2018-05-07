@@ -3,7 +3,7 @@
 //
 
 #include "wsrep_provider_v26.hpp"
-#include "exception.hpp"
+#include "trrep/exception.hpp"
 
 #include <wsrep_api.h>
 

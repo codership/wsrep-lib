@@ -5,11 +5,11 @@
 #ifndef TRREP_MOCK_SERVER_CONTEXT_HPP
 #define TRREP_MOCK_SERVER_CONTEXT_HPP
 
-#include "server_context.hpp"
+#include "trrep/server_context.hpp"
 #include "mock_client_context.hpp"
 #include "mock_provider.hpp"
 
-#include "compiler.hpp"
+#include "trrep/compiler.hpp"
 
 namespace trrep
 {

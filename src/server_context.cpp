@@ -2,12 +2,12 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "server_context.hpp"
-#include "client_context.hpp"
-#include "transaction_context.hpp"
-#include "view.hpp"
-#include "logger.hpp"
-#include "compiler.hpp"
+#include "trrep/server_context.hpp"
+#include "trrep/client_context.hpp"
+#include "trrep/transaction_context.hpp"
+#include "trrep/view.hpp"
+#include "trrep/logger.hpp"
+#include "trrep/compiler.hpp"
 
 // Todo: refactor into provider factory
 #include "mock_provider.hpp"

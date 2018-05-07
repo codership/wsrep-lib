@@ -5,9 +5,9 @@
 #ifndef TRREP_MOCK_CLIENT_CONTEXT_HPP
 #define TRREP_MOCK_CLIENT_CONTEXT_HPP
 
-#include "client_context.hpp"
-#include "mutex.hpp"
-#include "compiler.hpp"
+#include "trrep/client_context.hpp"
+#include "trrep/mutex.hpp"
+#include "trrep/compiler.hpp"
 
 namespace trrep
 {

@@ -5,7 +5,7 @@
 #ifndef TRREP_WSREP_PROVIDER_V26_HPP
 #define TRREP_WSREP_PROVIDER_V26_HPP
 
-#include "provider.hpp"
+#include "trrep/provider.hpp"
 
 #include <wsrep_api.h>
 

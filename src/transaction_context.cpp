@@ -2,13 +2,13 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "transaction_context.hpp"
-#include "client_context.hpp"
-#include "server_context.hpp"
-#include "key.hpp"
-#include "data.hpp"
-#include "logger.hpp"
-#include "compiler.hpp"
+#include "trrep/transaction_context.hpp"
+#include "trrep/client_context.hpp"
+#include "trrep/server_context.hpp"
+#include "trrep/key.hpp"
+#include "trrep/data.hpp"
+#include "trrep/logger.hpp"
+#include "trrep/compiler.hpp"
 
 #include <sstream>
 #include <memory>

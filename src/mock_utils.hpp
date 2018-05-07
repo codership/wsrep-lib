@@ -11,7 +11,7 @@ namespace trrep
     class mock_server_context;
 }
 
-#include "transaction_context.hpp"
+#include "trrep/transaction_context.hpp"
 
 //
 // Utility functions

@@ -41,6 +41,7 @@ struct dbms_simulator_params
     std::string wsrep_provider;
     std::string wsrep_provider_options;
     int debug_log_level;
+    int fast_exit;
     dbms_simulator_params()
         : n_servers(0)
         , n_clients(0)
@@ -48,6 +49,7 @@ struct dbms_simulator_params
         , wsrep_provider()
         , wsrep_provider_options()
         , debug_log_level(0)
+        , fast_exit(0)
     { }
 };
 
@@ -599,8 +601,10 @@ void dbms_simulator::stop()
     trrep::log() << "######## Stats ############";
     trrep::log()  << stats();
     trrep::log() << "######## Stats ############";
-    // REMOVEME: Temporary shortcut
-    // exit(0);
+    if (params_.fast_exit)
+    {
+        exit(0);
+    }
     for (auto& i : servers_)
     {
         dbms_server& server(*i.second);
@@ -711,7 +715,9 @@ int main(int argc, char** argv)
             ("transactions", po::value<size_t>(&params.n_transactions),
              "number of transactions run by a client")
             ("debug-log-level", po::value<int>(&params.debug_log_level),
-             "debug logging level: 0 - none, 1 - verbose");
+             "debug logging level: 0 - none, 1 - verbose")
+            ("fast-exit", po::value<int>(&params.fast_exit),
+             "exit from simulation without graceful shutdown");
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);

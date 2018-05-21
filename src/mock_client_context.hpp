@@ -50,8 +50,8 @@ namespace trrep
         bool killed() const TRREP_OVERRIDE { return false; }
         void abort() const TRREP_OVERRIDE { }
         void store_globals() TRREP_OVERRIDE { }
-        void debug_sync(const std::string&) TRREP_OVERRIDE { }
-        void debug_suicide(const std::string&) TRREP_OVERRIDE
+        void debug_sync(const char*) TRREP_OVERRIDE { }
+        void debug_suicide(const char*) TRREP_OVERRIDE
         {
             ::abort();
         }

@@ -17,11 +17,11 @@ function run_benchmark()
 }
 
 
-# for servers in 1 2 4 8 16
-for servers in 16
+for servers in 1 2 4 8 16
+# for servers in 16
 do
-#    for clients in 1 2 4 8 16 32
-    for clients in 4 8 16 32
+    for clients in 1 2 4 8 16 32
+#     for clients in 4 8 16 32
     do
 	run_benchmark $servers $clients
     done

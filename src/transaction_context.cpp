@@ -131,6 +131,9 @@ int trrep::transaction_context::before_prepare()
     case trrep::client_context::m_local:
     case trrep::client_context::m_applier:
         break;
+    default:
+        assert(0);
+        break;
     }
 
     assert(state() == s_preparing);
@@ -173,6 +176,9 @@ int trrep::transaction_context::after_prepare()
         state(lock, s_certifying);
         state(lock, s_committing);
         ret = 0;
+        break;
+    default:
+        assert(0);
         break;
     }
     debug_log_state("after_prepare_leave");
@@ -267,6 +273,9 @@ int trrep::transaction_context::before_commit()
             }
         }
         break;
+    default:
+        assert(0);
+        break;
     }
     debug_log_state("before_commit_leave");
     return ret;
@@ -309,6 +318,9 @@ int trrep::transaction_context::after_commit()
         ret = provider_.release(&ws_handle_);
         break;
     case trrep::client_context::m_applier:
+        break;
+    default:
+        assert(0);
         break;
     }
     assert(ret == 0);
@@ -806,7 +818,7 @@ void trrep::transaction_context::cleanup()
 }
 
 void trrep::transaction_context::debug_log_state(
-    const std::string& context TRREP_UNUSED) const
+    const char* context) const
 {
     if (client_context_.debug_log_level() >= 1)
     {

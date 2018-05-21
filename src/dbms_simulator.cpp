@@ -38,6 +38,7 @@ struct dbms_simulator_params
     size_t n_servers;
     size_t n_clients;
     size_t n_transactions;
+    size_t alg_freq;
     std::string wsrep_provider;
     std::string wsrep_provider_options;
     int debug_log_level;
@@ -46,6 +47,7 @@ struct dbms_simulator_params
         : n_servers(0)
         , n_clients(0)
         , n_transactions(0)
+        , alg_freq(0)
         , wsrep_provider()
         , wsrep_provider_options()
         , debug_log_level(0)
@@ -56,10 +58,10 @@ struct dbms_simulator_params
 class dbms_storage_engine
 {
 public:
-    dbms_storage_engine()
+    dbms_storage_engine(const dbms_simulator_params& params)
         : mutex_()
         , transactions_()
-        , alg_freq_(0)
+        , alg_freq_(params.alg_freq)
         , bf_aborts_()
     { }
 
@@ -212,7 +214,7 @@ public:
                                 name, id, address, name + "_data",
                                 trrep::server_context::rm_async)
         , simulator_(simulator)
-        , storage_engine_()
+        , storage_engine_(simulator_.params())
         , mutex_()
         , cond_()
         , last_client_id_(0)
@@ -372,8 +374,8 @@ private:
     bool killed() const override { return false; }
     void abort() const override { ::abort(); }
     void store_globals() override { }
-    void debug_sync(const std::string&) override { }
-    void debug_suicide(const std::string&) override { }
+    void debug_sync(const char*) override { }
+    void debug_suicide(const char*) override { }
     void on_error(enum trrep::client_error) override { }
 
     template <class Func>
@@ -714,6 +716,8 @@ int main(int argc, char** argv)
              "number of clients to start per server")
             ("transactions", po::value<size_t>(&params.n_transactions),
              "number of transactions run by a client")
+            ("alg-freq", po::value<size_t>(&params.alg_freq),
+             "ALG frequency")
             ("debug-log-level", po::value<int>(&params.debug_log_level),
              "debug logging level: 0 - none, 1 - verbose")
             ("fast-exit", po::value<int>(&params.fast_exit),

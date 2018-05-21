@@ -225,34 +225,31 @@ namespace trrep
                     bool bootstrap);
 
         int disconnect();
-        /*!
-         * Virtual method which will be called when the server
-         * has been joined to the cluster. Must be provided by
-         * the implementation.
-         *
-         * \todo Document overriding.
-         */
-        virtual void on_connect();
 
         /*!
-         * Virtual method which will be called when a view
+         * A method which will be called when the server
+         * has been joined to the cluster
+         */
+        void on_connect();
+
+        /*!
+         * A method which will be called when a view
          * notification event has been delivered by the
          * provider.
-         *
-         * \todo Document overriding.
          *
          * \params view trrep::view object which holds the new view
          *         information.
          */
-        virtual void on_view(const trrep::view& view);
+        void on_view(const trrep::view& view);
 
         /*!
-         * Virtual method which will be called when the server
+         * A method which will be called when the server
          * has been synchronized with the cluster.
          *
-         * \todo Document overriding.
+         * This will have a side effect of changing the Server Context
+         * state to s_synced.
          */
-        virtual void on_sync();
+        void on_sync();
 
         /*!
          * Wait until server reaches given state.
@@ -311,6 +308,13 @@ namespace trrep
          * \param gtid GTID provided by the SST transfer
          */
         void sst_received(const wsrep_gtid_t& gtid, int error);
+
+        /*!
+         * This method must be called after the server initialization
+         * has been completed. The call has a side effect of changing
+         * the Server Context state to s_initialized.
+         */
+        void initialized();
 
         /*!
          *

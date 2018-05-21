@@ -99,7 +99,9 @@ namespace trrep
             /*! Generates write sets for replication by the provider. */
             m_replicating,
             /*! Applies write sets from the provider. */
-            m_applier
+            m_applier,
+            /*! Client is in total order isolation mode */
+            m_toi
         };
 
         /*!
@@ -345,6 +347,7 @@ namespace trrep
                                             const trrep::data&);
         friend class client_context_switch;
         friend class client_applier_mode;
+        friend class client_toi_mode;
         friend class transaction_context;
 
         /*!
@@ -450,12 +453,12 @@ namespace trrep
         /*!
          * Enter debug synchronization point.
          */
-        virtual void debug_sync(const std::string&) = 0;
+        virtual void debug_sync(const char*) = 0;
 
         /*!
          *
          */
-        virtual void debug_suicide(const std::string&) = 0;
+        virtual void debug_suicide(const char*) = 0;
 
         /*!
          * Notify the implementation about an error.
@@ -526,6 +529,27 @@ namespace trrep
         trrep::client_context& client_;
         enum trrep::client_context::mode orig_mode_;
     };
+
+    class client_toi_mode
+    {
+    public:
+        client_toi_mode(trrep::client_context& client)
+            : client_(client)
+            , orig_mode_(client.mode_)
+        {
+            client_.mode_ = trrep::client_context::m_toi;
+        }
+        ~client_toi_mode()
+        {
+            assert(client_.mode == trrep::client_context::m_toi);
+            client_.mode_ = orig_mode_;
+        }
+    private:
+        trrep::client_context& client_;
+        enum trrep::client_context::mode orig_mode_;
+    };
+
+
 }
 
 #endif // TRREP_CLIENT_CONTEXT_HPP

@@ -346,9 +346,10 @@ private:
         assert(mode() == trrep::client_context::m_applier);
         int ret(0);
         ret = transaction_context.before_commit();
+        se_trx_.commit();
         ret = ret || transaction_context.ordered_commit();
         ret = ret || transaction_context.after_commit();
-        return 0;
+        return ret;
     }
     int rollback(trrep::transaction_context& transaction_context) override
     {
@@ -436,7 +437,7 @@ private:
                     err = err || after_prepare();
                 }
                 err = err || before_commit();
-                se_trx_.commit();
+                if (err == 0) se_trx_.commit();
                 err = err || ordered_commit();
                 err = err || after_commit();
                 return err;
@@ -649,7 +650,7 @@ std::string dbms_simulator::stats() const
        << "\n"
        << "Client aborts: " << stats_.aborts
        << "\n"
-       << "Client replays:" << stats_.replays;
+       << "Client replays: " << stats_.replays;
     return os.str();
 }
 

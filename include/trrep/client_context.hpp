@@ -541,7 +541,7 @@ namespace trrep
         }
         ~client_toi_mode()
         {
-            assert(client_.mode == trrep::client_context::m_toi);
+            assert(client_.mode() == trrep::client_context::m_toi);
             client_.mode_ = orig_mode_;
         }
     private:

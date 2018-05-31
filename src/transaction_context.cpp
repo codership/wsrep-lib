@@ -191,12 +191,12 @@ int trrep::transaction_context::before_commit()
 
     trrep::unique_lock<trrep::mutex> lock(client_context_.mutex());
     debug_log_state("before_commit_enter");
+    assert(client_context_.mode() != trrep::client_context::m_toi);
     assert(state() == s_executing ||
            state() == s_committing ||
            state() == s_must_abort ||
            state() == s_replaying);
-    assert((client_context_.mode() == trrep::client_context::m_replicating &&
-            state() == s_executing) || certified());
+    assert(state() != s_committing || certified());
 
     switch (client_context_.mode())
     {
@@ -433,15 +433,20 @@ int trrep::transaction_context::after_statement()
         lock.unlock();
         ret = client_context_.rollback(*this);
         lock.lock();
-        break;
-    case s_aborted:
-        break;
+        if (state() != s_must_replay)
+        {
+            break;
+        }
+        // Continue to replay if rollback() changed the state to s_must_replay
+        // Fall through
     case s_must_replay:
         state(lock, s_replaying);
         lock.unlock();
         ret = client_context_.replay(*this);
         lock.lock();
         provider_.release(&ws_handle_);
+        break;
+    case s_aborted:
         break;
     default:
         assert(0);
@@ -450,7 +455,8 @@ int trrep::transaction_context::after_statement()
 
     assert(state() == s_executing ||
            state() == s_committed ||
-           state() == s_aborted);
+           state() == s_aborted   ||
+           state() == s_must_replay);
 
     if (state() == s_aborted)
     {

@@ -16,14 +16,14 @@ BOOST_AUTO_TEST_CASE(client_context_test_error_codes)
                                   trrep::client_id(1),
                                   trrep::client_context::m_applier,
                                   false);
+    const trrep::transaction_context& txc(cc.transaction());
+    cc.before_command();
+    cc.before_statement();
 
-    trrep::transaction_context& tc(cc.transaction());
-    BOOST_REQUIRE(tc.active() == false);
-    tc.start_transaction(1);
-    trrep_mock::bf_abort_unordered(cc, tc);
+    BOOST_REQUIRE(txc.active() == false);
+    cc.start_transaction(1);
+    trrep_mock::bf_abort_unordered(cc);
 
-    BOOST_REQUIRE(cc.before_command());
-    BOOST_REQUIRE(cc.before_statement());
     cc.after_statement();
     cc.after_command();
 }

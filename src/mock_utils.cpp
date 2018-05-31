@@ -8,11 +8,11 @@
 
 
 // Simple BF abort method to BF abort unordered transasctions
-void trrep_mock::bf_abort_unordered(trrep::client_context& cc,
-                                    trrep::transaction_context& tc)
+void trrep_mock::bf_abort_unordered(trrep::client_context& cc)
 {
     trrep::unique_lock<trrep::mutex> lock(cc.mutex());
-    tc.state(lock, trrep::transaction_context::s_must_abort);
+    assert(cc.transaction().seqno() <= 0);
+    cc.bf_abort(lock, 1);
 }
 
     // BF abort method to abort transactions via provider
@@ -25,7 +25,7 @@ void trrep_mock::bf_abort_provider(trrep::mock_server_context& sc,
     (void)victim_seqno;
 }
 
-trrep::transaction_context& trrep_mock::start_applying_transaction(
+void trrep_mock::start_applying_transaction(
     trrep::client_context& cc,
     const trrep::transaction_id& id,
     wsrep_seqno_t seqno,
@@ -42,5 +42,4 @@ trrep::transaction_context& trrep_mock::start_applying_transaction(
     {
         throw trrep::runtime_error("failed to start applying transaction");
     }
-    return cc.transaction();
 }

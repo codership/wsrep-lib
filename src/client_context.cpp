@@ -48,7 +48,7 @@ void trrep::client_context::after_command()
     {
         override_error(trrep::e_deadlock_error);
         lock.unlock();
-        rollback(transaction_);
+        rollback();
         transaction_.after_statement();
         lock.lock();
         assert(transaction_.state() == trrep::transaction_context::s_aborted);
@@ -77,7 +77,7 @@ int trrep::client_context::before_statement()
     {
         override_error(trrep::e_deadlock_error);
         lock.unlock();
-        rollback(transaction_);
+        rollback();
         lock.lock();
         return 1;
     }

@@ -189,6 +189,11 @@ namespace trrep
          */
         virtual void after_statement();
 
+        int start_transaction()
+        {
+            assert(state_ == s_exec);
+            return transaction_.start_transaction();
+        }
         int start_transaction(const trrep::transaction_id& id)
         {
             assert(state_ == s_exec);
@@ -253,6 +258,12 @@ namespace trrep
             assert(state_ == s_exec);
             return transaction_.after_rollback();
         }
+
+        int bf_abort(trrep::unique_lock<trrep::mutex>& lock,
+                     wsrep_seqno_t bf_seqno)
+        {
+            return transaction_.bf_abort(lock, bf_seqno);
+        }
         /*!
          * Get reference to the client mutex.
          *
@@ -294,7 +305,7 @@ namespace trrep
          */
         enum mode mode() const { return mode_; }
 
-        trrep::transaction_context& transaction()
+        const trrep::transaction_context& transaction() const
         {
             return transaction_;
         }
@@ -343,7 +354,6 @@ namespace trrep
          * Friend declarations
          */
         friend int server_context::on_apply(client_context&,
-                                            trrep::transaction_context&,
                                             const trrep::data&);
         friend class client_context_switch;
         friend class client_applier_mode;
@@ -387,8 +397,7 @@ namespace trrep
          *
          * \return Zero on success, non-zero on applying failure.
          */
-        virtual int apply(trrep::transaction_context& transaction,
-                          const trrep::data& data) = 0;
+        virtual int apply(const trrep::data& data) = 0;
 
         /*!
          * Virtual method which will be called
@@ -397,7 +406,7 @@ namespace trrep
          *
          * \return Zero on success, non-zero on failure.
          */
-        virtual int commit(trrep::transaction_context&) = 0;
+        virtual int commit() = 0;
 
         /*!
          * Rollback the transaction.
@@ -406,7 +415,7 @@ namespace trrep
          *
          * \return Zero on success, no-zero on failure.
          */
-        virtual int rollback(trrep::transaction_context&) = 0;
+        virtual int rollback() = 0;
 
         /*!
          * Notify a implementation that the client is about
@@ -482,7 +491,9 @@ namespace trrep
         client_id id_;
         enum mode mode_;
         enum state state_;
+    protected:
         trrep::transaction_context transaction_;
+    private:
         /*!
          * \todo This boolean should be converted to better read isolation
          * semantics.

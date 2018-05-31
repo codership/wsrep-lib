@@ -122,7 +122,7 @@ namespace
         }
         if (ret == WSREP_CB_SUCCESS &&
             client_context->server_context().on_apply(
-                *client_context, client_context->transaction(), data))
+                *client_context, data))
         {
             ret = WSREP_CB_FAILURE;
         }
@@ -296,29 +296,35 @@ void trrep::server_context::on_sync()
 
 int trrep::server_context::on_apply(
     trrep::client_context& client_context,
-    trrep::transaction_context& transaction_context,
     const trrep::data& data)
 {
     int ret(0);
-    if (starts_transaction(transaction_context.flags()) &&
-        commits_transaction(transaction_context.flags()))
+    const trrep::transaction_context& txc(client_context.transaction());
+    if (starts_transaction(txc.flags()) &&
+        commits_transaction(txc.flags()))
     {
-        if (transaction_context.state() != trrep::transaction_context::s_replaying)
+        if (txc.state() != trrep::transaction_context::s_replaying)
         {
-            assert(transaction_context.active() == false);
-            transaction_context.start_transaction();
+            client_context.before_command();
+            client_context.before_statement();
+            assert(txc.active() == false);
+            client_context.start_transaction();
         }
-        if (client_context.apply(transaction_context, data))
+        if (client_context.apply(data))
         {
             ret = 1;
         }
-        else if (client_context.commit(transaction_context))
+        else if (client_context.commit())
         {
             ret = 1;
+        }
+        if (txc.state() != trrep::transaction_context::s_replaying)
+        {
+            client_context.after_statement();
+            client_context.after_command();
         }
         assert(ret ||
-               transaction_context.state() ==
-               trrep::transaction_context::s_committed);
+               txc.state() == trrep::transaction_context::s_committed);
     }
     else
     {
@@ -328,11 +334,11 @@ int trrep::server_context::on_apply(
 
     if (ret)
     {
-        client_context.rollback(transaction_context);
+        client_context.rollback();
     }
 
-    transaction_context.after_statement();
-    assert(transaction_context.active() == false);
+    client_context.after_statement();
+    assert(txc.active() == false);
     return ret;
 }
 

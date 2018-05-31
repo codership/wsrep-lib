@@ -73,7 +73,7 @@ namespace trrep
 
         // Return true if the certification of the last
         // fragment succeeded
-        bool certified() { return certified_; }
+        bool certified() const { return certified_; }
 
         wsrep_seqno_t seqno() const
         {
@@ -130,7 +130,7 @@ namespace trrep
         int after_statement();
 
         bool bf_abort(trrep::unique_lock<trrep::mutex>& lock,
-                      const transaction_context& txc);
+                      wsrep_seqno_t bf_seqno);
 
         uint32_t flags() const
         {

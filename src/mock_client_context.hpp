@@ -29,12 +29,12 @@ namespace trrep
         {
             if (transaction().active())
             {
-                (void)rollback(transaction());
+                (void)rollback();
             }
         }
-        int apply(trrep::transaction_context&, const trrep::data&);
-        int commit(trrep::transaction_context&);
-        int rollback(trrep::transaction_context&);
+        int apply(const trrep::data&);
+        int commit();
+        int rollback();
         bool do_2pc() const { return do_2pc_; }
         void will_replay(trrep::transaction_context&) TRREP_OVERRIDE { }
         int replay(trrep::transaction_context& tc) TRREP_OVERRIDE

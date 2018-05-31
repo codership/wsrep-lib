@@ -431,7 +431,7 @@ int trrep::transaction_context::after_statement()
     case s_cert_failed:
         client_context_.override_error(trrep::e_deadlock_error);
         lock.unlock();
-        ret = client_context_.rollback(*this);
+        ret = client_context_.rollback();
         lock.lock();
         if (state() != s_must_replay)
         {
@@ -480,7 +480,7 @@ int trrep::transaction_context::after_statement()
 
 bool trrep::transaction_context::bf_abort(
     trrep::unique_lock<trrep::mutex>& lock TRREP_UNUSED,
-    const trrep::transaction_context& txc)
+    wsrep_seqno_t bf_seqno)
 {
     bool ret(false);
     assert(lock.owns_lock());
@@ -490,10 +490,10 @@ bool trrep::transaction_context::bf_abort(
     {
         trrep::log() << "Transaction not active, skipping bf abort";
     }
-    else if (ordered() && seqno() < txc.seqno())
+    else if (ordered() && seqno() < bf_seqno)
     {
         trrep::log() << "Not allowed to BF abort transaction ordered before "
-                     << "aborter: " << seqno() << " < " << txc.seqno();
+                     << "aborter: " << seqno() << " < " << bf_seqno;
     }
     else
     {
@@ -506,11 +506,11 @@ bool trrep::transaction_context::bf_abort(
         {
             wsrep_seqno_t victim_seqno(WSREP_SEQNO_UNDEFINED);
             wsrep_status_t status(client_context_.provider().bf_abort(
-                                      txc.seqno(), id_.get(), &victim_seqno));
+                                      bf_seqno, id_.get(), &victim_seqno));
             switch (status)
             {
             case WSREP_OK:
-                trrep::log() << "Seqno " << txc.seqno()
+                trrep::log() << "Seqno " << bf_seqno
                              << " succesfully BF aborted " << id_.get()
                              << " victim_seqno " << victim_seqno;
                 bf_abort_state_ = state();
@@ -518,7 +518,7 @@ bool trrep::transaction_context::bf_abort(
                 ret = true;
                 break;
             default:
-                trrep::log() << "Seqno " << txc.seqno()
+                trrep::log() << "Seqno " << bf_seqno
                              << " failed to BF abort " << id_.get()
                              << " with status " << status
                              << " victim_seqno " << victim_seqno;
@@ -588,6 +588,7 @@ void trrep::transaction_context::state(
     }
 }
 
+#if 0
 int trrep::transaction_context::certify_fragment(
     trrep::unique_lock<trrep::mutex>& lock)
 {
@@ -658,6 +659,7 @@ int trrep::transaction_context::certify_fragment(
 
     return ret;
 }
+#endif
 
 int trrep::transaction_context::certify_commit(
     trrep::unique_lock<trrep::mutex>& lock)

@@ -333,7 +333,6 @@ namespace trrep
          * \return Zero on success, non-zero on failure.
          */
         int on_apply(trrep::client_context& client_context,
-                     trrep::transaction_context& transaction_context,
                      const trrep::data& data);
 
         /*!

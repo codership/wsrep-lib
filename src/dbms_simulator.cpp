@@ -70,41 +70,41 @@ public:
     public:
         transaction(dbms_storage_engine& se)
             : se_(se)
-            , txc_()
+            , cc_()
         {
         }
 
-        bool active() const { return txc_ != nullptr; }
+        bool active() const { return cc_ != nullptr; }
 
-        void start(trrep::transaction_context* txc)
+        void start(trrep::client_context* cc)
         {
             trrep::unique_lock<trrep::mutex> lock(se_.mutex_);
-            if (se_.transactions_.insert(txc).second == false)
+            if (se_.transactions_.insert(cc).second == false)
             {
                 ::abort();
             }
-            txc_ = txc;
+            cc_ = cc;
         }
 
         void commit()
         {
-            if (txc_)
+            if (cc_)
             {
                 trrep::unique_lock<trrep::mutex> lock(se_.mutex_);
-                se_.transactions_.erase(txc_);
+                se_.transactions_.erase(cc_);
             }
-            txc_ = nullptr;
+            cc_ = nullptr;
         }
 
 
         void abort()
         {
-            if (txc_)
+            if (cc_)
             {
                 trrep::unique_lock<trrep::mutex> lock(se_.mutex_);
-                se_.transactions_.erase(txc_);
+                se_.transactions_.erase(cc_);
             }
-            txc_ = nullptr;
+            cc_ = nullptr;
         }
 
         ~transaction()
@@ -117,7 +117,7 @@ public:
 
     private:
         dbms_storage_engine& se_;
-        trrep::transaction_context* txc_;
+        trrep::client_context* cc_;
     };
 
     void bf_abort_some(const trrep::transaction_context& txc)
@@ -131,7 +131,7 @@ public:
                 trrep::unique_lock<trrep::mutex> victim_txc_lock(
                     victim_txc->mutex());
                 lock.unlock();
-                if (victim_txc->bf_abort(victim_txc_lock, txc))
+                if (victim_txc->bf_abort(victim_txc_lock, txc.seqno()))
                 {
                     trrep::log() << "BF aborted " << victim_txc->id().get();
                     ++bf_aborts_;
@@ -146,7 +146,7 @@ public:
     }
 private:
     trrep::default_mutex mutex_;
-    std::unordered_set<trrep::transaction_context*> transactions_;
+    std::unordered_set<trrep::client_context*> transactions_;
     size_t alg_freq_;
     std::atomic<long long> bf_aborts_;
 };
@@ -337,28 +337,28 @@ public:
     }
 private:
     bool do_2pc() const override { return false; }
-    int apply(trrep::transaction_context& txc, const trrep::data& data) override
+    int apply(const trrep::data& data) override
     {
-        return server_.apply_to_storage_engine(txc, data);
+        return server_.apply_to_storage_engine(transaction(), data);
     }
-    int commit(trrep::transaction_context& transaction_context) override
+    int commit() override
     {
         assert(mode() == trrep::client_context::m_applier);
         int ret(0);
-        ret = transaction_context.before_commit();
+        ret = before_commit();
         se_trx_.commit();
-        ret = ret || transaction_context.ordered_commit();
-        ret = ret || transaction_context.after_commit();
+        ret = ret || ordered_commit();
+        ret = ret || after_commit();
         return ret;
     }
-    int rollback(trrep::transaction_context& transaction_context) override
+    int rollback() override
     {
-        trrep::log() << "rollback: " << transaction_context.id().get()
+        trrep::log() << "rollback: " << transaction().id().get()
                      << "state: "
-                     << trrep::to_string(transaction_context.state());
-        transaction_context.before_rollback();
+                     << trrep::to_string(transaction().state());
+        before_rollback();
         se_trx_.abort();
-        transaction_context.after_rollback();
+        after_rollback();
         return 0;
     }
 
@@ -404,7 +404,7 @@ private:
             {
                 err = start_transaction(server_.next_transaction_id());
                 assert(err == 0);
-                se_trx_.start(&transaction());
+                se_trx_.start(this);
                 return err;
             });
         err = err || current_error();

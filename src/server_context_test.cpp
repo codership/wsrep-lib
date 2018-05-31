@@ -16,13 +16,13 @@ BOOST_AUTO_TEST_CASE(server_context_applying_1pc)
                                   trrep::client_id(1),
                                   trrep::client_context::m_applier,
                                   false);
-    trrep::transaction_context& tc(
-        trrep_mock::start_applying_transaction(
-            cc, 1, 1,
-            WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
+    trrep_mock::start_applying_transaction(
+        cc, 1, 1,
+        WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END);
     char buf[1] = { 1 };
-    BOOST_REQUIRE(sc.on_apply(cc, tc, trrep::data(buf, 1)) == 0);
-    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committed);
+    BOOST_REQUIRE(sc.on_apply(cc, trrep::data(buf, 1)) == 0);
+    const trrep::transaction_context& txc(cc.transaction());
+    BOOST_REQUIRE(txc.state() == trrep::transaction_context::s_committed);
 }
 
 // Test on_apply() method for 2pc
@@ -34,13 +34,13 @@ BOOST_AUTO_TEST_CASE(server_context_applying_2pc)
                                   trrep::client_id(1),
                                   trrep::client_context::m_applier,
                                   true);
-    trrep::transaction_context& tc(
-        trrep_mock::start_applying_transaction(
-            cc, 1, 1,
-            WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
+    trrep_mock::start_applying_transaction(
+        cc, 1, 1,
+        WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END);
     char buf[1] = { 1 };
-    BOOST_REQUIRE(sc.on_apply(cc, tc, trrep::data(buf, 1)) == 0);
-    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_committed);
+    BOOST_REQUIRE(sc.on_apply(cc, trrep::data(buf, 1)) == 0);
+    const trrep::transaction_context& txc(cc.transaction());
+    BOOST_REQUIRE(txc.state() == trrep::transaction_context::s_committed);
 }
 
 // Test on_apply() method for 1pc transaction which
@@ -54,14 +54,14 @@ BOOST_AUTO_TEST_CASE(server_context_applying_1pc_rollback)
                                   trrep::client_context::m_applier,
                                   false);
     cc.fail_next_applying(true);
-    trrep::transaction_context& tc(
-        trrep_mock::start_applying_transaction(
-            cc, 1, 1,
-            WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
+    trrep_mock::start_applying_transaction(
+        cc, 1, 1,
+        WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END);
     char buf[1] = { 1 };
 
-    BOOST_REQUIRE(sc.on_apply(cc, tc, trrep::data(buf, 1)) == 1);
-    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_aborted);
+    BOOST_REQUIRE(sc.on_apply(cc, trrep::data(buf, 1)) == 1);
+    const trrep::transaction_context& txc(cc.transaction());
+    BOOST_REQUIRE(txc.state() == trrep::transaction_context::s_aborted);
 }
 
 // Test on_apply() method for 2pc transaction which
@@ -75,11 +75,11 @@ BOOST_AUTO_TEST_CASE(server_context_applying_2pc_rollback)
                                   trrep::client_context::m_applier,
                                   true);
     cc.fail_next_applying(true);
-    trrep::transaction_context& tc(
-        trrep_mock::start_applying_transaction(
-            cc, 1, 1,
-            WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END));
+    trrep_mock::start_applying_transaction(
+        cc, 1, 1,
+        WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END);
     char buf[1] = { 1 };
-    BOOST_REQUIRE(sc.on_apply(cc, tc, trrep::data(buf, 1)) == 1);
-    BOOST_REQUIRE(tc.state() == trrep::transaction_context::s_aborted);
+    BOOST_REQUIRE(sc.on_apply(cc, trrep::data(buf, 1)) == 1);
+    const trrep::transaction_context& txc(cc.transaction());
+    BOOST_REQUIRE(txc.state() == trrep::transaction_context::s_aborted);
 }

@@ -303,7 +303,9 @@ int trrep::server_context::on_apply(
     if (starts_transaction(txc.flags()) &&
         commits_transaction(txc.flags()))
     {
-        if (txc.state() != trrep::transaction_context::s_replaying)
+        bool not_replaying(txc.state() !=
+                           trrep::transaction_context::s_replaying);
+        if (not_replaying)
         {
             client_context.before_command();
             client_context.before_statement();
@@ -318,7 +320,7 @@ int trrep::server_context::on_apply(
         {
             ret = 1;
         }
-        if (txc.state() != trrep::transaction_context::s_replaying)
+        if (not_replaying)
         {
             client_context.after_statement();
             client_context.after_command();

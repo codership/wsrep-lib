@@ -40,13 +40,34 @@ int trrep::client_context::before_command()
     return 0;
 }
 
-void trrep::client_context::after_command()
+void trrep::client_context::after_command_before_result()
 {
     trrep::unique_lock<trrep::mutex> lock(mutex_);
+    assert(state() == s_exec);
     if (transaction_.active() &&
         transaction_.state() == trrep::transaction_context::s_must_abort)
     {
         override_error(trrep::e_deadlock_error);
+        lock.unlock();
+        rollback();
+        transaction_.after_statement();
+        lock.lock();
+        assert(transaction_.state() == trrep::transaction_context::s_aborted);
+        assert(current_error() != trrep::e_success);
+    }
+    state(lock, s_result);
+}
+
+void trrep::client_context::after_command_after_result()
+{
+    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    assert(state() == s_result);
+    if (transaction_.active() &&
+        transaction_.state() == trrep::transaction_context::s_must_abort)
+    {
+        // Note: Error is not overridden here as the result has already
+        // been sent to client. The error should be set in before_command()
+        // when the client issues next command.
         lock.unlock();
         rollback();
         transaction_.after_statement();
@@ -103,10 +124,11 @@ void trrep::client_context::state(
     assert(lock.owns_lock());
     static const char allowed[state_max_][state_max_] =
         {
-            /* idle exec quit */
-            {  0,   1,   1}, /* idle */
-            {  1,   0,   1}, /* exec */
-            {  0,   0,   0}
+            /* idle exec result quit */
+            {  0,   1,   0,     1}, /* idle */
+            {  0,   0,   1,     0}, /* exec */
+            {  1,   0,   0,     1}, /* result */
+            {  0,   0,   0,     0}  /* quit */
         };
     if (allowed[state_][state])
     {

@@ -323,7 +323,8 @@ int trrep::server_context::on_apply(
         if (not_replaying)
         {
             client_context.after_statement();
-            client_context.after_command();
+            client_context.after_command_before_result();
+            client_context.after_command_after_result();
         }
         assert(ret ||
                txc.state() == trrep::transaction_context::s_committed);

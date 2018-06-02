@@ -392,7 +392,8 @@ private:
             }
             after_statement();
         }
-        after_command();
+        after_command_before_result();
+        after_command_after_result();
         return err;
     }
 

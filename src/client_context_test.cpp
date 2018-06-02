@@ -25,5 +25,6 @@ BOOST_AUTO_TEST_CASE(client_context_test_error_codes)
     trrep_mock::bf_abort_unordered(cc);
 
     cc.after_statement();
-    cc.after_command();
+    cc.after_command_before_result();
+    cc.after_command_after_result();
 }

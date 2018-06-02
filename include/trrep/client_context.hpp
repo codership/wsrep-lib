@@ -121,6 +121,10 @@ namespace trrep
              */
             s_exec,
             /*!
+             * Client handler is sending result to client.
+             */
+            s_result,
+            /*!
              * The client session is terminating.
              */
             s_quitting
@@ -136,32 +140,40 @@ namespace trrep
         }
 
         /*!
-         * Virtual method which should be called before the client
+         * Method which should be called before the client
          * starts processing the command received from the application.
          * This method will wait until the possible synchronous
          * rollback for associated transaction has finished.
          * The method has a side effect of changing the client
          * context state to executing.
          *
-         * If overridden, the implementation should call base
-         * class method before any implementation specific operations.
-         *
          * \return Zero in case of success, non-zero in case of the
          *         associated transaction was BF aborted.
          */
-        virtual int before_command();
+        int before_command();
 
         /*!
-         * Virtual method which should be called before returning
+         * Method which should be called before returning
          * the control back to application which uses the DBMS system.
          * This method will check if the transaction associated to
-         * the connection has been aborted. This method has a side effect
-         * of changing the client state to idle.
-         *
-         * If overridden, the implementation should call base
-         * class metods after any implementation specifict operations.
+         * the connection has been aborted. Rollback is performed
+         * if needed.
          */
-        virtual void after_command();
+        void after_command_before_result();
+
+        /*!
+         * Method which should be called after returning the
+         * control back to application which uses the DBMS system.
+         * The method will do the check if the transaction associated
+         * to the connection has been aborted. If so, rollback is
+         * performed and the transaction is left to aborted state
+         * so that the client will get appropriate error on next
+         * command.
+         *
+         * This method has a side effect of changing state to
+         * idle.
+         */
+        void after_command_after_result();
 
         /*!
          * Before statement execution operations.
@@ -176,7 +188,7 @@ namespace trrep
          *         is not allowed to be executed due to read or write
          *         isolation requirements.
          */
-        virtual int before_statement();
+        int before_statement();
 
         /*!
          * After statement execution operations.
@@ -187,7 +199,7 @@ namespace trrep
          * If overridden by the implementation, base class method
          * should be called after any implementation specific operations.
          */
-        virtual void after_statement();
+        void after_statement();
 
         int start_transaction()
         {

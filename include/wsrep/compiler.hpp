@@ -8,9 +8,9 @@
  * Compiler specific options.
  */
 
-#define TRREP_UNUSED __attribute__((unused))
+#define WSREP_UNUSED __attribute__((unused))
 #if __cplusplus >= 201103L
-#define TRREP_OVERRIDE override
+#define WSREP_OVERRIDE override
 #else
-#define TRREP_OVERRIDE
+#define WSREP_OVERRIDE
 #endif // __cplusplus >= 201103L

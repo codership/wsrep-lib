@@ -2,14 +2,14 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_CONDITION_VARIABLE_HPP
-#define TRREP_CONDITION_VARIABLE_HPP
+#ifndef WSREP_CONDITION_VARIABLE_HPP
+#define WSREP_CONDITION_VARIABLE_HPP
 
 #include "lock.hpp"
 
 #include <cstdlib>
 
-namespace trrep
+namespace wsrep
 {
     class condition_variable
     {
@@ -18,7 +18,7 @@ namespace trrep
         virtual ~condition_variable() { }
         virtual void notify_one() = 0;
         virtual void notify_all() = 0;
-        virtual void wait(trrep::unique_lock<trrep::mutex>& lock) = 0;
+        virtual void wait(wsrep::unique_lock<wsrep::mutex>& lock) = 0;
     private:
         condition_variable(const condition_variable&);
         condition_variable& operator=(const condition_variable&);
@@ -33,7 +33,7 @@ namespace trrep
         {
             if (pthread_cond_init(&cond_, 0))
             {
-                throw trrep::runtime_error("Failed to initialized condvar");
+                throw wsrep::runtime_error("Failed to initialized condvar");
             }
         }
 
@@ -54,13 +54,13 @@ namespace trrep
             (void)pthread_cond_broadcast(&cond_);
         }
 
-        void wait(trrep::unique_lock<trrep::mutex>& lock)
+        void wait(wsrep::unique_lock<wsrep::mutex>& lock)
         {
             if (pthread_cond_wait(
                     &cond_,
                     reinterpret_cast<pthread_mutex_t*>(lock.mutex().native())))
             {
-                throw trrep::runtime_error("Cond wait failed");
+                throw wsrep::runtime_error("Cond wait failed");
             }
         }
 
@@ -70,4 +70,4 @@ namespace trrep
 
 }
 
-#endif // TRREP_CONDITION_VARIABLE_HPP
+#endif // WSREP_CONDITION_VARIABLE_HPP

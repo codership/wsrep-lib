@@ -2,14 +2,14 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_MUTEX_HPP
-#define TRREP_MUTEX_HPP
+#ifndef WSREP_MUTEX_HPP
+#define WSREP_MUTEX_HPP
 
 #include "exception.hpp"
 
 #include <pthread.h>
 
-namespace trrep
+namespace wsrep
 {
     //!
     //! 
@@ -29,23 +29,23 @@ namespace trrep
     };
 
     // Default pthread implementation
-    class default_mutex : public trrep::mutex
+    class default_mutex : public wsrep::mutex
     {
     public:
         default_mutex()
-            : trrep::mutex(),
+            : wsrep::mutex(),
               mutex_()
         {
             if (pthread_mutex_init(&mutex_, 0))
             {
-                throw trrep::runtime_error("mutex init failed");
+                throw wsrep::runtime_error("mutex init failed");
             }
         }
         ~default_mutex()
         {
             if (pthread_mutex_destroy(&mutex_))
             {
-                throw trrep::runtime_error("mutex destroy failed");
+                throw wsrep::runtime_error("mutex destroy failed");
             }
         }
 
@@ -53,7 +53,7 @@ namespace trrep
         {
             if (pthread_mutex_lock(&mutex_))
             {
-                throw trrep::runtime_error("mutex lock failed");
+                throw wsrep::runtime_error("mutex lock failed");
             }
         }
 
@@ -61,7 +61,7 @@ namespace trrep
         {
             if (pthread_mutex_unlock(&mutex_))
             {
-                throw trrep::runtime_error("mutex unlock failed");
+                throw wsrep::runtime_error("mutex unlock failed");
             }
         }
 
@@ -74,4 +74,4 @@ namespace trrep
     };
 }
 
-#endif // TRREP_MUTEX_HPP
+#endif // WSREP_MUTEX_HPP

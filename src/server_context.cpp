@@ -2,12 +2,12 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "trrep/server_context.hpp"
-#include "trrep/client_context.hpp"
-#include "trrep/transaction_context.hpp"
-#include "trrep/view.hpp"
-#include "trrep/logger.hpp"
-#include "trrep/compiler.hpp"
+#include "wsrep/server_context.hpp"
+#include "wsrep/client_context.hpp"
+#include "wsrep/transaction_context.hpp"
+#include "wsrep/view.hpp"
+#include "wsrep/logger.hpp"
+#include "wsrep/compiler.hpp"
 
 // Todo: refactor into provider factory
 #include "mock_provider.hpp"
@@ -41,8 +41,8 @@ namespace
         const wsrep_view_info_t* view __attribute((unused)))
     {
         assert(app_ctx);
-        trrep::server_context& server_context(
-            *reinterpret_cast<trrep::server_context*>(app_ctx));
+        wsrep::server_context& server_context(
+            *reinterpret_cast<wsrep::server_context*>(app_ctx));
         //
         // TODO: Fetch server id and group id from view infor
         //
@@ -51,7 +51,7 @@ namespace
             server_context.on_connect();
             return WSREP_CB_SUCCESS;
         }
-        catch (const trrep::runtime_error& e)
+        catch (const wsrep::runtime_error& e)
         {
             std::cerr << "Exception: " << e.what();
             return WSREP_CB_FAILURE;
@@ -66,15 +66,15 @@ namespace
     {
         assert(app_ctx);
         assert(view_info);
-        trrep::server_context& server_context(
-            *reinterpret_cast<trrep::server_context*>(app_ctx));
+        wsrep::server_context& server_context(
+            *reinterpret_cast<wsrep::server_context*>(app_ctx));
         try
         {
-            trrep::view view(*view_info);
+            wsrep::view view(*view_info);
             server_context.on_view(view);
             return WSREP_CB_SUCCESS;
         }
-        catch (const trrep::runtime_error& e)
+        catch (const wsrep::runtime_error& e)
         {
             std::cerr << "Exception: " << e.what();
             return WSREP_CB_FAILURE;
@@ -85,8 +85,8 @@ namespace
                                      void **sst_req, size_t* sst_req_len)
     {
         assert(app_ctx);
-        trrep::server_context& server_context(
-            *reinterpret_cast<trrep::server_context*>(app_ctx));
+        wsrep::server_context& server_context(
+            *reinterpret_cast<wsrep::server_context*>(app_ctx));
 
         try
         {
@@ -95,7 +95,7 @@ namespace
             *sst_req_len = strlen(req.c_str());
             return WSREP_CB_SUCCESS;
         }
-        catch (const trrep::runtime_error& e)
+        catch (const wsrep::runtime_error& e)
         {
             return WSREP_CB_FAILURE;
         }
@@ -110,13 +110,13 @@ namespace
     {
         wsrep_cb_status_t ret(WSREP_CB_SUCCESS);
 
-        trrep::client_context* client_context(
-            reinterpret_cast<trrep::client_context*>(ctx));
+        wsrep::client_context* client_context(
+            reinterpret_cast<wsrep::client_context*>(ctx));
         assert(client_context);
-        assert(client_context->mode() == trrep::client_context::m_applier);
+        assert(client_context->mode() == wsrep::client_context::m_applier);
 
-        trrep::data data(buf->ptr, buf->len);
-        if (client_context->transaction().state() != trrep::transaction_context::s_replaying && client_context->start_transaction(*wsh, *meta, flags))
+        wsrep::data data(buf->ptr, buf->len);
+        if (client_context->transaction().state() != wsrep::transaction_context::s_replaying && client_context->start_transaction(*wsh, *meta, flags))
         {
             ret = WSREP_CB_FAILURE;
         }
@@ -132,14 +132,14 @@ namespace
     wsrep_cb_status_t synced_cb(void* app_ctx)
     {
         assert(app_ctx);
-        trrep::server_context& server_context(
-            *reinterpret_cast<trrep::server_context*>(app_ctx));
+        wsrep::server_context& server_context(
+            *reinterpret_cast<wsrep::server_context*>(app_ctx));
         try
         {
             server_context.on_sync();
             return WSREP_CB_SUCCESS;
         }
-        catch (const trrep::runtime_error& e)
+        catch (const wsrep::runtime_error& e)
         {
             std::cerr << "On sync failed: " << e.what() << "\n";
             return WSREP_CB_FAILURE;
@@ -155,8 +155,8 @@ namespace
                                     bool bypass)
     {
         assert(app_ctx);
-        trrep::server_context& server_context(
-            *reinterpret_cast<trrep::server_context*>(app_ctx));
+        wsrep::server_context& server_context(
+            *reinterpret_cast<wsrep::server_context*>(app_ctx));
         try
         {
             std::string req(reinterpret_cast<const char*>(req_buf->ptr),
@@ -164,20 +164,20 @@ namespace
             server_context.on_sst_request(req, *gtid, bypass);
             return WSREP_CB_SUCCESS;
         }
-        catch (const trrep::runtime_error& e)
+        catch (const wsrep::runtime_error& e)
         {
             return WSREP_CB_FAILURE;
         }
     }
 }
 
-int trrep::server_context::load_provider(const std::string& provider_spec,
+int wsrep::server_context::load_provider(const std::string& provider_spec,
                                          const std::string& provider_options)
 {
-    trrep::log() << "Loading provider " << provider_spec;
+    wsrep::log() << "Loading provider " << provider_spec;
     if (provider_spec == "mock")
     {
-        provider_ = new trrep::mock_provider;
+        provider_ = new wsrep::mock_provider;
     }
     else
     {
@@ -203,13 +203,13 @@ int trrep::server_context::load_provider(const std::string& provider_spec,
         init_args.synced_cb = &synced_cb;
 
         std::cerr << init_args.options << "\n";
-        provider_ = new trrep::wsrep_provider_v26(provider_spec.c_str(),
+        provider_ = new wsrep::wsrep_provider_v26(provider_spec.c_str(),
                                                   &init_args);
     }
     return 0;
 }
 
-int trrep::server_context::connect(const std::string& cluster_name,
+int wsrep::server_context::connect(const std::string& cluster_name,
                                    const std::string& cluster_address,
                                    const std::string& state_donor,
                                    bool bootstrap)
@@ -218,33 +218,33 @@ int trrep::server_context::connect(const std::string& cluster_name,
                               bootstrap);
 }
 
-int trrep::server_context::disconnect()
+int wsrep::server_context::disconnect()
 {
     {
-        trrep::unique_lock<trrep::mutex> lock(mutex_);
+        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
         state(lock, s_disconnecting);
     }
     return provider().disconnect();
 }
 
-trrep::server_context::~server_context()
+wsrep::server_context::~server_context()
 {
     delete provider_;
 }
 
-void trrep::server_context::sst_sent(const wsrep_gtid_t& gtid, int error)
+void wsrep::server_context::sst_sent(const wsrep_gtid_t& gtid, int error)
 {
     provider_->sst_sent(gtid, error);
 }
-void trrep::server_context::sst_received(const wsrep_gtid_t& gtid, int error)
+void wsrep::server_context::sst_received(const wsrep_gtid_t& gtid, int error)
 {
     provider_->sst_received(gtid, error);
 }
 
-void trrep::server_context::wait_until_state(
-    enum trrep::server_context::state state) const
+void wsrep::server_context::wait_until_state(
+    enum wsrep::server_context::state state) const
 {
-    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     ++state_waiters_[state];
     while (state_ != state)
     {
@@ -254,57 +254,57 @@ void trrep::server_context::wait_until_state(
     cond_.notify_all();
 }
 
-void trrep::server_context::on_connect()
+void wsrep::server_context::on_connect()
 {
-    trrep::log() << "Server " << name_ << " connected to cluster";
-    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    wsrep::log() << "Server " << name_ << " connected to cluster";
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     state(lock, s_connected);
 }
 
-void trrep::server_context::on_view(const trrep::view& view)
+void wsrep::server_context::on_view(const wsrep::view& view)
 {
-    trrep::log() << "================================================\nView:\n"
+    wsrep::log() << "================================================\nView:\n"
                  << "id: " << view.id() << "\n"
                  << "status: " << view.status() << "\n"
                  << "own_index: " << view.own_index() << "\n"
                  << "final: " << view.final() << "\n"
                  << "members";
-    const std::vector<trrep::view::member>& members(view.members());
-    for (std::vector<trrep::view::member>::const_iterator i(members.begin());
+    const std::vector<wsrep::view::member>& members(view.members());
+    for (std::vector<wsrep::view::member>::const_iterator i(members.begin());
          i != members.end(); ++i)
     {
-        trrep::log() << "id: " << i->id() << " "
+        wsrep::log() << "id: " << i->id() << " "
                      << "name: " << i->name();
     }
-    trrep::log() << "=================================================";
-    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    wsrep::log() << "=================================================";
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     if (view.final())
     {
         state(lock, s_disconnected);
     }
 }
 
-void trrep::server_context::on_sync()
+void wsrep::server_context::on_sync()
 {
-    trrep::log() << "Server " << name_ << " synced with group";
-    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    wsrep::log() << "Server " << name_ << " synced with group";
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     if (state_ != s_synced)
     {
         state(lock, s_synced);
     }
 }
 
-int trrep::server_context::on_apply(
-    trrep::client_context& client_context,
-    const trrep::data& data)
+int wsrep::server_context::on_apply(
+    wsrep::client_context& client_context,
+    const wsrep::data& data)
 {
     int ret(0);
-    const trrep::transaction_context& txc(client_context.transaction());
+    const wsrep::transaction_context& txc(client_context.transaction());
     if (starts_transaction(txc.flags()) &&
         commits_transaction(txc.flags()))
     {
         bool not_replaying(txc.state() !=
-                           trrep::transaction_context::s_replaying);
+                           wsrep::transaction_context::s_replaying);
         if (not_replaying)
         {
             client_context.before_command();
@@ -327,7 +327,7 @@ int trrep::server_context::on_apply(
             client_context.after_command_after_result();
         }
         assert(ret ||
-               txc.state() == trrep::transaction_context::s_committed);
+               txc.state() == wsrep::transaction_context::s_committed);
     }
     else
     {
@@ -345,9 +345,9 @@ int trrep::server_context::on_apply(
     return ret;
 }
 
-bool trrep::server_context::statement_allowed_for_streaming(
-    const trrep::client_context&,
-    const trrep::transaction_context&) const
+bool wsrep::server_context::statement_allowed_for_streaming(
+    const wsrep::client_context&,
+    const wsrep::transaction_context&) const
 {
     /* Streaming not implemented yet. */
     return false;
@@ -355,9 +355,9 @@ bool trrep::server_context::statement_allowed_for_streaming(
 
 // Private
 
-void trrep::server_context::state(
-    trrep::unique_lock<trrep::mutex>& lock TRREP_UNUSED,
-    enum trrep::server_context::state state)
+void wsrep::server_context::state(
+    wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
+    enum wsrep::server_context::state state)
 {
     assert(lock.owns_lock());
     static const char allowed[n_states_][n_states_] =
@@ -376,7 +376,7 @@ void trrep::server_context::state(
 
     if (allowed[state_][state])
     {
-        trrep::log() << "server " << name_ << " state change: "
+        wsrep::log() << "server " << name_ << " state change: "
                      << state_ << " -> " << state;
         state_ = state;
         cond_.notify_all();
@@ -389,9 +389,9 @@ void trrep::server_context::state(
     {
         std::ostringstream os;
         os << "server: " << name_ << " unallowed state transition: "
-           << trrep::to_string(state_) << " -> " << trrep::to_string(state);
+           << wsrep::to_string(state_) << " -> " << wsrep::to_string(state);
         std::cerr << os.str() << "\n";
         ::abort();
-        // throw trrep::runtime_error(os.str());
+        // throw wsrep::runtime_error(os.str());
     }
 }

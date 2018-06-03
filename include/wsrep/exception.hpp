@@ -2,13 +2,13 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_EXCEPTION_HPP
-#define TRREP_EXCEPTION_HPP
+#ifndef WSREP_EXCEPTION_HPP
+#define WSREP_EXCEPTION_HPP
 
 #include <stdexcept>
 #include <cstdlib>
 
-namespace trrep
+namespace wsrep
 {
     class runtime_error : public std::runtime_error
     {
@@ -33,4 +33,4 @@ namespace trrep
 }
 
 
-#endif // TRREP_EXCEPTION_HPP
+#endif // WSREP_EXCEPTION_HPP

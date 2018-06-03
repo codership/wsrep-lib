@@ -2,19 +2,19 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "trrep/transaction_context.hpp"
+#include "wsrep/transaction_context.hpp"
 #include "mock_client_context.hpp"
 
 
-int trrep::mock_client_context::apply(
-    const trrep::data& data __attribute__((unused)))
+int wsrep::mock_client_context::apply(
+    const wsrep::data& data __attribute__((unused)))
 
 {
-    assert(transaction_.state() == trrep::transaction_context::s_executing);
+    assert(transaction_.state() == wsrep::transaction_context::s_executing);
     return (fail_next_applying_ ? 1 : 0);
 }
 
-int trrep::mock_client_context::commit()
+int wsrep::mock_client_context::commit()
 {
     int ret(0);
     if (do_2pc())
@@ -38,7 +38,7 @@ int trrep::mock_client_context::commit()
     return ret;
 }
 
-int trrep::mock_client_context::rollback()
+int wsrep::mock_client_context::rollback()
 {
     int ret(0);
     if (transaction_.before_rollback())

@@ -2,68 +2,68 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "trrep/client_context.hpp"
-#include "trrep/compiler.hpp"
+#include "wsrep/client_context.hpp"
+#include "wsrep/compiler.hpp"
 
 #include <sstream>
 #include <iostream>
 
 
-trrep::provider& trrep::client_context::provider() const
+wsrep::provider& wsrep::client_context::provider() const
 {
     return server_context_.provider();
 }
 
-int trrep::client_context::before_command()
+int wsrep::client_context::before_command()
 {
-    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state_ == s_idle);
-    if (server_context_.rollback_mode() == trrep::server_context::rm_sync)
+    if (server_context_.rollback_mode() == wsrep::server_context::rm_sync)
     {
 
         /*!
          * \todo Wait until the possible synchronous rollback
          * has been finished.
          */
-        while (transaction_.state() == trrep::transaction_context::s_aborting)
+        while (transaction_.state() == wsrep::transaction_context::s_aborting)
         {
             // cond_.wait(lock);
         }
     }
     state(lock, s_exec);
     if (transaction_.active() &&
-        (transaction_.state() == trrep::transaction_context::s_must_abort ||
-         transaction_.state() == trrep::transaction_context::s_aborted))
+        (transaction_.state() == wsrep::transaction_context::s_must_abort ||
+         transaction_.state() == wsrep::transaction_context::s_aborted))
     {
         return 1;
     }
     return 0;
 }
 
-void trrep::client_context::after_command_before_result()
+void wsrep::client_context::after_command_before_result()
 {
-    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state() == s_exec);
     if (transaction_.active() &&
-        transaction_.state() == trrep::transaction_context::s_must_abort)
+        transaction_.state() == wsrep::transaction_context::s_must_abort)
     {
-        override_error(trrep::e_deadlock_error);
+        override_error(wsrep::e_deadlock_error);
         lock.unlock();
         rollback();
         transaction_.after_statement();
         lock.lock();
-        assert(transaction_.state() == trrep::transaction_context::s_aborted);
-        assert(current_error() != trrep::e_success);
+        assert(transaction_.state() == wsrep::transaction_context::s_aborted);
+        assert(current_error() != wsrep::e_success);
     }
     state(lock, s_result);
 }
 
-void trrep::client_context::after_command_after_result()
+void wsrep::client_context::after_command_after_result()
 {
-    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state() == s_result);
     if (transaction_.active() &&
-        transaction_.state() == trrep::transaction_context::s_must_abort)
+        transaction_.state() == wsrep::transaction_context::s_must_abort)
     {
         // Note: Error is not overridden here as the result has already
         // been sent to client. The error should be set in before_command()
@@ -72,31 +72,31 @@ void trrep::client_context::after_command_after_result()
         rollback();
         transaction_.after_statement();
         lock.lock();
-        assert(transaction_.state() == trrep::transaction_context::s_aborted);
-        assert(current_error() != trrep::e_success);
+        assert(transaction_.state() == wsrep::transaction_context::s_aborted);
+        assert(current_error() != wsrep::e_success);
     }
     state(lock, s_idle);
 }
 
-int trrep::client_context::before_statement()
+int wsrep::client_context::before_statement()
 {
-    trrep::unique_lock<trrep::mutex> lock(mutex_);
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
 #if 0
     /*!
      * \todo It might be beneficial to implement timed wait for
      *       server synced state.
      */
     if (allow_dirty_reads_ == false &&
-        server_context_.state() != trrep::server_context::s_synced)
+        server_context_.state() != wsrep::server_context::s_synced)
     {
         return 1;
     }
 #endif // 0
 
     if (transaction_.active() &&
-        transaction_.state() == trrep::transaction_context::s_must_abort)
+        transaction_.state() == wsrep::transaction_context::s_must_abort)
     {
-        override_error(trrep::e_deadlock_error);
+        override_error(wsrep::e_deadlock_error);
         lock.unlock();
         rollback();
         lock.lock();
@@ -105,7 +105,7 @@ int trrep::client_context::before_statement()
     return 0;
 }
 
-void trrep::client_context::after_statement()
+void wsrep::client_context::after_statement()
 {
 #if 0
     /*!
@@ -117,9 +117,9 @@ void trrep::client_context::after_statement()
 
 // Private
 
-void trrep::client_context::state(
-    trrep::unique_lock<trrep::mutex>& lock TRREP_UNUSED,
-    enum trrep::client_context::state state)
+void wsrep::client_context::state(
+    wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
+    enum wsrep::client_context::state state)
 {
     assert(lock.owns_lock());
     static const char allowed[state_max_][state_max_] =
@@ -139,6 +139,6 @@ void trrep::client_context::state(
         std::ostringstream os;
         os << "client_context: Unallowed state transition: "
            << state_ << " -> " << state << "\n";
-        throw trrep::runtime_error(os.str());
+        throw wsrep::runtime_error(os.str());
     }
 }

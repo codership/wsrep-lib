@@ -2,10 +2,10 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_APPLIER_HPP
-#define TRREP_APPLIER_HPP
+#ifndef WSREP_APPLIER_HPP
+#define WSREP_APPLIER_HPP
 
-namespace trrep
+namespace wsrep
 {
     class applier
     {
@@ -13,4 +13,4 @@ namespace trrep
     };
 }
 
-#endif // TRREP_APPLIER_HPP
+#endif // WSREP_APPLIER_HPP

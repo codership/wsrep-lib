@@ -2,18 +2,18 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_MOCK_PROVIDER_HPP
-#define TRREP_MOCK_PROVIDER_HPP
+#ifndef WSREP_MOCK_PROVIDER_HPP
+#define WSREP_MOCK_PROVIDER_HPP
 
-#include "trrep/provider.hpp"
+#include "wsrep/provider.hpp"
 
 #include <cstring>
 #include <map>
 #include <iostream> // todo: proper logging
 
-namespace trrep
+namespace wsrep
 {
-    class mock_provider : public trrep::provider
+    class mock_provider : public wsrep::provider
     {
     public:
         typedef std::map<wsrep_trx_id_t, wsrep_seqno_t > bf_abort_map;
@@ -150,4 +150,4 @@ namespace trrep
 }
 
 
-#endif // TRREP_MOCK_PROVIDER_HPP
+#endif // WSREP_MOCK_PROVIDER_HPP

@@ -1,6 +1,6 @@
 # Introduction
 
-Project name: Trrep - Transaction Replication
+Project name: wsrep-lib - Library for WSREP
 
 The purpose of this project is to implement C++ wrapper
 for wsrep API with additional convenience for transaction
@@ -202,7 +202,7 @@ Methods:
 # Example usage
 
 ```
-class dbms_server : public trrep::server_context
+class dbms_server : public wsrep::server_context
 {
   public:
   // Implementation
@@ -212,7 +212,7 @@ class dbms_server : public trrep::server_context
     }
 };
 
-class dbms_client : public trrep::client_context
+class dbms_client : public wsrep::client_context
 {
   // Implementation
 };
@@ -224,18 +224,18 @@ int main()
   if (server.sst_before_init())
   {
     server.start();
-    server.wait_until_state(trrep::server_context::s_joined);
+    server.wait_until_state(wsrep::server_context::s_joined);
 
   }
   // Initialize dbms code here
   if (server.sst_before_init() == false)
   {
     server.start();
-    server.wait_until_state(trrep::server_context::s_joined);
+    server.wait_until_state(wsrep::server_context::s_joined);
   }
 
   // Start accepting client connections
-  server.wait_until_state(trrep::server_context::s_synced);
+  server.wait_until_state(wsrep::server_context::s_synced);
 
   // Clients can read and write here
 

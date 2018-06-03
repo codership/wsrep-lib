@@ -2,12 +2,12 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_PROVIDER_IMPL_HPP
-#define TRREP_PROVIDER_IMPL_HPP
+#ifndef WSREP_PROVIDER_IMPL_HPP
+#define WSREP_PROVIDER_IMPL_HPP
 
 #include <wsrep_api.h>
 
-namespace trrep
+namespace wsrep
 {
     // Abstract interface for provider implementations
     class provider_impl
@@ -28,4 +28,4 @@ namespace trrep
 }
 
 
-#endif // TRREP_PROVIDER_IMPL_HPP
+#endif // WSREP_PROVIDER_IMPL_HPP

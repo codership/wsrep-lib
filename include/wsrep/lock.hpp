@@ -2,14 +2,14 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_LOCK_HPP
-#define TRREP_LOCK_HPP
+#ifndef WSREP_LOCK_HPP
+#define WSREP_LOCK_HPP
 
 #include "mutex.hpp"
 
 #include <cassert>
 
-namespace trrep
+namespace wsrep
 {
     template <class M>
     class unique_lock
@@ -58,4 +58,4 @@ namespace trrep
     };
 }
 
-#endif // TRREP_LOCK_HPP
+#endif // WSREP_LOCK_HPP

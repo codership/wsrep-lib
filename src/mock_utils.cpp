@@ -3,21 +3,21 @@
 //
 
 #include "mock_utils.hpp"
-#include "trrep/client_context.hpp"
+#include "wsrep/client_context.hpp"
 #include "mock_server_context.hpp"
 
 
 // Simple BF abort method to BF abort unordered transasctions
-void trrep_mock::bf_abort_unordered(trrep::client_context& cc)
+void wsrep_mock::bf_abort_unordered(wsrep::client_context& cc)
 {
-    trrep::unique_lock<trrep::mutex> lock(cc.mutex());
+    wsrep::unique_lock<wsrep::mutex> lock(cc.mutex());
     assert(cc.transaction().seqno() <= 0);
     cc.bf_abort(lock, 1);
 }
 
     // BF abort method to abort transactions via provider
-void trrep_mock::bf_abort_provider(trrep::mock_server_context& sc,
-                                   const trrep::transaction_context& tc,
+void wsrep_mock::bf_abort_provider(wsrep::mock_server_context& sc,
+                                   const wsrep::transaction_context& tc,
                                    wsrep_seqno_t bf_seqno)
 {
     wsrep_seqno_t victim_seqno;
@@ -25,9 +25,9 @@ void trrep_mock::bf_abort_provider(trrep::mock_server_context& sc,
     (void)victim_seqno;
 }
 
-void trrep_mock::start_applying_transaction(
-    trrep::client_context& cc,
-    const trrep::transaction_id& id,
+void wsrep_mock::start_applying_transaction(
+    wsrep::client_context& cc,
+    const wsrep::transaction_id& id,
     wsrep_seqno_t seqno,
     uint32_t flags)
 {
@@ -40,6 +40,6 @@ void trrep_mock::start_applying_transaction(
     int ret(cc.start_transaction(ws_handle, meta, flags));
     if (ret != 0)
     {
-        throw trrep::runtime_error("failed to start applying transaction");
+        throw wsrep::runtime_error("failed to start applying transaction");
     }
 }

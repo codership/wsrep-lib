@@ -2,8 +2,8 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_LOGGER_HPP
-#define TRREP_LOGGER_HPP
+#ifndef WSREP_LOGGER_HPP
+#define WSREP_LOGGER_HPP
 
 #include "mutex.hpp"
 #include "lock.hpp"
@@ -11,7 +11,7 @@
 #include <iosfwd>
 #include <sstream>
 
-namespace trrep
+namespace wsrep
 {
     class log
     {
@@ -22,7 +22,7 @@ namespace trrep
         { }
         ~log()
         {
-            trrep::unique_lock<trrep::mutex> lock(mutex_);
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             os_ << prefix_ << ": " << oss_.str() << "\n";
         }
         template <typename T>
@@ -33,7 +33,7 @@ namespace trrep
     private:
         const std::string prefix_;
         std::ostringstream oss_;
-        static trrep::mutex& mutex_;
+        static wsrep::mutex& mutex_;
         static std::ostream& os_;
     };
 
@@ -46,4 +46,4 @@ namespace trrep
     };
 }
 
-#endif // TRREP_LOGGER_HPP
+#endif // WSREP_LOGGER_HPP

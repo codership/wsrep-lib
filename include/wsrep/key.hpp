@@ -2,12 +2,12 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_KEY_HPP
-#define TRREP_KEY_HPP
+#ifndef WSREP_KEY_HPP
+#define WSREP_KEY_HPP
 
 #include "exception.hpp"
 
-namespace trrep
+namespace wsrep
 {
     class key
     {
@@ -24,7 +24,7 @@ namespace trrep
         {
             if (key_.key_parts_num == 3)
             {
-                throw trrep::runtime_error("key parts exceed maximum of 3");
+                throw wsrep::runtime_error("key parts exceed maximum of 3");
             }
             key_parts_[key_.key_parts_num].ptr = ptr;
             key_parts_[key_.key_parts_num].len = len;
@@ -38,4 +38,4 @@ namespace trrep
     };
 }
 
-#endif // TRREP_KEY_HPP
+#endif // WSREP_KEY_HPP

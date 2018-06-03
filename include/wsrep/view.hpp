@@ -2,14 +2,14 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_VIEW_HPP
-#define TRREP_VIEW_HPP
+#ifndef WSREP_VIEW_HPP
+#define WSREP_VIEW_HPP
 
 #include <wsrep_api.h>
 
 #include <vector>
 
-namespace trrep
+namespace wsrep
 {
     class view
     {
@@ -87,4 +87,4 @@ namespace trrep
     };
 }
 
-#endif // TRREP_VIEW
+#endif // WSREP_VIEW

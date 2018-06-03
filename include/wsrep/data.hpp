@@ -2,10 +2,10 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_DATA_HPP
-#define TRREP_DATA_HPP
+#ifndef WSREP_DATA_HPP
+#define WSREP_DATA_HPP
 
-namespace trrep
+namespace wsrep
 {
     class data
     {
@@ -33,4 +33,4 @@ namespace trrep
     };
 }
 
-#endif // TRREP_DATA_HPP
+#endif // WSREP_DATA_HPP

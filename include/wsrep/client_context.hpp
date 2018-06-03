@@ -35,8 +35,8 @@
  * drives the transaction.
  */
 
-#ifndef TRREP_CLIENT_CONTEXT_HPP
-#define TRREP_CLIENT_CONTEXT_HPP
+#ifndef WSREP_CLIENT_CONTEXT_HPP
+#define WSREP_CLIENT_CONTEXT_HPP
 
 #include "server_context.hpp"
 #include "transaction_context.hpp"
@@ -44,7 +44,7 @@
 #include "lock.hpp"
 #include "data.hpp"
 
-namespace trrep
+namespace wsrep
 {
     class server_context;
     class provider;
@@ -206,7 +206,7 @@ namespace trrep
             assert(state_ == s_exec);
             return transaction_.start_transaction();
         }
-        int start_transaction(const trrep::transaction_id& id)
+        int start_transaction(const wsrep::transaction_id& id)
         {
             assert(state_ == s_exec);
             return transaction_.start_transaction(id);
@@ -220,13 +220,13 @@ namespace trrep
             return transaction_.start_transaction(wsh, meta, flags);
         }
 
-        int append_key(const trrep::key& key)
+        int append_key(const wsrep::key& key)
         {
             assert(state_ == s_exec);
             return transaction_.append_key(key);
         }
 
-        int append_data(const trrep::data& data)
+        int append_data(const wsrep::data& data)
         {
             assert(state_ == s_exec);
             return transaction_.append_data(data);
@@ -271,7 +271,7 @@ namespace trrep
             return transaction_.after_rollback();
         }
 
-        int bf_abort(trrep::unique_lock<trrep::mutex>& lock,
+        int bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
                      wsrep_seqno_t bf_seqno)
         {
             return transaction_.bf_abort(lock, bf_seqno);
@@ -281,14 +281,14 @@ namespace trrep
          *
          * \return Reference to the client mutex.
          */
-        trrep::mutex& mutex() { return mutex_; }
+        wsrep::mutex& mutex() { return mutex_; }
 
         /*!
          * Get server context associated the the client session.
          *
          * \return Reference to server context.
          */
-        trrep::server_context& server_context() const
+        wsrep::server_context& server_context() const
         { return server_context_; }
 
         /*!
@@ -296,10 +296,10 @@ namespace trrep
          * with the client context.
          *
          * \return Reference to the provider.
-         * \throw trrep::runtime_error if no providers are associated
+         * \throw wsrep::runtime_error if no providers are associated
          *        with the client context.
          */
-        trrep::provider& provider() const;
+        wsrep::provider& provider() const;
 
         /*!
          * Get Client identifier.
@@ -317,7 +317,7 @@ namespace trrep
          */
         enum mode mode() const { return mode_; }
 
-        const trrep::transaction_context& transaction() const
+        const wsrep::transaction_context& transaction() const
         {
             return transaction_;
         }
@@ -331,10 +331,10 @@ namespace trrep
 
         void reset_error()
         {
-            current_error_ = trrep::e_success;
+            current_error_ = wsrep::e_success;
         }
 
-        enum trrep::client_error current_error() const
+        enum wsrep::client_error current_error() const
         {
             return current_error_;
         }
@@ -343,8 +343,8 @@ namespace trrep
          * Client context constuctor. This is protected so that it
          * can be called from derived class constructors only.
          */
-        client_context(trrep::mutex& mutex,
-                       trrep::server_context& server_context,
+        client_context(wsrep::mutex& mutex,
+                       wsrep::server_context& server_context,
                        const client_id& id,
                        enum mode mode)
             : mutex_(mutex)
@@ -355,7 +355,7 @@ namespace trrep
             , transaction_(*this)
             , allow_dirty_reads_()
             , debug_log_level_(0)
-            , current_error_(trrep::e_success)
+            , current_error_(wsrep::e_success)
         { }
 
     private:
@@ -366,7 +366,7 @@ namespace trrep
          * Friend declarations
          */
         friend int server_context::on_apply(client_context&,
-                                            const trrep::data&);
+                                            const wsrep::data&);
         friend class client_context_switch;
         friend class client_applier_mode;
         friend class client_toi_mode;
@@ -384,7 +384,7 @@ namespace trrep
         /*!
          * Set client state.
          */
-        void state(trrep::unique_lock<trrep::mutex>& lock, enum state state);
+        void state(wsrep::unique_lock<wsrep::mutex>& lock, enum state state);
 
         /*!
          * Virtual method to return true if the client operates
@@ -398,8 +398,8 @@ namespace trrep
         /*!
          * Append SR fragment to the transaction.
          */
-        virtual int append_fragment(trrep::transaction_context&,
-                                    uint32_t, const trrep::data&)
+        virtual int append_fragment(wsrep::transaction_context&,
+                                    uint32_t, const wsrep::data&)
         { return 0; }
 
 
@@ -409,7 +409,7 @@ namespace trrep
          *
          * \return Zero on success, non-zero on applying failure.
          */
-        virtual int apply(const trrep::data& data) = 0;
+        virtual int apply(const wsrep::data& data) = 0;
 
         /*!
          * Virtual method which will be called
@@ -433,21 +433,21 @@ namespace trrep
          * Notify a implementation that the client is about
          * to replay the transaction.
          */
-        virtual void will_replay(trrep::transaction_context&) = 0;
+        virtual void will_replay(wsrep::transaction_context&) = 0;
 
         /*!
          * Replay the transaction.
          */
-        virtual int replay(trrep::transaction_context& tc) = 0;
+        virtual int replay(wsrep::transaction_context& tc) = 0;
 
 
         /*!
          * Wait until all of the replaying transactions have been committed.
          */
-        virtual void wait_for_replayers(trrep::unique_lock<trrep::mutex>&) const = 0;
+        virtual void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) const = 0;
 
         virtual int prepare_data_for_replication(
-            const trrep::transaction_context&, trrep::data& data)
+            const wsrep::transaction_context&, wsrep::data& data)
         {
             static const char buf[1] = { 1 };
             data.assign(buf, 1);
@@ -484,27 +484,27 @@ namespace trrep
         /*!
          * Notify the implementation about an error.
          */
-        virtual void on_error(enum trrep::client_error error) = 0;
+        virtual void on_error(enum wsrep::client_error error) = 0;
         /*!
          *
          */
-        void override_error(enum trrep::client_error error)
+        void override_error(enum wsrep::client_error error)
         {
-            if (current_error_ != trrep::e_success &&
-                error == trrep::e_success)
+            if (current_error_ != wsrep::e_success &&
+                error == wsrep::e_success)
             {
-                throw trrep::runtime_error("Overriding error with success");
+                throw wsrep::runtime_error("Overriding error with success");
             }
             current_error_ = error;
         }
 
-        trrep::mutex& mutex_;
-        trrep::server_context& server_context_;
+        wsrep::mutex& mutex_;
+        wsrep::server_context& server_context_;
         client_id id_;
         enum mode mode_;
         enum state state_;
     protected:
-        trrep::transaction_context transaction_;
+        wsrep::transaction_context transaction_;
     private:
         /*!
          * \todo This boolean should be converted to better read isolation
@@ -512,15 +512,15 @@ namespace trrep
          */
         bool allow_dirty_reads_;
         int debug_log_level_;
-        trrep::client_error current_error_;
+        wsrep::client_error current_error_;
     };
 
 
     class client_context_switch
     {
     public:
-        client_context_switch(trrep::client_context& orig_context,
-                              trrep::client_context& current_context)
+        client_context_switch(wsrep::client_context& orig_context,
+                              wsrep::client_context& current_context)
             : orig_context_(orig_context)
             , current_context_(current_context)
         {
@@ -538,41 +538,41 @@ namespace trrep
     class client_applier_mode
     {
     public:
-        client_applier_mode(trrep::client_context& client)
+        client_applier_mode(wsrep::client_context& client)
             : client_(client)
             , orig_mode_(client.mode_)
         {
-            client_.mode_ = trrep::client_context::m_applier;
+            client_.mode_ = wsrep::client_context::m_applier;
         }
         ~client_applier_mode()
         {
             client_.mode_ = orig_mode_;
         }
     private:
-        trrep::client_context& client_;
-        enum trrep::client_context::mode orig_mode_;
+        wsrep::client_context& client_;
+        enum wsrep::client_context::mode orig_mode_;
     };
 
     class client_toi_mode
     {
     public:
-        client_toi_mode(trrep::client_context& client)
+        client_toi_mode(wsrep::client_context& client)
             : client_(client)
             , orig_mode_(client.mode_)
         {
-            client_.mode_ = trrep::client_context::m_toi;
+            client_.mode_ = wsrep::client_context::m_toi;
         }
         ~client_toi_mode()
         {
-            assert(client_.mode() == trrep::client_context::m_toi);
+            assert(client_.mode() == wsrep::client_context::m_toi);
             client_.mode_ = orig_mode_;
         }
     private:
-        trrep::client_context& client_;
-        enum trrep::client_context::mode orig_mode_;
+        wsrep::client_context& client_;
+        enum wsrep::client_context::mode orig_mode_;
     };
 
 
 }
 
-#endif // TRREP_CLIENT_CONTEXT_HPP
+#endif // WSREP_CLIENT_CONTEXT_HPP

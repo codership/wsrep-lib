@@ -1,8 +1,8 @@
 
-#include "trrep/logger.hpp"
+#include "wsrep/logger.hpp"
 
 #include <iostream>
 
-std::ostream& trrep::log::os_ = std::cout;
-static trrep::default_mutex log_mutex_;
-trrep::mutex& trrep::log::mutex_ = log_mutex_;
+std::ostream& wsrep::log::os_ = std::cout;
+static wsrep::default_mutex log_mutex_;
+wsrep::mutex& wsrep::log::mutex_ = log_mutex_;

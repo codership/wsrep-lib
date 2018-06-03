@@ -2,16 +2,16 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_WSREP_PROVIDER_V26_HPP
-#define TRREP_WSREP_PROVIDER_V26_HPP
+#ifndef WSREP_WSREP_PROVIDER_V26_HPP
+#define WSREP_WSREP_PROVIDER_V26_HPP
 
-#include "trrep/provider.hpp"
+#include "wsrep/provider.hpp"
 
 #include <wsrep_api.h>
 
-namespace trrep
+namespace wsrep
 {
-    class wsrep_provider_v26 : public trrep::provider
+    class wsrep_provider_v26 : public wsrep::provider
     {
     public:
 
@@ -46,9 +46,9 @@ namespace trrep
     private:
         wsrep_provider_v26(const wsrep_provider_v26&);
         wsrep_provider_v26& operator=(const wsrep_provider_v26);
-        struct wsrep* wsrep_;
+        wsrep_t* wsrep_;
     };
 }
 
 
-#endif // TRREP_WSREP_PROVIDER_V26_HPP
+#endif // WSREP_WSREP_PROVIDER_V26_HPP

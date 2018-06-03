@@ -2,8 +2,8 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef TRREP_TRANSACTION_CONTEXT_HPP
-#define TRREP_TRANSACTION_CONTEXT_HPP
+#ifndef WSREP_TRANSACTION_CONTEXT_HPP
+#define WSREP_TRANSACTION_CONTEXT_HPP
 
 #include "provider.hpp"
 #include "server_context.hpp"
@@ -14,7 +14,7 @@
 #include <cassert>
 #include <vector>
 
-namespace trrep
+namespace wsrep
 {
     class client_context;
     class key;
@@ -59,17 +59,17 @@ namespace trrep
         enum state state() const
         { return state_; }
 
-        transaction_context(trrep::client_context& client_context);
+        transaction_context(wsrep::client_context& client_context);
         ~transaction_context();
         // Accessors
-        trrep::transaction_id id() const
+        wsrep::transaction_id id() const
         { return id_; }
 
         bool active() const
-        { return (id_ != trrep::transaction_id::invalid()); }
+        { return (id_ != wsrep::transaction_id::invalid()); }
 
 
-        void state(trrep::unique_lock<trrep::mutex>&, enum state);
+        void state(wsrep::unique_lock<wsrep::mutex>&, enum state);
 
         // Return true if the certification of the last
         // fragment succeeded
@@ -99,15 +99,15 @@ namespace trrep
             return start_transaction(trx_meta_.stid.trx);
         }
 
-        int start_transaction(const trrep::transaction_id& id);
+        int start_transaction(const wsrep::transaction_id& id);
 
         int start_transaction(const wsrep_ws_handle_t& ws_handle,
                               const wsrep_trx_meta_t& trx_meta,
                               uint32_t flags);
 
-        int append_key(const trrep::key&);
+        int append_key(const wsrep::key&);
 
-        int append_data(const trrep::data&);
+        int append_data(const wsrep::data&);
 
         int after_row();
 
@@ -129,7 +129,7 @@ namespace trrep
 
         int after_statement();
 
-        bool bf_abort(trrep::unique_lock<trrep::mutex>& lock,
+        bool bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
                       wsrep_seqno_t bf_seqno);
 
         uint32_t flags() const
@@ -137,7 +137,7 @@ namespace trrep
             return flags_;
         }
 
-        trrep::mutex& mutex();
+        wsrep::mutex& mutex();
 
         wsrep_ws_handle_t& ws_handle() { return ws_handle_; }
     private:
@@ -145,16 +145,16 @@ namespace trrep
         transaction_context operator=(const transaction_context&);
 
         void flags(uint32_t flags) { flags_ = flags; }
-        int certify_fragment(trrep::unique_lock<trrep::mutex>&);
-        int certify_commit(trrep::unique_lock<trrep::mutex>&);
+        int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
+        int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
         void remove_fragments();
         void clear_fragments();
         void cleanup();
         void debug_log_state(const char*) const;
 
-        trrep::provider& provider_;
-        trrep::client_context& client_context_;
-        trrep::transaction_id id_;
+        wsrep::provider& provider_;
+        wsrep::client_context& client_context_;
+        wsrep::transaction_id id_;
         enum state state_;
         std::vector<enum state> state_hist_;
         enum state bf_abort_state_;
@@ -166,29 +166,29 @@ namespace trrep
         bool certified_;
 
         std::vector<wsrep_gtid_t> fragments_;
-        trrep::transaction_id rollback_replicated_for_;
+        wsrep::transaction_id rollback_replicated_for_;
     };
 
-    static inline std::string to_string(enum trrep::transaction_context::state state)
+    static inline std::string to_string(enum wsrep::transaction_context::state state)
     {
         switch (state)
         {
-        case trrep::transaction_context::s_executing: return "executing";
-        case trrep::transaction_context::s_preparing: return "preparing";
-        case trrep::transaction_context::s_certifying: return "certifying";
-        case trrep::transaction_context::s_committing: return "committing";
-        case trrep::transaction_context::s_ordered_commit: return "ordered_commit";
-        case trrep::transaction_context::s_committed: return "committed";
-        case trrep::transaction_context::s_cert_failed: return "cert_failed";
-        case trrep::transaction_context::s_must_abort: return "must_abort";
-        case trrep::transaction_context::s_aborting: return "aborting";
-        case trrep::transaction_context::s_aborted: return "aborted";
-        case trrep::transaction_context::s_must_replay: return "must_replay";
-        case trrep::transaction_context::s_replaying: return "replaying";
+        case wsrep::transaction_context::s_executing: return "executing";
+        case wsrep::transaction_context::s_preparing: return "preparing";
+        case wsrep::transaction_context::s_certifying: return "certifying";
+        case wsrep::transaction_context::s_committing: return "committing";
+        case wsrep::transaction_context::s_ordered_commit: return "ordered_commit";
+        case wsrep::transaction_context::s_committed: return "committed";
+        case wsrep::transaction_context::s_cert_failed: return "cert_failed";
+        case wsrep::transaction_context::s_must_abort: return "must_abort";
+        case wsrep::transaction_context::s_aborting: return "aborting";
+        case wsrep::transaction_context::s_aborted: return "aborted";
+        case wsrep::transaction_context::s_must_replay: return "must_replay";
+        case wsrep::transaction_context::s_replaying: return "replaying";
         }
         return "unknown";
     }
 
 }
 
-#endif // TRREP_TRANSACTION_CONTEXT_HPP
+#endif // WSREP_TRANSACTION_CONTEXT_HPP

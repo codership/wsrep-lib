@@ -7,7 +7,7 @@
  * Server Context Abstraction
  * ==========================
  *
- * This file defines an interface for TRRep Server Context.
+ * This file defines an interface for WSREP Server Context.
  * The Server Context will encapsulate server identification,
  * server state and server capabilities. The class also
  * defines an interface for manipulating server state, applying
@@ -58,8 +58,8 @@
  *
  */
 
-#ifndef TRREP_SERVER_CONTEXT_HPP
-#define TRREP_SERVER_CONTEXT_HPP
+#ifndef WSREP_SERVER_CONTEXT_HPP
+#define WSREP_SERVER_CONTEXT_HPP
 
 #include "exception.hpp"
 #include "mutex.hpp"
@@ -69,7 +69,7 @@
 #include <string>
 #include <vector>
 
-namespace trrep
+namespace wsrep
 {
     // Forward declarations
     class provider;
@@ -208,13 +208,13 @@ namespace trrep
          *
          * \return Reference to provider
          *
-         * \throw trrep::runtime_error if provider has not been loaded
+         * \throw wsrep::runtime_error if provider has not been loaded
          */
-        virtual trrep::provider& provider() const
+        virtual wsrep::provider& provider() const
         {
             if (provider_ == 0)
             {
-                throw trrep::runtime_error("provider not loaded");
+                throw wsrep::runtime_error("provider not loaded");
             }
             return *provider_;
         }
@@ -237,10 +237,10 @@ namespace trrep
          * notification event has been delivered by the
          * provider.
          *
-         * \params view trrep::view object which holds the new view
+         * \params view wsrep::view object which holds the new view
          *         information.
          */
-        void on_view(const trrep::view& view);
+        void on_view(const wsrep::view& view);
 
         /*!
          * A method which will be called when the server
@@ -254,7 +254,7 @@ namespace trrep
         /*!
          * Wait until server reaches given state.
          */
-        void wait_until_state(trrep::server_context::state) const;
+        void wait_until_state(wsrep::server_context::state) const;
 
         /*!
          * Virtual method to return true if the configured SST
@@ -275,7 +275,7 @@ namespace trrep
          * Virtual method which will be called on *donor* when the
          * SST request has been delivered by the provider.
          * This method should initiate SST transfer or throw
-         * a trrep::runtime_error
+         * a wsrep::runtime_error
          * if the SST transfer cannot be initiated. If the SST request
          * initiation is succesful, the server remains in s_donor
          * state until the SST is over or fails. The \param bypass
@@ -332,8 +332,8 @@ namespace trrep
          *
          * \return Zero on success, non-zero on failure.
          */
-        int on_apply(trrep::client_context& client_context,
-                     const trrep::data& data);
+        int on_apply(wsrep::client_context& client_context,
+                     const wsrep::data& data);
 
         /*!
          * This virtual method should be implemented by the DBMS
@@ -344,8 +344,8 @@ namespace trrep
          *         replication, false otherwise.
          */
         virtual bool statement_allowed_for_streaming(
-            const trrep::client_context& client_context,
-            const trrep::transaction_context& transaction_context) const;
+            const wsrep::client_context& client_context,
+            const wsrep::transaction_context& transaction_context) const;
 
         void debug_log_level(int level) { debug_log_level_ = level; }
         int debug_log_level() const { return debug_log_level_; }
@@ -363,8 +363,8 @@ namespace trrep
          *        data files.
          * \param rollback_mode Rollback mode which server operates on.
          */
-        server_context(trrep::mutex& mutex,
-                       trrep::condition_variable& cond,
+        server_context(wsrep::mutex& mutex,
+                       wsrep::condition_variable& cond,
                        const std::string& name,
                        const std::string& id,
                        const std::string& address,
@@ -388,13 +388,13 @@ namespace trrep
         server_context(const server_context&);
         server_context& operator=(const server_context&);
 
-        void state(trrep::unique_lock<trrep::mutex>&, enum state);
+        void state(wsrep::unique_lock<wsrep::mutex>&, enum state);
 
-        trrep::mutex& mutex_;
-        trrep::condition_variable& cond_;
+        wsrep::mutex& mutex_;
+        wsrep::condition_variable& cond_;
         enum state state_;
         mutable std::vector<int> state_waiters_;
-        trrep::provider* provider_;
+        wsrep::provider* provider_;
         std::string name_;
         std::string id_;
         std::string address_;
@@ -403,23 +403,23 @@ namespace trrep
         int debug_log_level_;
     };
 
-    static inline std::string to_string(enum trrep::server_context::state state)
+    static inline std::string to_string(enum wsrep::server_context::state state)
     {
         switch (state)
         {
-        case trrep::server_context::s_disconnected:  return "disconnected";
-        case trrep::server_context::s_initializing:  return "initilizing";
-        case trrep::server_context::s_initialized:   return "initilized";
-        case trrep::server_context::s_connected:     return "connected";
-        case trrep::server_context::s_joiner:        return "joiner";
-        case trrep::server_context::s_joined:        return "joined";
-        case trrep::server_context::s_donor:         return "donor";
-        case trrep::server_context::s_synced:        return "synced";
-        case trrep::server_context::s_disconnecting: return "disconnecting";
+        case wsrep::server_context::s_disconnected:  return "disconnected";
+        case wsrep::server_context::s_initializing:  return "initilizing";
+        case wsrep::server_context::s_initialized:   return "initilized";
+        case wsrep::server_context::s_connected:     return "connected";
+        case wsrep::server_context::s_joiner:        return "joiner";
+        case wsrep::server_context::s_joined:        return "joined";
+        case wsrep::server_context::s_donor:         return "donor";
+        case wsrep::server_context::s_synced:        return "synced";
+        case wsrep::server_context::s_disconnecting: return "disconnecting";
         }
         return "unknown";
     }
 
 }
 
-#endif // TRREP_SERVER_CONTEXT_HPP
+#endif // WSREP_SERVER_CONTEXT_HPP

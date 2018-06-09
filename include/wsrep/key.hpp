@@ -6,35 +6,42 @@
 #define WSREP_KEY_HPP
 
 #include "exception.hpp"
+#include "buffer.hpp"
 
 namespace wsrep
 {
     class key
     {
     public:
-        key()
-            : key_parts_()
-            , key_()
+        enum type
         {
-            key_.key_parts = key_parts_;
-            key_.key_parts_num = 0;
-        }
+            shared,
+            semi_shared,
+            semi_exclusive,
+            exclusive
+        };
+
+        key(enum type type)
+            : type_(type)
+            , key_parts_()
+            , key_parts_len_()
+        { }
 
         void append_key_part(const void* ptr, size_t len)
         {
-            if (key_.key_parts_num == 3)
+            if (key_parts_len_ == 3)
             {
                 throw wsrep::runtime_error("key parts exceed maximum of 3");
             }
-            key_parts_[key_.key_parts_num].ptr = ptr;
-            key_parts_[key_.key_parts_num].len = len;
-            ++key_.key_parts_num;
+            key_parts_[key_parts_len_] = wsrep::buffer(ptr, len);
+            ++key_parts_len_;
         }
 
-        const wsrep_key_t& get() const { return key_; }
     private:
-        wsrep_buf_t key_parts_[3];
-        wsrep_key_t key_;
+
+        enum type type_;
+        wsrep::buffer key_parts_[3];
+        size_t key_parts_len_;
     };
 }
 

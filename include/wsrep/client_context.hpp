@@ -40,6 +40,7 @@
 
 #include "server_context.hpp"
 #include "transaction_context.hpp"
+#include "client_id.hpp"
 #include "mutex.hpp"
 #include "lock.hpp"
 #include "data.hpp"
@@ -68,18 +69,6 @@ namespace wsrep
         }
         return "unknown";
     }
-    class client_id
-    {
-    public:
-        template <typename I>
-        client_id(I id)
-            : id_(static_cast<wsrep_conn_id_t>(id))
-        { }
-        wsrep_conn_id_t get() const { return id_; }
-        static wsrep_conn_id_t invalid() { return -1; }
-    private:
-        wsrep_conn_id_t id_;
-    };
 
     /*! \class Client Context
      *
@@ -227,12 +216,11 @@ namespace wsrep
             return transaction_.start_transaction(id);
         }
 
-        int start_transaction(const wsrep_ws_handle_t& wsh,
-                              const wsrep_trx_meta_t& meta,
-                              uint32_t flags)
+        int start_transaction(const wsrep::ws_handle& wsh,
+                              const wsrep::ws_meta& meta)
         {
             assert(mode_ == m_applier);
-            return transaction_.start_transaction(wsh, meta, flags);
+            return transaction_.start_transaction(wsh, meta);
         }
 
         int append_key(const wsrep::key& key)
@@ -287,7 +275,7 @@ namespace wsrep
         }
 
         int bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
-                     wsrep_seqno_t bf_seqno)
+                     wsrep::seqno bf_seqno)
         {
             return transaction_.bf_abort(lock, bf_seqno);
         }
@@ -415,7 +403,7 @@ namespace wsrep
          * Append SR fragment to the transaction.
          */
         virtual int append_fragment(wsrep::transaction_context&,
-                                    uint32_t, const wsrep::data&)
+                                    int, const wsrep::data&)
         { return 0; }
 
 
@@ -466,7 +454,7 @@ namespace wsrep
             const wsrep::transaction_context&, wsrep::data& data)
         {
             static const char buf[1] = { 1 };
-            data.assign(buf, 1);
+            data = wsrep::data(buf, 1);
             return 0;
         }
 

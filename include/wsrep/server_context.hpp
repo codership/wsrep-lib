@@ -64,7 +64,7 @@
 #include "exception.hpp"
 #include "mutex.hpp"
 #include "condition_variable.hpp"
-#include "wsrep_api.h"
+#include "provider.hpp"
 
 #include <string>
 #include <vector>
@@ -72,7 +72,7 @@
 namespace wsrep
 {
     // Forward declarations
-    class provider;
+    // class provider;
     class client_context;
     class transaction_context;
     class view;
@@ -292,14 +292,14 @@ namespace wsrep
          * \param bypass Boolean bypass flag.
          */
         virtual void on_sst_request(const std::string& sst_request,
-                                    const wsrep_gtid_t& gtid,
+                                    const wsrep::gtid& gtid,
                                     bool bypass) = 0;
 
 
         /*!
          *
          */
-        void sst_sent(const wsrep_gtid_t& gtid, int error);
+        void sst_sent(const wsrep::gtid& gtid, int error);
 
         /*!
          * This method must be called by the joiner after the SST
@@ -307,7 +307,7 @@ namespace wsrep
          *
          * \param gtid GTID provided by the SST transfer
          */
-        void sst_received(const wsrep_gtid_t& gtid, int error);
+        void sst_received(const wsrep::gtid& gtid, int error);
 
         /*!
          * This method must be called after the server initialization

@@ -21,26 +21,28 @@ namespace wsrep
                     bool);
         int disconnect();
 
-        wsrep_status_t run_applier(void*);
-        int start_transaction(wsrep_ws_handle_t*) { return 0; }
-        int append_key(wsrep_ws_handle_t*, const wsrep_key_t*);
-        int append_data(wsrep_ws_handle_t*, const wsrep_buf_t*);
-        wsrep_status_t
-        certify(wsrep_conn_id_t, wsrep_ws_handle_t*,
-                uint32_t,
-                wsrep_trx_meta_t*);
-        wsrep_status_t bf_abort(wsrep_seqno_t,
-                                wsrep_trx_id_t,
-                                wsrep_seqno_t*);
-        int rollback(const wsrep_trx_id_t) { ::abort(); return 0; }
-        wsrep_status commit_order_enter(const wsrep_ws_handle_t*,
-                                        const wsrep_trx_meta_t*);
-        int commit_order_leave(const wsrep_ws_handle_t*,
-                               const wsrep_trx_meta_t*);
-        int release(wsrep_ws_handle_t*);
-        int replay(wsrep_ws_handle_t*, void*);
-        int sst_sent(const wsrep_gtid_t&,int);
-        int sst_received(const wsrep_gtid_t& gtid, int);
+        enum wsrep::provider::status run_applier(void*);
+        int start_transaction(wsrep::ws_handle&) { return 0; }
+        int append_key(wsrep::ws_handle&, const wsrep::key&);
+        int append_data(wsrep::ws_handle&, const wsrep::data&);
+        enum wsrep::provider::status
+        certify(wsrep::client_id, wsrep::ws_handle&,
+                int,
+                wsrep::ws_meta&);
+        enum wsrep::provider::status
+        bf_abort(wsrep::seqno,
+                 wsrep::transaction_id,
+                 wsrep::seqno&);
+        int rollback(const wsrep::transaction_id) { ::abort(); return 0; }
+        enum wsrep::provider::status
+        commit_order_enter(const wsrep::ws_handle&,
+                           const wsrep::ws_meta&);
+        int commit_order_leave(const wsrep::ws_handle&,
+                               const wsrep::ws_meta&);
+        int release(wsrep::ws_handle&);
+        int replay(wsrep::ws_handle&, void*);
+        int sst_sent(const wsrep::gtid&,int);
+        int sst_received(const wsrep::gtid& gtid, int);
 
         std::vector<status_variable> status() const;
     private:

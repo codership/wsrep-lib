@@ -13,8 +13,6 @@
 #include "mock_provider.hpp"
 #include "wsrep_provider_v26.hpp"
 
-#include <wsrep_api.h>
-
 #include <cassert>
 #include <sstream>
 
@@ -116,7 +114,18 @@ namespace
         assert(client_context->mode() == wsrep::client_context::m_applier);
 
         wsrep::data data(buf->ptr, buf->len);
-        if (client_context->transaction().state() != wsrep::transaction_context::s_replaying && client_context->start_transaction(*wsh, *meta, flags))
+        wsrep::ws_handle ws_handle(wsh->trx_id, wsh->opaque);
+        wsrep::ws_meta ws_meta(
+            wsrep::gtid(wsrep::id(meta->gtid.uuid.data,
+                                  sizeof(meta->gtid.uuid.data)),
+                        meta->gtid.seqno),
+            wsrep::stid(wsrep::id(meta->stid.node.data,
+                                  sizeof(meta->stid.node.data)),
+                        meta->stid.trx,
+                        meta->stid.conn), meta->depends_on, flags);
+        if (client_context->transaction().state() !=
+            wsrep::transaction_context::s_replaying &&
+            client_context->start_transaction(ws_handle, ws_meta))
         {
             ret = WSREP_CB_FAILURE;
         }
@@ -150,7 +159,7 @@ namespace
     wsrep_cb_status_t sst_donate_cb(void* app_ctx,
                                     void* ,
                                     const wsrep_buf_t* req_buf,
-                                    const wsrep_gtid_t* gtid,
+                                    const wsrep_gtid_t* req_gtid,
                                     const wsrep_buf_t*,
                                     bool bypass)
     {
@@ -161,7 +170,10 @@ namespace
         {
             std::string req(reinterpret_cast<const char*>(req_buf->ptr),
                             req_buf->len);
-            server_context.on_sst_request(req, *gtid, bypass);
+            wsrep::gtid gtid(wsrep::id(req_gtid->uuid.data,
+                                       sizeof(req_gtid->uuid.data)),
+                             req_gtid->seqno);
+            server_context.on_sst_request(req, gtid, bypass);
             return WSREP_CB_SUCCESS;
         }
         catch (const wsrep::runtime_error& e)
@@ -232,11 +244,11 @@ wsrep::server_context::~server_context()
     delete provider_;
 }
 
-void wsrep::server_context::sst_sent(const wsrep_gtid_t& gtid, int error)
+void wsrep::server_context::sst_sent(const wsrep::gtid& gtid, int error)
 {
     provider_->sst_sent(gtid, error);
 }
-void wsrep::server_context::sst_received(const wsrep_gtid_t& gtid, int error)
+void wsrep::server_context::sst_received(const wsrep::gtid& gtid, int error)
 {
     provider_->sst_received(gtid, error);
 }

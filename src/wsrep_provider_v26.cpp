@@ -12,6 +12,28 @@
 #include <iostream>
 #include <sstream>
 
+namespace
+{
+    enum wsrep::provider::status map_return_value(wsrep_status_t status)
+    {
+        switch (status)
+        {
+        case WSREP_OK: return wsrep::provider::success;
+        case WSREP_WARNING: return wsrep::provider::error_warning;
+        case WSREP_TRX_MISSING: return wsrep::provider::error_transaction_missing;
+        case WSREP_TRX_FAIL: return wsrep::provider::error_certification_failed;
+        case WSREP_BF_ABORT: return wsrep::provider::error_bf_abort;
+        case WSREP_SIZE_EXCEEDED: return wsrep::provider::error_size_exceeded;
+        case WSREP_CONN_FAIL: return wsrep::provider::error_connection_failed;
+        case WSREP_NODE_FAIL: return wsrep::provider::error_provider_failed;
+        case WSREP_FATAL: return wsrep::provider::error_fatal;
+        case WSREP_NOT_IMPLEMENTED: return wsrep::provider::error_not_implemented;
+        case WSREP_NOT_ALLOWED: return wsrep::provider::error_not_allowed;
+        }
+        return wsrep::provider::error_unknown;
+    }
+}
+
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
     const char* path,
     wsrep_init_args* args)
@@ -66,9 +88,10 @@ int wsrep::wsrep_provider_v26::disconnect()
     return ret;
 }
 
-wsrep_status_t wsrep::wsrep_provider_v26::run_applier(void *applier_ctx)
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::run_applier(void *applier_ctx)
 {
-    return wsrep_->recv(wsrep_, applier_ctx);
+    return map_return_value(wsrep_->recv(wsrep_, applier_ctx));
 }
 
 int wsrep::wsrep_provider_v26::append_key(wsrep_ws_handle_t* wsh,

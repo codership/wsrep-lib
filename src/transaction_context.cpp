@@ -25,7 +25,7 @@ wsrep::transaction_context::transaction_context(
     , bf_abort_state_(s_executing)
     , bf_abort_client_state_()
     , ws_handle_()
-    , trx_meta_()
+    , ws_meta_()
     , flags_()
     , pa_unsafe_(false)
     , certified_(false)
@@ -45,15 +45,15 @@ int wsrep::transaction_context::start_transaction(
     id_ = id;
     state_ = s_executing;
     state_hist_.clear();
-    ws_handle_.trx_id = id_.get();
-    flags_ |= WSREP_FLAG_TRX_START;
+    ws_handle_ = wsrep::ws_handle(id);
+    flags_ |= wsrep::provider::flag::start_transaction;
     switch (client_context_.mode())
     {
     case wsrep::client_context::m_local:
     case wsrep::client_context::m_applier:
         return 0;
     case wsrep::client_context::m_replicating:
-        return provider_.start_transaction(&ws_handle_);
+        return provider_.start_transaction(ws_handle_);
     default:
         assert(0);
         return 1;
@@ -61,16 +61,14 @@ int wsrep::transaction_context::start_transaction(
 }
 
 int wsrep::transaction_context::start_transaction(
-    const wsrep_ws_handle_t& ws_handle,
-    const wsrep_trx_meta_t& trx_meta,
-    uint32_t flags)
+    const wsrep::ws_handle& ws_handle,
+    const wsrep::ws_meta& ws_meta)
 {
     assert(active() == false);
     assert(client_context_.mode() == wsrep::client_context::m_applier);
     state_ = s_executing;
     ws_handle_ = ws_handle;
-    trx_meta_ = trx_meta;
-    flags_ = flags;
+    ws_meta_ = ws_meta;
     certified_ = true;
     return 0;
 }
@@ -79,13 +77,13 @@ int wsrep::transaction_context::start_transaction(
 int wsrep::transaction_context::append_key(const wsrep::key& key)
 {
 
-    return provider_.append_key(&ws_handle_, &key.get());
+    return provider_.append_key(ws_handle_, key);
 }
 
 int wsrep::transaction_context::append_data(const wsrep::data& data)
 {
 
-    return provider_.append_data(&ws_handle_, &data.get());
+    return provider_.append_data(ws_handle_, data);
 }
 
 int wsrep::transaction_context::before_prepare()
@@ -203,7 +201,7 @@ int wsrep::transaction_context::before_commit()
     case wsrep::client_context::m_local:
         if (ordered())
         {
-            ret = provider_.commit_order_enter(&ws_handle_, &trx_meta_);
+            ret = provider_.commit_order_enter(ws_handle_, ws_meta_);
         }
         break;
     case wsrep::client_context::m_replicating:
@@ -231,13 +229,15 @@ int wsrep::transaction_context::before_commit()
         if (ret == 0)
         {
             lock.unlock();
-            wsrep_status_t status(provider_.commit_order_enter(&ws_handle_, &trx_meta_));
+            enum wsrep::provider::status
+                status(provider_.commit_order_enter(
+                           ws_handle_, ws_meta_));
             lock.lock();
             switch (status)
             {
-            case WSREP_OK:
+            case wsrep::provider::success:
                 break;
-            case WSREP_BF_ABORT:
+            case wsrep::provider::error_bf_abort:
                 if (state() != s_must_abort)
                 {
                     state(lock, s_must_abort);
@@ -254,7 +254,7 @@ int wsrep::transaction_context::before_commit()
         break;
     case wsrep::client_context::m_applier:
         assert(ordered());
-        ret = provider_.commit_order_enter(&ws_handle_, &trx_meta_);
+        ret = provider_.commit_order_enter(ws_handle_, ws_meta_);
         if (ret)
         {
             state(lock, s_must_abort);
@@ -289,7 +289,7 @@ int wsrep::transaction_context::ordered_commit()
     debug_log_state("ordered_commit_enter");
     assert(state() == s_committing);
     assert(ordered());
-    ret = provider_.commit_order_leave(&ws_handle_, &trx_meta_);
+    ret = provider_.commit_order_leave(ws_handle_, ws_meta_);
     // Should always succeed
     assert(ret == 0);
     state(lock, s_ordered_commit);
@@ -315,7 +315,7 @@ int wsrep::transaction_context::after_commit()
         {
             clear_fragments();
         }
-        ret = provider_.release(&ws_handle_);
+        ret = provider_.release(ws_handle_);
         break;
     case wsrep::client_context::m_applier:
         break;
@@ -444,7 +444,7 @@ int wsrep::transaction_context::after_statement()
         lock.unlock();
         ret = client_context_.replay(*this);
         lock.lock();
-        provider_.release(&ws_handle_);
+        provider_.release(ws_handle_);
         break;
     case s_aborted:
         break;
@@ -462,10 +462,10 @@ int wsrep::transaction_context::after_statement()
     {
         if (ordered())
         {
-            ret = provider_.commit_order_enter(&ws_handle_, &trx_meta_);
-            if (ret == 0) provider_.commit_order_leave(&ws_handle_, &trx_meta_);
+            ret = provider_.commit_order_enter(ws_handle_, ws_meta_);
+            if (ret == 0) provider_.commit_order_leave(ws_handle_, ws_meta_);
         }
-        provider_.release(&ws_handle_);
+        provider_.release(ws_handle_);
     }
 
     if (state() != s_executing)
@@ -480,7 +480,7 @@ int wsrep::transaction_context::after_statement()
 
 bool wsrep::transaction_context::bf_abort(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
-    wsrep_seqno_t bf_seqno)
+    wsrep::seqno bf_seqno)
 {
     bool ret(false);
     assert(lock.owns_lock());
@@ -504,12 +504,13 @@ bool wsrep::transaction_context::bf_abort(
         case s_certifying:
         case s_committing:
         {
-            wsrep_seqno_t victim_seqno(WSREP_SEQNO_UNDEFINED);
-            wsrep_status_t status(client_context_.provider().bf_abort(
-                                      bf_seqno, id_.get(), &victim_seqno));
+            wsrep::seqno victim_seqno;
+            enum wsrep::provider::status
+                status(client_context_.provider().bf_abort(
+                           bf_seqno, id_.get(), victim_seqno));
             switch (status)
             {
-            case WSREP_OK:
+            case wsrep::provider::success:
                 wsrep::log() << "Seqno " << bf_seqno
                              << " succesfully BF aborted " << id_.get()
                              << " victim_seqno " << victim_seqno;
@@ -613,7 +614,7 @@ int wsrep::transaction_context::certify_fragment(
     uint32_t flags(0);
     if (fragments_.empty())
     {
-        flags |= WSREP_FLAG_TRX_START;
+        flags |= wsrep::provider::flag::start_transaction;
     }
 
     wsrep::data data;
@@ -641,14 +642,15 @@ int wsrep::transaction_context::certify_fragment(
         return 1;
     }
 
-    wsrep_status_t cert_ret(provider_.certify(client_context_.id().get(),
-                                              &sr_transaction_context.ws_handle_,
-                                              flags,
-                                              &sr_transaction_context.trx_meta_));
+    enum wsrep::provider::status
+        cert_ret(provider_.certify(client_context_.id().get(),
+                                   &sr_transaction_context.ws_handle_,
+                                   flags,
+                                   &sr_transaction_context.trx_meta_));
     int ret(0);
     switch (cert_ret)
     {
-    case WSREP_OK:
+    case wsrep::provider::success:
         sr_client_context->commit(sr_transaction_context);
         break;
     default:
@@ -679,7 +681,7 @@ int wsrep::transaction_context::certify_commit(
 
     state(lock, s_certifying);
 
-    flags(flags() | WSREP_FLAG_TRX_END);
+    flags(flags() | wsrep::provider::flag::commit);
     lock.unlock();
 
     wsrep::data data;
@@ -699,10 +701,11 @@ int wsrep::transaction_context::certify_commit(
         return 1;
     }
 
-    wsrep_status cert_ret(provider_.certify(client_context_.id().get(),
-                                            &ws_handle_,
-                                            flags(),
-                                            &trx_meta_));
+    enum wsrep::provider::status
+        cert_ret(provider_.certify(client_context_.id().get(),
+                                   ws_handle_,
+                                   flags(),
+                                   ws_meta_));
 
     lock.lock();
 
@@ -712,7 +715,7 @@ int wsrep::transaction_context::certify_commit(
     int ret(1);
     switch (cert_ret)
     {
-    case WSREP_OK:
+    case wsrep::provider::success:
         assert(ordered());
         switch (state())
         {
@@ -734,19 +737,19 @@ int wsrep::transaction_context::certify_commit(
         }
         certified_ = true;
         break;
-    case WSREP_WARNING:
+    case wsrep::provider::error_warning:
         assert(ordered() == false);
         state(lock, s_must_abort);
         client_context_.override_error(wsrep::e_error_during_commit);
         break;
-    case WSREP_TRX_MISSING:
+    case wsrep::provider::error_transaction_missing:
         state(lock, s_must_abort);
         // The execution should never reach this point if the
         // transaction has not generated any keys or data.
         client_context_.override_error(wsrep::e_error_during_commit);
         assert(0);
         break;
-    case WSREP_BF_ABORT:
+    case wsrep::provider::error_bf_abort:
         // Transaction was replicated succesfully and it was either
         // certified succesfully or the result of certifying is not
         // yet known. Therefore the transaction must roll back
@@ -760,16 +763,16 @@ int wsrep::transaction_context::certify_commit(
         }
         state(lock, s_must_replay);
         break;
-    case WSREP_TRX_FAIL:
+    case wsrep::provider::error_certification_failed:
         state(lock, s_cert_failed);
         client_context_.override_error(wsrep::e_deadlock_error);
         break;
-    case WSREP_SIZE_EXCEEDED:
+    case wsrep::provider::error_size_exceeded:
         state(lock, s_must_abort);
         client_context_.override_error(wsrep::e_error_during_commit);
         break;
-    case WSREP_CONN_FAIL:
-    case WSREP_NODE_FAIL:
+    case wsrep::provider::error_connection_failed:
+    case wsrep::provider::error_provider_failed:
         // Galera provider may return CONN_FAIL if the trx is
         // BF aborted O_o
         if (state() != s_must_abort)
@@ -778,11 +781,11 @@ int wsrep::transaction_context::certify_commit(
         }
         client_context_.override_error(wsrep::e_error_during_commit);
         break;
-    case WSREP_FATAL:
+    case wsrep::provider::error_fatal:
         client_context_.abort();
         break;
-    case WSREP_NOT_IMPLEMENTED:
-    case WSREP_NOT_ALLOWED:
+    case wsrep::provider::error_not_implemented:
+    case wsrep::provider::error_not_allowed:
         client_context_.override_error(wsrep::e_error_during_commit);
         state(lock, s_must_abort);
         assert(0);
@@ -809,17 +812,14 @@ void wsrep::transaction_context::cleanup()
 {
     debug_log_state("cleanup_enter");
     id_ = wsrep::transaction_id::invalid();
-    ws_handle_.trx_id = -1;
+    ws_handle_ = wsrep::ws_handle();
     if (is_streaming())
     {
         state_ = s_executing;
     }
     // Keep the state history for troubleshooting. Reset at start_transaction().
     // state_hist_.clear();
-    trx_meta_.gtid = WSREP_GTID_UNDEFINED;
-    trx_meta_.stid.node = WSREP_UUID_UNDEFINED;
-    trx_meta_.stid.trx = wsrep::transaction_id::invalid();
-    trx_meta_.stid.conn = wsrep::client_id::invalid();
+    ws_meta_ = wsrep::ws_meta();
     certified_ = false;
     pa_unsafe_ = false;
     debug_log_state("cleanup_leave");

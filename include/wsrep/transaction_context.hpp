@@ -7,9 +7,8 @@
 
 #include "provider.hpp"
 #include "server_context.hpp"
+#include "transaction_id.hpp"
 #include "lock.hpp"
-
-#include <wsrep_api.h>
 
 #include <cassert>
 #include <vector>
@@ -20,22 +19,6 @@ namespace wsrep
     class key;
     class data;
 
-    class transaction_id
-    {
-    public:
-        template <typename I>
-        transaction_id(I id)
-            : id_(static_cast<wsrep_trx_id_t>(id))
-        { }
-        wsrep_trx_id_t get() const { return id_; }
-        static wsrep_trx_id_t invalid() { return wsrep_trx_id_t(-1); }
-        bool operator==(const transaction_id& other) const
-        { return (id_ == other.id_); }
-        bool operator!=(const transaction_id& other) const
-        { return (id_ != other.id_); }
-    private:
-        wsrep_trx_id_t id_;
-    };
 
     class transaction_context
     {
@@ -75,13 +58,14 @@ namespace wsrep
         // fragment succeeded
         bool certified() const { return certified_; }
 
-        wsrep_seqno_t seqno() const
+        wsrep::seqno seqno() const
         {
-            return trx_meta_.gtid.seqno;
+            return ws_meta_.seqno();
         }
         // Return true if the last fragment was ordered by the
         // provider
-        bool ordered() const { return (trx_meta_.gtid.seqno > 0); }
+        bool ordered() const
+        { return (ws_meta_.seqno().nil() == false); }
 
         bool is_streaming() const
         {
@@ -91,19 +75,18 @@ namespace wsrep
 
         bool pa_unsafe() const { return pa_unsafe_; }
         void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }
+
         //
         int start_transaction()
         {
             assert(active() == false);
-            assert(trx_meta_.stid.trx != transaction_id::invalid());
-            return start_transaction(trx_meta_.stid.trx);
+            assert(ws_meta_.transaction_id() != transaction_id::invalid());
+            return start_transaction(ws_meta_.transaction_id());
         }
-
         int start_transaction(const wsrep::transaction_id& id);
 
-        int start_transaction(const wsrep_ws_handle_t& ws_handle,
-                              const wsrep_trx_meta_t& trx_meta,
-                              uint32_t flags);
+        int start_transaction(const wsrep::ws_handle& ws_handle,
+                              const wsrep::ws_meta& ws_meta);
 
         int append_key(const wsrep::key&);
 
@@ -130,21 +113,21 @@ namespace wsrep
         int after_statement();
 
         bool bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
-                      wsrep_seqno_t bf_seqno);
+                      wsrep::seqno bf_seqno);
 
-        uint32_t flags() const
+        int flags() const
         {
             return flags_;
         }
 
         wsrep::mutex& mutex();
 
-        wsrep_ws_handle_t& ws_handle() { return ws_handle_; }
+        // wsrep_ws_handle_t& ws_handle() { return ws_handle_; }
     private:
         transaction_context(const transaction_context&);
         transaction_context operator=(const transaction_context&);
 
-        void flags(uint32_t flags) { flags_ = flags; }
+        void flags(int flags) { flags_ = flags; }
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
         void remove_fragments();
@@ -159,13 +142,13 @@ namespace wsrep
         std::vector<enum state> state_hist_;
         enum state bf_abort_state_;
         int bf_abort_client_state_;
-        wsrep_ws_handle_t ws_handle_;
-        wsrep_trx_meta_t trx_meta_;
-        uint32_t flags_;
+        wsrep::ws_handle ws_handle_;
+        wsrep::ws_meta ws_meta_;
+        int flags_;
         bool pa_unsafe_;
         bool certified_;
 
-        std::vector<wsrep_gtid_t> fragments_;
+        std::vector<wsrep::seqno> fragments_;
         wsrep::transaction_id rollback_replicated_for_;
     };
 

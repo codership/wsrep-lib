@@ -191,6 +191,21 @@ namespace wsrep
         int before_statement();
 
         /*!
+         * Return values for after_statement() method.
+         */
+        enum after_statement_result
+        {
+            /*! Statement was executed succesfully */
+            asr_success,
+            /*! Statement execution encountered an error, the transaction
+             * was rolled back */
+            asr_error,
+            /*! Statement execution encountered an error, the transaction
+              was rolled back. However the statement was self contained
+              (e.g. autocommit statement) so it can be retried. */
+            asr_may_retry
+        };
+        /*!
          * After statement execution operations.
          *
          * * Check for must_replay state
@@ -199,7 +214,7 @@ namespace wsrep
          * If overridden by the implementation, base class method
          * should be called after any implementation specific operations.
          */
-        void after_statement();
+        enum after_statement_result after_statement();
 
         int start_transaction()
         {
@@ -386,6 +401,7 @@ namespace wsrep
          */
         void state(wsrep::unique_lock<wsrep::mutex>& lock, enum state state);
 
+        virtual bool is_autocommit() const = 0;
         /*!
          * Virtual method to return true if the client operates
          * in two phase commit mode.

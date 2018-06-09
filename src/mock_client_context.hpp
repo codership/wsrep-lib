@@ -22,6 +22,7 @@ namespace wsrep
               // Note: Mutex is initialized only after passed
               // to client_context constructor.
             , mutex_()
+            , is_autocommit_(false)
             , do_2pc_(do_2pc)
             , fail_next_applying_()
         { }
@@ -35,6 +36,7 @@ namespace wsrep
         int apply(const wsrep::data&);
         int commit();
         int rollback();
+        bool is_autocommit() const { return is_autocommit_; }
         bool do_2pc() const { return do_2pc_; }
         void will_replay(wsrep::transaction_context&) WSREP_OVERRIDE { }
         int replay(wsrep::transaction_context& tc) WSREP_OVERRIDE
@@ -61,6 +63,7 @@ namespace wsrep
         { fail_next_applying_ = fail_next_applying; }
     private:
         wsrep::default_mutex mutex_;
+        bool is_autocommit_;
         bool do_2pc_;
         bool fail_next_applying_;
     };

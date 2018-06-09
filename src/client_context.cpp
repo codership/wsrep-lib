@@ -105,14 +105,29 @@ int wsrep::client_context::before_statement()
     return 0;
 }
 
-void wsrep::client_context::after_statement()
+enum wsrep::client_context::after_statement_result
+wsrep::client_context::after_statement()
 {
+    // wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    assert(state() == s_exec);
 #if 0
     /*!
      * \todo Check for replay state, do rollback if requested.
      */
 #endif // 0
-    (void)transaction_.after_statement();
+    int ret(transaction_.after_statement());
+    if (ret)
+    {
+        if (is_autocommit())
+        {
+            return asr_may_retry;
+        }
+        else
+        {
+            return asr_error;
+        }
+    }
+    return asr_success;
 }
 
 // Private

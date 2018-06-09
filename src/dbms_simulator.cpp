@@ -336,6 +336,7 @@ public:
         return stats_;
     }
 private:
+    bool is_autocommit() const override { return false; }
     bool do_2pc() const override { return false; }
     int apply(const wsrep::data& data) override
     {

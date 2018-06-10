@@ -18,26 +18,24 @@ void wsrep_mock::bf_abort_unordered(wsrep::client_context& cc)
     // BF abort method to abort transactions via provider
 void wsrep_mock::bf_abort_provider(wsrep::mock_server_context& sc,
                                    const wsrep::transaction_context& tc,
-                                   wsrep_seqno_t bf_seqno)
+                                   wsrep::seqno bf_seqno)
 {
-    wsrep_seqno_t victim_seqno;
-    sc.provider().bf_abort(bf_seqno, tc.id().get(), &victim_seqno);
+    wsrep::seqno victim_seqno;
+    sc.provider().bf_abort(bf_seqno, tc.id(), victim_seqno);
     (void)victim_seqno;
 }
 
 void wsrep_mock::start_applying_transaction(
     wsrep::client_context& cc,
     const wsrep::transaction_id& id,
-    wsrep_seqno_t seqno,
-    uint32_t flags)
+    wsrep::seqno seqno,
+    int flags)
 {
-    wsrep_ws_handle_t ws_handle = { id.get(), 0 };
-    wsrep_trx_meta_t meta = {
-        { {1 }, seqno }, /* gtid */
-        { { static_cast<uint8_t>(cc.id().get()) }, id.get(), cc.id().get() }, /* stid */
-        seqno - 1
-    };
-    int ret(cc.start_transaction(ws_handle, meta, flags));
+    wsrep::ws_handle ws_handle(id, 0);
+    wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), seqno),
+                           wsrep::stid(wsrep::id("1"), id, cc.id()),
+                           flags, seqno.get() - 1);
+    int ret(cc.start_transaction(ws_handle, ws_meta));
     if (ret != 0)
     {
         throw wsrep::runtime_error("failed to start applying transaction");

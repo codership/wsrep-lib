@@ -27,11 +27,13 @@ wsrep::id::id(const std::string& str)
         type_ = string;
         std::memcpy(data_, str.c_str(), str.size());
     }
-    std::ostringstream os;
-    os << "String '" << str << "' does not contain UUID";
-    throw wsrep::runtime_error(os.str());
+    else
+    {
+        std::ostringstream os;
+        os << "String '" << str << "' does not contain UUID";
+        throw wsrep::runtime_error(os.str());
+    }
 }
-
 wsrep::provider* wsrep::provider::make_provider(
     const std::string&)
 {

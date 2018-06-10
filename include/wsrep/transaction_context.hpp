@@ -122,7 +122,7 @@ namespace wsrep
 
         wsrep::mutex& mutex();
 
-        // wsrep_ws_handle_t& ws_handle() { return ws_handle_; }
+        wsrep::ws_handle& ws_handle() { return ws_handle_; }
     private:
         transaction_context(const transaction_context&);
         transaction_context operator=(const transaction_context&);

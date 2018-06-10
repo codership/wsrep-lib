@@ -168,7 +168,7 @@ public:
     void start();
     void stop();
     void donate_sst(dbms_server&,
-                    const std::string& req, const wsrep_gtid_t& gtid, bool);
+                    const std::string& req, const wsrep::gtid& gtid, bool);
     const dbms_simulator_params& params() const
     { return params_; }
     std::string stats() const;
@@ -248,7 +248,7 @@ public:
     }
 
     void on_sst_request(const std::string& req,
-                        const wsrep_gtid_t& gtid,
+                        const wsrep::gtid& gtid,
                         bool bypass)
     {
         simulator_.donate_sst(*this, req, gtid, bypass);
@@ -369,7 +369,7 @@ private:
         wsrep::log() << "replay: " << txc.id().get();
         wsrep::client_applier_mode applier_mode(*this);
         ++stats_.replays;
-        return provider().replay(&txc.ws_handle(), this);
+        return provider().replay(txc.ws_handle(), this);
     }
     void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) const override
     { }
@@ -418,10 +418,10 @@ private:
                 int data(std::rand() % 10000000);
                 std::ostringstream os;
                 os << data;
-                wsrep::key key;
+                wsrep::key key(wsrep::key::exclusive);
                 key.append_key_part("dbms", 4);
-                wsrep_conn_id_t client_id(id().get());
-                key.append_key_part(&client_id, sizeof(client_id));
+                unsigned long long client_key(id().get());
+                key.append_key_part(&client_key, sizeof(client_key));
                 key.append_key_part(&data, sizeof(data));
                 err = append_key(key);
                 err = err || append_data(wsrep::data(os.str().c_str(),
@@ -486,7 +486,7 @@ void dbms_server::applier_thread()
     wsrep::client_id client_id(last_client_id_.fetch_add(1) + 1);
     dbms_client applier(*this, client_id,
                         wsrep::client_context::m_applier, 0);
-    wsrep_status_t ret(provider().run_applier(&applier));
+    enum wsrep::provider::status ret(provider().run_applier(&applier));
     wsrep::log() << "Applier thread exited with error code " << ret;
 }
 
@@ -658,7 +658,7 @@ std::string dbms_simulator::stats() const
 
 void dbms_simulator::donate_sst(dbms_server& server,
                                 const std::string& req,
-                                const wsrep_gtid_t& gtid,
+                                const wsrep::gtid& gtid,
                                 bool bypass)
 {
     size_t id;

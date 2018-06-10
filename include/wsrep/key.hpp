@@ -37,6 +37,20 @@ namespace wsrep
             ++key_parts_len_;
         }
 
+        enum type type() const
+        {
+            return type_;
+        }
+
+        size_t size() const
+        {
+            return key_parts_len_;
+        }
+
+        const wsrep::buffer* key_parts() const
+        {
+            return key_parts_;
+        }
     private:
 
         enum type type_;

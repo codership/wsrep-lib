@@ -47,7 +47,8 @@ namespace
             BOOST_REQUIRE(cc.before_statement() == 0);
             wsrep_mock::start_applying_transaction(
                 cc, 1, 1,
-                WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END);
+                wsrep::provider::flag::start_transaction |
+                wsrep::provider::flag::commit);
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(cc.start_transaction() == 0);
             BOOST_REQUIRE(tc.active() == true);
@@ -280,7 +281,7 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    wsrep_mock::bf_abort_provider(sc, tc, WSREP_SEQNO_UNDEFINED);
+    wsrep_mock::bf_abort_provider(sc, tc, wsrep::seqno::undefined());
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -388,7 +389,7 @@ BOOST_AUTO_TEST_CASE(transaction_context_2pc_applying)
 
     wsrep_mock::start_applying_transaction(
         cc, 1, 1,
-        WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END);
+        wsrep::provider::flag::start_transaction | wsrep::provider::flag::commit);
     const wsrep::transaction_context& tc(cc.transaction());
 
     BOOST_REQUIRE(tc.active() == false);

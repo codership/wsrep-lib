@@ -18,7 +18,7 @@ BOOST_AUTO_TEST_CASE(server_context_applying_1pc)
                                   false);
     wsrep_mock::start_applying_transaction(
         cc, 1, 1,
-        WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END);
+        wsrep::provider::flag::start_transaction | wsrep::provider::flag::commit);
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, wsrep::data(buf, 1)) == 0);
     const wsrep::transaction_context& txc(cc.transaction());
@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(server_context_applying_2pc)
                                   true);
     wsrep_mock::start_applying_transaction(
         cc, 1, 1,
-        WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END);
+        wsrep::provider::flag::start_transaction | wsrep::provider::flag::commit);
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, wsrep::data(buf, 1)) == 0);
     const wsrep::transaction_context& txc(cc.transaction());
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(server_context_applying_1pc_rollback)
     cc.fail_next_applying(true);
     wsrep_mock::start_applying_transaction(
         cc, 1, 1,
-        WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END);
+        wsrep::provider::flag::start_transaction | wsrep::provider::flag::commit);
     char buf[1] = { 1 };
 
     BOOST_REQUIRE(sc.on_apply(cc, wsrep::data(buf, 1)) == 1);
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(server_context_applying_2pc_rollback)
     cc.fail_next_applying(true);
     wsrep_mock::start_applying_transaction(
         cc, 1, 1,
-        WSREP_FLAG_TRX_START | WSREP_FLAG_TRX_END);
+        wsrep::provider::flag::start_transaction | wsrep::provider::flag::commit);
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, wsrep::data(buf, 1)) == 1);
     const wsrep::transaction_context& txc(cc.transaction());

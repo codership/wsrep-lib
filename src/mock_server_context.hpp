@@ -41,7 +41,7 @@ namespace wsrep
         bool sst_before_init() const WSREP_OVERRIDE { return false; }
         std::string on_sst_required() WSREP_OVERRIDE { return ""; }
         void on_sst_request(const std::string&,
-                            const wsrep_gtid_t&,
+                            const wsrep::gtid&,
                             bool) WSREP_OVERRIDE { }
         // void sst_received(const wsrep_gtid_t&, int) WSREP_OVERRIDE { }
         // void on_apply(wsrep::transaction_context&) { }

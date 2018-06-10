@@ -115,6 +115,9 @@ namespace wsrep
         {
             return (std::memcmp(data_, other.data_, sizeof(data_)) == 0);
         }
+        const unsigned char* data() const { return data_; }
+        size_t data_size() const { return 16; }
+
     private:
         enum type type_;
         unsigned char data_[16];
@@ -210,15 +213,34 @@ namespace wsrep
             , flags_(flags)
         { }
 
-        wsrep::transaction_id transaction_id() const
+        const wsrep::id& group_id() const
         {
-            return stid_.transaction_id();
+            return gtid_.id();
         }
 
         wsrep::seqno seqno() const
         {
             return gtid_.seqno();
         }
+
+        const wsrep::id& server_id() const
+        {
+            return stid_.server_id();
+        }
+
+        wsrep::client_id client_id() const
+        {
+            return stid_.client_id();
+        }
+
+        wsrep::transaction_id transaction_id() const
+        {
+            return stid_.transaction_id();
+        }
+
+        wsrep::seqno depends_on() const { return depends_on_; }
+
+        int flags() const { return flags_; }
     private:
         wsrep::gtid gtid_;
         wsrep::stid stid_;
@@ -249,6 +271,8 @@ namespace wsrep
 
         /*!
          * Return value enumeration
+         *
+         * \todo Convert this to struct ec, get rid of prefixes.
          */
         enum status
         {

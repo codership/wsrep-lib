@@ -64,6 +64,7 @@ int wsrep::transaction_context::start_transaction(
     const wsrep::ws_handle& ws_handle,
     const wsrep::ws_meta& ws_meta)
 {
+    assert(ws_meta.flags());
     assert(active() == false);
     assert(client_context_.mode() == wsrep::client_context::m_applier);
     state_ = s_executing;
@@ -557,6 +558,12 @@ void wsrep::transaction_context::state(
     wsrep::unique_lock<wsrep::mutex>& lock __attribute__((unused)),
     enum wsrep::transaction_context::state next_state)
 {
+    if (client_context_.debug_log_level() >= 1)
+    {
+        log_debug() << "client: " << client_context_.id().get()
+                    << " txc: " << id().get()
+                    << " state: " << state_ << " -> " << next_state;
+    }
     assert(lock.owns_lock());
     static const char allowed[n_states][n_states] =
         { /*  ex pr ce co oc ct cf ma ab ad mr re */

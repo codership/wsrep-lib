@@ -376,28 +376,9 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_1pc_applying,
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
 }
 
-BOOST_AUTO_TEST_CASE(transaction_context_2pc_applying)
+BOOST_FIXTURE_TEST_CASE(transaction_context_2pc_applying,
+                        applying_client_fixture)
 {
-    wsrep::mock_server_context sc("s1", "s1",
-                                  wsrep::server_context::rm_sync);
-    wsrep::mock_client_context cc(sc,
-                             wsrep::client_id(1),
-                             wsrep::client_context::m_applier);
-
-    BOOST_REQUIRE(cc.before_command() == 0);
-    BOOST_REQUIRE(cc.before_statement() == 0);
-
-    wsrep_mock::start_applying_transaction(
-        cc, 1, 1,
-        wsrep::provider::flag::start_transaction | wsrep::provider::flag::commit);
-    const wsrep::transaction_context& tc(cc.transaction());
-
-    BOOST_REQUIRE(tc.active() == false);
-    BOOST_REQUIRE(cc.start_transaction() == 0);
-    BOOST_REQUIRE(tc.active() == true);
-    BOOST_REQUIRE(tc.certified() == true);
-    BOOST_REQUIRE(tc.ordered() == true);
-
     BOOST_REQUIRE(cc.before_prepare() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_preparing);
     BOOST_REQUIRE(cc.after_prepare() == 0);

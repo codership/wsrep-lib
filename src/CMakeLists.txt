@@ -27,6 +27,16 @@ add_test(NAME wsrep-lib_test
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/wsrep-lib_test
   )
 
+if (WITH_AUTO_TEST)
+  set(UNIT_TEST wsrep-lib_test)
+  add_custom_command(
+    TARGET ${UNIT_TEST}
+    COMMENT "Run tests"
+    POST_BUILD
+    COMMAND ${UNIT_TEST}
+    )
+endif()
+
 add_executable(dbms_simulator
   dbms_simulator.cpp)
 target_link_libraries(dbms_simulator wsrep-lib ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY})

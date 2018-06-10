@@ -18,20 +18,48 @@
 
 namespace
 {
-
-    inline bool starts_transaction(uint32_t flags)
+    inline uint32_t map_one(const int flags, const uint32_t from,
+                            const int to)
     {
-        return (flags & WSREP_FLAG_TRX_START);
+        return ((flags & from) ? to : 0);
     }
 
-    inline bool commits_transaction(uint32_t flags)
+    int map_flags_from_native(uint32_t flags)
     {
-        return (flags & WSREP_FLAG_TRX_END);
+        using wsrep::provider;
+        return (map_one(flags,
+                        WSREP_FLAG_TRX_START,
+                        provider::flag::start_transaction) |
+                map_one(flags,
+                        WSREP_FLAG_TRX_END,
+                        provider::flag::commit) |
+                map_one(flags,
+                        WSREP_FLAG_ROLLBACK,
+                        provider::flag::rollback) |
+                map_one(flags,
+                        WSREP_FLAG_ISOLATION,
+                        provider::flag::isolation) |
+                map_one(flags,
+                        WSREP_FLAG_PA_UNSAFE,
+                        provider::flag::pa_unsafe) |
+                // map_one(flags, provider::flag::commutative, WSREP_FLAG_COMMUTATIVE) |
+                // map_one(flags, provider::flag::native, WSREP_FLAG_NATIVE) |
+                map_one(flags, WSREP_FLAG_SNAPSHOT, provider::flag::snapshot));
     }
 
-    inline bool rolls_back_transaction(uint32_t flags)
+    inline bool starts_transaction(const wsrep::ws_meta& ws_meta)
     {
-        return (flags & WSREP_FLAG_ROLLBACK);
+        return (ws_meta.flags() & wsrep::provider::flag::start_transaction);
+    }
+
+    inline bool commits_transaction(const wsrep::ws_meta& ws_meta)
+    {
+        return (ws_meta.flags() & wsrep::provider::flag::commit);
+    }
+
+    inline bool rolls_back_transaction(const wsrep::ws_meta& ws_meta)
+    {
+        return (ws_meta.flags() & wsrep::provider::flag::rollback);
     }
 
     wsrep_cb_status_t connected_cb(
@@ -122,7 +150,8 @@ namespace
             wsrep::stid(wsrep::id(meta->stid.node.data,
                                   sizeof(meta->stid.node.data)),
                         meta->stid.trx,
-                        meta->stid.conn), meta->depends_on, flags);
+                        meta->stid.conn), meta->depends_on,
+            map_flags_from_native(flags));
         if (client_context->transaction().state() !=
             wsrep::transaction_context::s_replaying &&
             client_context->start_transaction(ws_handle, ws_meta))
@@ -312,8 +341,11 @@ int wsrep::server_context::on_apply(
 {
     int ret(0);
     const wsrep::transaction_context& txc(client_context.transaction());
-    if (starts_transaction(txc.flags()) &&
-        commits_transaction(txc.flags()))
+    const wsrep::ws_meta& ws_meta(txc.ws_meta());
+    // wsrep::log_debug() << "server_context::on apply flags: "
+    //                  << flags_to_string(ws_meta.flags());
+    assert(ws_meta.flags());
+    if (starts_transaction(ws_meta) && commits_transaction(ws_meta))
     {
         bool not_replaying(txc.state() !=
                            wsrep::transaction_context::s_replaying);
@@ -332,6 +364,12 @@ int wsrep::server_context::on_apply(
         {
             ret = 1;
         }
+
+        if (ret)
+        {
+            client_context.rollback();
+        }
+
         if (not_replaying)
         {
             client_context.after_statement();
@@ -347,12 +385,6 @@ int wsrep::server_context::on_apply(
         assert(0);
     }
 
-    if (ret)
-    {
-        client_context.rollback();
-    }
-
-    client_context.after_statement();
     assert(txc.active() == false);
     return ret;
 }

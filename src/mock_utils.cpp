@@ -11,7 +11,7 @@
 void wsrep_mock::bf_abort_unordered(wsrep::client_context& cc)
 {
     wsrep::unique_lock<wsrep::mutex> lock(cc.mutex());
-    assert(cc.transaction().seqno() <= 0);
+    assert(cc.transaction().seqno().nil());
     cc.bf_abort(lock, 1);
 }
 
@@ -34,7 +34,8 @@ void wsrep_mock::start_applying_transaction(
     wsrep::ws_handle ws_handle(id, 0);
     wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), seqno),
                            wsrep::stid(wsrep::id("1"), id, cc.id()),
-                           flags, seqno.get() - 1);
+                           seqno.get() - 1, flags);
+    assert(ws_meta.flags());
     int ret(cc.start_transaction(ws_handle, ws_meta));
     if (ret != 0)
     {

@@ -119,8 +119,8 @@ namespace
 
         ~const_ws_handle()
         {
-            assert(ws_handle.transaction_id().get() == native_.trx_id);
-            assert(ws_handle.opaque() == native_.opaque);
+            assert(ws_handle_.transaction_id().get() == native_.trx_id);
+            assert(ws_handle_.opaque() == native_.opaque);
         }
 
         const wsrep_ws_handle_t* native() const

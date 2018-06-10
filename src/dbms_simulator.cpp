@@ -253,7 +253,12 @@ public:
     {
         simulator_.donate_sst(*this, req, gtid, bypass);
     }
-
+    void background_rollback(wsrep::client_context& cs) override
+    {
+        assert(0);
+        cs.before_rollback();
+        cs.after_rollback();
+    }
 
     // Client context management
     wsrep::client_context* local_client_context();

@@ -17,7 +17,7 @@ namespace
     struct replicating_client_fixture
     {
         replicating_client_fixture()
-            : sc("s1", "s1", wsrep::server_context::rm_async)
+            : sc("s1", "s1", wsrep::server_context::rm_sync)
             , cc(sc, wsrep::client_id(1),
                  wsrep::client_context::m_replicating)
             , tc(cc.transaction())
@@ -359,6 +359,28 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(tc.ordered() == false);
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
+BOOST_FIXTURE_TEST_CASE(transaction_context_1pc_bf_abort_idle_client,
+                        replicating_client_fixture)
+{
+    cc.start_transaction(1);
+    BOOST_REQUIRE(tc.active());
+    cc.after_statement();
+    BOOST_REQUIRE(cc.state() == wsrep::client_context::s_exec);
+    cc.after_command_before_result();
+    BOOST_REQUIRE(cc.state() == wsrep::client_context::s_result);
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.state() == wsrep::client_context::s_idle);
+    wsrep_mock::bf_abort_unordered(cc);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborted);
+    BOOST_REQUIRE(cc.before_command() == 1);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    cc.after_command_before_result();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+    BOOST_REQUIRE(tc.active() == false);
 }
 
 BOOST_FIXTURE_TEST_CASE(transaction_context_1pc_applying,

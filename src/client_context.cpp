@@ -35,6 +35,7 @@ int wsrep::client_context::before_command()
         (transaction_.state() == wsrep::transaction_context::s_must_abort ||
          transaction_.state() == wsrep::transaction_context::s_aborted))
     {
+        override_error(wsrep::e_deadlock_error);
         return 1;
     }
     return 0;
@@ -67,13 +68,23 @@ void wsrep::client_context::after_command_after_result()
     {
         // Note: Error is not overridden here as the result has already
         // been sent to client. The error should be set in before_command()
-        // when the client issues next command.
+        // when the client issues next command and finds the transaction
+        // in aborted state.
         lock.unlock();
         rollback();
         transaction_.after_statement();
         lock.lock();
         assert(transaction_.state() == wsrep::transaction_context::s_aborted);
-        assert(current_error() != wsrep::e_success);
+        assert(current_error() == wsrep::e_success);
+    }
+    else if (transaction_.active() &&
+             transaction_.state() == wsrep::transaction_context::s_aborted)
+    {
+        // Will clean up the transaction
+        lock.unlock();
+        (void)transaction_.after_statement();
+        lock.lock();
+        current_error_ = wsrep::e_success;
     }
     state(lock, s_idle);
 }

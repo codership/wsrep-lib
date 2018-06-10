@@ -69,6 +69,7 @@ namespace wsrep
         {
             return &mutex_;
         }
+
     private:
         pthread_mutex_t mutex_;
     };

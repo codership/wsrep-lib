@@ -59,6 +59,15 @@ namespace
         throw wsrep::runtime_error("Invalid key type");
     }
 
+    static inline wsrep_seqno_t seqno_to_native(wsrep::seqno seqno)
+    {
+        return (seqno.nil() ? WSREP_SEQNO_UNDEFINED : seqno.get());
+    }
+
+    static inline wsrep::seqno seqno_from_native(wsrep_seqno_t seqno)
+    {
+        return (seqno == WSREP_SEQNO_UNDEFINED ? 0 : seqno);
+    }
     inline uint32_t map_one(const int flags, const int from,
                             const uint32_t to)
     {
@@ -138,7 +147,7 @@ namespace
         mutable_ws_meta(wsrep::ws_meta& ws_meta, int flags)
             : ws_meta_(ws_meta)
             , trx_meta_()
-            , flags_(map_flags_to_native(flags))
+            , flags_(flags)
         { }
 
         ~mutable_ws_meta()
@@ -147,12 +156,12 @@ namespace
                 wsrep::gtid(
                     wsrep::id(trx_meta_.gtid.uuid.data,
                               sizeof(trx_meta_.gtid.uuid.data)),
-                    trx_meta_.gtid.seqno),
+                    seqno_from_native(trx_meta_.gtid.seqno)),
                 wsrep::stid(wsrep::id(trx_meta_.stid.node.data,
                                       sizeof(trx_meta_.stid.node.data)),
                             trx_meta_.stid.trx,
                             trx_meta_.stid.conn),
-                trx_meta_.depends_on, flags_);
+                seqno_from_native(trx_meta_.depends_on), flags_);
         }
 
         wsrep_trx_meta* native() { return &trx_meta_; }
@@ -172,12 +181,12 @@ namespace
         {
             std::memcpy(trx_meta_.gtid.uuid.data, ws_meta.group_id().data(),
                         sizeof(trx_meta_.gtid.uuid.data));
-            trx_meta_.gtid.seqno = ws_meta.seqno().get();
+            trx_meta_.gtid.seqno = seqno_to_native(ws_meta.seqno());
             std::memcpy(trx_meta_.stid.node.data, ws_meta.server_id().data(),
                         sizeof(trx_meta_.stid.node.data));
             trx_meta_.stid.conn = ws_meta.client_id().get();
             trx_meta_.stid.trx = ws_meta.transaction_id().get();
-            trx_meta_.depends_on = ws_meta.depends_on().get();
+            trx_meta_.depends_on = seqno_to_native(ws_meta.depends_on());
         }
 
         ~const_ws_meta()
@@ -286,9 +295,9 @@ int wsrep::wsrep_provider_v26::append_data(wsrep::ws_handle& ws_handle,
 
 enum wsrep::provider::status
 wsrep::wsrep_provider_v26::certify(wsrep::client_id client_id,
-                                                  wsrep::ws_handle& ws_handle,
-                                                  int flags,
-                                                  wsrep::ws_meta& ws_meta)
+                                   wsrep::ws_handle& ws_handle,
+                                   int flags,
+                                   wsrep::ws_meta& ws_meta)
 {
     mutable_ws_handle mwsh(ws_handle);
     mutable_ws_meta mmeta(ws_meta, flags);
@@ -307,8 +316,9 @@ wsrep::wsrep_provider_v26::bf_abort(
     wsrep_seqno_t wsrep_victim_seqno;
     wsrep_status_t ret(
         wsrep_->abort_certification(
-            wsrep_, bf_seqno.get(), victim_id.get(), &wsrep_victim_seqno));
-    victim_seqno = wsrep_victim_seqno;
+            wsrep_, seqno_to_native(bf_seqno),
+            victim_id.get(), &wsrep_victim_seqno));
+    victim_seqno = seqno_from_native(wsrep_victim_seqno);
     return map_return_value(ret);
 }
 

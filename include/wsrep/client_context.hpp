@@ -210,6 +210,7 @@ namespace wsrep
             assert(state_ == s_exec);
             return transaction_.start_transaction();
         }
+
         int start_transaction(const wsrep::transaction_id& id)
         {
             assert(state_ == s_exec);
@@ -265,12 +266,12 @@ namespace wsrep
         }
         int before_rollback()
         {
-            assert(state_ == s_exec);
+            assert(state_ == s_idle || state_ == s_exec || state_ == s_result);
             return transaction_.before_rollback();
         }
         int after_rollback()
         {
-            assert(state_ == s_exec);
+            assert(state_ == s_idle || state_ == s_exec || state_ == s_result);
             return transaction_.after_rollback();
         }
 
@@ -319,6 +320,14 @@ namespace wsrep
          * \return Client mode.
          */
         enum mode mode() const { return mode_; }
+        /*!
+         * Get Client state.
+         *
+         * \todo Enforce mutex protection if called from other threads.
+         *
+         * \return Client state
+         */
+        enum state state() const { return state_; }
 
         const wsrep::transaction_context& transaction() const
         {
@@ -369,20 +378,14 @@ namespace wsrep
          * Friend declarations
          */
         friend int server_context::on_apply(client_context&,
+                                            const wsrep::ws_handle&,
+                                            const wsrep::ws_meta&,
                                             const wsrep::data&);
         friend class client_context_switch;
         friend class client_applier_mode;
         friend class client_toi_mode;
         friend class transaction_context;
 
-        /*!
-         * Get Client state.
-         *
-         * \todo Enforce mutex protection if called from other threads.
-         *
-         * \return Client state
-         */
-        enum state state() const { return state_; }
 
         /*!
          * Set client state.

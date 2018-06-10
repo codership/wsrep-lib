@@ -336,6 +336,7 @@ int wsrep::transaction_context::before_rollback()
     debug_log_state("before_rollback_enter");
     assert(state() == s_executing ||
            state() == s_must_abort ||
+           state() == s_aborting || // Background rollbacker
            state() == s_cert_failed ||
            state() == s_must_replay);
 
@@ -372,6 +373,12 @@ int wsrep::transaction_context::before_rollback()
             provider_.rollback(id_.get());
         }
         state(lock, s_aborting);
+        break;
+    case s_aborting:
+        if (is_streaming())
+        {
+            provider_.rollback(id_.get());
+        }
         break;
     case s_must_replay:
         break;
@@ -538,11 +545,18 @@ bool wsrep::transaction_context::bf_abort(
     if (ret)
     {
         bf_abort_client_state_ = client_context_.state();
-        if (client_context_.server_context().rollback_mode() ==
+        if (client_context_.state() == wsrep::client_context::s_idle &&
+            client_context_.server_context().rollback_mode() ==
             wsrep::server_context::rm_sync)
         {
-            //! \todo Launch background rollbacker.
-            assert(0);
+            // We need to change the state to aborting under the
+            // lock protection to avoid a race between client thread,
+            // otherwise it could happend that the client gains control
+            // between releasing the lock and before background
+            // rollbacker gets control.
+            state(lock, wsrep::transaction_context::s_aborting);
+            lock.unlock();
+            client_context_.server_context().background_rollback(client_context_);
         }
     }
     return ret;

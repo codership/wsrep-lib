@@ -43,6 +43,12 @@ namespace wsrep
         void on_sst_request(const std::string&,
                             const wsrep::gtid&,
                             bool) WSREP_OVERRIDE { }
+        void background_rollback(wsrep::client_context& client_context)
+            WSREP_OVERRIDE
+        {
+            client_context.before_rollback();
+            client_context.after_rollback();
+        }
         // void sst_received(const wsrep_gtid_t&, int) WSREP_OVERRIDE { }
         // void on_apply(wsrep::transaction_context&) { }
         // void on_commit(wsrep::transaction_context&) { }

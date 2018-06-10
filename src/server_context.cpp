@@ -152,15 +152,9 @@ namespace
                         meta->stid.trx,
                         meta->stid.conn), meta->depends_on,
             map_flags_from_native(flags));
-        if (client_context->transaction().state() !=
-            wsrep::transaction_context::s_replaying &&
-            client_context->start_transaction(ws_handle, ws_meta))
-        {
-            ret = WSREP_CB_FAILURE;
-        }
         if (ret == WSREP_CB_SUCCESS &&
             client_context->server_context().on_apply(
-                *client_context, data))
+                *client_context, ws_handle, ws_meta, data))
         {
             ret = WSREP_CB_FAILURE;
         }
@@ -337,24 +331,27 @@ void wsrep::server_context::on_sync()
 
 int wsrep::server_context::on_apply(
     wsrep::client_context& client_context,
+    const wsrep::ws_handle& ws_handle,
+    const wsrep::ws_meta& ws_meta,
     const wsrep::data& data)
 {
     int ret(0);
     const wsrep::transaction_context& txc(client_context.transaction());
-    const wsrep::ws_meta& ws_meta(txc.ws_meta());
     // wsrep::log_debug() << "server_context::on apply flags: "
     //                  << flags_to_string(ws_meta.flags());
+    assert(ws_handle.opaque());
     assert(ws_meta.flags());
+    bool not_replaying(txc.state() !=
+                       wsrep::transaction_context::s_replaying);
+
     if (starts_transaction(ws_meta) && commits_transaction(ws_meta))
     {
-        bool not_replaying(txc.state() !=
-                           wsrep::transaction_context::s_replaying);
         if (not_replaying)
         {
             client_context.before_command();
             client_context.before_statement();
             assert(txc.active() == false);
-            client_context.start_transaction();
+            client_context.start_transaction(ws_handle, ws_meta);
         }
         if (client_context.apply(data))
         {
@@ -384,8 +381,10 @@ int wsrep::server_context::on_apply(
         // SR not implemented yet
         assert(0);
     }
-
-    assert(txc.active() == false);
+    if (not_replaying)
+    {
+        assert(txc.active() == false);
+    }
     return ret;
 }
 

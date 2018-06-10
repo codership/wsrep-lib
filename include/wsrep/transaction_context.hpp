@@ -83,6 +83,7 @@ namespace wsrep
             assert(ws_meta_.transaction_id() != transaction_id::invalid());
             return start_transaction(ws_meta_.transaction_id());
         }
+
         int start_transaction(const wsrep::transaction_id& id);
 
         int start_transaction(const wsrep::ws_handle& ws_handle,
@@ -121,8 +122,8 @@ namespace wsrep
         }
 
         wsrep::mutex& mutex();
-
         wsrep::ws_handle& ws_handle() { return ws_handle_; }
+        const wsrep::ws_handle& ws_handle() const { return ws_handle_; }
         const wsrep::ws_meta& ws_meta() const { return ws_meta_; }
     private:
         transaction_context(const transaction_context&);

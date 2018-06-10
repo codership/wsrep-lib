@@ -18,14 +18,23 @@ namespace
                  wsrep::client_id(1),
                  wsrep::client_context::m_applier,
                  false)
+            , ws_handle(1, (void*)1)
+            , ws_meta(wsrep::gtid(wsrep::id("1"), 1),
+                      wsrep::stid(wsrep::id("1"), 1, 1),
+                      0,
+                      wsrep::provider::flag::start_transaction |
+                      wsrep::provider::flag::commit)
         {
-            wsrep_mock::start_applying_transaction(
-                cc, 1, 1,
-                wsrep::provider::flag::start_transaction |
-                wsrep::provider::flag::commit);
+            // wsrep_mock::start_applying_transaction(
+            //    cc, 1, 1,
+            //    wsrep::provider::flag::start_transaction |
+            //    wsrep::provider::flag::commit);
+            cc.start_transaction(ws_handle, ws_meta);
         }
         wsrep::mock_server_context sc;
         wsrep::mock_client_context cc;
+        wsrep::ws_handle ws_handle;
+        wsrep::ws_meta ws_meta;
     };
 }
 
@@ -35,7 +44,8 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc,
 {
     cc.debug_log_level(1);
     char buf[1] = { 1 };
-    BOOST_REQUIRE(sc.on_apply(cc, wsrep::data(buf, 1)) == 0);
+    BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
+                              wsrep::data(buf, 1)) == 0);
     const wsrep::transaction_context& txc(cc.transaction());
     // ::abort();
     BOOST_REQUIRE_MESSAGE(
@@ -48,7 +58,8 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc,
                         applying_server_fixture)
 {
     char buf[1] = { 1 };
-    BOOST_REQUIRE(sc.on_apply(cc, wsrep::data(buf, 1)) == 0);
+    BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
+                              wsrep::data(buf, 1)) == 0);
     const wsrep::transaction_context& txc(cc.transaction());
     BOOST_REQUIRE(txc.state() == wsrep::transaction_context::s_committed);
 }
@@ -60,7 +71,8 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc_rollback,
 {
     cc.fail_next_applying(true);
     char buf[1] = { 1 };
-    BOOST_REQUIRE(sc.on_apply(cc, wsrep::data(buf, 1)) == 1);
+    BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
+                              wsrep::data(buf, 1)) == 1);
     const wsrep::transaction_context& txc(cc.transaction());
     BOOST_REQUIRE(txc.state() == wsrep::transaction_context::s_aborted);
 }
@@ -72,7 +84,8 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc_rollback,
 {
     cc.fail_next_applying(true);
     char buf[1] = { 1 };
-    BOOST_REQUIRE(sc.on_apply(cc, wsrep::data(buf, 1)) == 1);
+    BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
+                              wsrep::data(buf, 1)) == 1);
     const wsrep::transaction_context& txc(cc.transaction());
     BOOST_REQUIRE(txc.state() == wsrep::transaction_context::s_aborted);
 }

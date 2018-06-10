@@ -295,7 +295,7 @@ namespace wsrep
                                     const wsrep::gtid& gtid,
                                     bool bypass) = 0;
 
-
+        virtual void background_rollback(wsrep::client_context&) = 0;
         /*!
          *
          */
@@ -333,6 +333,8 @@ namespace wsrep
          * \return Zero on success, non-zero on failure.
          */
         int on_apply(wsrep::client_context& client_context,
+                     const wsrep::ws_handle& ws_handle,
+                     const wsrep::ws_meta& ws_meta,
                      const wsrep::data& data);
 
         /*!

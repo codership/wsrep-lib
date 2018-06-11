@@ -9,6 +9,8 @@
 #include "wsrep/mutex.hpp"
 #include "wsrep/compiler.hpp"
 
+#include "test_utils.hpp"
+
 namespace wsrep
 {
     class mock_client_context : public wsrep::client_context
@@ -25,6 +27,9 @@ namespace wsrep
             , is_autocommit_(false)
             , do_2pc_(do_2pc)
             , fail_next_applying_()
+            , bf_abort_during_wait_()
+            , error_during_prepare_data_()
+            , killed_before_certify_()
         { }
         ~mock_client_context()
         {
@@ -47,9 +52,29 @@ namespace wsrep
             tc.state(lock, wsrep::transaction_context::s_committed);
             return 0;
         }
-        void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) const
-            WSREP_OVERRIDE { }
-        bool killed() const WSREP_OVERRIDE { return false; }
+        void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>& lock)
+            WSREP_OVERRIDE
+        {
+            lock.unlock();
+            if (bf_abort_during_wait_)
+            {
+                wsrep_test::bf_abort_unordered(*this);
+            }
+            lock.lock();
+        }
+        int prepare_data_for_replication(
+            const wsrep::transaction_context&, wsrep::data& data) WSREP_OVERRIDE
+        {
+            if (error_during_prepare_data_)
+            {
+                return 1;
+            }
+            static const char buf[1] = { 1 };
+            data = wsrep::data(buf, 1);
+            return 0;
+
+        }
+        bool killed() const WSREP_OVERRIDE { return killed_before_certify_; }
         void abort() const WSREP_OVERRIDE { }
         void store_globals() WSREP_OVERRIDE { }
         void debug_sync(const char*) WSREP_OVERRIDE { }
@@ -58,14 +83,17 @@ namespace wsrep
             ::abort();
         }
         void on_error(enum wsrep::client_error) { }
-        // Mock state modifiers
-        void fail_next_applying(bool fail_next_applying)
-        { fail_next_applying_ = fail_next_applying; }
+
+        //
     private:
         wsrep::default_mutex mutex_;
+    public:
         bool is_autocommit_;
         bool do_2pc_;
         bool fail_next_applying_;
+        bool bf_abort_during_wait_;
+        bool error_during_prepare_data_;
+        bool killed_before_certify_;
     };
 }
 

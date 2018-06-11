@@ -64,7 +64,7 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc,
 BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc_rollback,
                         applying_server_fixture)
 {
-    cc.fail_next_applying(true);
+    cc.fail_next_applying_ = true;
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
                               wsrep::data(buf, 1)) == 1);
@@ -77,7 +77,7 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc_rollback,
 BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc_rollback,
                         applying_server_fixture)
 {
-    cc.fail_next_applying(true);
+    cc.fail_next_applying_ = true;
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
                               wsrep::data(buf, 1)) == 1);

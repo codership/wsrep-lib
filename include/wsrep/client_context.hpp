@@ -56,6 +56,7 @@ namespace wsrep
         e_success,
         e_error_during_commit,
         e_deadlock_error,
+        e_interrupted_error,
         e_append_fragment_error
     };
 
@@ -63,9 +64,10 @@ namespace wsrep
     {
         switch (error)
         {
-        case e_success: return "success";
-        case e_error_during_commit: return "error_during_commit";
-        case e_deadlock_error: return "deadlock_error";
+        case e_success:               return "success";
+        case e_error_during_commit:   return "error_during_commit";
+        case e_deadlock_error:        return "deadlock_error";
+        case e_interrupted_error:     return "interrupted_error";
         case e_append_fragment_error: return "append_fragment_error";
         }
         return "unknown";
@@ -453,15 +455,10 @@ namespace wsrep
         /*!
          * Wait until all of the replaying transactions have been committed.
          */
-        virtual void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) const = 0;
+        virtual void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) = 0;
 
         virtual int prepare_data_for_replication(
-            const wsrep::transaction_context&, wsrep::data& data)
-        {
-            static const char buf[1] = { 1 };
-            data = wsrep::data(buf, 1);
-            return 0;
-        }
+            const wsrep::transaction_context&, wsrep::data& data) = 0;
 
         /*!
          * Return true if the current client operation was killed.

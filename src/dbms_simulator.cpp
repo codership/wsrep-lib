@@ -376,8 +376,14 @@ private:
         ++stats_.replays;
         return provider().replay(txc.ws_handle(), this);
     }
-    void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) const override
+    void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) override
     { }
+    int prepare_data_for_replication(const wsrep::transaction_context&,
+                                     wsrep::data&)
+        override
+    {
+        return 0;
+    }
     bool killed() const override { return false; }
     void abort() const override { ::abort(); }
 public:

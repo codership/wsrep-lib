@@ -688,7 +688,7 @@ int wsrep::transaction_context::certify_commit(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
     assert(lock.owns_lock());
-    assert(id_ != wsrep::transaction_id::invalid());
+    assert(active());
 
     client_context_.wait_for_replayers(lock);
 
@@ -710,6 +710,7 @@ int wsrep::transaction_context::certify_commit(
     {
         // Note: Error must be set by prepare_data_for_replication()
         lock.lock();
+        client_context_.override_error(wsrep::e_error_during_commit);
         state(lock, s_must_abort);
         return 1;
     }
@@ -717,7 +718,7 @@ int wsrep::transaction_context::certify_commit(
     if (client_context_.killed())
     {
         lock.lock();
-        client_context_.override_error(wsrep::e_deadlock_error);
+        client_context_.override_error(wsrep::e_interrupted_error);
         state(lock, s_must_abort);
         return 1;
     }

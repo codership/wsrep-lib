@@ -23,6 +23,7 @@ namespace wsrep
             , server_id_("1")
             , group_seqno_(0)
             , bf_abort_map_()
+            , next_error_(wsrep::provider::success)
         { }
 
         int connect(const std::string&, const std::string&, const std::string&,
@@ -80,17 +81,21 @@ namespace wsrep
             }
         }
 
-        int append_key(wsrep::ws_handle&, const wsrep::key&) { return 0; }
-        int append_data(wsrep::ws_handle&, const wsrep::data&) { return 0; }
-        int rollback(const wsrep::transaction_id) { return 0; }
+        int append_key(wsrep::ws_handle&, const wsrep::key&)
+        { return next_error_; }
+        int append_data(wsrep::ws_handle&, const wsrep::data&)
+        { return next_error_; }
+        int rollback(const wsrep::transaction_id)
+        { return next_error_; }
         enum wsrep::provider::status
         commit_order_enter(const wsrep::ws_handle&,
                                           const wsrep::ws_meta&)
-        { return wsrep::provider::success; }
+        { return next_error_; }
         int commit_order_leave(const wsrep::ws_handle&,
                                const wsrep::ws_meta&)
-        { return 0;}
-        int release(wsrep::ws_handle&) { return 0; }
+        { return next_error_;}
+        int release(wsrep::ws_handle&)
+        { return next_error_; }
 
         int replay(wsrep::ws_handle&, void*) { ::abort(); /* not impl */}
 
@@ -101,7 +106,6 @@ namespace wsrep
         {
             return std::vector<status_variable>();
         }
-
 
         // Methods to modify mock state
         /*! Inject BF abort event into the provider.
@@ -129,12 +133,16 @@ namespace wsrep
          * \todo Inject an error so that the next call to any
          *       provider call will return the given error.
          */
-        void inject_error(enum wsrep::provider::status);
+        void inject_error(enum wsrep::provider::status error)
+        {
+            next_error_ = error;
+        }
     private:
         wsrep::id group_id_;
         wsrep::id server_id_;
         long long group_seqno_;
         bf_abort_map bf_abort_map_;
+        enum wsrep::provider::status next_error_;
     };
 }
 

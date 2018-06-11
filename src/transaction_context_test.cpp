@@ -89,7 +89,25 @@ namespace
     replicating_fixtures;
 }
 
-
+BOOST_FIXTURE_TEST_CASE(transaction_context_append_key_data,
+                        replicating_client_fixture_sync_rm)
+{
+    cc.start_transaction(1);
+    BOOST_REQUIRE(tc.active());
+    int vals[3] = {1, 2, 3};
+    wsrep::key key(wsrep::key::exclusive);
+    for (int i(0); i < 3; ++i)
+    {
+        key.append_key_part(&vals[i], sizeof(vals[i]));
+    }
+    BOOST_REQUIRE(cc.append_key(key) == 0);
+    wsrep::data data(&vals[2], sizeof(vals[2]));
+    BOOST_REQUIRE(cc.append_data(data) == 0);
+    BOOST_REQUIRE(cc.before_commit() == 0);
+    BOOST_REQUIRE(cc.ordered_commit() == 0);
+    BOOST_REQUIRE(cc.after_commit() == 0);
+    cc.after_statement();
+}
 //
 // Test a succesful 1PC transaction lifecycle
 //
@@ -499,6 +517,50 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == true);
 
+    // Rollback sequence
+    BOOST_REQUIRE(cc.before_rollback() == 0);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
+    BOOST_REQUIRE(cc.after_rollback() == 0);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
+
+    // Cleanup after statement
+    cc.after_statement();
+    BOOST_REQUIRE(tc.active() == false);
+    BOOST_REQUIRE(tc.ordered() == false);
+    BOOST_REQUIRE(tc.certified() == false);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
+//
+// Test a 2PC transaction which gets BF aborted when trying to grab
+// commit order.
+//
+BOOST_FIXTURE_TEST_CASE_TEMPLATE(
+    transaction_context_2pc_bf_during_commit_order_enter, T,
+    replicating_fixtures, T)
+{
+    wsrep::mock_server_context& sc(T::sc);
+    wsrep::client_context& cc(T::cc);
+    const wsrep::transaction_context& tc(T::tc);
+
+    // Start a new transaction with ID 1
+    cc.start_transaction(1);
+    BOOST_REQUIRE(tc.active());
+    BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+
+    BOOST_REQUIRE(cc.before_prepare() == 0);
+    BOOST_REQUIRE(cc.after_prepare() == 0);
+
+    sc.provider().inject_error(wsrep::provider::error_bf_abort);
+
+    // Run before commit
+    BOOST_REQUIRE(cc.before_commit());
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
+    BOOST_REQUIRE(tc.certified() == true);
+    BOOST_REQUIRE(tc.ordered() == true);
+
+    sc.provider().inject_error(wsrep::provider::success);
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);

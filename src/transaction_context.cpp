@@ -156,19 +156,11 @@ int wsrep::transaction_context::after_prepare()
     switch (client_context_.mode())
     {
     case wsrep::client_context::m_replicating:
-        if (state() == s_preparing)
-        {
-            ret = certify_commit(lock);
-            assert((ret == 0 || state() == s_committing) ||
-                   (state() == s_must_abort ||
-                    state() == s_must_replay ||
-                    state() == s_cert_failed));
-        }
-        else
-        {
-            assert(state() == s_must_abort);
-            client_context_.override_error(wsrep::e_deadlock_error);
-        }
+        ret = certify_commit(lock);
+        assert((ret == 0 || state() == s_committing) ||
+               (state() == s_must_abort ||
+                state() == s_must_replay ||
+                state() == s_cert_failed));
         break;
     case wsrep::client_context::m_local:
     case wsrep::client_context::m_applier:
@@ -229,10 +221,10 @@ int wsrep::transaction_context::before_commit()
         }
         if (ret == 0)
         {
+            assert(ordered());
             lock.unlock();
             enum wsrep::provider::status
-                status(provider_.commit_order_enter(
-                           ws_handle_, ws_meta_));
+                status(provider_.commit_order_enter(ws_handle_, ws_meta_));
             lock.lock();
             switch (status)
             {
@@ -243,6 +235,7 @@ int wsrep::transaction_context::before_commit()
                 {
                     state(lock, s_must_abort);
                 }
+                state(lock, s_must_replay);
                 ret = 1;
                 break;
             default:

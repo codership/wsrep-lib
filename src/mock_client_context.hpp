@@ -19,12 +19,13 @@ namespace wsrep
         mock_client_context(wsrep::server_context& server_context,
                             const wsrep::client_id& id,
                             enum wsrep::client_context::mode mode,
+                            bool is_autocommit = false,
                             bool do_2pc = false)
             : wsrep::client_context(mutex_, server_context, id, mode)
               // Note: Mutex is initialized only after passed
               // to client_context constructor.
             , mutex_()
-            , is_autocommit_(false)
+            , is_autocommit_(is_autocommit)
             , do_2pc_(do_2pc)
             , fail_next_applying_()
             , bf_abort_during_wait_()

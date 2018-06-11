@@ -53,6 +53,25 @@ namespace
         const wsrep::transaction_context& tc;
     };
 
+    struct replicating_client_fixture_autocommit
+    {
+        replicating_client_fixture_autocommit()
+            : sc("s1", "s1", wsrep::server_context::rm_sync)
+            , cc(sc, wsrep::client_id(1),
+                 wsrep::client_context::m_replicating, true)
+            , tc(cc.transaction())
+        {
+            BOOST_REQUIRE(cc.before_command() == 0);
+            BOOST_REQUIRE(cc.before_statement() == 0);
+            // Verify initial state
+            BOOST_REQUIRE(tc.active() == false);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+        }
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
+        const wsrep::transaction_context& tc;
+    };
+
     struct applying_client_fixture
     {
         applying_client_fixture()
@@ -655,6 +674,24 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborted);
+}
+
+BOOST_FIXTURE_TEST_CASE(
+    transaction_context_1pc_autocommit_retry_bf_aborted,
+    replicating_client_fixture_autocommit)
+{
+
+    cc.start_transaction(1);
+    BOOST_REQUIRE(tc.active());
+    wsrep_test::bf_abort_unordered(cc);
+    BOOST_REQUIRE(cc.before_commit());
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    BOOST_REQUIRE(cc.before_rollback() == 0);
+    BOOST_REQUIRE(cc.after_rollback() == 0);
+    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_may_retry);
+    BOOST_REQUIRE(tc.active() == false);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborted);
+    BOOST_REQUIRE(cc.state() == wsrep::client_context::s_exec);
 }
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(

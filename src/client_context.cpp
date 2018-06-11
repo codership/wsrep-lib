@@ -153,8 +153,8 @@ wsrep::client_context::after_statement()
      * \todo Check for replay state, do rollback if requested.
      */
 #endif // 0
-    int ret(transaction_.after_statement());
-    if (ret)
+    (void)transaction_.after_statement();
+    if (current_error() == wsrep::e_deadlock_error)
     {
         if (is_autocommit())
         {

@@ -38,6 +38,13 @@ namespace wsrep
     };
 
 
+    class log_warning : public log
+    {
+    public:
+        log_warning()
+            : log("WARNING") { }
+    };
+
     class log_debug : public log
     {
     public:

@@ -43,6 +43,10 @@ namespace wsrep
                 wsrep::ws_meta& ws_meta)
         {
             assert(flags & wsrep::provider::flag::start_transaction);
+            if (next_error_)
+            {
+                return next_error_;
+            }
             if ((flags & wsrep::provider::flag::commit) == 0)
             {
                 return wsrep::provider::error_provider_failed;

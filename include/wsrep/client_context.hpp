@@ -470,7 +470,7 @@ namespace wsrep
          * only for critical conditions which would sacrifice data
          * consistency.
          */
-        virtual void abort() const = 0;
+        virtual void abort() = 0;
 
     public:
         /*!
@@ -485,7 +485,7 @@ namespace wsrep
         /*!
          * Enter debug synchronization point.
          */
-        virtual void debug_sync(const char*) = 0;
+        virtual void debug_sync(wsrep::unique_lock<wsrep::mutex>&, const char*) = 0;
 
         /*!
          *

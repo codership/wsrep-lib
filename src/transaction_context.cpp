@@ -725,7 +725,7 @@ int wsrep::transaction_context::certify_commit(
     lock.lock();
 
     assert(state() == s_certifying || state() == s_must_abort);
-    client_context_.debug_sync("wsrep_after_replication");
+    client_context_.debug_sync(lock, "wsrep_after_certification");
 
     int ret(1);
     switch (cert_ret)
@@ -761,8 +761,8 @@ int wsrep::transaction_context::certify_commit(
         state(lock, s_must_abort);
         // The execution should never reach this point if the
         // transaction has not generated any keys or data.
+        wsrep::log_warning() << "Transaction was missing in provider";
         client_context_.override_error(wsrep::e_error_during_commit);
-        assert(0);
         break;
     case wsrep::provider::error_bf_abort:
         // Transaction was replicated succesfully and it was either
@@ -797,15 +797,20 @@ int wsrep::transaction_context::certify_commit(
         client_context_.override_error(wsrep::e_error_during_commit);
         break;
     case wsrep::provider::error_fatal:
+        client_context_.override_error(wsrep::e_error_during_commit);
+        state(lock, s_must_abort);
         client_context_.abort();
         break;
     case wsrep::provider::error_not_implemented:
     case wsrep::provider::error_not_allowed:
         client_context_.override_error(wsrep::e_error_during_commit);
         state(lock, s_must_abort);
-        assert(0);
+        wsrep::log_warning() << "Certification operation was not allowed: "
+                             << "id: " << id().get()
+                             << " flags: " << std::hex << flags() << std::dec;
         break;
     default:
+        state(lock, s_must_abort);
         client_context_.override_error(wsrep::e_error_during_commit);
         break;
     }

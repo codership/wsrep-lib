@@ -21,6 +21,9 @@ namespace wsrep_test
     // Simple BF abort method to BF abort unordered transasctions
     void bf_abort_unordered(wsrep::client_context& cc);
 
+    // Simple BF abort method to BF abort unordered transasctions
+    void bf_abort_ordered(wsrep::client_context& cc);
+
     // BF abort method to abort transactions via provider
     void bf_abort_provider(wsrep::mock_server_context& sc,
                            const wsrep::transaction_context& tc,

@@ -15,7 +15,7 @@ namespace wsrep
 //
 // Utility functions
 //
-namespace wsrep_mock
+namespace wsrep_test
 {
 
     // Simple BF abort method to BF abort unordered transasctions
@@ -26,9 +26,4 @@ namespace wsrep_mock
                            const wsrep::transaction_context& tc,
                            wsrep::seqno bf_seqno);
 
-    void start_applying_transaction(
-        wsrep::client_context& cc,
-        const wsrep::transaction_id& id,
-        wsrep::seqno seqno,
-        int flags);
 }

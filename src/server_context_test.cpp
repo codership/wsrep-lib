@@ -3,7 +3,6 @@
 //
 
 #include "mock_server_context.hpp"
-#include "mock_utils.hpp"
 
 #include <boost/test/unit_test.hpp>
 
@@ -25,10 +24,6 @@ namespace
                       wsrep::provider::flag::start_transaction |
                       wsrep::provider::flag::commit)
         {
-            // wsrep_mock::start_applying_transaction(
-            //    cc, 1, 1,
-            //    wsrep::provider::flag::start_transaction |
-            //    wsrep::provider::flag::commit);
             cc.start_transaction(ws_handle, ws_meta);
         }
         wsrep::mock_server_context sc;

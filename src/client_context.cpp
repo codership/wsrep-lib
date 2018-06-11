@@ -14,13 +14,24 @@ wsrep::provider& wsrep::client_context::provider() const
     return server_context_.provider();
 }
 
+void wsrep::client_context::override_error(enum wsrep::client_error error)
+{
+    assert(wsrep::this_thread::get_id() == thread_id_);
+    if (current_error_ != wsrep::e_success &&
+        error == wsrep::e_success)
+    {
+        throw wsrep::runtime_error("Overriding error with success");
+    }
+    current_error_ = error;
+}
+
+
 int wsrep::client_context::before_command()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state_ == s_idle);
     if (server_context_.rollback_mode() == wsrep::server_context::rm_sync)
     {
-
         /*!
          * \todo Wait until the possible synchronous rollback
          * has been finished.
@@ -31,11 +42,20 @@ int wsrep::client_context::before_command()
         }
     }
     state(lock, s_exec);
+    assert(transaction_.active() == false ||
+           (transaction_.state() == wsrep::transaction_context::s_executing ||
+            transaction_.state() == wsrep::transaction_context::s_aborted));
+
+    // Transaction was rolled back either just before sending result
+    // to the client, or after client_context become idle.
+    // Clean up the transaction and return error.
     if (transaction_.active() &&
-        (transaction_.state() == wsrep::transaction_context::s_must_abort ||
-         transaction_.state() == wsrep::transaction_context::s_aborted))
+        transaction_.state() == wsrep::transaction_context::s_aborted)
     {
         override_error(wsrep::e_deadlock_error);
+        lock.unlock();
+        (void)transaction_.after_statement();
+        lock.lock();
         return 1;
     }
     return 0;
@@ -51,7 +71,7 @@ void wsrep::client_context::after_command_before_result()
         override_error(wsrep::e_deadlock_error);
         lock.unlock();
         rollback();
-        transaction_.after_statement();
+        (void)transaction_.after_statement();
         lock.lock();
         assert(transaction_.state() == wsrep::transaction_context::s_aborted);
         assert(current_error() != wsrep::e_success);
@@ -63,27 +83,18 @@ void wsrep::client_context::after_command_after_result()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state() == s_result);
+    assert(transaction_.state() != wsrep::transaction_context::s_aborting);
     if (transaction_.active() &&
         transaction_.state() == wsrep::transaction_context::s_must_abort)
     {
-        // Note: Error is not overridden here as the result has already
-        // been sent to client. The error should be set in before_command()
-        // when the client issues next command and finds the transaction
-        // in aborted state.
         lock.unlock();
         rollback();
-        transaction_.after_statement();
         lock.lock();
         assert(transaction_.state() == wsrep::transaction_context::s_aborted);
-        assert(current_error() == wsrep::e_success);
+        override_error(wsrep::e_deadlock_error);
     }
-    else if (transaction_.active() &&
-             transaction_.state() == wsrep::transaction_context::s_aborted)
+    else if (transaction_.active() == false)
     {
-        // Will clean up the transaction
-        lock.unlock();
-        (void)transaction_.after_statement();
-        lock.lock();
         current_error_ = wsrep::e_success;
     }
     state(lock, s_idle);
@@ -147,6 +158,7 @@ void wsrep::client_context::state(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
     enum wsrep::client_context::state state)
 {
+    assert(wsrep::this_thread::get_id() == thread_id_);
     assert(lock.owns_lock());
     static const char allowed[state_max_][state_max_] =
         {

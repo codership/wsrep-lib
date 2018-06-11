@@ -44,6 +44,7 @@
 #include "mutex.hpp"
 #include "lock.hpp"
 #include "data.hpp"
+#include "thread.hpp"
 
 namespace wsrep
 {
@@ -359,7 +360,8 @@ namespace wsrep
                        wsrep::server_context& server_context,
                        const client_id& id,
                        enum mode mode)
-            : mutex_(mutex)
+            : thread_id_(wsrep::this_thread::get_id())
+            , mutex_(mutex)
             , server_context_(server_context)
             , id_(id)
             , mode_(mode)
@@ -473,10 +475,15 @@ namespace wsrep
          */
         virtual void abort() const = 0;
 
+    public:
         /*!
          * Set up thread global variables for client connection.
          */
-        virtual void store_globals() = 0;
+        virtual void store_globals()
+        {
+            thread_id_ = wsrep::this_thread::get_id();
+        }
+    private:
 
         /*!
          * Enter debug synchronization point.
@@ -495,16 +502,9 @@ namespace wsrep
         /*!
          *
          */
-        void override_error(enum wsrep::client_error error)
-        {
-            if (current_error_ != wsrep::e_success &&
-                error == wsrep::e_success)
-            {
-                throw wsrep::runtime_error("Overriding error with success");
-            }
-            current_error_ = error;
-        }
+        void override_error(enum wsrep::client_error error);
 
+        wsrep::thread::id thread_id_;
         wsrep::mutex& mutex_;
         wsrep::server_context& server_context_;
         client_id id_;

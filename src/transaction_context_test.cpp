@@ -8,7 +8,7 @@
 #include "mock_client_context.hpp"
 #include "mock_server_context.hpp"
 
-#include "mock_utils.hpp"
+#include "test_utils.hpp"
 
 #include <boost/test/unit_test.hpp>
 
@@ -45,10 +45,13 @@ namespace
         {
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
-            wsrep_mock::start_applying_transaction(
-                cc, 1, 1,
-                wsrep::provider::flag::start_transaction |
-                wsrep::provider::flag::commit);
+            wsrep::ws_handle ws_handle(1, (void*)1);
+            wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), 1),
+                                   wsrep::stid(sc.id(), 1, cc.id()),
+                                   0,
+                                   wsrep::provider::flag::start_transaction |
+                                   wsrep::provider::flag::commit);
+            BOOST_REQUIRE(cc.start_transaction(ws_handle, ws_meta) == 0);
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(cc.start_transaction() == 0);
             BOOST_REQUIRE(tc.active() == true);
@@ -173,7 +176,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_1pc_bf_before_before_commit,
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    wsrep_mock::bf_abort_unordered(cc);
+    wsrep_test::bf_abort_unordered(cc);
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -207,7 +210,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_2pc_bf_before_before_prepare,
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    wsrep_mock::bf_abort_unordered(cc);
+    wsrep_test::bf_abort_unordered(cc);
 
     // Run before commit
     BOOST_REQUIRE(cc.before_prepare());
@@ -245,7 +248,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_2pc_bf_before_after_prepare,
     BOOST_REQUIRE(cc.before_prepare() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_preparing);
 
-    wsrep_mock::bf_abort_unordered(cc);
+    wsrep_test::bf_abort_unordered(cc);
 
     // Run before commit
     BOOST_REQUIRE(cc.after_prepare());
@@ -281,7 +284,7 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    wsrep_mock::bf_abort_provider(sc, tc, wsrep::seqno::undefined());
+    wsrep_test::bf_abort_provider(sc, tc, wsrep::seqno::undefined());
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -316,7 +319,7 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    wsrep_mock::bf_abort_unordered(cc);
+    wsrep_test::bf_abort_unordered(cc);
 
     cc.after_statement();
     BOOST_REQUIRE(tc.active() == false);
@@ -339,7 +342,7 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    wsrep_mock::bf_abort_provider(sc, tc, 1);
+    wsrep_test::bf_abort_provider(sc, tc, 1);
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -361,8 +364,42 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
 }
 
-BOOST_FIXTURE_TEST_CASE(transaction_context_1pc_bf_abort_idle_client,
-                        replicating_client_fixture)
+BOOST_FIXTURE_TEST_CASE(
+    transaction_context_1pc_bf_abort_after_after_command_before_result,
+    replicating_client_fixture)
+{
+    cc.start_transaction(1);
+    BOOST_REQUIRE(tc.active());
+    cc.after_statement();
+    BOOST_REQUIRE(cc.state() == wsrep::client_context::s_exec);
+    cc.after_command_before_result();
+    BOOST_REQUIRE(cc.state() == wsrep::client_context::s_result);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+    wsrep_test::bf_abort_unordered(cc);
+    // The result is being sent to client. We need to mark transaction
+    // as must_abort but not override error yet as this might cause
+    // a race condition resulting incorrect result returned to the DBMS client.
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_abort);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+    // After the result has been sent to the DBMS client, the after result
+    // processing should roll back the transaction and set the error.
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.state() == wsrep::client_context::s_idle);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    BOOST_REQUIRE(tc.active() == true);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborted);
+    BOOST_REQUIRE(cc.before_command() == 1);
+    BOOST_REQUIRE(tc.active() == false);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    cc.after_command_before_result();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
+BOOST_FIXTURE_TEST_CASE(
+    transaction_context_1pc_bf_abort_after_after_command_after_result,
+    replicating_client_fixture)
 {
     cc.start_transaction(1);
     BOOST_REQUIRE(tc.active());
@@ -372,9 +409,11 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_1pc_bf_abort_idle_client,
     BOOST_REQUIRE(cc.state() == wsrep::client_context::s_result);
     cc.after_command_after_result();
     BOOST_REQUIRE(cc.state() == wsrep::client_context::s_idle);
-    wsrep_mock::bf_abort_unordered(cc);
+    wsrep_test::bf_abort_unordered(cc);
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborted);
+    BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(cc.before_command() == 1);
+    BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
     cc.after_command_before_result();
     BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);

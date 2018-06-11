@@ -380,7 +380,12 @@ private:
     { }
     bool killed() const override { return false; }
     void abort() const override { ::abort(); }
-    void store_globals() override { }
+public:
+    void store_globals() override
+    {
+        wsrep::client_context::store_globals();
+    }
+private:
     void debug_sync(const char*) override { }
     void debug_suicide(const char*) override { }
     void on_error(enum wsrep::client_error) override { }
@@ -528,6 +533,7 @@ void dbms_server::stop_clients()
 
 void dbms_server::client_thread(const std::shared_ptr<dbms_client>& client)
 {
+    client->store_globals();
     client->start();
 }
 

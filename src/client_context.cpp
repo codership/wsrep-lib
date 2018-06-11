@@ -44,18 +44,37 @@ int wsrep::client_context::before_command()
     state(lock, s_exec);
     assert(transaction_.active() == false ||
            (transaction_.state() == wsrep::transaction_context::s_executing ||
-            transaction_.state() == wsrep::transaction_context::s_aborted));
+            transaction_.state() == wsrep::transaction_context::s_aborted ||
+            (transaction_.state() == wsrep::transaction_context::s_must_abort &&
+             server_context_.rollback_mode() == wsrep::server_context::rm_async)));
 
-    // Transaction was rolled back either just before sending result
-    // to the client, or after client_context become idle.
-    // Clean up the transaction and return error.
-    if (transaction_.active() &&
-        transaction_.state() == wsrep::transaction_context::s_aborted)
+    if (transaction_.active())
     {
-        override_error(wsrep::e_deadlock_error);
-        lock.unlock();
-        (void)transaction_.after_statement();
-        lock.lock();
+        if (transaction_.state() == wsrep::transaction_context::s_must_abort)
+        {
+            assert(server_context_.rollback_mode() ==
+                   wsrep::server_context::rm_async);
+            override_error(wsrep::e_deadlock_error);
+            lock.unlock();
+            rollback();
+            (void)transaction_.after_statement();
+            lock.lock();
+            assert(transaction_.state() ==
+                   wsrep::transaction_context::s_aborted);
+            assert(transaction_.active() == false);
+            assert(current_error() != wsrep::e_success);
+        }
+        else if (transaction_.state() == wsrep::transaction_context::s_aborted)
+        {
+            // Transaction was rolled back either just before sending result
+            // to the client, or after client_context become idle.
+            // Clean up the transaction and return error.
+            override_error(wsrep::e_deadlock_error);
+            lock.unlock();
+            (void)transaction_.after_statement();
+            lock.lock();
+            assert(transaction_.active() == false);
+        }
         return 1;
     }
     return 0;
@@ -118,10 +137,7 @@ int wsrep::client_context::before_statement()
     if (transaction_.active() &&
         transaction_.state() == wsrep::transaction_context::s_must_abort)
     {
-        override_error(wsrep::e_deadlock_error);
-        lock.unlock();
-        rollback();
-        lock.lock();
+        // Rollback and cleanup will happen in after_command_before_result()
         return 1;
     }
     return 0;
@@ -176,7 +192,7 @@ void wsrep::client_context::state(
     {
         std::ostringstream os;
         os << "client_context: Unallowed state transition: "
-           << state_ << " -> " << state << "\n";
+           << state_ << " -> " << state;
         throw wsrep::runtime_error(os.str());
     }
 }

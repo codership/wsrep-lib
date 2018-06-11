@@ -16,7 +16,6 @@ target_link_libraries(wsrep-lib wsrep_api_v26 pthread dl)
 add_executable(wsrep-lib_test
   mock_client_context.cpp
   test_utils.cpp
-  client_context_test.cpp
   server_context_test.cpp
   transaction_context_test.cpp
   wsrep-lib_test.cpp

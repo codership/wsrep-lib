@@ -394,6 +394,7 @@ private:
     int client_command(Func f)
     {
         int err(before_command());
+        // If err != 0, transaction was BF aborted while client idle
         if (err == 0)
         {
             err = before_statement();
@@ -404,6 +405,12 @@ private:
             after_statement();
         }
         after_command_before_result();
+        if (current_error())
+        {
+            assert(transaction_.state() ==
+                   wsrep::transaction_context::s_aborted);
+            err = 1;
+        }
         after_command_after_result();
         return err;
     }
@@ -419,7 +426,6 @@ private:
                 se_trx_.start(this);
                 return err;
             });
-        err = err || current_error();
         err = err || client_command(
             [&]()
             {
@@ -438,7 +444,6 @@ private:
                                                      os.str().size()));
                 return err;
             });
-        err = err || current_error();
         err = err || client_command(
             [&]()
             {
@@ -455,9 +460,9 @@ private:
                 return err;
             });
 
-        assert((current_error() &&
-                transaction().state() == wsrep::transaction_context::s_aborted) ||
-               transaction().state() == wsrep::transaction_context::s_committed);
+        assert(err ||
+            transaction().state() == wsrep::transaction_context::s_aborted ||
+            transaction().state() == wsrep::transaction_context::s_committed);
         assert(se_trx_.active() == false);
         assert(transaction().active() == false);
         switch (transaction().state())

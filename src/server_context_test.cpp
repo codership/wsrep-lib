@@ -37,7 +37,6 @@ namespace
 BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc,
                         applying_server_fixture)
 {
-    cc.debug_log_level(1);
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
                               wsrep::data(buf, 1)) == 0);

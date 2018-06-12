@@ -39,12 +39,14 @@
 #define WSREP_CLIENT_CONTEXT_HPP
 
 #include "server_context.hpp"
+#include "provider.hpp"
 #include "transaction_context.hpp"
 #include "client_id.hpp"
 #include "mutex.hpp"
 #include "lock.hpp"
 #include "data.hpp"
 #include "thread.hpp"
+
 
 namespace wsrep
 {

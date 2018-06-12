@@ -5,8 +5,7 @@
 #ifndef WSREP_PROVIDER_HPP
 #define WSREP_PROVIDER_HPP
 
-#include "id.hpp"
-#include "seqno.hpp"
+#include "gtid.hpp"
 #include "key.hpp"
 #include "data.hpp"
 #include "client_id.hpp"
@@ -23,25 +22,6 @@
 namespace wsrep
 {
     class server_context;
-
-    class gtid
-    {
-    public:
-        gtid()
-            : id_()
-            , seqno_()
-        { }
-        gtid(const wsrep::id& id, wsrep::seqno seqno)
-            : id_(id)
-            , seqno_(seqno)
-        { }
-        const wsrep::id& id() const { return id_; }
-        wsrep::seqno seqno() const { return seqno_ ; }
-    private:
-        wsrep::id id_;
-        wsrep::seqno seqno_;
-    };
-
 
     class stid
     {

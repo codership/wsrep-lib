@@ -512,18 +512,24 @@ bool wsrep::transaction_context::bf_abort(
             switch (status)
             {
             case wsrep::provider::success:
-                wsrep::log() << "Seqno " << bf_seqno
-                             << " succesfully BF aborted " << id_.get()
-                             << " victim_seqno " << victim_seqno;
+                if (client_context_.debug_log_level() >= 1)
+                {
+                    wsrep::log_debug() << "Seqno " << bf_seqno
+                                       << " succesfully BF aborted " << id_.get()
+                                       << " victim_seqno " << victim_seqno;
+                }
                 bf_abort_state_ = state();
                 state(lock, s_must_abort);
                 ret = true;
                 break;
             default:
-                wsrep::log() << "Seqno " << bf_seqno
-                             << " failed to BF abort " << id_.get()
-                             << " with status " << status
-                             << " victim_seqno " << victim_seqno;
+                if (client_context_.debug_log_level() >= 1)
+                {
+                    wsrep::log_debug() << "Seqno " << bf_seqno
+                                       << " failed to BF abort " << id_.get()
+                                       << " with status " << status
+                                       << " victim_seqno " << victim_seqno;
+                }
                 break;
             }
             break;

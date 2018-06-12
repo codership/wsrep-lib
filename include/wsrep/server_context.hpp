@@ -61,20 +61,21 @@
 #ifndef WSREP_SERVER_CONTEXT_HPP
 #define WSREP_SERVER_CONTEXT_HPP
 
-#include "exception.hpp"
 #include "mutex.hpp"
 #include "condition_variable.hpp"
-#include "provider.hpp"
 
-#include <string>
 #include <vector>
+#include <string>
 
 namespace wsrep
 {
     // Forward declarations
-    // class provider;
+    class ws_handle;
+    class ws_meta;
+    class provider;
     class client_context;
     class transaction_context;
+    class gtid;
     class view;
     class data;
 

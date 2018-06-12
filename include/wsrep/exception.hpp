@@ -16,7 +16,7 @@ namespace wsrep
         runtime_error(const std::string& msg)
             : std::runtime_error(msg)
         {
-            ::abort();
+            // ::abort();
         }
     };
 

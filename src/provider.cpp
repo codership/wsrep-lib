@@ -5,7 +5,6 @@
 #include "wsrep/provider.hpp"
 #include "wsrep/logger.hpp"
 
-#include "../test/mock_provider.hpp"
 #include "wsrep_provider_v26.hpp"
 
 wsrep::provider* wsrep::provider::make_provider(
@@ -15,15 +14,8 @@ wsrep::provider* wsrep::provider::make_provider(
 {
     try
     {
-        if (provider_spec == "mock")
-        {
-            return  new wsrep::mock_provider(server_context);
-        }
-        else
-        {
-            return new wsrep::wsrep_provider_v26(
-                server_context, provider_options, provider_spec);
-        }
+        return new wsrep::wsrep_provider_v26(
+            server_context, provider_options, provider_spec);
     }
     catch (const wsrep::runtime_error& e)
     {

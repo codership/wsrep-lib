@@ -36,3 +36,19 @@ BOOST_AUTO_TEST_CASE(id_test_string_too_long)
     BOOST_REQUIRE_EXCEPTION(wsrep::id id(id_str), wsrep::runtime_error,
                             exception_check);
 }
+
+BOOST_AUTO_TEST_CASE(id_test_binary)
+{
+    char data[16] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4 ,5 ,6};
+    wsrep::id id(data, sizeof(data));
+    std::ostringstream os;
+    os << id;
+    BOOST_REQUIRE(os.str() == "01020304-0506-0708-0900-010203040506");
+}
+
+BOOST_AUTO_TEST_CASE(id_test_binary_too_long)
+{
+    char data[17] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4 ,5 ,6, 7};
+    BOOST_REQUIRE_EXCEPTION(wsrep::id id(data, sizeof(data)),
+                            wsrep::runtime_error, exception_check);;
+}

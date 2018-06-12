@@ -51,7 +51,7 @@ if (WITH_TSAN)
 endif()
 
 add_custom_target(coverage_report
-  lcov --capture --directory src --output lcov.info --no-external
+  lcov --capture --directory src --directory test --directory include --output lcov.info --no-external
   COMMAND genhtml --output-directory coverage_report lcov.info)
 
 

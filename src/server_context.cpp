@@ -14,20 +14,6 @@
 
 namespace
 {
-    inline bool starts_transaction(const wsrep::ws_meta& ws_meta)
-    {
-        return (ws_meta.flags() & wsrep::provider::flag::start_transaction);
-    }
-
-    inline bool commits_transaction(const wsrep::ws_meta& ws_meta)
-    {
-        return (ws_meta.flags() & wsrep::provider::flag::commit);
-    }
-
-    inline bool rolls_back_transaction(const wsrep::ws_meta& ws_meta)
-    {
-        return (ws_meta.flags() & wsrep::provider::flag::rollback);
-    }
 
 }
 
@@ -139,7 +125,8 @@ int wsrep::server_context::on_apply(
     bool not_replaying(txc.state() !=
                        wsrep::transaction_context::s_replaying);
 
-    if (starts_transaction(ws_meta) && commits_transaction(ws_meta))
+    if (starts_transaction(ws_meta.flags()) &&
+        commits_transaction(ws_meta.flags()))
     {
         if (not_replaying)
         {

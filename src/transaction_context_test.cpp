@@ -102,6 +102,26 @@ namespace
         const wsrep::transaction_context& tc;
     };
 
+    struct streaming_client_fixture_row
+    {
+        streaming_client_fixture_row()
+            : sc("s1", "s1", wsrep::server_context::rm_sync)
+            , cc(sc, wsrep::client_id(1),
+                 wsrep::client_context::m_replicating)
+            , tc(cc.transaction())
+        {
+            BOOST_REQUIRE(cc.before_command() == 0);
+            BOOST_REQUIRE(cc.before_statement() == 0);
+            // Verify initial state
+            BOOST_REQUIRE(tc.active() == false);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+            cc.enable_streaming(wsrep::transaction_context::streaming_context::row, 1);
+        }
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
+        const wsrep::transaction_context& tc;
+    };
+
     typedef
     boost::mpl::vector<replicating_client_fixture_sync_rm,
                        replicating_client_fixture_async_rm>
@@ -519,14 +539,15 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
 
 //
 // Test a 1PC transaction which gets BF aborted during before_commit via
-// provider after the write set was ordered and certified.
+// provider after the write set was ordered and certified. This must
+// result replaying of transaction.
 //
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_bf_during_before_commit_certified, T,
     replicating_fixtures, T)
 {
     wsrep::mock_server_context& sc(T::sc);
-    wsrep::client_context& cc(T::cc);
+    wsrep::mock_client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -555,6 +576,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.ordered() == false);
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+    BOOST_REQUIRE(cc.replays() == 1);
 }
 
 //
@@ -1160,4 +1182,25 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_applying_rollback,
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborted);
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+//                       STREAMING REPLICATION                               //
+///////////////////////////////////////////////////////////////////////////////
+
+BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_1pc_commit,
+                        streaming_client_fixture_row)
+{
+    BOOST_REQUIRE(cc.start_transaction(1) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(cc.before_commit() == 0);
+    BOOST_REQUIRE(cc.ordered_commit() == 0);
+    BOOST_REQUIRE(cc.after_commit() == 0);
+    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_success);
+    BOOST_REQUIRE(sc.provider().fragments() == 2);
+    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
+    BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
+
 }

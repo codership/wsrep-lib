@@ -129,6 +129,7 @@ namespace wsrep
         int flags_;
     };
 
+
     // Abstract interface for provider implementations
     class provider
     {
@@ -283,6 +284,22 @@ namespace wsrep
         if (ret.size() > 3) ret.erase(ret.size() - 3);
         return ret;
     }
+
+    static inline bool starts_transaction(int flags)
+    {
+        return (flags & wsrep::provider::flag::start_transaction);
+    }
+
+    static inline bool commits_transaction(int flags)
+    {
+        return (flags & wsrep::provider::flag::commit);
+    }
+
+    static inline bool rolls_back_transaction(int flags)
+    {
+        return (flags & wsrep::provider::flag::rollback);
+    }
+
 
 }
 

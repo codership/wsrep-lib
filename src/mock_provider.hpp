@@ -6,6 +6,7 @@
 #define WSREP_MOCK_PROVIDER_HPP
 
 #include "wsrep/provider.hpp"
+#include "wsrep/logger.hpp"
 
 #include <cstring>
 #include <map>
@@ -25,6 +26,10 @@ namespace wsrep
             , group_seqno_(0)
             , bf_abort_map_()
             , next_error_(wsrep::provider::success)
+            , start_fragments_()
+            , fragments_()
+            , commit_fragments_()
+            , rollback_fragments_()
         { }
 
         int connect(const std::string&, const std::string&, const std::string&,
@@ -43,15 +48,28 @@ namespace wsrep
                 int flags,
                 wsrep::ws_meta& ws_meta)
         {
-            assert(flags & wsrep::provider::flag::start_transaction);
+            wsrep::log_info() << "provider certify: "
+                              << "client: " << client_id.get()
+                              << " flags: " << std::hex << flags;
             if (next_error_)
             {
                 return next_error_;
             }
-            if ((flags & wsrep::provider::flag::commit) == 0)
+
+            ++fragments_;
+            if (starts_transaction(flags))
             {
-                return wsrep::provider::error_provider_failed;
+                ++start_fragments_;
             }
+            if (commits_transaction(flags))
+            {
+                ++commit_fragments_;
+            }
+            if (rolls_back_transaction(flags))
+            {
+                ++rollback_fragments_;
+            }
+
             wsrep::stid stid(server_id_,
                              ws_handle.transaction_id(),
                              client_id);
@@ -145,12 +163,21 @@ namespace wsrep
         {
             next_error_ = error;
         }
+        size_t start_fragments() const { return start_fragments_; }
+        size_t fragments() const { return fragments_; }
+        size_t commit_fragments() const { return commit_fragments_; }
+        size_t rollback_fragments() const { return commit_fragments_; }
+
     private:
         wsrep::id group_id_;
         wsrep::id server_id_;
         long long group_seqno_;
         bf_abort_map bf_abort_map_;
         enum wsrep::provider::status next_error_;
+        size_t start_fragments_;
+        size_t fragments_;
+        size_t commit_fragments_;
+        size_t rollback_fragments_;
     };
 }
 

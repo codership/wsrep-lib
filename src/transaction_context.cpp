@@ -36,8 +36,7 @@ wsrep::transaction_context::transaction_context(
     , flags_()
     , pa_unsafe_(false)
     , certified_(false)
-    , fragments_()
-    , rollback_replicated_for_(false)
+    , streaming_context_()
 { }
 
 
@@ -92,6 +91,29 @@ int wsrep::transaction_context::append_data(const wsrep::data& data)
 {
 
     return provider_.append_data(ws_handle_, data);
+}
+
+int wsrep::transaction_context::after_row()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(client_context_.mutex());
+    if (streaming_context_.fragment_size() > 0)
+    {
+        switch (streaming_context_.fragment_unit())
+        {
+        case streaming_context::row:
+            streaming_context_.increment_unit_counter();
+            if (streaming_context_.fragments_certified()
+                + streaming_context_.unit_counter() >=
+                streaming_context_.fragment_size())
+            {
+                return certify_fragment(lock);
+            }
+            break;
+        default:
+            assert(0);
+        }
+    }
+    return 0;
 }
 
 int wsrep::transaction_context::before_prepare()
@@ -585,7 +607,7 @@ void wsrep::transaction_context::state(
         { /*  ex pr ce co oc ct cf ma ab ad mr re */
             { 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0}, /* ex */
             { 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0}, /* pr */
-            { 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0}, /* ce */
+            { 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0}, /* ce */
             { 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0}, /* co */
             { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}, /* oc */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ct */
@@ -612,16 +634,13 @@ void wsrep::transaction_context::state(
     }
 }
 
-#if 0
 int wsrep::transaction_context::certify_fragment(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
-    // This method is not fully implemented and tested yet.
-    throw wsrep::not_implemented_error();
     assert(lock.owns_lock());
 
     assert(client_context_.mode() == wsrep::client_context::m_replicating);
-    assert(rollback_replicated_for_ != id_);
+    assert(streaming_context_.rolled_back() == false);
 
     client_context_.wait_for_replayers(lock);
     if (state() == s_must_abort)
@@ -634,10 +653,9 @@ int wsrep::transaction_context::certify_fragment(
 
     lock.unlock();
 
-    uint32_t flags(0);
-    if (fragments_.empty())
+    if (streaming_context_.fragments_certified())
     {
-        flags |= wsrep::provider::flag::start_transaction;
+        flags_ |= wsrep::provider::flag::start_transaction;
     }
 
     wsrep::data data;
@@ -656,8 +674,14 @@ int wsrep::transaction_context::certify_fragment(
     wsrep::client_context_switch client_context_switch(
         client_context_,
         *sr_client_context);
-    wsrep::transaction_context sr_transaction_context(*sr_client_context);
-    if (sr_client_context->append_fragment(sr_transaction_context, flags, data))
+
+    wsrep::unique_lock<wsrep::mutex> sr_lock(sr_client_context->mutex());
+    wsrep::transaction_context& sr_transaction_context(
+        sr_client_context->transaction_);
+    sr_transaction_context.state(sr_lock, s_certifying);
+    sr_lock.unlock();
+    if (sr_client_context->append_fragment(
+            sr_transaction_context, flags_, data))
     {
         lock.lock();
         state(lock, s_must_abort);
@@ -667,24 +691,43 @@ int wsrep::transaction_context::certify_fragment(
 
     enum wsrep::provider::status
         cert_ret(provider_.certify(client_context_.id().get(),
-                                   &sr_transaction_context.ws_handle_,
-                                   flags,
-                                   &sr_transaction_context.trx_meta_));
+                                   sr_transaction_context.ws_handle_,
+                                   flags_,
+                                   sr_transaction_context.ws_meta_));
+
     int ret(0);
     switch (cert_ret)
     {
     case wsrep::provider::success:
-        sr_client_context->commit(sr_transaction_context);
+        streaming_context_.certified(sr_transaction_context.ws_meta().seqno());
+        sr_lock.lock();
+        sr_transaction_context.certified_ = true;
+        sr_transaction_context.state(sr_lock, s_committing);
+        sr_lock.unlock();
+        if (sr_client_context->commit())
+        {
+            ret = 1;
+        }
         break;
     default:
-        sr_client_context->rollback(sr_transaction_context);
+        sr_client_context->rollback();
         ret = 1;
         break;
     }
-
+    lock.lock();
+    if (ret)
+    {
+        client_context_.provider().rollback(id_);
+        streaming_context_.rolled_back(id_);
+        state(lock, s_must_abort);
+    }
+    else
+    {
+        state(lock, s_executing);
+        flags_ &= ~wsrep::provider::flag::start_transaction;
+    }
     return ret;
 }
-#endif
 
 int wsrep::transaction_context::certify_commit(
     wsrep::unique_lock<wsrep::mutex>& lock)

@@ -229,6 +229,13 @@ namespace wsrep
             return transaction_.start_transaction(wsh, meta);
         }
 
+        void enable_streaming(
+            enum wsrep::transaction_context::streaming_context::fragment_unit fragment_unit,
+            size_t fragment_size)
+        {
+            transaction_.streaming_context_.enable(
+                fragment_unit, fragment_size);
+        }
         int append_key(const wsrep::key& key)
         {
             assert(state_ == s_exec);
@@ -239,6 +246,13 @@ namespace wsrep
         {
             assert(state_ == s_exec);
             return transaction_.append_data(data);
+        }
+
+
+        int after_row()
+        {
+            assert(state_ == s_exec);
+            return transaction_.after_row();
         }
         int before_prepare()
         {

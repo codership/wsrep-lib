@@ -323,7 +323,7 @@ namespace
             wsrep::stid(wsrep::id(meta->stid.node.data,
                                   sizeof(meta->stid.node.data)),
                         meta->stid.trx,
-                        meta->stid.conn), wsrep::seqno(meta->depends_on),
+                        meta->stid.conn), wsrep::seqno(seqno_from_native(meta->depends_on)),
             map_flags_from_native(flags));
         if (ret == WSREP_CB_SUCCESS &&
             client_context->server_context().on_apply(

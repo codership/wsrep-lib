@@ -141,6 +141,13 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_context_1pc, T,
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
+    // Verify that the commit can be succesfully executed in separate command
+    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_success);
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+    BOOST_REQUIRE(cc.before_command() == 0);
+    BOOST_REQUIRE(cc.before_statement() == 0);
     // Run before commit
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committing);
@@ -940,7 +947,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     cc.after_statement();
     cc.after_command_before_result();
     cc.after_command_after_result();
-    cc.before_command();
+    BOOST_REQUIRE(cc.before_command() == 0);
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
     wsrep_test::bf_abort_unordered(cc);

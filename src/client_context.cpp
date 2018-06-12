@@ -4,6 +4,7 @@
 
 #include "wsrep/client_context.hpp"
 #include "wsrep/compiler.hpp"
+#include "wsrep/logger.hpp"
 
 #include <sstream>
 #include <iostream>
@@ -29,6 +30,7 @@ void wsrep::client_context::override_error(enum wsrep::client_error error)
 int wsrep::client_context::before_command()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    debug_log_state("before_command: enter");
     assert(state_ == s_idle);
     if (server_context_.rollback_mode() == wsrep::server_context::rm_sync)
     {
@@ -63,6 +65,8 @@ int wsrep::client_context::before_command()
                    wsrep::transaction_context::s_aborted);
             assert(transaction_.active() == false);
             assert(current_error() != wsrep::e_success);
+            debug_log_state("before_command: error");
+            return 1;
         }
         else if (transaction_.state() == wsrep::transaction_context::s_aborted)
         {
@@ -74,15 +78,18 @@ int wsrep::client_context::before_command()
             (void)transaction_.after_statement();
             lock.lock();
             assert(transaction_.active() == false);
+            debug_log_state("before_command: error");
+            return 1;
         }
-        return 1;
     }
+    debug_log_state("before_command: success");
     return 0;
 }
 
 void wsrep::client_context::after_command_before_result()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    debug_log_state("after_command_before_result: enter");
     assert(state() == s_exec);
     if (transaction_.active() &&
         transaction_.state() == wsrep::transaction_context::s_must_abort)
@@ -96,11 +103,13 @@ void wsrep::client_context::after_command_before_result()
         assert(current_error() != wsrep::e_success);
     }
     state(lock, s_result);
+    debug_log_state("after_command_before_result: leave");
 }
 
 void wsrep::client_context::after_command_after_result()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    debug_log_state("after_command_after_result_enter");
     assert(state() == s_result);
     assert(transaction_.state() != wsrep::transaction_context::s_aborting);
     if (transaction_.active() &&
@@ -117,11 +126,13 @@ void wsrep::client_context::after_command_after_result()
         current_error_ = wsrep::e_success;
     }
     state(lock, s_idle);
+    debug_log_state("after_command_after_result: leave");
 }
 
 int wsrep::client_context::before_statement()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    debug_log_state("before_statement: enter");
 #if 0
     /*!
      * \todo It might be beneficial to implement timed wait for
@@ -138,8 +149,10 @@ int wsrep::client_context::before_statement()
         transaction_.state() == wsrep::transaction_context::s_must_abort)
     {
         // Rollback and cleanup will happen in after_command_before_result()
+        debug_log_state("before_statement_error");
         return 1;
     }
+    debug_log_state("before_statement: success");
     return 0;
 }
 
@@ -147,6 +160,7 @@ enum wsrep::client_context::after_statement_result
 wsrep::client_context::after_statement()
 {
     // wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    debug_log_state("after_statement: enter");
     assert(state() == s_exec);
 #if 0
     /*!
@@ -158,17 +172,31 @@ wsrep::client_context::after_statement()
     {
         if (is_autocommit())
         {
+            debug_log_state("after_statement: may_retry");
             return asr_may_retry;
         }
         else
         {
+            debug_log_state("after_statement: error");
             return asr_error;
         }
     }
+    debug_log_state("after_statement: success");
     return asr_success;
 }
 
 // Private
+
+void wsrep::client_context::debug_log_state(const char* context) const
+{
+    if (debug_log_level() >= 1)
+    {
+        wsrep::log_debug() << "client_context: " << context
+                           << ": server: " << server_context_.name()
+                           << " client: " << id_.get()
+                           << " current_error: " << current_error_;
+    }
+}
 
 void wsrep::client_context::state(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,

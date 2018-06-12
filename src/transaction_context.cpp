@@ -13,6 +13,13 @@
 #include <sstream>
 #include <memory>
 
+#define WSREP_TC_LOG_DEBUG(level, msg)                  \
+    do {                                                \
+        if (client_context_.debug_log_level() < level)  \
+        { }                                             \
+        else wsrep::log_debug() << msg;                 \
+    } while (0)
+
 // Public
 
 wsrep::transaction_context::transaction_context(
@@ -489,12 +496,13 @@ bool wsrep::transaction_context::bf_abort(
 
     if (active() == false)
     {
-        wsrep::log() << "Transaction not active, skipping bf abort";
+        WSREP_TC_LOG_DEBUG(1, "Transaction not active, skipping bf abort");
     }
     else if (ordered() && seqno() < bf_seqno)
     {
-        wsrep::log() << "Not allowed to BF abort transaction ordered before "
-                     << "aborter: " << seqno() << " < " << bf_seqno;
+        WSREP_TC_LOG_DEBUG(1,
+                           "Not allowed to BF abort transaction ordered before "
+                           << "aborter: " << seqno() << " < " << bf_seqno);
     }
     else
     {
@@ -512,31 +520,26 @@ bool wsrep::transaction_context::bf_abort(
             switch (status)
             {
             case wsrep::provider::success:
-                if (client_context_.debug_log_level() >= 1)
-                {
-                    wsrep::log_debug() << "Seqno " << bf_seqno
-                                       << " succesfully BF aborted " << id_.get()
-                                       << " victim_seqno " << victim_seqno;
-                }
+                WSREP_TC_LOG_DEBUG(1, "Seqno " << bf_seqno
+                                   << " succesfully BF aborted " << id_.get()
+                                   << " victim_seqno " << victim_seqno);
                 bf_abort_state_ = state();
                 state(lock, s_must_abort);
                 ret = true;
                 break;
             default:
-                if (client_context_.debug_log_level() >= 1)
-                {
-                    wsrep::log_debug() << "Seqno " << bf_seqno
-                                       << " failed to BF abort " << id_.get()
-                                       << " with status " << status
-                                       << " victim_seqno " << victim_seqno;
-                }
+                WSREP_TC_LOG_DEBUG(1,
+                                   "Seqno " << bf_seqno
+                                   << " failed to BF abort " << id_.get()
+                                   << " with status " << status
+                                   << " victim_seqno " << victim_seqno);
                 break;
             }
             break;
         }
         default:
-            wsrep::log() << "BF abort not allowed in state "
-                         << wsrep::to_string(state());
+            WSREP_TC_LOG_DEBUG(1, "BF abort not allowed in state "
+                               << wsrep::to_string(state()));
             break;
         }
     }
@@ -604,7 +607,7 @@ void wsrep::transaction_context::state(
         os << "unallowed state transition for transaction "
            << id_.get() << ": " << wsrep::to_string(state_)
            << " -> " << wsrep::to_string(next_state);
-        wsrep::log() << os.str();
+        wsrep::log_error() << os.str();
         throw wsrep::runtime_error(os.str());
     }
 }
@@ -854,14 +857,12 @@ void wsrep::transaction_context::cleanup()
 void wsrep::transaction_context::debug_log_state(
     const char* context) const
 {
-    if (client_context_.debug_log_level() >= 1)
-    {
-        wsrep::log_debug() << context
-                           << ": server: " << client_context_.server_context().name()
-                           << ": client: " << client_context_.id().get()
-                           << " trx: " << int64_t(id_.get())
-                           << " state: " << wsrep::to_string(state_)
-                           << " error: "
-                           << wsrep::to_string(client_context_.current_error());
-    }
+    WSREP_TC_LOG_DEBUG(
+        1, context
+        << ": server: " << client_context_.server_context().name()
+        << " client: " << client_context_.id().get()
+        << " trx: " << int64_t(id_.get())
+        << " state: " << wsrep::to_string(state_)
+        << " error: "
+        << wsrep::to_string(client_context_.current_error()));
 }

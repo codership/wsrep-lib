@@ -78,6 +78,7 @@ public:
 
         void start(wsrep::client_context* cc)
         {
+            // wsrep::log_debug() << "Start: " << cc;
             wsrep::unique_lock<wsrep::mutex> lock(se_.mutex_);
             if (se_.transactions_.insert(cc).second == false)
             {
@@ -88,6 +89,7 @@ public:
 
         void commit()
         {
+            // wsrep::log_debug() << "Commit: " << cc_;
             if (cc_)
             {
                 wsrep::unique_lock<wsrep::mutex> lock(se_.mutex_);
@@ -99,6 +101,7 @@ public:
 
         void abort()
         {
+            // wsrep::log_debug() << "Abort: " << cc_;
             if (cc_)
             {
                 wsrep::unique_lock<wsrep::mutex> lock(se_.mutex_);
@@ -133,7 +136,7 @@ public:
                 lock.unlock();
                 if (victim_txc->bf_abort(victim_txc_lock, txc.seqno()))
                 {
-                    wsrep::log() << "BF aborted " << victim_txc->id().get();
+                    // wsrep::log() << "BF aborted " << victim_txc->id().get();
                     ++bf_aborts_;
                 }
             }
@@ -359,9 +362,9 @@ private:
     }
     int rollback() override
     {
-        wsrep::log() << "rollback: " << transaction().id().get()
-                     << "state: "
-                     << wsrep::to_string(transaction().state());
+        // wsrep::log() << "rollback: " << transaction().id().get()
+        //             << "state: "
+        //            << wsrep::to_string(transaction().state());
         before_rollback();
         se_trx_.abort();
         after_rollback();
@@ -371,7 +374,7 @@ private:
     void will_replay(wsrep::transaction_context&) override { }
     int replay(wsrep::transaction_context& txc) override
     {
-        wsrep::log() << "replay: " << txc.id().get();
+        // wsrep::log() << "replay: " << txc.id().get();
         wsrep::client_applier_mode applier_mode(*this);
         ++stats_.replays;
         return provider().replay(txc.ws_handle(), this);
@@ -400,6 +403,7 @@ private:
     int client_command(Func f)
     {
         int err(before_command());
+        // wsrep::log_debug() << "before_command: " << err;
         // If err != 0, transaction was BF aborted while client idle
         if (err == 0)
         {
@@ -413,11 +417,13 @@ private:
         after_command_before_result();
         if (current_error())
         {
+            // wsrep::log_info() << "Current error";
             assert(transaction_.state() ==
                    wsrep::transaction_context::s_aborted);
             err = 1;
         }
         after_command_after_result();
+        // wsrep::log_info() << "client_command(): " << err;
         return err;
     }
 
@@ -427,6 +433,7 @@ private:
         int err = client_command(
             [&]()
             {
+                // wsrep::log_debug() << "Start transaction";
                 err = start_transaction(server_.next_transaction_id());
                 assert(err == 0);
                 se_trx_.start(this);
@@ -435,6 +442,7 @@ private:
         err = err || client_command(
             [&]()
             {
+                // wsrep::log_debug() << "Generate write set";
                 assert(transaction().active());
                 assert(err == 0);
                 int data(std::rand() % 10000000);
@@ -453,6 +461,7 @@ private:
         err = err || client_command(
             [&]()
             {
+                // wsrep::log_debug() << "Commit";
                 assert(err == 0);
                 if (do_2pc())
                 {
@@ -467,8 +476,8 @@ private:
             });
 
         assert(err ||
-            transaction().state() == wsrep::transaction_context::s_aborted ||
-            transaction().state() == wsrep::transaction_context::s_committed);
+               transaction().state() == wsrep::transaction_context::s_aborted ||
+               transaction().state() == wsrep::transaction_context::s_committed);
         assert(se_trx_.active() == false);
         assert(transaction().active() == false);
         switch (transaction().state())

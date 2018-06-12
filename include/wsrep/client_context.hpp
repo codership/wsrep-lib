@@ -392,7 +392,7 @@ namespace wsrep
         friend class client_toi_mode;
         friend class transaction_context;
 
-
+        void debug_log_state(const char*) const;
         /*!
          * Set client state.
          */

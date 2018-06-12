@@ -15,7 +15,7 @@ namespace wsrep
     {
     public:
 
-        wsrep_provider_v26(const char*, struct wsrep_init_args*);
+        wsrep_provider_v26(wsrep::server_context&, const char*, struct wsrep_init_args*);
         ~wsrep_provider_v26();
         int connect(const std::string&, const std::string&, const std::string&,
                     bool);

@@ -23,7 +23,7 @@ namespace wsrep
                                     name, id, "", "./", rollback_mode)
             , mutex_()
             , cond_()
-            , provider_()
+            , provider_(*this)
             , last_client_id_(0)
         { }
         wsrep::mock_provider& provider() const

@@ -5,9 +5,10 @@
 
 
 add_library(wsrep-lib
+  client_context.cpp
+  id.cpp
   logger.cpp
   provider.cpp
-  client_context.cpp
   server_context.cpp
   transaction_context.cpp
   wsrep_provider_v26.cpp)

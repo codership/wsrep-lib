@@ -5,6 +5,8 @@
 #ifndef WSREP_PROVIDER_HPP
 #define WSREP_PROVIDER_HPP
 
+#include "id.hpp"
+#include "seqno.hpp"
 #include "key.hpp"
 #include "data.hpp"
 #include "client_id.hpp"
@@ -20,102 +22,7 @@
 
 namespace wsrep
 {
-    /*! \class seqno
-     *
-     * Sequence number type.
-     *
-     * By convention, nil value is zero, negative values are not allowed.
-     * Relation operators are restricted to < and > on purpose to
-     * enforce correct use.
-     */
-    class seqno
-    {
-    public:
-        seqno()
-            : seqno_()
-        { }
-
-        template <typename I>
-        seqno(I seqno)
-            : seqno_(seqno)
-        {
-            assert(seqno_ >= 0);
-        }
-
-        long long get() const
-        {
-            return seqno_;
-        }
-
-        bool nil() const
-        {
-            return (seqno_ == 0);
-        }
-
-        bool operator<(seqno other) const
-        {
-            return (seqno_ < other.seqno_);
-        }
-
-        bool operator>(seqno other) const
-        {
-            return (seqno_ > other.seqno_);
-        }
-
-        seqno operator+(seqno other) const
-        {
-            return (seqno_ + other.seqno_);
-        }
-
-        static seqno undefined() { return 0; }
-    private:
-        long long seqno_;
-    };
-
-    static inline std::ostream& operator<<(std::ostream& os, wsrep::seqno seqno)
-    {
-        return (os << seqno.get());
-    }
-
-    class id
-    {
-    public:
-        enum type
-        {
-            none,
-            string,
-            uuid
-        };
-
-        id()
-            : type_(none)
-            , data_()
-        { }
-
-        id(const std::string&);
-
-        id (const void* data, size_t data_size)
-            : type_()
-            , data_()
-        {
-            assert(data_size <= 16);
-            std::memcpy(data_, data, data_size);
-        }
-        bool operator<(const id& other) const
-        {
-            return (std::memcmp(data_, other.data_, sizeof(data_)) < 0);
-        }
-        bool operator==(const id& other) const
-        {
-            return (std::memcmp(data_, other.data_, sizeof(data_)) == 0);
-        }
-        const unsigned char* data() const { return data_; }
-        size_t data_size() const { return 16; }
-
-    private:
-        enum type type_;
-        unsigned char data_[16];
-    };
+    class server_context;
 
     class gtid
     {
@@ -242,7 +149,6 @@ namespace wsrep
         int flags_;
     };
 
-
     // Abstract interface for provider implementations
     class provider
     {
@@ -308,6 +214,9 @@ namespace wsrep
             static const int snapshot = (1 << 7);
         };
 
+        provider(wsrep::server_context& server_context)
+            : server_context_(server_context)
+        { }
         virtual ~provider() { }
         // Provider state management
         virtual int connect(const std::string& cluster_name,
@@ -368,6 +277,8 @@ namespace wsrep
         // virtual struct wsrep* native() = 0;
         // Factory method
         static provider* make_provider(const std::string& provider);
+    private:
+        wsrep::server_context& server_context_;
     };
 
     static inline std::string flags_to_string(int flags)

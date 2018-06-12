@@ -146,11 +146,11 @@ namespace
         wsrep::ws_meta ws_meta(
             wsrep::gtid(wsrep::id(meta->gtid.uuid.data,
                                   sizeof(meta->gtid.uuid.data)),
-                        meta->gtid.seqno),
+                        wsrep::seqno(meta->gtid.seqno)),
             wsrep::stid(wsrep::id(meta->stid.node.data,
                                   sizeof(meta->stid.node.data)),
                         meta->stid.trx,
-                        meta->stid.conn), meta->depends_on,
+                        meta->stid.conn), wsrep::seqno(meta->depends_on),
             map_flags_from_native(flags));
         if (ret == WSREP_CB_SUCCESS &&
             client_context->server_context().on_apply(
@@ -195,7 +195,7 @@ namespace
                             req_buf->len);
             wsrep::gtid gtid(wsrep::id(req_gtid->uuid.data,
                                        sizeof(req_gtid->uuid.data)),
-                             req_gtid->seqno);
+                             wsrep::seqno(req_gtid->seqno));
             server_context.on_sst_request(req, gtid, bypass);
             return WSREP_CB_SUCCESS;
         }
@@ -212,7 +212,7 @@ int wsrep::server_context::load_provider(const std::string& provider_spec,
     wsrep::log() << "Loading provider " << provider_spec;
     if (provider_spec == "mock")
     {
-        provider_ = new wsrep::mock_provider;
+        provider_ = new wsrep::mock_provider(*this);
     }
     else
     {
@@ -238,7 +238,8 @@ int wsrep::server_context::load_provider(const std::string& provider_spec,
         init_args.synced_cb = &synced_cb;
 
         std::cerr << init_args.options << "\n";
-        provider_ = new wsrep::wsrep_provider_v26(provider_spec.c_str(),
+        provider_ = new wsrep::wsrep_provider_v26(*this,
+                                                  provider_spec.c_str(),
                                                   &init_args);
     }
     return 0;

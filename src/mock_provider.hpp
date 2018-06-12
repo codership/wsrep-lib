@@ -18,8 +18,9 @@ namespace wsrep
     public:
         typedef std::map<wsrep::transaction_id, wsrep::seqno> bf_abort_map;
 
-        mock_provider()
-            : group_id_("1")
+        mock_provider(wsrep::server_context& server_context)
+            : provider(server_context)
+            , group_id_("1")
             , server_id_("1")
             , group_seqno_(0)
             , bf_abort_map_()
@@ -59,8 +60,9 @@ namespace wsrep
             if (it == bf_abort_map_.end())
             {
                 ++group_seqno_;
-                wsrep::gtid gtid(group_id_, group_seqno_);
-                ws_meta = wsrep::ws_meta(gtid, stid, group_seqno_ - 1,
+                wsrep::gtid gtid(group_id_, wsrep::seqno(group_seqno_));
+                ws_meta = wsrep::ws_meta(gtid, stid,
+                                         wsrep::seqno(group_seqno_ - 1),
                                          flags);
                 return wsrep::provider::success;
             }
@@ -76,8 +78,10 @@ namespace wsrep
                 else
                 {
                     ++group_seqno_;
-                    wsrep::gtid gtid(group_id_, group_seqno_);
-                    ws_meta = wsrep::ws_meta(gtid, stid, group_seqno_ - 1, flags);
+                    wsrep::gtid gtid(group_id_, wsrep::seqno(group_seqno_));
+                    ws_meta = wsrep::ws_meta(gtid, stid,
+                                             wsrep::seqno(group_seqno_ - 1),
+                                             flags);
                     ret = wsrep::provider::error_bf_abort;
                 }
                 bf_abort_map_.erase(it);

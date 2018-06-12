@@ -66,7 +66,7 @@ namespace
 
     static inline wsrep::seqno seqno_from_native(wsrep_seqno_t seqno)
     {
-        return (seqno == WSREP_SEQNO_UNDEFINED ? 0 : seqno);
+        return wsrep::seqno(seqno == WSREP_SEQNO_UNDEFINED ? 0 : seqno);
     }
     inline uint32_t map_one(const int flags, const int from,
                             const uint32_t to)
@@ -202,9 +202,11 @@ namespace
 }
 
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
+    wsrep::server_context& server_context,
     const char* path,
     wsrep_init_args* args)
-    : wsrep_()
+    : provider(server_context)
+    , wsrep_()
 {
     if (wsrep_load(path, &wsrep_, 0))
     {

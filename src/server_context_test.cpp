@@ -18,9 +18,9 @@ namespace
                  wsrep::client_context::m_applier,
                  false)
             , ws_handle(1, (void*)1)
-            , ws_meta(wsrep::gtid(wsrep::id("1"), 1),
+            , ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
                       wsrep::stid(wsrep::id("1"), 1, 1),
-                      0,
+                      wsrep::seqno(0),
                       wsrep::provider::flag::start_transaction |
                       wsrep::provider::flag::commit)
         {

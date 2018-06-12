@@ -3,6 +3,10 @@
 //
 
 #include "wsrep_provider_v26.hpp"
+
+#include "wsrep/server_context.hpp"
+#include "wsrep/client_context.hpp"
+#include "wsrep/view.hpp"
 #include "wsrep/exception.hpp"
 
 #include <wsrep_api.h>
@@ -14,6 +18,10 @@
 
 namespace
 {
+    /////////////////////////////////////////////////////////////////////
+    //                           Helpers                               //
+    /////////////////////////////////////////////////////////////////////
+
     enum wsrep::provider::status map_return_value(wsrep_status_t status)
     {
         switch (status)
@@ -68,8 +76,9 @@ namespace
     {
         return wsrep::seqno(seqno == WSREP_SEQNO_UNDEFINED ? 0 : seqno);
     }
-    inline uint32_t map_one(const int flags, const int from,
-                            const uint32_t to)
+    template <typename F, typename T>
+    inline uint32_t map_one(const int flags, const F from,
+                            const T to)
     {
         return ((flags & from) ? to : 0);
     }
@@ -86,6 +95,29 @@ namespace
                 // map_one(flags, provider::flag::commutative, WSREP_FLAG_COMMUTATIVE) |
                 // map_one(flags, provider::flag::native, WSREP_FLAG_NATIVE) |
                 map_one(flags, provider::flag::snapshot, WSREP_FLAG_SNAPSHOT));
+    }
+
+        int map_flags_from_native(uint32_t flags)
+    {
+        using wsrep::provider;
+        return (map_one(flags,
+                        WSREP_FLAG_TRX_START,
+                        provider::flag::start_transaction) |
+                map_one(flags,
+                        WSREP_FLAG_TRX_END,
+                        provider::flag::commit) |
+                map_one(flags,
+                        WSREP_FLAG_ROLLBACK,
+                        provider::flag::rollback) |
+                map_one(flags,
+                        WSREP_FLAG_ISOLATION,
+                        provider::flag::isolation) |
+                map_one(flags,
+                        WSREP_FLAG_PA_UNSAFE,
+                        provider::flag::pa_unsafe) |
+                // map_one(flags, provider::flag::commutative, WSREP_FLAG_COMMUTATIVE) |
+                // map_one(flags, provider::flag::native, WSREP_FLAG_NATIVE) |
+                map_one(flags, WSREP_FLAG_SNAPSHOT, provider::flag::snapshot));
     }
 
     class mutable_ws_handle
@@ -199,20 +231,186 @@ namespace
         wsrep_trx_meta_t trx_meta_;
     };
 
+    /////////////////////////////////////////////////////////////////////
+    //                         Callbacks                               //
+    /////////////////////////////////////////////////////////////////////
+
+    wsrep_cb_status_t connected_cb(
+        void* app_ctx,
+        const wsrep_view_info_t* view __attribute((unused)))
+    {
+        assert(app_ctx);
+        wsrep::server_context& server_context(
+            *reinterpret_cast<wsrep::server_context*>(app_ctx));
+        //
+        // TODO: Fetch server id and group id from view infor
+        //
+        try
+        {
+            server_context.on_connect();
+            return WSREP_CB_SUCCESS;
+        }
+        catch (const wsrep::runtime_error& e)
+        {
+            std::cerr << "Exception: " << e.what();
+            return WSREP_CB_FAILURE;
+        }
+    }
+
+    wsrep_cb_status_t view_cb(void* app_ctx,
+                                     void* recv_ctx __attribute__((unused)),
+                                     const wsrep_view_info_t* view_info,
+                                     const char*,
+                                     size_t)
+    {
+        assert(app_ctx);
+        assert(view_info);
+        wsrep::server_context& server_context(
+            *reinterpret_cast<wsrep::server_context*>(app_ctx));
+        try
+        {
+            wsrep::view view(*view_info);
+            server_context.on_view(view);
+            return WSREP_CB_SUCCESS;
+        }
+        catch (const wsrep::runtime_error& e)
+        {
+            std::cerr << "Exception: " << e.what();
+            return WSREP_CB_FAILURE;
+        }
+    }
+
+    wsrep_cb_status_t sst_request_cb(void* app_ctx,
+                                     void **sst_req, size_t* sst_req_len)
+    {
+        assert(app_ctx);
+        wsrep::server_context& server_context(
+            *reinterpret_cast<wsrep::server_context*>(app_ctx));
+
+        try
+        {
+            std::string req(server_context.on_sst_required());
+            *sst_req = ::strdup(req.c_str());
+            *sst_req_len = strlen(req.c_str());
+            return WSREP_CB_SUCCESS;
+        }
+        catch (const wsrep::runtime_error& e)
+        {
+            return WSREP_CB_FAILURE;
+        }
+    }
+
+    wsrep_cb_status_t apply_cb(void* ctx,
+                               const wsrep_ws_handle_t* wsh,
+                               uint32_t flags,
+                               const wsrep_buf_t* buf,
+                               const wsrep_trx_meta_t* meta,
+                               wsrep_bool_t* exit_loop __attribute__((unused)))
+    {
+        wsrep_cb_status_t ret(WSREP_CB_SUCCESS);
+
+        wsrep::client_context* client_context(
+            reinterpret_cast<wsrep::client_context*>(ctx));
+        assert(client_context);
+        assert(client_context->mode() == wsrep::client_context::m_applier);
+
+        wsrep::data data(buf->ptr, buf->len);
+        wsrep::ws_handle ws_handle(wsh->trx_id, wsh->opaque);
+        wsrep::ws_meta ws_meta(
+            wsrep::gtid(wsrep::id(meta->gtid.uuid.data,
+                                  sizeof(meta->gtid.uuid.data)),
+                        wsrep::seqno(meta->gtid.seqno)),
+            wsrep::stid(wsrep::id(meta->stid.node.data,
+                                  sizeof(meta->stid.node.data)),
+                        meta->stid.trx,
+                        meta->stid.conn), wsrep::seqno(meta->depends_on),
+            map_flags_from_native(flags));
+        if (ret == WSREP_CB_SUCCESS &&
+            client_context->server_context().on_apply(
+                *client_context, ws_handle, ws_meta, data))
+        {
+            ret = WSREP_CB_FAILURE;
+        }
+        return ret;
+    }
+
+    wsrep_cb_status_t synced_cb(void* app_ctx)
+    {
+        assert(app_ctx);
+        wsrep::server_context& server_context(
+            *reinterpret_cast<wsrep::server_context*>(app_ctx));
+        try
+        {
+            server_context.on_sync();
+            return WSREP_CB_SUCCESS;
+        }
+        catch (const wsrep::runtime_error& e)
+        {
+            std::cerr << "On sync failed: " << e.what() << "\n";
+            return WSREP_CB_FAILURE;
+        }
+    }
+
+
+    wsrep_cb_status_t sst_donate_cb(void* app_ctx,
+                                    void* ,
+                                    const wsrep_buf_t* req_buf,
+                                    const wsrep_gtid_t* req_gtid,
+                                    const wsrep_buf_t*,
+                                    bool bypass)
+    {
+        assert(app_ctx);
+        wsrep::server_context& server_context(
+            *reinterpret_cast<wsrep::server_context*>(app_ctx));
+        try
+        {
+            std::string req(reinterpret_cast<const char*>(req_buf->ptr),
+                            req_buf->len);
+            wsrep::gtid gtid(wsrep::id(req_gtid->uuid.data,
+                                       sizeof(req_gtid->uuid.data)),
+                             wsrep::seqno(req_gtid->seqno));
+            server_context.on_sst_request(req, gtid, bypass);
+            return WSREP_CB_SUCCESS;
+        }
+        catch (const wsrep::runtime_error& e)
+        {
+            return WSREP_CB_FAILURE;
+        }
+    }
 }
 
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
     wsrep::server_context& server_context,
-    const char* path,
-    wsrep_init_args* args)
+    const std::string& provider_options,
+    const std::string& provider_spec)
     : provider(server_context)
     , wsrep_()
 {
-    if (wsrep_load(path, &wsrep_, 0))
+    struct wsrep_init_args init_args;
+    memset(&init_args, 0, sizeof(init_args));
+    init_args.app_ctx = &server_context;
+    init_args.node_name = server_context_.name().c_str();
+    init_args.node_address = server_context_.address().c_str();
+    init_args.node_incoming = "";
+    init_args.data_dir = server_context_.working_dir().c_str();
+    init_args.options = provider_options.c_str();
+    init_args.proto_ver = 1;
+    init_args.state_id = 0;
+    init_args.state = 0;
+    init_args.logger_cb = 0;
+    init_args.connected_cb = &connected_cb;
+    init_args.view_cb = &view_cb;
+    init_args.sst_request_cb = &sst_request_cb;
+    init_args.apply_cb = &apply_cb;
+    init_args.unordered_cb = 0;
+    init_args.sst_donate_cb = &sst_donate_cb;
+    init_args.synced_cb = &synced_cb;
+
+    if (wsrep_load(provider_spec.c_str(), &wsrep_, 0))
     {
         throw wsrep::runtime_error("Failed to load wsrep library");
     }
-    if (wsrep_->init(wsrep_, args) != WSREP_OK)
+    if (wsrep_->init(wsrep_, &init_args) != WSREP_OK)
     {
         throw wsrep::runtime_error("Failed to initialize wsrep provider");
     }

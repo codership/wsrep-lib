@@ -270,14 +270,16 @@ namespace wsrep
         virtual std::vector<status_variable> status() const = 0;
 
         /*!
-         * Return a pointer to native handle.
+         * Create a new provider.
          *
-         * \todo This should be eventually deprecated.
+         * \param provider_spec Provider specification
+         * \param provider_options Initial options to provider
          */
-        // virtual struct wsrep* native() = 0;
-        // Factory method
-        static provider* make_provider(const std::string& provider);
-    private:
+        static provider* make_provider(
+            wsrep::server_context&,
+            const std::string& provider_spec,
+            const std::string& provider_options);
+    protected:
         wsrep::server_context& server_context_;
     };
 

@@ -174,6 +174,12 @@ namespace wsrep
         const std::string& address() const { return address_; }
 
         /*!
+         * Return working directory
+         *
+         * \return String containing path to working directory.
+         */
+        const std::string& working_dir() const { return working_dir_; }
+        /*!
          * Get the rollback mode which server is operating in.
          *
          * \return Rollback mode.

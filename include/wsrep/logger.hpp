@@ -37,12 +37,25 @@ namespace wsrep
         static std::ostream& os_;
     };
 
+    class log_error : public log
+    {
+    public:
+        log_error()
+            : log("ERROR") { }
+    };
 
     class log_warning : public log
     {
     public:
         log_warning()
             : log("WARNING") { }
+    };
+
+    class log_info : public log
+    {
+    public:
+        log_info()
+            : log("INFO") { }
     };
 
     class log_debug : public log

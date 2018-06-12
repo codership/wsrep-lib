@@ -33,7 +33,7 @@ namespace wsrep
             {
                 throw wsrep::runtime_error("key parts exceed maximum of 3");
             }
-            key_parts_[key_parts_len_] = wsrep::buffer(ptr, len);
+            key_parts_[key_parts_len_] = wsrep::const_buffer(ptr, len);
             ++key_parts_len_;
         }
 
@@ -47,14 +47,14 @@ namespace wsrep
             return key_parts_len_;
         }
 
-        const wsrep::buffer* key_parts() const
+        const wsrep::const_buffer* key_parts() const
         {
             return key_parts_;
         }
     private:
 
         enum type type_;
-        wsrep::buffer key_parts_[3];
+        wsrep::const_buffer key_parts_[3];
         size_t key_parts_len_;
     };
 }

@@ -314,7 +314,7 @@ namespace
         assert(client_context);
         assert(client_context->mode() == wsrep::client_context::m_applier);
 
-        wsrep::data data(buf->ptr, buf->len);
+        wsrep::const_buffer data(buf->ptr, buf->len);
         wsrep::ws_handle ws_handle(wsh->trx_id, wsh->opaque);
         wsrep::ws_meta ws_meta(
             wsrep::gtid(wsrep::id(meta->gtid.uuid.data,
@@ -484,9 +484,9 @@ int wsrep::wsrep_provider_v26::append_key(wsrep::ws_handle& ws_handle,
 }
 
 int wsrep::wsrep_provider_v26::append_data(wsrep::ws_handle& ws_handle,
-                                           const wsrep::data& data)
+                                           const wsrep::const_buffer& data)
 {
-    const wsrep_buf_t wsrep_buf = {data.get().ptr(), data.get().size()};
+    const wsrep_buf_t wsrep_buf = {data.data(), data.size()};
     mutable_ws_handle mwsh(ws_handle);
     return (wsrep_->append_data(wsrep_, mwsh.native(), &wsrep_buf,
                                 1, WSREP_DATA_ORDERED, true)

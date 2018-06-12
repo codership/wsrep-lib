@@ -13,7 +13,6 @@
 #include "wsrep/client_context.hpp"
 #include "wsrep/transaction_context.hpp"
 #include "wsrep/key.hpp"
-#include "wsrep/data.hpp"
 #include "wsrep/provider.hpp"
 #include "wsrep/condition_variable.hpp"
 #include "wsrep/view.hpp"
@@ -274,7 +273,7 @@ public:
     dbms_storage_engine& storage_engine() { return storage_engine_; }
 
     int apply_to_storage_engine(const wsrep::transaction_context& txc,
-                                const wsrep::data&)
+                                const wsrep::const_buffer&)
     {
         storage_engine_.bf_abort_some(txc);
         return 0;
@@ -346,7 +345,15 @@ public:
 private:
     bool is_autocommit() const override { return false; }
     bool do_2pc() const override { return false; }
-    int apply(const wsrep::data& data) override
+    int append_fragment(const wsrep::transaction_context&,
+                        int, const wsrep::const_buffer&) override
+    {
+        return 0;
+    }
+    void remove_fragments(const wsrep::transaction_context&) override
+    {
+    }
+    int apply(const wsrep::const_buffer& data) override
     {
         return server_.apply_to_storage_engine(transaction(), data);
     }
@@ -381,12 +388,12 @@ private:
     }
     void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) override
     { }
-    int prepare_data_for_replication(const wsrep::transaction_context&,
-                                     wsrep::data&)
+    int prepare_data_for_replication(const wsrep::transaction_context&)
         override
-    {
-        return 0;
-    }
+    { return 0; }
+    int prepare_fragment_for_replication(const wsrep::transaction_context&,
+                                          wsrep::mutable_buffer&) override
+    { return 0; }
     bool killed() const override { return false; }
     void abort() override { ::abort(); }
 public:
@@ -454,8 +461,9 @@ private:
                 key.append_key_part(&client_key, sizeof(client_key));
                 key.append_key_part(&data, sizeof(data));
                 err = append_key(key);
-                err = err || append_data(wsrep::data(os.str().c_str(),
-                                                     os.str().size()));
+                err = err || append_data(
+                    wsrep::const_buffer(os.str().c_str(),
+                                        os.str().size()));
                 return err;
             });
         err = err || client_command(

@@ -25,7 +25,7 @@ namespace wsrep
         enum wsrep::provider::status run_applier(void*);
         int start_transaction(wsrep::ws_handle&) { return 0; }
         int append_key(wsrep::ws_handle&, const wsrep::key&);
-        int append_data(wsrep::ws_handle&, const wsrep::data&);
+        int append_data(wsrep::ws_handle&, const wsrep::const_buffer&);
         enum wsrep::provider::status
         certify(wsrep::client_id, wsrep::ws_handle&,
                 int,

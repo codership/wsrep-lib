@@ -140,7 +140,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_append_key_data,
         key.append_key_part(&vals[i], sizeof(vals[i]));
     }
     BOOST_REQUIRE(cc.append_key(key) == 0);
-    wsrep::data data(&vals[2], sizeof(vals[2]));
+    wsrep::const_buffer data(&vals[2], sizeof(vals[2]));
     BOOST_REQUIRE(cc.append_data(data) == 0);
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(cc.ordered_commit() == 0);
@@ -1195,6 +1195,24 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_1pc_commit,
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(cc.before_commit() == 0);
+    BOOST_REQUIRE(cc.ordered_commit() == 0);
+    BOOST_REQUIRE(cc.after_commit() == 0);
+    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_success);
+    BOOST_REQUIRE(sc.provider().fragments() == 2);
+    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
+    BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
+
+}
+
+BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_2pc_commit,
+                        streaming_client_fixture_row)
+{
+    BOOST_REQUIRE(cc.start_transaction(1) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(cc.before_prepare() == 0);
+    BOOST_REQUIRE(cc.after_prepare() == 0);
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(cc.ordered_commit() == 0);
     BOOST_REQUIRE(cc.after_commit() == 0);

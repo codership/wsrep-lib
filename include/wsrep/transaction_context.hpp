@@ -17,7 +17,7 @@ namespace wsrep
 {
     class client_context;
     class key;
-    class data;
+    class const_buffer;
 
 
     class transaction_context
@@ -67,10 +67,13 @@ namespace wsrep
         bool ordered() const
         { return (ws_meta_.seqno().nil() == false); }
 
+        /*!
+         * Return true if any fragments have been succesfully certified
+         * for the transaction.
+         */
         bool is_streaming() const
         {
-            // Streaming support not yet implemented
-            return false;
+            return (streaming_context_.fragments_certified() > 0);
         }
 
         bool pa_unsafe() const { return pa_unsafe_; }
@@ -91,7 +94,7 @@ namespace wsrep
 
         int append_key(const wsrep::key&);
 
-        int append_data(const wsrep::data&);
+        int append_data(const wsrep::const_buffer&);
 
         int after_row();
 
@@ -132,7 +135,6 @@ namespace wsrep
         void flags(int flags) { flags_ = flags; }
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
-        void remove_fragments();
         void clear_fragments();
         void cleanup();
         void debug_log_state(const char*) const;
@@ -215,6 +217,14 @@ namespace wsrep
 
             size_t unit_counter() const { return unit_counter_; }
             void increment_unit_counter() { ++unit_counter_; }
+
+            void cleanup()
+            {
+                fragments_.clear();
+                rollback_replicated_for_ = wsrep::transaction_id::invalid();
+                bytes_certified_ = 0;
+                unit_counter_ = 0;
+            }
         private:
             std::vector<wsrep::seqno> fragments_;
             wsrep::transaction_id rollback_replicated_for_;

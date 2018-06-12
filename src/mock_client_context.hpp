@@ -42,11 +42,16 @@ namespace wsrep
                 (void)rollback();
             }
         }
-        int apply(const wsrep::data&);
+        int apply(const wsrep::const_buffer&);
         int commit();
         int rollback();
         bool is_autocommit() const { return is_autocommit_; }
         bool do_2pc() const { return do_2pc_; }
+        int append_fragment(const wsrep::transaction_context&,
+                            int, const wsrep::const_buffer&) WSREP_OVERRIDE
+        { return 0; }
+        void remove_fragments(const wsrep::transaction_context& )
+            WSREP_OVERRIDE { }
         void will_replay(wsrep::transaction_context&) WSREP_OVERRIDE { }
         int replay(wsrep::transaction_context& tc) WSREP_OVERRIDE
         {
@@ -68,17 +73,31 @@ namespace wsrep
             lock.lock();
         }
         int prepare_data_for_replication(
-            const wsrep::transaction_context&, wsrep::data& data) WSREP_OVERRIDE
+            const wsrep::transaction_context&) WSREP_OVERRIDE
         {
             if (error_during_prepare_data_)
             {
                 return 1;
             }
             static const char buf[1] = { 1 };
-            data = wsrep::data(buf, 1);
-            return 0;
-
+            wsrep::const_buffer data = wsrep::const_buffer(buf, 1);
+            return transaction_.append_data(data);
         }
+
+        int prepare_fragment_for_replication(const wsrep::transaction_context&,
+                                             wsrep::mutable_buffer& buffer)
+            WSREP_OVERRIDE
+        {
+            if (error_during_prepare_data_)
+            {
+                return 1;
+            }
+            static const char buf[1] = { 1 };
+            buffer.push_back(&buf[0], &buf[1]);
+            wsrep::const_buffer data(buffer.data(), buffer.size());
+            return transaction_.append_data(data);
+        }
+
         bool killed() const WSREP_OVERRIDE { return killed_before_certify_; }
         void abort() WSREP_OVERRIDE { ++aborts_; }
         void store_globals() WSREP_OVERRIDE { }
@@ -94,7 +113,7 @@ namespace wsrep
         }
         void debug_suicide(const char*) WSREP_OVERRIDE
         {
-            ::abort();
+            // Not going to do this while unit testing
         }
         void on_error(enum wsrep::client_error) { }
 

@@ -77,7 +77,7 @@ namespace wsrep
     class transaction_context;
     class gtid;
     class view;
-    class data;
+    class const_buffer;
 
     /*! \class Server Context
      *
@@ -342,7 +342,7 @@ namespace wsrep
         int on_apply(wsrep::client_context& client_context,
                      const wsrep::ws_handle& ws_handle,
                      const wsrep::ws_meta& ws_meta,
-                     const wsrep::data& data);
+                     const wsrep::const_buffer& data);
 
         /*!
          * This virtual method should be implemented by the DBMS

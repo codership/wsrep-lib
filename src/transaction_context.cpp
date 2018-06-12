@@ -6,7 +6,6 @@
 #include "wsrep/client_context.hpp"
 #include "wsrep/server_context.hpp"
 #include "wsrep/key.hpp"
-#include "wsrep/data.hpp"
 #include "wsrep/logger.hpp"
 #include "wsrep/compiler.hpp"
 
@@ -87,7 +86,7 @@ int wsrep::transaction_context::append_key(const wsrep::key& key)
     return provider_.append_key(ws_handle_, key);
 }
 
-int wsrep::transaction_context::append_data(const wsrep::data& data)
+int wsrep::transaction_context::append_data(const wsrep::const_buffer& data)
 {
 
     return provider_.append_data(ws_handle_, data);
@@ -149,7 +148,7 @@ int wsrep::transaction_context::before_prepare()
             }
             else
             {
-                remove_fragments();
+                client_context_.remove_fragments(*this);
             }
             lock.lock();
             client_context_.debug_suicide(
@@ -658,8 +657,8 @@ int wsrep::transaction_context::certify_fragment(
         flags_ |= wsrep::provider::flag::start_transaction;
     }
 
-    wsrep::data data;
-    if (client_context_.prepare_data_for_replication(*this, data))
+    wsrep::mutable_buffer data;
+    if (client_context_.prepare_fragment_for_replication(*this, data))
     {
         lock.lock();
         state(lock, s_must_abort);
@@ -681,7 +680,8 @@ int wsrep::transaction_context::certify_fragment(
     sr_transaction_context.state(sr_lock, s_certifying);
     sr_lock.unlock();
     if (sr_client_context->append_fragment(
-            sr_transaction_context, flags_, data))
+            sr_transaction_context, flags_,
+            wsrep::const_buffer(data.data(), data.size())))
     {
         lock.lock();
         state(lock, s_must_abort);
@@ -750,8 +750,7 @@ int wsrep::transaction_context::certify_commit(
     flags(flags() | wsrep::provider::flag::commit);
     lock.unlock();
 
-    wsrep::data data;
-    if (client_context_.prepare_data_for_replication(*this, data))
+    if (client_context_.prepare_data_for_replication(*this))
     {
         // Note: Error must be set by prepare_data_for_replication()
         lock.lock();
@@ -870,14 +869,9 @@ int wsrep::transaction_context::certify_commit(
     return ret;
 }
 
-void wsrep::transaction_context::remove_fragments()
-{
-    throw wsrep::not_implemented_error();
-}
-
 void wsrep::transaction_context::clear_fragments()
 {
-    throw wsrep::not_implemented_error();
+    streaming_context_.cleanup();
 }
 
 void wsrep::transaction_context::cleanup()

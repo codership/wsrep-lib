@@ -7,6 +7,7 @@
 
 #include "wsrep/provider.hpp"
 #include "wsrep/logger.hpp"
+#include "wsrep/buffer.hpp"
 
 #include <cstring>
 #include <map>
@@ -50,7 +51,10 @@ namespace wsrep
         {
             wsrep::log_info() << "provider certify: "
                               << "client: " << client_id.get()
-                              << " flags: " << std::hex << flags;
+                              << " flags: " << std::hex << flags
+                              << std::dec
+                              << "next_error: " << next_error_;
+
             if (next_error_)
             {
                 return next_error_;
@@ -108,9 +112,9 @@ namespace wsrep
         }
 
         int append_key(wsrep::ws_handle&, const wsrep::key&)
-        { return next_error_; }
-        int append_data(wsrep::ws_handle&, const wsrep::data&)
-        { return next_error_; }
+        { return 0; }
+        int append_data(wsrep::ws_handle&, const wsrep::const_buffer&)
+        { return 0; }
         int rollback(const wsrep::transaction_id)
         { return next_error_; }
         enum wsrep::provider::status

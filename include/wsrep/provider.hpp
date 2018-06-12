@@ -7,7 +7,7 @@
 
 #include "gtid.hpp"
 #include "key.hpp"
-#include "data.hpp"
+#include "buffer.hpp"
 #include "client_id.hpp"
 #include "transaction_id.hpp"
 
@@ -213,7 +213,7 @@ namespace wsrep
         // TODO: Rename to assing_read_view()
         virtual int start_transaction(wsrep::ws_handle&) = 0;
         virtual int append_key(wsrep::ws_handle&, const wsrep::key&) = 0;
-        virtual int append_data(wsrep::ws_handle&, const wsrep::data&) = 0;
+        virtual int append_data(wsrep::ws_handle&, const wsrep::const_buffer&) = 0;
         virtual enum status
         certify(wsrep::client_id, wsrep::ws_handle&,
                 int,

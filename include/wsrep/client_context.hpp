@@ -44,7 +44,7 @@
 #include "client_id.hpp"
 #include "mutex.hpp"
 #include "lock.hpp"
-#include "data.hpp"
+#include "buffer.hpp"
 #include "thread.hpp"
 
 
@@ -242,7 +242,7 @@ namespace wsrep
             return transaction_.append_key(key);
         }
 
-        int append_data(const wsrep::data& data)
+        int append_data(const wsrep::const_buffer& data)
         {
             assert(state_ == s_exec);
             return transaction_.append_data(data);
@@ -400,7 +400,7 @@ namespace wsrep
         friend int server_context::on_apply(client_context&,
                                             const wsrep::ws_handle&,
                                             const wsrep::ws_meta&,
-                                            const wsrep::data&);
+                                            const wsrep::const_buffer&);
         friend class client_context_switch;
         friend class client_applier_mode;
         friend class client_toi_mode;
@@ -425,18 +425,17 @@ namespace wsrep
         /*!
          * Append SR fragment to the transaction.
          */
-        virtual int append_fragment(wsrep::transaction_context&,
-                                    int, const wsrep::data&)
-        { return 0; }
+        virtual int append_fragment(const wsrep::transaction_context&,
+                                    int, const wsrep::const_buffer&) = 0;
 
-
+        virtual void remove_fragments(const wsrep::transaction_context&) = 0;
         /*!
          * This method applies a write set give in data buffer.
          * This must be implemented by the DBMS integration.
          *
          * \return Zero on success, non-zero on applying failure.
          */
-        virtual int apply(const wsrep::data& data) = 0;
+        virtual int apply(const wsrep::const_buffer& data) = 0;
 
         /*!
          * Virtual method which will be called
@@ -474,8 +473,10 @@ namespace wsrep
         virtual void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) = 0;
 
         virtual int prepare_data_for_replication(
-            const wsrep::transaction_context&, wsrep::data& data) = 0;
+            const wsrep::transaction_context&) = 0;
 
+        virtual int prepare_fragment_for_replication(
+            const wsrep::transaction_context&, wsrep::mutable_buffer&) = 0;
         /*!
          * Return true if the current client operation was killed.
          */

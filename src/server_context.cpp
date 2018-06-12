@@ -114,7 +114,7 @@ int wsrep::server_context::on_apply(
     wsrep::client_context& client_context,
     const wsrep::ws_handle& ws_handle,
     const wsrep::ws_meta& ws_meta,
-    const wsrep::data& data)
+    const wsrep::const_buffer& data)
 {
     int ret(0);
     const wsrep::transaction_context& txc(client_context.transaction());

@@ -51,7 +51,7 @@ if (WITH_TSAN)
 endif()
 
 add_custom_target(coverage_report
-  lcov --capture --directory . --output lcov.info --no-external
+  lcov --capture --directory src --output lcov.info --no-external
   COMMAND genhtml --output-directory coverage_report lcov.info)
 
 
@@ -66,4 +66,6 @@ endif()
 
 add_subdirectory(src)
 add_subdirectory(wsrep-API)
+add_subdirectory(test)
+add_subdirectory(dbsim)
 

@@ -5,7 +5,7 @@
 #include "wsrep/provider.hpp"
 #include "wsrep/logger.hpp"
 
-#include "mock_provider.hpp"
+#include "../test/mock_provider.hpp"
 #include "wsrep_provider_v26.hpp"
 
 wsrep::provider* wsrep::provider::make_provider(

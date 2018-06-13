@@ -132,7 +132,8 @@ int wsrep::transaction_context::before_prepare(
     assert(lock.owns_lock());
     int ret(0);
     debug_log_state("before_prepare_enter");
-    assert(state() == s_executing || state() == s_must_abort);
+    assert(state() == s_executing || state() == s_must_abort ||
+           state() == s_replaying);
 
     if (state() == s_must_abort)
     {
@@ -141,7 +142,10 @@ int wsrep::transaction_context::before_prepare(
         return 1;
     }
 
-    state(lock, s_preparing);
+    if (state() != s_replaying)
+    {
+        state(lock, s_preparing);
+    }
 
     switch (client_context_.mode())
     {
@@ -168,14 +172,17 @@ int wsrep::transaction_context::before_prepare(
         break;
     case wsrep::client_context::m_local:
     case wsrep::client_context::m_applier:
-        client_context_.remove_fragments(*this);
+        if (is_streaming())
+        {
+            client_context_.remove_fragments(*this);
+        }
         break;
     default:
         assert(0);
         break;
     }
 
-    assert(state() == s_preparing);
+    assert(state() == s_preparing || state() == s_replaying);
     debug_log_state("before_prepare_leave");
     return ret;
 }
@@ -186,7 +193,8 @@ int wsrep::transaction_context::after_prepare(
     assert(lock.owns_lock());
     int ret(1);
     debug_log_state("after_prepare_enter");
-    assert(state() == s_preparing || state() == s_must_abort);
+    assert(state() == s_preparing || state() == s_must_abort ||
+           state() == s_replaying);
     if (state() == s_must_abort)
     {
         assert(client_context_.mode() == wsrep::client_context::m_replicating);
@@ -205,8 +213,11 @@ int wsrep::transaction_context::after_prepare(
         break;
     case wsrep::client_context::m_local:
     case wsrep::client_context::m_applier:
-        state(lock, s_certifying);
-        state(lock, s_committing);
+        if (state() != s_replaying)
+        {
+            state(lock, s_certifying);
+            state(lock, s_committing);
+        }
         ret = 0;
         break;
     default:
@@ -241,6 +252,7 @@ int wsrep::transaction_context::before_commit()
     case wsrep::client_context::m_replicating:
         if (state() == s_executing)
         {
+            assert(client_context_.do_2pc() == false);
             ret = before_prepare(lock) || after_prepare(lock);
             assert((ret == 0 && state() == s_committing)
                    ||
@@ -297,9 +309,13 @@ int wsrep::transaction_context::before_commit()
         assert(ordered());
         if (client_context_.do_2pc() == false)
         {
-            client_context_.remove_fragments(*this);
+            ret = before_prepare(lock) || after_prepare(lock);
         }
-        ret = provider_.commit_order_enter(ws_handle_, ws_meta_);
+        else
+        {
+            ret = 0;
+        }
+        ret = ret || provider_.commit_order_enter(ws_handle_, ws_meta_);
         if (ret)
         {
             state(lock, s_must_abort);

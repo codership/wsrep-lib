@@ -8,7 +8,7 @@
 // Test a succesful 2PC transaction lifecycle
 //
 BOOST_FIXTURE_TEST_CASE(transaction_context_2pc,
-                        replicating_client_fixture_sync_rm)
+                        replicating_client_fixture_2pc)
 {
     cc.start_transaction(1);
     BOOST_REQUIRE(tc.active());
@@ -36,7 +36,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_2pc,
 //
 BOOST_FIXTURE_TEST_CASE(
     transaction_context_2pc_bf_before_before_prepare,
-    replicating_client_fixture_sync_rm)
+    replicating_client_fixture_2pc)
 {
     cc.start_transaction(1);
     BOOST_REQUIRE(tc.active());
@@ -63,7 +63,7 @@ BOOST_FIXTURE_TEST_CASE(
 //
 BOOST_FIXTURE_TEST_CASE(
     transaction_context_2pc_bf_before_after_prepare,
-    replicating_client_fixture_sync_rm)
+    replicating_client_fixture_2pc)
 {
     cc.start_transaction(1);
     BOOST_REQUIRE(tc.active());
@@ -93,7 +93,7 @@ BOOST_FIXTURE_TEST_CASE(
 //
 BOOST_FIXTURE_TEST_CASE(
     transaction_context_2pc_bf_after_after_prepare,
-    replicating_client_fixture_sync_rm)
+    replicating_client_fixture_2pc)
 {
     cc.start_transaction(1);
     BOOST_REQUIRE(tc.active());
@@ -121,7 +121,7 @@ BOOST_FIXTURE_TEST_CASE(
 //
 BOOST_FIXTURE_TEST_CASE(
     transaction_context_2pc_bf_before_before_commit,
-    replicating_client_fixture_sync_rm)
+    replicating_client_fixture_2pc)
 {
     cc.start_transaction(1);
     BOOST_REQUIRE(tc.active());
@@ -154,7 +154,7 @@ BOOST_FIXTURE_TEST_CASE(
 //
 BOOST_FIXTURE_TEST_CASE(
     transaction_context_2pc_bf_during_commit_order_enter,
-    replicating_client_fixture_sync_rm)
+    replicating_client_fixture_2pc)
 {
     cc.start_transaction(1);
     BOOST_REQUIRE(tc.active());
@@ -227,7 +227,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_2pc_commit_two_statements,
 ///////////////////////////////////////////////////////////////////////////////
 
 BOOST_FIXTURE_TEST_CASE(transaction_context_2pc_applying,
-                        applying_client_fixture)
+                        applying_client_fixture_2pc)
 {
     BOOST_REQUIRE(cc.before_prepare() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_preparing);

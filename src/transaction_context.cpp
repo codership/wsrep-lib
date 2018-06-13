@@ -378,8 +378,7 @@ int wsrep::transaction_context::before_rollback()
         {
             if (is_streaming())
             {
-                // Replicate rollback fragment
-                provider_.rollback(id_.get());
+                streaming_rollback();
             }
             state(lock, s_aborting);
         }
@@ -387,8 +386,7 @@ int wsrep::transaction_context::before_rollback()
     case s_cert_failed:
         if (is_streaming())
         {
-            // Replicate rollback fragment
-            provider_.rollback(id_.get());
+            streaming_rollback();
         }
         state(lock, s_aborting);
         break;
@@ -696,6 +694,9 @@ int wsrep::transaction_context::certify_fragment(
         }
         break;
     default:
+        sr_lock.lock();
+        sr_transaction_context.state(sr_lock, s_must_abort);
+        sr_lock.unlock();
         sr_client_context->rollback();
         ret = 1;
         break;
@@ -703,8 +704,6 @@ int wsrep::transaction_context::certify_fragment(
     lock.lock();
     if (ret)
     {
-        client_context_.provider().rollback(id_);
-        streaming_context_.rolled_back(id_);
         state(lock, s_must_abort);
     }
     else

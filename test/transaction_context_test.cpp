@@ -1278,7 +1278,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_rollback,
     BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
 }
 
-#if 0
 BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_cert_fail_non_commit,
                         streaming_client_fixture_row)
 {
@@ -1296,4 +1295,3 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_cert_fail_non_commit,
     BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
 }
 
-#endif

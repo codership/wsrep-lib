@@ -262,14 +262,16 @@ namespace wsrep
         }
         int before_prepare()
         {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(state_ == s_exec);
-            return transaction_.before_prepare();
+            return transaction_.before_prepare(lock);
         }
 
         int after_prepare()
         {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(state_ == s_exec);
-            return transaction_.after_prepare();
+            return transaction_.after_prepare(lock);
         }
 
         int before_commit()

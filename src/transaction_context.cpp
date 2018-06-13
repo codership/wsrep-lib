@@ -115,11 +115,11 @@ int wsrep::transaction_context::after_row()
     return 0;
 }
 
-int wsrep::transaction_context::before_prepare()
+int wsrep::transaction_context::before_prepare(
+    wsrep::unique_lock<wsrep::mutex>& lock)
 {
+    assert(lock.owns_lock());
     int ret(0);
-
-    wsrep::unique_lock<wsrep::mutex> lock(client_context_.mutex());
     debug_log_state("before_prepare_enter");
     assert(state() == s_executing || state() == s_must_abort);
 
@@ -168,10 +168,11 @@ int wsrep::transaction_context::before_prepare()
     return ret;
 }
 
-int wsrep::transaction_context::after_prepare()
+int wsrep::transaction_context::after_prepare(
+    wsrep::unique_lock<wsrep::mutex>& lock)
 {
+    assert(lock.owns_lock());
     int ret(1);
-    wsrep::unique_lock<wsrep::mutex> lock(client_context_.mutex());
     debug_log_state("after_prepare_enter");
     assert(state() == s_preparing || state() == s_must_abort);
     if (state() == s_must_abort)
@@ -185,7 +186,7 @@ int wsrep::transaction_context::after_prepare()
     {
     case wsrep::client_context::m_replicating:
         ret = certify_commit(lock);
-        assert((ret == 0 || state() == s_committing) ||
+        assert((ret == 0 && state() == s_committing) ||
                (state() == s_must_abort ||
                 state() == s_must_replay ||
                 state() == s_cert_failed));
@@ -226,12 +227,10 @@ int wsrep::transaction_context::before_commit()
         }
         break;
     case wsrep::client_context::m_replicating:
-
-        // Commit is one phase - before/after prepare was not called
         if (state() == s_executing)
         {
-            ret = certify_commit(lock);
-            assert((ret == 0 || state() == s_committing)
+            ret = before_prepare(lock) || after_prepare(lock);
+            assert((ret == 0 && state() == s_committing)
                    ||
                    (state() == s_must_abort ||
                     state() == s_must_replay ||
@@ -278,7 +277,6 @@ int wsrep::transaction_context::before_commit()
                 assert(0);
                 break;
             }
-
         }
         break;
     case wsrep::client_context::m_applier:

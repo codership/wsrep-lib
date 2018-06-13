@@ -19,11 +19,11 @@ int wsrep::fake_client_context::commit()
     int ret(0);
     if (do_2pc())
     {
-        if (transaction_.before_prepare())
+        if (before_prepare())
         {
             ret = 1;
         }
-        else if (transaction_.after_prepare())
+        else if (after_prepare())
         {
             ret = 1;
         }

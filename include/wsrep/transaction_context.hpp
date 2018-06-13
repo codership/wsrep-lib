@@ -98,9 +98,9 @@ namespace wsrep
 
         int after_row();
 
-        int before_prepare();
+        int before_prepare(wsrep::unique_lock<wsrep::mutex>&);
 
-        int after_prepare();
+        int after_prepare(wsrep::unique_lock<wsrep::mutex>&);
 
         int before_commit();
 

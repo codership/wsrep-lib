@@ -83,3 +83,27 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc_rollback,
     const wsrep::transaction_context& txc(cc.transaction());
     BOOST_REQUIRE(txc.state() == wsrep::transaction_context::s_aborted);
 }
+
+BOOST_AUTO_TEST_CASE(server_context_state_strings)
+{
+    BOOST_REQUIRE(wsrep::to_string(
+                      wsrep::server_context::s_disconnected) == "disconnected");
+    BOOST_REQUIRE(wsrep::to_string(
+                      wsrep::server_context::s_initializing) == "initilizing");
+    BOOST_REQUIRE(wsrep::to_string(
+                      wsrep::server_context::s_initialized) == "initilized");
+    BOOST_REQUIRE(wsrep::to_string(
+                      wsrep::server_context::s_connected) == "connected");
+    BOOST_REQUIRE(wsrep::to_string(
+                      wsrep::server_context::s_joiner) == "joiner");
+    BOOST_REQUIRE(wsrep::to_string(
+                      wsrep::server_context::s_joined) == "joined");
+    BOOST_REQUIRE(wsrep::to_string(
+                      wsrep::server_context::s_donor) == "donor");
+    BOOST_REQUIRE(wsrep::to_string(
+                      wsrep::server_context::s_synced) == "synced");
+    BOOST_REQUIRE(wsrep::to_string(
+                      wsrep::server_context::s_disconnecting) == "disconnecting");
+    BOOST_REQUIRE(wsrep::to_string(
+                      static_cast<enum wsrep::server_context::state>(0xff)) == "unknown");
+}

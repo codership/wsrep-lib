@@ -1148,3 +1148,49 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_statement_streaming_cert_fail,
     BOOST_REQUIRE(sc.provider().start_fragments() == 0);
     BOOST_REQUIRE(sc.provider().rollback_fragments() == 0);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+//                             misc                                          //
+///////////////////////////////////////////////////////////////////////////////
+
+BOOST_AUTO_TEST_CASE(transaction_context_state_strings)
+{
+    BOOST_REQUIRE(wsrep::to_string(
+                      wsrep::transaction_context::s_executing) == "executing");
+    BOOST_REQUIRE(wsrep::to_string(
+                      wsrep::transaction_context::s_preparing) == "preparing");
+    BOOST_REQUIRE(
+        wsrep::to_string(
+            wsrep::transaction_context::s_certifying) == "certifying");
+    BOOST_REQUIRE(
+        wsrep::to_string(
+            wsrep::transaction_context::s_committing) == "committing");
+    BOOST_REQUIRE(
+        wsrep::to_string(
+            wsrep::transaction_context::s_ordered_commit) == "ordered_commit");
+    BOOST_REQUIRE(
+        wsrep::to_string(
+            wsrep::transaction_context::s_committed) == "committed");
+    BOOST_REQUIRE(
+        wsrep::to_string(
+            wsrep::transaction_context::s_cert_failed) == "cert_failed");
+    BOOST_REQUIRE(
+        wsrep::to_string(
+            wsrep::transaction_context::s_must_abort) == "must_abort");
+    BOOST_REQUIRE(
+        wsrep::to_string(
+            wsrep::transaction_context::s_aborting) == "aborting");
+    BOOST_REQUIRE(
+        wsrep::to_string(
+            wsrep::transaction_context::s_aborted) == "aborted");
+    BOOST_REQUIRE(
+        wsrep::to_string(
+            wsrep::transaction_context::s_must_replay) == "must_replay");
+    BOOST_REQUIRE(
+        wsrep::to_string(
+            wsrep::transaction_context::s_replaying) == "replaying");
+    BOOST_REQUIRE(
+        wsrep::to_string(
+            static_cast<enum wsrep::transaction_context::state>(0xff)) == "unknown");
+
+}

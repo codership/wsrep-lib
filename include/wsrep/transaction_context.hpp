@@ -219,8 +219,9 @@ namespace wsrep
             }
 
             size_t unit_counter() const { return unit_counter_; }
-            void increment_unit_counter() { ++unit_counter_; }
-
+            void increment_unit_counter(size_t inc)
+            { unit_counter_ += inc; }
+            void reset_unit_counter() { unit_counter_ = 0; }
             void cleanup()
             {
                 fragments_.clear();

@@ -393,6 +393,7 @@ private:
     }
     void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) override
     { }
+    size_t bytes_generated() const { return 0; }
     int prepare_data_for_replication(const wsrep::transaction_context&)
         override
     { return 0; }

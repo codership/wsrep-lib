@@ -46,7 +46,7 @@
 #include "lock.hpp"
 #include "buffer.hpp"
 #include "thread.hpp"
-
+#include "logger.hpp"
 
 namespace wsrep
 {
@@ -241,12 +241,23 @@ namespace wsrep
             transaction_.streaming_context_ = transaction.streaming_context_;
         }
 
-        void enable_streaming(
-            enum wsrep::transaction_context::streaming_context::fragment_unit fragment_unit,
+        int enable_streaming(
+            enum wsrep::transaction_context::streaming_context::fragment_unit
+            fragment_unit,
             size_t fragment_size)
         {
+            if (transaction_.active() &&
+                transaction_.streaming_context_.fragment_unit() !=
+                fragment_unit)
+            {
+                wsrep::log_error()
+                    << "Changing fragment unit for active transaction "
+                    << "not allowed";
+                return 1;
+            }
             transaction_.streaming_context_.enable(
                 fragment_unit, fragment_size);
+            return 0;
         }
         int append_key(const wsrep::key& key)
         {
@@ -489,6 +500,7 @@ namespace wsrep
         virtual int prepare_data_for_replication(
             const wsrep::transaction_context&) = 0;
 
+        virtual size_t bytes_generated() const = 0;
         virtual int prepare_fragment_for_replication(
             const wsrep::transaction_context&, wsrep::mutable_buffer&) = 0;
         /*!

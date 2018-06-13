@@ -182,7 +182,7 @@ namespace
             // Verify initial state
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
-            cc.enable_streaming(wsrep::transaction_context::streaming_context::row, 1);
+            cc.enable_streaming(wsrep::transaction_context::streaming_context::bytes, 1);
         }
         wsrep::fake_server_context sc;
         wsrep::fake_client_context cc;

@@ -33,6 +33,7 @@ namespace wsrep
             , killed_before_certify_()
             , sync_point_enabled_()
             , sync_point_action_()
+            , bytes_generated_()
             , replays_()
             , aborts_()
         { }
@@ -85,6 +86,11 @@ namespace wsrep
             static const char buf[1] = { 1 };
             wsrep::const_buffer data = wsrep::const_buffer(buf, 1);
             return transaction_.append_data(data);
+        }
+
+        size_t bytes_generated() const
+        {
+            return bytes_generated_;
         }
 
         int prepare_fragment_for_replication(const wsrep::transaction_context&,
@@ -142,6 +148,7 @@ namespace wsrep
         {
             spa_bf_abort
         } sync_point_action_;
+        size_t bytes_generated_;
     private:
         size_t replays_;
         size_t aborts_;

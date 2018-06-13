@@ -111,16 +111,25 @@ int wsrep::transaction_context::after_row()
         switch (streaming_context_.fragment_unit())
         {
         case streaming_context::row:
-            streaming_context_.increment_unit_counter();
-            if (streaming_context_.fragments_certified()
-                + streaming_context_.unit_counter() >=
+            streaming_context_.increment_unit_counter(1);
+            if (streaming_context_.unit_counter() >=
                 streaming_context_.fragment_size())
+            {
+                streaming_context_.reset_unit_counter();
+                return certify_fragment(lock);
+            }
+            break;
+        case streaming_context::bytes:
+            if (client_context_.bytes_generated() >=
+                streaming_context_.bytes_certified()
+                + streaming_context_.fragment_size())
             {
                 return certify_fragment(lock);
             }
             break;
-        default:
-            assert(0);
+        case streaming_context::statement:
+            // This case is checked in after_statement()
+            break;
         }
     }
     return 0;
@@ -462,6 +471,18 @@ int wsrep::transaction_context::after_statement()
            state() == s_must_abort ||
            state() == s_cert_failed ||
            state() == s_must_replay);
+
+    if (state() == s_executing &&
+        streaming_context_.fragment_size() &&
+        streaming_context_.fragment_unit() == streaming_context::statement)
+    {
+        streaming_context_.increment_unit_counter(1);
+        if (streaming_context_.unit_counter() >= streaming_context_.fragment_size())
+        {
+            streaming_context_.reset_unit_counter();
+            ret = certify_fragment(lock);
+        }
+    }
 
     switch (state())
     {

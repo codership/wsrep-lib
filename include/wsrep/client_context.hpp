@@ -242,7 +242,7 @@ namespace wsrep
         }
 
         int enable_streaming(
-            enum wsrep::transaction_context::streaming_context::fragment_unit
+            enum wsrep::streaming_context::fragment_unit
             fragment_unit,
             size_t fragment_size)
         {

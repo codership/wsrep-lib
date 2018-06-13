@@ -764,7 +764,6 @@ int wsrep::transaction_context::certify_commit(
 {
     assert(lock.owns_lock());
     assert(active());
-
     client_context_.wait_for_replayers(lock);
 
     assert(lock.owns_lock());

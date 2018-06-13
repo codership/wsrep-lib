@@ -924,7 +924,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_row_batch_streaming_1pc_commit,
                         streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.enable_streaming(
-                      wsrep::transaction_context::streaming_context::row, 2) == 0);
+                      wsrep::streaming_context::row, 2) == 0);
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
@@ -1067,7 +1067,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_byte_batch_streaming_1pc_commit,
 {
     BOOST_REQUIRE(
         cc.enable_streaming(
-            wsrep::transaction_context::streaming_context::bytes, 2) == 0);
+            wsrep::streaming_context::bytes, 2) == 0);
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     cc.bytes_generated_ = 1;
     BOOST_REQUIRE(cc.after_row() == 0);
@@ -1090,7 +1090,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_statement_streaming_1pc_commit,
 {
     BOOST_REQUIRE(
         cc.enable_streaming(
-            wsrep::transaction_context::streaming_context::statement, 1) == 0);
+            wsrep::streaming_context::statement, 1) == 0);
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
@@ -1111,7 +1111,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_statement_batch_streaming_1pc_commit
 {
     BOOST_REQUIRE(
         cc.enable_streaming(
-            wsrep::transaction_context::streaming_context::statement, 2) == 0);
+            wsrep::streaming_context::statement, 2) == 0);
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
@@ -1137,7 +1137,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_statement_streaming_cert_fail,
 {
     BOOST_REQUIRE(
         cc.enable_streaming(
-            wsrep::transaction_context::streaming_context::statement, 1) == 0);
+            wsrep::streaming_context::statement, 1) == 0);
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);

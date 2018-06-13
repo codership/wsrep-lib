@@ -66,6 +66,7 @@
 
 #include <vector>
 #include <string>
+#include <map>
 
 namespace wsrep
 {
@@ -74,7 +75,9 @@ namespace wsrep
     class ws_meta;
     class provider;
     class client_context;
+    class transaction_id;
     class transaction_context;
+    class id;
     class gtid;
     class view;
     class const_buffer;
@@ -197,6 +200,23 @@ namespace wsrep
          * \return Pointer to Client Context.
          */
         virtual client_context* local_client_context() = 0;
+
+        /*!
+         * Create applier context for streaming transaction.
+         *
+         * \param server_id Server id of the origin of the SR transaction.
+         * \param transaction_id Transaction ID of the SR transaction on the
+         *        origin server.
+         */
+        virtual client_context& streaming_applier_client_context(
+            const wsrep::id& server_id,
+            const wsrep::transaction_id& transaction_id
+            ) = 0;
+
+        void insert_streaming_applier(
+            const wsrep::id&,
+            const wsrep::transaction_id&,
+            wsrep::client_context* client_context);
 
         /*!
          * Load WSRep provider.
@@ -383,6 +403,7 @@ namespace wsrep
             , cond_(cond)
             , state_(s_disconnected)
             , state_waiters_(n_states_)
+            , streaming_appliers_()
             , provider_()
             , name_(name)
             , id_(id)
@@ -403,6 +424,8 @@ namespace wsrep
         wsrep::condition_variable& cond_;
         enum state state_;
         mutable std::vector<int> state_waiters_;
+        typedef std::map<std::pair<wsrep::id, wsrep::transaction_id>, wsrep::client_context*> streaming_appliers_map;
+        streaming_appliers_map streaming_appliers_;
         wsrep::provider* provider_;
         std::string name_;
         std::string id_;

@@ -53,7 +53,7 @@ namespace wsrep
                               << "client: " << client_id.get()
                               << " flags: " << std::hex << flags
                               << std::dec
-                              << "next_error: " << next_error_;
+                              << " next_error: " << next_error_;
 
             if (next_error_)
             {
@@ -71,6 +71,7 @@ namespace wsrep
             }
             if (rolls_back_transaction(flags))
             {
+                assert(0);
                 ++rollback_fragments_;
             }
 
@@ -116,7 +117,11 @@ namespace wsrep
         int append_data(wsrep::ws_handle&, const wsrep::const_buffer&)
         { return 0; }
         int rollback(const wsrep::transaction_id)
-        { return next_error_; }
+        {
+            ++fragments_;
+            ++rollback_fragments_;
+            return 0;
+        }
         enum wsrep::provider::status
         commit_order_enter(const wsrep::ws_handle&,
                                           const wsrep::ws_meta&)
@@ -170,7 +175,7 @@ namespace wsrep
         size_t start_fragments() const { return start_fragments_; }
         size_t fragments() const { return fragments_; }
         size_t commit_fragments() const { return commit_fragments_; }
-        size_t rollback_fragments() const { return commit_fragments_; }
+        size_t rollback_fragments() const { return rollback_fragments_; }
 
     private:
         wsrep::id group_id_;

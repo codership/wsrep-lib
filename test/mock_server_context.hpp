@@ -33,7 +33,14 @@ namespace wsrep
             return new wsrep::mock_client_context(*this, ++last_client_id_,
                                                   wsrep::client_context::m_local);
         }
-
+        wsrep::client_context& streaming_applier_client_context(
+            const wsrep::id& server_id,
+            const wsrep::transaction_id& transaction_id)
+        {
+            wsrep::client_context* sac(new wsrep::mock_client_context(*this, ++last_client_id_, wsrep::client_context::m_applier));
+            insert_streaming_applier(server_id, transaction_id, sac);
+            return *sac;
+        }
         void on_connect() WSREP_OVERRIDE { }
         void wait_until_connected() WSREP_OVERRIDE { }
         void on_view(const wsrep::view&) WSREP_OVERRIDE { }

@@ -229,6 +229,12 @@ namespace wsrep
             return transaction_.start_transaction(wsh, meta);
         }
 
+        void adopt_transaction(wsrep::transaction_context& transaction)
+        {
+            transaction_.start_transaction(transaction.id());
+            transaction_.streaming_context_ = transaction.streaming_context_;
+        }
+
         void enable_streaming(
             enum wsrep::transaction_context::streaming_context::fragment_unit fragment_unit,
             size_t fragment_size)

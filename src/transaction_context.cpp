@@ -367,8 +367,7 @@ int wsrep::transaction_context::before_rollback()
         // Voluntary rollback
         if (is_streaming())
         {
-            // Replicate rollback fragment
-            provider_.rollback(id_.get());
+            streaming_rollback();
         }
         state(lock, s_aborting);
         break;
@@ -652,11 +651,6 @@ int wsrep::transaction_context::certify_fragment(
 
     lock.unlock();
 
-    if (streaming_context_.fragments_certified())
-    {
-        flags_ |= wsrep::provider::flag::start_transaction;
-    }
-
     wsrep::mutable_buffer data;
     if (client_context_.prepare_fragment_for_replication(*this, data))
     {
@@ -869,6 +863,18 @@ int wsrep::transaction_context::certify_commit(
     return ret;
 }
 
+void wsrep::transaction_context::streaming_rollback()
+{
+    assert(streaming_context_.rolled_back() == false);
+    wsrep::client_context& applier_context(
+        client_context_.server_context().streaming_applier_client_context(
+            client_context_.server_context().id(), id()));
+    applier_context.adopt_transaction(*this);
+    streaming_context_.cleanup();
+    // Replicate rollback fragment
+    provider_.rollback(id_.get());
+}
+
 void wsrep::transaction_context::clear_fragments()
 {
     streaming_context_.cleanup();
@@ -876,13 +882,10 @@ void wsrep::transaction_context::clear_fragments()
 
 void wsrep::transaction_context::cleanup()
 {
+    assert(is_streaming() == false);
     debug_log_state("cleanup_enter");
     id_ = wsrep::transaction_id::invalid();
     ws_handle_ = wsrep::ws_handle();
-    if (is_streaming())
-    {
-        state_ = s_executing;
-    }
     // Keep the state history for troubleshooting. Reset at start_transaction().
     // state_hist_.clear();
     ws_meta_ = wsrep::ws_meta();

@@ -30,6 +30,9 @@ namespace wsrep
         }
     };
 
+    class fatal_error : public std::exception
+    {
+    };
 }
 
 

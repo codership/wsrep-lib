@@ -8,6 +8,7 @@
 #include "wsrep/view.hpp"
 #include "wsrep/logger.hpp"
 #include "wsrep/compiler.hpp"
+#include "wsrep/id.hpp"
 
 #include <cassert>
 #include <sstream>
@@ -176,6 +177,21 @@ bool wsrep::server_context::statement_allowed_for_streaming(
 {
     /* Streaming not implemented yet. */
     return false;
+}
+
+void wsrep::server_context::insert_streaming_applier(
+    const wsrep::id& server_id,
+    const wsrep::transaction_id& transaction_id,
+    wsrep::client_context* client_context)
+{
+    if (streaming_appliers_.insert(
+            std::make_pair(std::make_pair(server_id, transaction_id),
+                           client_context)).second == false)
+    {
+        wsrep::log_error() << "Could not insert streaming applier";
+        delete client_context;
+        throw wsrep::fatal_error();
+    }
 }
 
 // Private

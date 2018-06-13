@@ -265,6 +265,11 @@ public:
     // Client context management
     wsrep::client_context* local_client_context();
 
+    wsrep::client_context& streaming_applier_client_context(
+        const wsrep::id&, const wsrep::transaction_id&) override
+    {
+        throw wsrep::not_implemented_error();
+    }
     size_t next_transaction_id()
     {
         return (last_transaction_id_.fetch_add(1) + 1);

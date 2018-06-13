@@ -135,6 +135,7 @@ namespace wsrep
         void flags(int flags) { flags_ = flags; }
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
+        void streaming_rollback();
         void clear_fragments();
         void cleanup();
         void debug_log_state(const char*) const;

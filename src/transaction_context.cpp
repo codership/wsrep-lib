@@ -239,8 +239,15 @@ int wsrep::transaction_context::before_commit()
         }
         else if (state() != s_committing)
         {
-                assert(state() == s_must_abort);
+            assert(state() == s_must_abort);
+            if (certified())
+            {
+                state(lock, s_must_replay);
+            }
+            else
+            {
                 client_context_.override_error(wsrep::e_deadlock_error);
+            }
         }
         else
         {
@@ -768,10 +775,10 @@ int wsrep::transaction_context::certify_commit(
     {
     case wsrep::provider::success:
         assert(ordered());
+        certified_ = true;
         switch (state())
         {
         case s_certifying:
-            certified_ = true;
             state(lock, s_committing);
             ret = 0;
             break;
@@ -786,7 +793,6 @@ int wsrep::transaction_context::certify_commit(
             assert(0);
             break;
         }
-        certified_ = true;
         break;
     case wsrep::provider::error_warning:
         assert(ordered() == false);

@@ -5,123 +5,13 @@
 #include "wsrep/transaction_context.hpp"
 #include "wsrep/provider.hpp"
 
-#include "fake_client_context.hpp"
-#include "fake_server_context.hpp"
-
 #include "test_utils.hpp"
+#include "client_context_fixture.hpp"
 
-#include <boost/test/unit_test.hpp>
 #include <boost/mpl/vector.hpp>
 
 namespace
 {
-    struct replicating_client_fixture_sync_rm
-    {
-        replicating_client_fixture_sync_rm()
-            : sc("s1", "s1", wsrep::server_context::rm_sync)
-            , cc(sc, wsrep::client_id(1),
-                 wsrep::client_context::m_replicating)
-            , tc(cc.transaction())
-        {
-            BOOST_REQUIRE(cc.before_command() == 0);
-            BOOST_REQUIRE(cc.before_statement() == 0);
-            // Verify initial state
-            BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
-        }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
-        const wsrep::transaction_context& tc;
-    };
-
-    struct replicating_client_fixture_async_rm
-    {
-        replicating_client_fixture_async_rm()
-            : sc("s1", "s1", wsrep::server_context::rm_async)
-            , cc(sc, wsrep::client_id(1),
-                 wsrep::client_context::m_replicating)
-            , tc(cc.transaction())
-        {
-            BOOST_REQUIRE(cc.before_command() == 0);
-            BOOST_REQUIRE(cc.before_statement() == 0);
-            // Verify initial state
-            BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
-        }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
-        const wsrep::transaction_context& tc;
-    };
-
-    struct replicating_client_fixture_autocommit
-    {
-        replicating_client_fixture_autocommit()
-            : sc("s1", "s1", wsrep::server_context::rm_sync)
-            , cc(sc, wsrep::client_id(1),
-                 wsrep::client_context::m_replicating, true)
-            , tc(cc.transaction())
-        {
-            BOOST_REQUIRE(cc.before_command() == 0);
-            BOOST_REQUIRE(cc.before_statement() == 0);
-            // Verify initial state
-            BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
-        }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
-        const wsrep::transaction_context& tc;
-    };
-
-    struct applying_client_fixture
-    {
-        applying_client_fixture()
-            : sc("s1", "s1",
-                 wsrep::server_context::rm_async)
-            , cc(sc,
-                 wsrep::client_id(1),
-                 wsrep::client_context::m_applier)
-            , tc(cc.transaction())
-        {
-            BOOST_REQUIRE(cc.before_command() == 0);
-            BOOST_REQUIRE(cc.before_statement() == 0);
-            wsrep::ws_handle ws_handle(1, (void*)1);
-            wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
-                                   wsrep::stid(sc.id(), 1, cc.id()),
-                                   wsrep::seqno(0),
-                                   wsrep::provider::flag::start_transaction |
-                                   wsrep::provider::flag::commit);
-            BOOST_REQUIRE(cc.start_transaction(ws_handle, ws_meta) == 0);
-            BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(cc.start_transaction() == 0);
-            BOOST_REQUIRE(tc.active() == true);
-            BOOST_REQUIRE(tc.certified() == true);
-            BOOST_REQUIRE(tc.ordered() == true);
-        }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
-        const wsrep::transaction_context& tc;
-    };
-
-    struct streaming_client_fixture_row
-    {
-        streaming_client_fixture_row()
-            : sc("s1", "s1", wsrep::server_context::rm_sync)
-            , cc(sc, wsrep::client_id(1),
-                 wsrep::client_context::m_replicating)
-            , tc(cc.transaction())
-        {
-            BOOST_REQUIRE(cc.before_command() == 0);
-            BOOST_REQUIRE(cc.before_statement() == 0);
-            // Verify initial state
-            BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
-            cc.enable_streaming(wsrep::transaction_context::streaming_context::row, 1);
-        }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
-        const wsrep::transaction_context& tc;
-    };
-
     typedef
     boost::mpl::vector<replicating_client_fixture_sync_rm,
                        replicating_client_fixture_async_rm>
@@ -188,47 +78,6 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_context_1pc, T,
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
 }
 
-//
-// Test a succesful 2PC transaction lifecycle
-//
-BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_context_2pc, T,
-                                 replicating_fixtures, T)
-{
-    wsrep::client_context& cc(T::cc);
-    const wsrep::transaction_context& tc(T::tc);
-    // Start a new transaction with ID 1
-    cc.start_transaction(1);
-    BOOST_REQUIRE(tc.active());
-    BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
-
-    // Run before prepare
-    BOOST_REQUIRE(cc.before_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_preparing);
-
-    // Run after prepare
-    BOOST_REQUIRE(cc.after_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committing);
-
-    // Run before commit
-    BOOST_REQUIRE(cc.before_commit() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committing);
-
-    // Run ordered commit
-    BOOST_REQUIRE(cc.ordered_commit() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_ordered_commit);
-
-    // Run after commit
-    BOOST_REQUIRE(cc.after_commit() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committed);
-
-    // Cleanup after statement
-    cc.after_statement();
-    BOOST_REQUIRE(tc.active() == false);
-    BOOST_REQUIRE(tc.ordered() == false);
-    BOOST_REQUIRE(tc.certified() == false);
-    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
-}
 
 //
 // Test a voluntary rollback
@@ -299,85 +148,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(cc.current_error());
 }
 
-//
-// Test a 2PC transaction which gets BF aborted before before_prepare
-//
-BOOST_FIXTURE_TEST_CASE_TEMPLATE(
-    transaction_context_2pc_bf_before_before_prepare, T,
-    replicating_fixtures, T)
-{
-    wsrep::client_context& cc(T::cc);
-    const wsrep::transaction_context& tc(T::tc);
 
-    // Start a new transaction with ID 1
-    cc.start_transaction(1);
-    BOOST_REQUIRE(tc.active());
-    BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
-
-    wsrep_test::bf_abort_unordered(cc);
-
-    // Run before commit
-    BOOST_REQUIRE(cc.before_prepare());
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_abort);
-    BOOST_REQUIRE(tc.certified() == false);
-    BOOST_REQUIRE(tc.ordered() == false);
-
-    // Rollback sequence
-    BOOST_REQUIRE(cc.before_rollback() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborting);
-    BOOST_REQUIRE(cc.after_rollback() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborted);
-
-    // Cleanup after statement
-    cc.after_statement();
-    BOOST_REQUIRE(tc.active() == false);
-    BOOST_REQUIRE(tc.ordered() == false);
-    BOOST_REQUIRE(tc.certified() == false);
-    BOOST_REQUIRE(cc.current_error());
-}
-
-//
-// Test a 2PC transaction which gets BF aborted before before_prepare
-//
-BOOST_FIXTURE_TEST_CASE_TEMPLATE(
-    transaction_context_2pc_bf_before_after_prepare, T,
-    replicating_fixtures, T)
-{
-    wsrep::client_context& cc(T::cc);
-    const wsrep::transaction_context& tc(T::tc);
-
-    // Start a new transaction with ID 1
-    cc.start_transaction(1);
-    BOOST_REQUIRE(tc.active());
-    BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
-
-    // Run before prepare
-    BOOST_REQUIRE(cc.before_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_preparing);
-
-    wsrep_test::bf_abort_unordered(cc);
-
-    // Run before commit
-    BOOST_REQUIRE(cc.after_prepare());
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_abort);
-    BOOST_REQUIRE(tc.certified() == false);
-    BOOST_REQUIRE(tc.ordered() == false);
-
-    // Rollback sequence
-    BOOST_REQUIRE(cc.before_rollback() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborting);
-    BOOST_REQUIRE(cc.after_rollback() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborted);
-
-    // Cleanup after statement
-    cc.after_statement();
-    BOOST_REQUIRE(tc.active() == false);
-    BOOST_REQUIRE(tc.ordered() == false);
-    BOOST_REQUIRE(tc.certified() == false);
-    BOOST_REQUIRE(cc.current_error());
-}
 
 //
 // Test a 1PC transaction which gets BF aborted during before_commit via
@@ -885,7 +656,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    cc.sync_point_action_ = "wsrep_after_certification";
+    cc.sync_point_enabled_ = "wsrep_after_certification";
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
@@ -907,49 +678,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
 }
 
-//
-// Test a 2PC transaction which gets BF aborted when trying to grab
-// commit order.
-//
-BOOST_FIXTURE_TEST_CASE_TEMPLATE(
-    transaction_context_2pc_bf_during_commit_order_enter, T,
-    replicating_fixtures, T)
-{
-    wsrep::fake_server_context& sc(T::sc);
-    wsrep::client_context& cc(T::cc);
-    const wsrep::transaction_context& tc(T::tc);
 
-    // Start a new transaction with ID 1
-    cc.start_transaction(1);
-    BOOST_REQUIRE(tc.active());
-    BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
-
-    BOOST_REQUIRE(cc.before_prepare() == 0);
-    BOOST_REQUIRE(cc.after_prepare() == 0);
-
-    sc.provider().commit_order_enter_status_ = wsrep::provider::error_bf_abort;
-
-    // Run before commit
-    BOOST_REQUIRE(cc.before_commit());
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
-    BOOST_REQUIRE(tc.certified() == true);
-    BOOST_REQUIRE(tc.ordered() == true);
-
-    sc.provider().commit_order_enter_status_ = wsrep::provider::success;
-    // Rollback sequence
-    BOOST_REQUIRE(cc.before_rollback() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
-    BOOST_REQUIRE(cc.after_rollback() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
-
-    // Cleanup after statement
-    cc.after_statement();
-    BOOST_REQUIRE(tc.active() == false);
-    BOOST_REQUIRE(tc.ordered() == false);
-    BOOST_REQUIRE(tc.certified() == false);
-    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
-}
 
 //
 // Test a transaction which gets BF aborted before before_statement.
@@ -1152,24 +881,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_1pc_applying,
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
 }
 
-BOOST_FIXTURE_TEST_CASE(transaction_context_2pc_applying,
-                        applying_client_fixture)
-{
-    BOOST_REQUIRE(cc.before_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_preparing);
-    BOOST_REQUIRE(cc.after_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committing);
-    BOOST_REQUIRE(cc.before_commit() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committing);
-    BOOST_REQUIRE(cc.ordered_commit() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_ordered_commit);
-    BOOST_REQUIRE(cc.after_commit() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committed);
-    cc.after_statement();
-    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committed);
-    BOOST_REQUIRE(tc.active() == false);
-    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
-}
 
 BOOST_FIXTURE_TEST_CASE(transaction_context_applying_rollback,
                         applying_client_fixture)
@@ -1183,7 +894,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_applying_rollback,
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //                       STREAMING REPLICATION                               //
@@ -1204,23 +914,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_1pc_commit,
     BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
 }
 
-BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_2pc_commit,
-                        streaming_client_fixture_row)
-{
-    BOOST_REQUIRE(cc.start_transaction(1) == 0);
-    BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
-    BOOST_REQUIRE(cc.before_prepare() == 0);
-    BOOST_REQUIRE(cc.after_prepare() == 0);
-    BOOST_REQUIRE(cc.before_commit() == 0);
-    BOOST_REQUIRE(cc.ordered_commit() == 0);
-    BOOST_REQUIRE(cc.after_commit() == 0);
-    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_success);
-    BOOST_REQUIRE(sc.provider().fragments() == 2);
-    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
-    BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
-
-}
 
 
 BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_1pc_commit_two_statements,
@@ -1243,26 +936,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_1pc_commit_two_statements,
 
 }
 
-BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_2pc_commit_two_statements,
-                        streaming_client_fixture_row)
-{
-    BOOST_REQUIRE(cc.start_transaction(1) == 0);
-    BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
-    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_success);
-    BOOST_REQUIRE(cc.before_statement() == 0);
-    BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 2);
-    BOOST_REQUIRE(cc.before_prepare() == 0);
-    BOOST_REQUIRE(cc.after_prepare() == 0);
-    BOOST_REQUIRE(cc.before_commit() == 0);
-    BOOST_REQUIRE(cc.ordered_commit() == 0);
-    BOOST_REQUIRE(cc.after_commit() == 0);
-    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_success);
-    BOOST_REQUIRE(sc.provider().fragments() == 3);
-    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
-    BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
-}
 
 BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_rollback,
                         streaming_client_fixture_row)

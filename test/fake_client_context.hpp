@@ -31,6 +31,7 @@ namespace wsrep
             , bf_abort_during_wait_()
             , error_during_prepare_data_()
             , killed_before_certify_()
+            , sync_point_enabled_()
             , sync_point_action_()
             , replays_()
             , aborts_()
@@ -105,9 +106,14 @@ namespace wsrep
                         const char* sync_point) WSREP_OVERRIDE
         {
             lock.unlock();
-            if (sync_point_action_ == sync_point)
+            if (sync_point_enabled_ == sync_point)
             {
-                wsrep_test::bf_abort_ordered(*this);
+                switch (sync_point_action_)
+                {
+                case spa_bf_abort:
+                    wsrep_test::bf_abort_ordered(*this);
+                    break;
+                }
             }
             lock.lock();
         }
@@ -129,7 +135,11 @@ namespace wsrep
         bool bf_abort_during_wait_;
         bool error_during_prepare_data_;
         bool killed_before_certify_;
-        std::string sync_point_action_;
+        std::string sync_point_enabled_;
+        enum sync_point_action
+        {
+            spa_bf_abort
+        } sync_point_action_;
     private:
         size_t replays_;
         size_t aborts_;

@@ -168,6 +168,7 @@ int wsrep::transaction_context::before_prepare(
         break;
     case wsrep::client_context::m_local:
     case wsrep::client_context::m_applier:
+        client_context_.remove_fragments(*this);
         break;
     default:
         assert(0);
@@ -294,6 +295,10 @@ int wsrep::transaction_context::before_commit()
     case wsrep::client_context::m_applier:
         assert(certified());
         assert(ordered());
+        if (client_context_.do_2pc() == false)
+        {
+            client_context_.remove_fragments(*this);
+        }
         ret = provider_.commit_order_enter(ws_handle_, ws_meta_);
         if (ret)
         {
@@ -343,16 +348,19 @@ int wsrep::transaction_context::after_commit()
     debug_log_state("after_commit_enter");
     assert(state() == s_ordered_commit);
 
+    if (is_streaming())
+    {
+        assert(client_context_.mode() == wsrep::client_context::m_replicating ||
+               client_context_.mode() == wsrep::client_context::m_applier);
+        clear_fragments();
+    }
+
     switch (client_context_.mode())
     {
     case wsrep::client_context::m_local:
         // Nothing to do
         break;
     case wsrep::client_context::m_replicating:
-        if (is_streaming())
-        {
-            clear_fragments();
-        }
         ret = provider_.release(ws_handle_);
         break;
     case wsrep::client_context::m_applier:

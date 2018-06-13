@@ -164,9 +164,23 @@ int wsrep::server_context::on_apply(
         assert(ret ||
                txc.state() == wsrep::transaction_context::s_committed);
     }
+    else if (commits_transaction(ws_meta.flags()))
+    {
+        if (not_replaying)
+        {
+            // SR commit not implemented yet
+            assert(0);
+        }
+        else
+        {
+            ret = client_context.start_replaying() ||
+                client_context.apply(wsrep::const_buffer()) ||
+                client_context.commit();
+        }
+    }
     else
     {
-        // SR not implemented yet
+        // SR fragment applying not implemented yet
         assert(0);
     }
     if (not_replaying)

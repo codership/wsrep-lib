@@ -1020,7 +1020,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_row_streaming_bf_abort_committing,
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committed);
     BOOST_REQUIRE(sc.provider().fragments() == 2);
     BOOST_REQUIRE(sc.provider().start_fragments() == 1);
-    BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
+    BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
 }
 
 

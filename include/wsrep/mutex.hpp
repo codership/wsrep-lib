@@ -43,10 +43,7 @@ namespace wsrep
         }
         ~default_mutex()
         {
-            if (pthread_mutex_destroy(&mutex_))
-            {
-                throw wsrep::runtime_error("mutex destroy failed");
-            }
+            if (pthread_mutex_destroy(&mutex_)) ::abort();
         }
 
         void lock()

@@ -4,7 +4,7 @@
 
 #include "test_utils.hpp"
 #include "wsrep/client_context.hpp"
-#include "mock_server_context.hpp"
+#include "fake_server_context.hpp"
 
 
 // Simple BF abort method to BF abort unordered transasctions
@@ -22,7 +22,7 @@ void wsrep_test::bf_abort_ordered(wsrep::client_context& cc)
     cc.bf_abort(lock, wsrep::seqno(0));
 }
 // BF abort method to abort transactions via provider
-void wsrep_test::bf_abort_provider(wsrep::mock_server_context& sc,
+void wsrep_test::bf_abort_provider(wsrep::fake_server_context& sc,
                                    const wsrep::transaction_context& tc,
                                    wsrep::seqno bf_seqno)
 {

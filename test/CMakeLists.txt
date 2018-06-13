@@ -3,7 +3,7 @@
 #
 
 add_executable(wsrep-lib_test
-  mock_client_context.cpp
+  fake_client_context.cpp
   test_utils.cpp
   id_test.cpp
   server_context_test.cpp

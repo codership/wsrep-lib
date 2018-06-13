@@ -305,13 +305,11 @@ int wsrep::transaction_context::before_commit()
 
 int wsrep::transaction_context::ordered_commit()
 {
-    int ret(1);
-
     wsrep::unique_lock<wsrep::mutex> lock(client_context_.mutex());
     debug_log_state("ordered_commit_enter");
     assert(state() == s_committing);
     assert(ordered());
-    ret = provider_.commit_order_leave(ws_handle_, ws_meta_);
+    int ret(provider_.commit_order_leave(ws_handle_, ws_meta_));
     // Should always succeed
     assert(ret == 0);
     state(lock, s_ordered_commit);
@@ -450,10 +448,7 @@ int wsrep::transaction_context::after_statement()
         // ?
         break;
     case s_committed:
-        if (is_streaming())
-        {
-            state(lock, s_executing);
-        }
+        assert(is_streaming() == false);
         break;
     case s_must_abort:
     case s_cert_failed:
@@ -512,7 +507,6 @@ bool wsrep::transaction_context::bf_abort(
 {
     bool ret(false);
     assert(lock.owns_lock());
-    assert(&lock.mutex() == &mutex());
 
     if (active() == false)
     {
@@ -584,11 +578,9 @@ bool wsrep::transaction_context::bf_abort(
     return ret;
 }
 
-wsrep::mutex& wsrep::transaction_context::mutex()
-{
-    return client_context_.mutex();
-}
-// Private
+////////////////////////////////////////////////////////////////////////////////
+//                                 Private                                    //
+////////////////////////////////////////////////////////////////////////////////
 
 void wsrep::transaction_context::state(
     wsrep::unique_lock<wsrep::mutex>& lock __attribute__((unused)),

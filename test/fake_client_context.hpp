@@ -2,8 +2,8 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef WSREP_MOCK_CLIENT_CONTEXT_HPP
-#define WSREP_MOCK_CLIENT_CONTEXT_HPP
+#ifndef WSREP_FAKE_CLIENT_CONTEXT_HPP
+#define WSREP_FAKE_CLIENT_CONTEXT_HPP
 
 #include "wsrep/client_context.hpp"
 #include "wsrep/mutex.hpp"
@@ -13,10 +13,10 @@
 
 namespace wsrep
 {
-    class mock_client_context : public wsrep::client_context
+    class fake_client_context : public wsrep::client_context
     {
     public:
-        mock_client_context(wsrep::server_context& server_context,
+        fake_client_context(wsrep::server_context& server_context,
                             const wsrep::client_id& id,
                             enum wsrep::client_context::mode mode,
                             bool is_autocommit = false,
@@ -35,7 +35,7 @@ namespace wsrep
             , replays_()
             , aborts_()
         { }
-        ~mock_client_context()
+        ~fake_client_context()
         {
             if (transaction().active())
             {
@@ -136,4 +136,4 @@ namespace wsrep
     };
 }
 
-#endif // WSREP_MOCK_CLIENT_CONTEXT_HPP
+#endif // WSREP_FAKE_CLIENT_CONTEXT_HPP

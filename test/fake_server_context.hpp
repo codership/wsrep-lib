@@ -2,21 +2,21 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef WSREP_MOCK_SERVER_CONTEXT_HPP
-#define WSREP_MOCK_SERVER_CONTEXT_HPP
+#ifndef WSREP_FAKE_SERVER_CONTEXT_HPP
+#define WSREP_FAKE_SERVER_CONTEXT_HPP
 
 #include "wsrep/server_context.hpp"
-#include "mock_client_context.hpp"
-#include "mock_provider.hpp"
+#include "fake_client_context.hpp"
+#include "fake_provider.hpp"
 
 #include "wsrep/compiler.hpp"
 
 namespace wsrep
 {
-    class mock_server_context : public wsrep::server_context
+    class fake_server_context : public wsrep::server_context
     {
     public:
-        mock_server_context(const std::string& name,
+        fake_server_context(const std::string& name,
                             const std::string& id,
                             enum wsrep::server_context::rollback_mode rollback_mode)
             : wsrep::server_context(mutex_, cond_,
@@ -26,18 +26,18 @@ namespace wsrep
             , provider_(*this)
             , last_client_id_(0)
         { }
-        wsrep::mock_provider& provider() const
+        wsrep::fake_provider& provider() const
         { return provider_; }
         wsrep::client_context* local_client_context()
         {
-            return new wsrep::mock_client_context(*this, ++last_client_id_,
+            return new wsrep::fake_client_context(*this, ++last_client_id_,
                                                   wsrep::client_context::m_local);
         }
         wsrep::client_context& streaming_applier_client_context(
             const wsrep::id& server_id,
             const wsrep::transaction_id& transaction_id)
         {
-            wsrep::client_context* sac(new wsrep::mock_client_context(*this, ++last_client_id_, wsrep::client_context::m_applier));
+            wsrep::client_context* sac(new wsrep::fake_client_context(*this, ++last_client_id_, wsrep::client_context::m_applier));
             insert_streaming_applier(server_id, transaction_id, sac);
             return *sac;
         }
@@ -63,9 +63,9 @@ namespace wsrep
     private:
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;
-        mutable wsrep::mock_provider provider_;
+        mutable wsrep::fake_provider provider_;
         unsigned long long last_client_id_;
     };
 }
 
-#endif // WSREP_MOCK_SERVER_CONTEXT_HPP
+#endif // WSREP_FAKE_SERVER_CONTEXT_HPP

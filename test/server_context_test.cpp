@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "mock_server_context.hpp"
+#include "fake_server_context.hpp"
 
 #include <boost/test/unit_test.hpp>
 
@@ -26,8 +26,8 @@ namespace
         {
             cc.start_transaction(ws_handle, ws_meta);
         }
-        wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::fake_server_context sc;
+        wsrep::fake_client_context cc;
         wsrep::ws_handle ws_handle;
         wsrep::ws_meta ws_meta;
     };

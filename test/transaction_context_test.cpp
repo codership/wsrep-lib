@@ -5,8 +5,8 @@
 #include "wsrep/transaction_context.hpp"
 #include "wsrep/provider.hpp"
 
-#include "mock_client_context.hpp"
-#include "mock_server_context.hpp"
+#include "fake_client_context.hpp"
+#include "fake_server_context.hpp"
 
 #include "test_utils.hpp"
 
@@ -29,8 +29,8 @@ namespace
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
         }
-        wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::fake_server_context sc;
+        wsrep::fake_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -48,8 +48,8 @@ namespace
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
         }
-        wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::fake_server_context sc;
+        wsrep::fake_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -67,8 +67,8 @@ namespace
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
         }
-        wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::fake_server_context sc;
+        wsrep::fake_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -97,8 +97,8 @@ namespace
             BOOST_REQUIRE(tc.certified() == true);
             BOOST_REQUIRE(tc.ordered() == true);
         }
-        wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::fake_server_context sc;
+        wsrep::fake_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -117,8 +117,8 @@ namespace
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
             cc.enable_streaming(wsrep::transaction_context::streaming_context::row, 1);
         }
-        wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::fake_server_context sc;
+        wsrep::fake_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -387,7 +387,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_bf_during_before_commit_uncertified, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::fake_server_context& sc(T::sc);
     wsrep::client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
@@ -427,7 +427,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_bf_during_commit_wait_for_replayers, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_client_context& cc(T::cc);
+    wsrep::fake_client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -465,7 +465,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_error_during_prepare_data, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_client_context& cc(T::cc);
+    wsrep::fake_client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -504,7 +504,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_killed_before_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_client_context& cc(T::cc);
+    wsrep::fake_client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -546,8 +546,8 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_bf_during_before_commit_certified, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
-    wsrep::mock_client_context& cc(T::cc);
+    wsrep::fake_server_context& sc(T::sc);
+    wsrep::fake_client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -586,7 +586,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_warning_error_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::fake_server_context& sc(T::sc);
     wsrep::client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
@@ -596,7 +596,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().inject_error(wsrep::provider::error_warning);
+    sc.provider().certify_status_ = wsrep::provider::error_warning;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -604,7 +604,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().inject_error(wsrep::provider::success);
+    sc.provider().certify_status_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -627,7 +627,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_transaction_missing_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::fake_server_context& sc(T::sc);
     wsrep::client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
@@ -637,7 +637,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().inject_error(wsrep::provider::error_transaction_missing);
+    sc.provider().certify_status_ = wsrep::provider::error_transaction_missing;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -645,7 +645,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().inject_error(wsrep::provider::success);
+    sc.provider().certify_status_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -668,7 +668,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_size_exceeded_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::fake_server_context& sc(T::sc);
     wsrep::client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
@@ -678,7 +678,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().inject_error(wsrep::provider::error_size_exceeded);
+    sc.provider().certify_status_ = wsrep::provider::error_size_exceeded;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -686,7 +686,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().inject_error(wsrep::provider::success);
+    sc.provider().certify_status_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -709,7 +709,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_connection_failed_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::fake_server_context& sc(T::sc);
     wsrep::client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
@@ -719,7 +719,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().inject_error(wsrep::provider::error_connection_failed);
+    sc.provider().certify_status_ = wsrep::provider::error_connection_failed;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -727,7 +727,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().inject_error(wsrep::provider::success);
+    sc.provider().certify_status_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -750,7 +750,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_no_allowed_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::fake_server_context& sc(T::sc);
     wsrep::client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
@@ -760,7 +760,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().inject_error(wsrep::provider::error_not_allowed);
+    sc.provider().certify_status_ = wsrep::provider::error_not_allowed;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -768,7 +768,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().inject_error(wsrep::provider::success);
+    sc.provider().certify_status_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -791,8 +791,8 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_fatal_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
-    wsrep::mock_client_context& cc(T::cc);
+    wsrep::fake_server_context& sc(T::sc);
+    wsrep::fake_client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -801,7 +801,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().inject_error(wsrep::provider::error_fatal);
+    sc.provider().certify_status_ = wsrep::provider::error_fatal;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -809,7 +809,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().inject_error(wsrep::provider::success);
+    sc.provider().certify_status_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -833,8 +833,8 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_unknown_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
-    wsrep::mock_client_context& cc(T::cc);
+    wsrep::fake_server_context& sc(T::sc);
+    wsrep::fake_client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -843,7 +843,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().inject_error(wsrep::provider::error_unknown);
+    sc.provider().certify_status_ = wsrep::provider::error_unknown;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -851,7 +851,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().inject_error(wsrep::provider::success);
+    sc.provider().certify_status_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -875,8 +875,8 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_1pc_bf_abort_after_certify_regain_lock, T,
     replicating_fixtures, T)
 {
-    // wsrep::mock_server_context& sc(T::sc);
-    wsrep::mock_client_context& cc(T::cc);
+    // wsrep::fake_server_context& sc(T::sc);
+    wsrep::fake_client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -915,7 +915,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_context_2pc_bf_during_commit_order_enter, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::fake_server_context& sc(T::sc);
     wsrep::client_context& cc(T::cc);
     const wsrep::transaction_context& tc(T::tc);
 
@@ -928,7 +928,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(cc.before_prepare() == 0);
     BOOST_REQUIRE(cc.after_prepare() == 0);
 
-    sc.provider().inject_error(wsrep::provider::error_bf_abort);
+    sc.provider().commit_order_enter_status_ = wsrep::provider::error_bf_abort;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -936,7 +936,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == true);
     BOOST_REQUIRE(tc.ordered() == true);
 
-    sc.provider().inject_error(wsrep::provider::success);
+    sc.provider().commit_order_enter_status_ = wsrep::provider::success;
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
@@ -1277,3 +1277,23 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_rollback,
     BOOST_REQUIRE(sc.provider().start_fragments() == 1);
     BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
 }
+
+#if 0
+BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_cert_fail_non_commit,
+                        streaming_client_fixture_row)
+{
+    BOOST_REQUIRE(cc.start_transaction(1) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    sc.provider().certify_status_ = wsrep::provider::error_certification_failed;
+    BOOST_REQUIRE(cc.after_row() == 1);
+    sc.provider().certify_status_ = wsrep::provider::success;
+    BOOST_REQUIRE(cc.before_rollback() == 0);
+    BOOST_REQUIRE(cc.after_rollback() == 0);
+    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_success);
+    BOOST_REQUIRE(sc.provider().fragments() == 2);
+    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
+    BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
+}
+
+#endif

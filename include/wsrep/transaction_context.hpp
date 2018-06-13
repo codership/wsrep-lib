@@ -124,7 +124,7 @@ namespace wsrep
             return flags_;
         }
 
-        wsrep::mutex& mutex();
+        // wsrep::mutex& mutex();
         wsrep::ws_handle& ws_handle() { return ws_handle_; }
         const wsrep::ws_handle& ws_handle() const { return ws_handle_; }
         const wsrep::ws_meta& ws_meta() const { return ws_meta_; }

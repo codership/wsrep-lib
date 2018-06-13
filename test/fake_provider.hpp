@@ -2,8 +2,8 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef WSREP_MOCK_PROVIDER_HPP
-#define WSREP_MOCK_PROVIDER_HPP
+#ifndef WSREP_FAKE_PROVIDER_HPP
+#define WSREP_FAKE_PROVIDER_HPP
 
 #include "wsrep/provider.hpp"
 #include "wsrep/logger.hpp"
@@ -15,18 +15,21 @@
 
 namespace wsrep
 {
-    class mock_provider : public wsrep::provider
+    class fake_provider : public wsrep::provider
     {
     public:
         typedef std::map<wsrep::transaction_id, wsrep::seqno> bf_abort_map;
 
-        mock_provider(wsrep::server_context& server_context)
+        fake_provider(wsrep::server_context& server_context)
             : provider(server_context)
+            , certify_status_()
+            , commit_order_enter_status_()
+            , commit_order_leave_status_()
+            , release_status_()
             , group_id_("1")
             , server_id_("1")
             , group_seqno_(0)
             , bf_abort_map_()
-            , next_error_(wsrep::provider::success)
             , start_fragments_()
             , fragments_()
             , commit_fragments_()
@@ -53,11 +56,11 @@ namespace wsrep
                               << "client: " << client_id.get()
                               << " flags: " << std::hex << flags
                               << std::dec
-                              << " next_error: " << next_error_;
+                              << " certify_status: " << certify_status_;
 
-            if (next_error_)
+            if (certify_status_)
             {
-                return next_error_;
+                return certify_status_;
             }
 
             ++fragments_;
@@ -125,12 +128,14 @@ namespace wsrep
         enum wsrep::provider::status
         commit_order_enter(const wsrep::ws_handle&,
                                           const wsrep::ws_meta&)
-        { return next_error_; }
+        { return commit_order_enter_status_; }
+
         int commit_order_leave(const wsrep::ws_handle&,
                                const wsrep::ws_meta&)
-        { return next_error_;}
+        { return commit_order_leave_status_;}
+
         int release(wsrep::ws_handle&)
-        { return next_error_; }
+        { return release_status_; }
 
         int replay(wsrep::ws_handle&, void*) { ::abort(); /* not impl */}
 
@@ -142,7 +147,7 @@ namespace wsrep
             return std::vector<status_variable>();
         }
 
-        // Methods to modify mock state
+        // Methods to modify fake state
         /*! Inject BF abort event into the provider.
          *
          * \param bf_seqno Aborter sequence number
@@ -164,14 +169,12 @@ namespace wsrep
             return wsrep::provider::success;
         }
 
-        /*!
-         * \todo Inject an error so that the next call to any
-         *       provider call will return the given error.
-         */
-        void inject_error(enum wsrep::provider::status error)
-        {
-            next_error_ = error;
-        }
+        // Parameters to control return value from the call
+        enum wsrep::provider::status certify_status_;
+        enum wsrep::provider::status commit_order_enter_status_;
+        enum wsrep::provider::status commit_order_leave_status_;
+        enum wsrep::provider::status release_status_;
+
         size_t start_fragments() const { return start_fragments_; }
         size_t fragments() const { return fragments_; }
         size_t commit_fragments() const { return commit_fragments_; }
@@ -182,7 +185,6 @@ namespace wsrep
         wsrep::id server_id_;
         long long group_seqno_;
         bf_abort_map bf_abort_map_;
-        enum wsrep::provider::status next_error_;
         size_t start_fragments_;
         size_t fragments_;
         size_t commit_fragments_;
@@ -191,4 +193,4 @@ namespace wsrep
 }
 
 
-#endif // WSREP_MOCK_PROVIDER_HPP
+#endif // WSREP_FAKE_PROVIDER_HPP

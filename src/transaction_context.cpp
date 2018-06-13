@@ -142,10 +142,7 @@ int wsrep::transaction_context::before_prepare(
         return 1;
     }
 
-    if (state() != s_replaying)
-    {
-        state(lock, s_preparing);
-    }
+    state(lock, s_preparing);
 
     switch (client_context_.mode())
     {
@@ -182,7 +179,7 @@ int wsrep::transaction_context::before_prepare(
         break;
     }
 
-    assert(state() == s_preparing || state() == s_replaying);
+    assert(state() == s_preparing);
     debug_log_state("before_prepare_leave");
     return ret;
 }
@@ -193,8 +190,7 @@ int wsrep::transaction_context::after_prepare(
     assert(lock.owns_lock());
     int ret(1);
     debug_log_state("after_prepare_enter");
-    assert(state() == s_preparing || state() == s_must_abort ||
-           state() == s_replaying);
+    assert(state() == s_preparing || state() == s_must_abort);
     if (state() == s_must_abort)
     {
         assert(client_context_.mode() == wsrep::client_context::m_replicating);
@@ -213,11 +209,8 @@ int wsrep::transaction_context::after_prepare(
         break;
     case wsrep::client_context::m_local:
     case wsrep::client_context::m_applier:
-        if (state() != s_replaying)
-        {
-            state(lock, s_certifying);
-            state(lock, s_committing);
-        }
+        state(lock, s_certifying);
+        state(lock, s_committing);
         ret = 0;
         break;
     default:
@@ -239,7 +232,8 @@ int wsrep::transaction_context::before_commit()
            state() == s_committing ||
            state() == s_must_abort ||
            state() == s_replaying);
-    assert(state() != s_committing || certified());
+    assert((state() != s_committing && state() != s_replaying) ||
+           certified());
 
     switch (client_context_.mode())
     {
@@ -319,19 +313,6 @@ int wsrep::transaction_context::before_commit()
         if (ret)
         {
             state(lock, s_must_abort);
-        }
-        else
-        {
-            if (state() == s_executing)
-            {
-                // 1pc
-                state(lock, s_certifying);
-                state(lock, s_committing);
-            }
-            else if (state() == s_replaying)
-            {
-                state(lock, s_committing);
-            }
         }
         break;
     default:
@@ -647,7 +628,7 @@ void wsrep::transaction_context::state(
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0}, /* ab */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ad */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, /* mr */
-            { 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0}  /* re */
+            { 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0}  /* re */
         };
     if (allowed[state_][next_state])
     {

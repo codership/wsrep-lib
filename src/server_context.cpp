@@ -136,6 +136,11 @@ int wsrep::server_context::on_apply(
             assert(txc.active() == false);
             client_context.start_transaction(ws_handle, ws_meta);
         }
+        else
+        {
+            client_context.start_replaying();
+        }
+
         if (client_context.apply(data))
         {
             ret = 1;

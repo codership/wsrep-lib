@@ -899,7 +899,10 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_applying_rollback,
 //                       STREAMING REPLICATION                               //
 ///////////////////////////////////////////////////////////////////////////////
 
-BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_1pc_commit,
+//
+// Test 1PC with row streaming with one row
+//
+BOOST_FIXTURE_TEST_CASE(transaction_context_row_streaming_1pc_commit,
                         streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
@@ -914,10 +917,12 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_1pc_commit,
     BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
 }
 
-
-
-BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_1pc_commit_two_statements,
-                        streaming_client_fixture_row)
+//
+// Test 1PC row streaming with two separate statements
+//
+BOOST_FIXTURE_TEST_CASE(
+    transaction_context_row_streaming_1pc_commit_two_statements,
+    streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
@@ -933,11 +938,12 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_1pc_commit_two_statements,
     BOOST_REQUIRE(sc.provider().fragments() == 3);
     BOOST_REQUIRE(sc.provider().start_fragments() == 1);
     BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
-
 }
 
-
-BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_rollback,
+//
+// Test streaming rollback
+//
+BOOST_FIXTURE_TEST_CASE(transaction_context_row_streaming_rollback,
                         streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
@@ -951,7 +957,10 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_rollback,
     BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
 }
 
-BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_cert_fail_non_commit,
+//
+// Test streaming certification failure during fragment replication
+//
+BOOST_FIXTURE_TEST_CASE(transaction_context_row_streaming_cert_fail_non_commit,
                         streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
@@ -968,3 +977,69 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_streaming_cert_fail_non_commit,
     BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
 }
 
+//
+// Test streaming certification failure during commit
+//
+BOOST_FIXTURE_TEST_CASE(transaction_context_row_streaming_cert_fail_commit,
+                        streaming_client_fixture_row)
+{
+    BOOST_REQUIRE(cc.start_transaction(1) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    sc.provider().certify_status_ = wsrep::provider::error_certification_failed;
+    BOOST_REQUIRE(cc.before_commit() == 1);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_cert_failed);
+    sc.provider().certify_status_ = wsrep::provider::success;
+    BOOST_REQUIRE(cc.before_rollback() == 0);
+    BOOST_REQUIRE(cc.after_rollback() == 0);
+    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_error);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborted);
+    BOOST_REQUIRE(sc.provider().fragments() == 2);
+    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
+    BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
+}
+
+//
+// Test streaming BF abort after succesful certification
+//
+BOOST_FIXTURE_TEST_CASE(transaction_context_row_streaming_bf_abort_committing,
+                        streaming_client_fixture_row)
+{
+    cc.debug_log_level(1);
+    BOOST_REQUIRE(cc.start_transaction(1) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(cc.before_commit() == 0);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committing);
+    wsrep_test::bf_abort_ordered(cc);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_abort);
+    BOOST_REQUIRE(cc.before_rollback() == 0);
+    BOOST_REQUIRE(cc.after_rollback() == 0);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
+    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_success);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committed);
+    BOOST_REQUIRE(sc.provider().fragments() == 2);
+    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
+    BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
+}
+
+
+
+BOOST_FIXTURE_TEST_CASE(transaction_context_byte_batch_streaming_1pc_commit,
+                        streaming_client_fixture_byte)
+{
+
+}
+
+BOOST_FIXTURE_TEST_CASE(transaction_context_byte_streaming_1pc_commit,
+                        streaming_client_fixture_byte)
+{
+
+}
+
+
+BOOST_FIXTURE_TEST_CASE(transaction_context_statement_streaming_1pc_commit,
+                        streaming_client_fixture_statement)
+{
+
+}

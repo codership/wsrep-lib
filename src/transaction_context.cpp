@@ -79,6 +79,17 @@ int wsrep::transaction_context::start_transaction(
     return 0;
 }
 
+int wsrep::transaction_context::start_replaying()
+{
+    assert(ws_meta_.flags() & wsrep::provider::flag::commit);
+    assert(active());
+    assert(client_context_.mode() == wsrep::client_context::m_applier);
+    assert(state() == s_replaying);
+    assert(ws_handle_.opaque());
+    assert(ws_meta_.seqno().nil() == false);
+    certified_ = true;
+    return 0;
+}
 
 int wsrep::transaction_context::append_key(const wsrep::key& key)
 {
@@ -255,6 +266,7 @@ int wsrep::transaction_context::before_commit()
         }
         if (ret == 0)
         {
+            assert(certified());
             assert(ordered());
             lock.unlock();
             enum wsrep::provider::status
@@ -280,6 +292,7 @@ int wsrep::transaction_context::before_commit()
         }
         break;
     case wsrep::client_context::m_applier:
+        assert(certified());
         assert(ordered());
         ret = provider_.commit_order_enter(ws_handle_, ws_meta_);
         if (ret)
@@ -593,7 +606,8 @@ void wsrep::transaction_context::state(
     {
         log_debug() << "client: " << client_context_.id().get()
                     << " txc: " << id().get()
-                    << " state: " << state_ << " -> " << next_state;
+                    << " state: " << to_string(state_)
+                    << " -> " << to_string(next_state);
     }
     assert(lock.owns_lock());
     static const char allowed[n_states][n_states] =

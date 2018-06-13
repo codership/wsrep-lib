@@ -52,6 +52,7 @@ namespace wsrep
                 int flags,
                 wsrep::ws_meta& ws_meta)
         {
+            ws_handle = wsrep::ws_handle(ws_handle.transaction_id(), (void*)1);
             wsrep::log_info() << "provider certify: "
                               << "client: " << client_id.get()
                               << " flags: " << std::hex << flags

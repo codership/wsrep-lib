@@ -119,5 +119,46 @@ namespace
         wsrep::fake_client_context cc;
         const wsrep::transaction_context& tc;
     };
+
+    struct streaming_client_fixture_byte
+    {
+        streaming_client_fixture_byte()
+            : sc("s1", "s1", wsrep::server_context::rm_sync)
+            , cc(sc, wsrep::client_id(1),
+                 wsrep::client_context::m_replicating)
+            , tc(cc.transaction())
+        {
+            BOOST_REQUIRE(cc.before_command() == 0);
+            BOOST_REQUIRE(cc.before_statement() == 0);
+            // Verify initial state
+            BOOST_REQUIRE(tc.active() == false);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+            cc.enable_streaming(wsrep::transaction_context::streaming_context::row, 1);
+        }
+        wsrep::fake_server_context sc;
+        wsrep::fake_client_context cc;
+        const wsrep::transaction_context& tc;
+    };
+
+    struct streaming_client_fixture_statement
+    {
+        streaming_client_fixture_statement()
+            : sc("s1", "s1", wsrep::server_context::rm_sync)
+            , cc(sc, wsrep::client_id(1),
+                 wsrep::client_context::m_replicating)
+            , tc(cc.transaction())
+        {
+            BOOST_REQUIRE(cc.before_command() == 0);
+            BOOST_REQUIRE(cc.before_statement() == 0);
+            // Verify initial state
+            BOOST_REQUIRE(tc.active() == false);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+            cc.enable_streaming(wsrep::transaction_context::streaming_context::row, 1);
+        }
+
+        wsrep::fake_server_context sc;
+        wsrep::fake_client_context cc;
+        const wsrep::transaction_context& tc;
+    };
 }
 #endif // WSREP_TEST_CLIENT_CONTEXT_FIXTURE_HPP

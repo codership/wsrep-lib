@@ -56,10 +56,12 @@ namespace wsrep
         void will_replay(wsrep::transaction_context&) WSREP_OVERRIDE { }
         int replay(wsrep::transaction_context& tc) WSREP_OVERRIDE
         {
-            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            tc.state(lock, wsrep::transaction_context::s_committing);
-            tc.state(lock, wsrep::transaction_context::s_ordered_commit);
-            tc.state(lock, wsrep::transaction_context::s_committed);
+            wsrep::client_applier_mode am(*this);
+            if (server_context().on_apply(
+                    *this, tc.ws_handle(), tc.ws_meta(), wsrep::const_buffer()))
+            {
+                return 1;
+            }
             ++replays_;
             return 0;
         }

@@ -10,7 +10,8 @@ int wsrep::fake_client_context::apply(
     const wsrep::const_buffer& data __attribute__((unused)))
 
 {
-    assert(transaction_.state() == wsrep::transaction_context::s_executing);
+    assert(transaction_.state() == wsrep::transaction_context::s_executing ||
+           transaction_.state() == wsrep::transaction_context::s_replaying);
     return (fail_next_applying_ ? 1 : 0);
 }
 

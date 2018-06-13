@@ -229,6 +229,12 @@ namespace wsrep
             return transaction_.start_transaction(wsh, meta);
         }
 
+        int start_replaying()
+        {
+            assert(mode_ == m_applier);
+            return transaction_.start_replaying();
+        }
+
         void adopt_transaction(wsrep::transaction_context& transaction)
         {
             transaction_.start_transaction(transaction.id());

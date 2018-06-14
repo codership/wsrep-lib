@@ -103,7 +103,9 @@ namespace wsrep
          * \todo This should not be visible to DBMS level, should be
          * handled internally by wsrep-lib.
          */
-        virtual enum wsrep::provider::status replay(wsrep::transaction_context&) = 0;
+        virtual enum wsrep::provider::status replay(
+            wsrep::client_context&,
+            wsrep::transaction_context&) = 0;
 
         /*!
          * Wait until all replaying transactions have been finished

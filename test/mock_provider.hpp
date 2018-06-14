@@ -2,8 +2,8 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef WSREP_FAKE_PROVIDER_HPP
-#define WSREP_FAKE_PROVIDER_HPP
+#ifndef WSREP_MOCK_PROVIDER_HPP
+#define WSREP_MOCK_PROVIDER_HPP
 
 #include "wsrep/provider.hpp"
 #include "wsrep/logger.hpp"
@@ -154,8 +154,8 @@ namespace wsrep
 
         enum wsrep::provider::status replay(wsrep::ws_handle&, void* ctx)
         {
-            wsrep::mock_client_context& cc(
-                *static_cast<wsrep::mock_client_context*>(ctx));
+            wsrep::client_context& cc(
+                *static_cast<wsrep::client_context*>(ctx));
             wsrep::client_applier_mode applier_mode(cc);
             const wsrep::transaction_context& tc(cc.transaction());
             wsrep::ws_meta ws_meta;
@@ -246,4 +246,4 @@ namespace wsrep
 }
 
 
-#endif // WSREP_FAKE_PROVIDER_HPP
+#endif // WSREP_MOCK_PROVIDER_HPP

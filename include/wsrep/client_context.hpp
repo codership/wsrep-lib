@@ -327,7 +327,7 @@ namespace wsrep
 
         int commit()
         {
-            assert(mode_ == m_applier);
+            assert(mode_ == m_applier || mode_ == m_local);
             return client_service_.commit(*this,
                 transaction_.ws_handle(), transaction_.ws_meta());
         }
@@ -351,19 +351,19 @@ namespace wsrep
 
         int before_commit()
         {
-            assert(state_ == s_exec);
+            assert(state_ == s_exec || mode_ == m_local);
             return transaction_.before_commit();
         }
 
         int ordered_commit()
         {
-            assert(state_ == s_exec);
+            assert(state_ == s_exec || mode_ == m_local);
             return transaction_.ordered_commit();
         }
 
         int after_commit()
         {
-            assert(state_ == s_exec);
+            assert(state_ == s_exec || mode_ == m_local);
             return transaction_.after_commit();
         }
 
@@ -418,7 +418,7 @@ namespace wsrep
         enum wsrep::provider::status replay(
             wsrep::transaction_context& tc)
         {
-            return client_service_.replay(tc);
+            return client_service_.replay(*this, tc);
         }
 
         //

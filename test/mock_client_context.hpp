@@ -71,10 +71,10 @@ namespace wsrep
         { return do_2pc_; }
 
         bool interrupted() const WSREP_OVERRIDE
-        { return false; }
+        { return killed_before_certify_; }
 
         void reset_globals() WSREP_OVERRIDE { }
-        void emergency_shutdown() WSREP_OVERRIDE { }
+        void emergency_shutdown() WSREP_OVERRIDE { ++aborts_; }
 
         int append_fragment(const wsrep::transaction_context&,
                             int, const wsrep::const_buffer&) WSREP_OVERRIDE
@@ -85,10 +85,11 @@ namespace wsrep
             WSREP_OVERRIDE { }
 
         enum wsrep::provider::status
-        replay(wsrep::transaction_context& tc) WSREP_OVERRIDE
+        replay(wsrep::client_context& client_context,
+               wsrep::transaction_context& tc) WSREP_OVERRIDE
         {
             enum wsrep::provider::status ret(
-                provider_.replay(tc.ws_handle(), this));
+                provider_.replay(tc.ws_handle(), &client_context));
             ++replays_;
             return ret;
         }
@@ -139,9 +140,6 @@ namespace wsrep
             wsrep::const_buffer data(buffer.data(), buffer.size());
             return client_context.append_data(data);
         }
-
-        bool killed() const WSREP_OVERRIDE { return killed_before_certify_; }
-        void abort() WSREP_OVERRIDE { ++aborts_; }
 
         void store_globals() WSREP_OVERRIDE { }
 

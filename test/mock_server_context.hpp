@@ -2,8 +2,8 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef WSREP_FAKE_SERVER_CONTEXT_HPP
-#define WSREP_FAKE_SERVER_CONTEXT_HPP
+#ifndef WSREP_MOCK_SERVER_CONTEXT_HPP
+#define WSREP_MOCK_SERVER_CONTEXT_HPP
 
 #include "wsrep/server_context.hpp"
 #include "mock_client_context.hpp"
@@ -78,4 +78,4 @@ namespace wsrep
     };
 }
 
-#endif // WSREP_FAKE_SERVER_CONTEXT_HPP
+#endif // WSREP_MOCK_SERVER_CONTEXT_HPP

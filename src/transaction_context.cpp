@@ -514,6 +514,7 @@ int wsrep::transaction_context::after_statement()
         switch (replay_ret)
         {
         case wsrep::provider::success:
+            provider_.release(ws_handle_);
             break;
         case wsrep::provider::error_certification_failed:
             client_context_.override_error(
@@ -530,7 +531,6 @@ int wsrep::transaction_context::after_statement()
             wsrep::log_info() << "Replay ret " << replay_ret;
             state(lock, s_aborted);
         }
-        provider_.release(ws_handle_);
         break;
     }
     case s_aborted:

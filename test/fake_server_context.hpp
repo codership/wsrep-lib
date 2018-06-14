@@ -33,13 +33,15 @@ namespace wsrep
             return new wsrep::fake_client_context(*this, ++last_client_id_,
                                                   wsrep::client_context::m_local);
         }
-        wsrep::client_context& streaming_applier_client_context(
-            const wsrep::id& server_id,
-            const wsrep::transaction_id& transaction_id)
+        wsrep::client_context* streaming_applier_client_context()
         {
-            wsrep::client_context* sac(new wsrep::fake_client_context(*this, ++last_client_id_, wsrep::client_context::m_applier));
-            insert_streaming_applier(server_id, transaction_id, sac);
-            return *sac;
+            return new wsrep::fake_client_context(
+                *this, ++last_client_id_, wsrep::client_context::m_applier);
+        }
+        void log_dummy_write_set(wsrep::client_context&, const wsrep::ws_meta&)
+            WSREP_OVERRIDE
+        {
+            // 
         }
         void on_connect() WSREP_OVERRIDE { }
         void wait_until_connected() WSREP_OVERRIDE { }

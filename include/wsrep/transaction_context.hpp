@@ -80,14 +80,6 @@ namespace wsrep
         bool pa_unsafe() const { return pa_unsafe_; }
         void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }
 
-        //
-        int start_transaction()
-        {
-            assert(active() == false);
-            assert(ws_meta_.transaction_id() != transaction_id::invalid());
-            return start_transaction(ws_meta_.transaction_id());
-        }
-
         int start_transaction(const wsrep::transaction_id& id);
 
         int start_transaction(const wsrep::ws_handle& ws_handle,

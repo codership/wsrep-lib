@@ -108,8 +108,6 @@ namespace
                                    wsrep::provider::flag::start_transaction |
                                    wsrep::provider::flag::commit);
             BOOST_REQUIRE(cc.start_transaction(ws_handle, ws_meta) == 0);
-            BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(cc.start_transaction() == 0);
             BOOST_REQUIRE(tc.active() == true);
             BOOST_REQUIRE(tc.certified() == true);
             BOOST_REQUIRE(tc.ordered() == true);
@@ -138,8 +136,6 @@ namespace
                                    wsrep::provider::flag::start_transaction |
                                    wsrep::provider::flag::commit);
             BOOST_REQUIRE(cc.start_transaction(ws_handle, ws_meta) == 0);
-            BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(cc.start_transaction() == 0);
             BOOST_REQUIRE(tc.active() == true);
             BOOST_REQUIRE(tc.certified() == true);
             BOOST_REQUIRE(tc.ordered() == true);

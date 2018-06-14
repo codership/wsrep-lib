@@ -37,6 +37,7 @@ struct dbms_simulator_params
     size_t n_servers;
     size_t n_clients;
     size_t n_transactions;
+    size_t n_rows;
     size_t alg_freq;
     std::string wsrep_provider;
     std::string wsrep_provider_options;
@@ -46,6 +47,7 @@ struct dbms_simulator_params
         : n_servers(0)
         , n_clients(0)
         , n_transactions(0)
+        , n_rows(1000)
         , alg_freq(0)
         , wsrep_provider()
         , wsrep_provider_options()
@@ -265,11 +267,13 @@ public:
     // Client context management
     wsrep::client_context* local_client_context();
 
-    wsrep::client_context& streaming_applier_client_context(
-        const wsrep::id&, const wsrep::transaction_id&) override
+    wsrep::client_context* streaming_applier_client_context() override
     {
         throw wsrep::not_implemented_error();
     }
+    void log_dummy_write_set(wsrep::client_context&, const wsrep::ws_meta&)
+        override
+    { }
     size_t next_transaction_id()
     {
         return (last_transaction_id_.fetch_add(1) + 1);
@@ -308,12 +312,12 @@ public:
     dbms_client(dbms_server& server,
                 const wsrep::client_id& id,
                 enum wsrep::client_context::mode mode,
-                size_t n_transactions)
+                const dbms_simulator_params& params)
         : wsrep::client_context(mutex_, server, id, mode)
         , mutex_()
         , server_(server)
         , se_trx_(server_.storage_engine())
-        , n_transactions_(n_transactions)
+        , params_(params)
         , stats_()
     { }
 
@@ -324,7 +328,7 @@ public:
 
     void start()
     {
-        for (size_t i(0); i < n_transactions_; ++i)
+        for (size_t i(0); i < params_.n_transactions; ++i)
         {
             run_one_transaction();
             report_progress(i + 1);
@@ -458,7 +462,7 @@ private:
                 // wsrep::log_debug() << "Generate write set";
                 assert(transaction().active());
                 assert(err == 0);
-                int data(std::rand() % 10000000);
+                int data(std::rand() % params_.n_rows);
                 std::ostringstream os;
                 os << data;
                 wsrep::key key(wsrep::key::exclusive);
@@ -513,13 +517,13 @@ private:
         {
             wsrep::log() << "client: " << id().get()
                          << " transactions: " << i
-                         << " " << 100*double(i)/n_transactions_ << "%";
+                         << " " << 100*double(i)/params_.n_transactions << "%";
         }
     }
     wsrep::default_mutex mutex_;
     dbms_server& server_;
     dbms_storage_engine::transaction se_trx_;
-    const size_t n_transactions_;
+    const dbms_simulator_params params_;
     struct stats stats_;
 };
 
@@ -529,7 +533,7 @@ void dbms_server::applier_thread()
 {
     wsrep::client_id client_id(last_client_id_.fetch_add(1) + 1);
     dbms_client applier(*this, client_id,
-                        wsrep::client_context::m_applier, 0);
+                        wsrep::client_context::m_applier, simulator_.params());
     enum wsrep::provider::status ret(provider().run_applier(&applier));
     wsrep::log() << "Applier thread exited with error code " << ret;
 }
@@ -538,7 +542,9 @@ wsrep::client_context* dbms_server::local_client_context()
 {
     std::ostringstream id_os;
     size_t client_id(++last_client_id_);
-    return new dbms_client(*this, client_id, wsrep::client_context::m_replicating, 0);
+    return new dbms_client(*this, client_id,
+                           wsrep::client_context::m_replicating,
+                           simulator_.params());
 }
 
 void dbms_server::start_clients()
@@ -576,7 +582,7 @@ void dbms_server::start_client(size_t id)
     auto client(std::make_shared<dbms_client>(
                     *this, id,
                     wsrep::client_context::m_replicating,
-                    simulator_.params().n_transactions));
+                    simulator_.params()));
     clients_.push_back(client);
     client_threads_.push_back(
         boost::thread(&dbms_server::client_thread, this, client));
@@ -764,6 +770,8 @@ int main(int argc, char** argv)
              "number of clients to start per server")
             ("transactions", po::value<size_t>(&params.n_transactions),
              "number of transactions run by a client")
+            ("rows", po::value<size_t>(&params.n_rows),
+             "number of rows per table")
             ("alg-freq", po::value<size_t>(&params.alg_freq),
              "ALG frequency")
             ("debug-log-level", po::value<int>(&params.debug_log_level),

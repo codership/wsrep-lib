@@ -122,7 +122,6 @@ int wsrep::server_context::on_apply(
     // wsrep::log_debug() << "server_context::on apply flags: "
     //                  << flags_to_string(ws_meta.flags());
     assert(ws_handle.opaque());
-    assert(ws_meta.flags());
     bool not_replaying(txc.state() !=
                        wsrep::transaction_context::s_replaying);
 
@@ -164,12 +163,91 @@ int wsrep::server_context::on_apply(
         assert(ret ||
                txc.state() == wsrep::transaction_context::s_committed);
     }
+    else if (starts_transaction(ws_meta.flags()))
+    {
+        assert(not_replaying);
+        assert(find_streaming_applier(
+                   ws_meta.server_id(), ws_meta.transaction_id()) == 0);
+        wsrep::client_context* sac(streaming_applier_client_context());
+        start_streaming_applier(
+            ws_meta.server_id(), ws_meta.transaction_id(), sac);
+        sac->start_transaction(ws_handle, ws_meta);
+        {
+            // TODO: Client context switch will be ultimately
+            // implemented by the application. Therefore need to
+            // introduce a virtual method call which takes
+            // both original and sac client contexts as argument
+            // and a functor which does the applying.
+            wsrep::client_context_switch sw(client_context, *sac);
+            sac->before_command();
+            sac->before_statement();
+            sac->apply(data);
+            sac->after_statement();
+            sac->after_command_before_result();
+            sac->after_command_after_result();
+        }
+        log_dummy_write_set(client_context, ws_meta);
+    }
+    else if (ws_meta.flags() == 0)
+    {
+        wsrep::client_context* sac(
+            find_streaming_applier(
+                ws_meta.server_id(), ws_meta.transaction_id()));
+        if (sac == 0)
+        {
+            // It is possible that rapid group membership changes
+            // may cause streaming transaction be rolled back before
+            // commit fragment comes in. Although this is a valid
+            // situation, log a warning if a sac cannot be found as
+            // it may be an indication of  a bug too.
+            wsrep::log_warning() << "Could not find applier context for "
+                                 << ws_meta.server_id()
+                                 << ": " << ws_meta.transaction_id();
+        }
+        else
+        {
+            wsrep::client_context_switch(client_context, *sac);
+            sac->before_command();
+            sac->before_statement();
+            ret = sac->apply(data);
+            sac->after_statement();
+            sac->after_command_before_result();
+            sac->after_command_after_result();
+        }
+        log_dummy_write_set(client_context, ws_meta);
+    }
     else if (commits_transaction(ws_meta.flags()))
     {
         if (not_replaying)
         {
-            // SR commit not implemented yet
-            assert(0);
+            wsrep::client_context* sac(
+                find_streaming_applier(
+                    ws_meta.server_id(), ws_meta.transaction_id()));
+            assert(sac);
+            if (sac == 0)
+            {
+                // It is possible that rapid group membership changes
+                // may cause streaming transaction be rolled back before
+                // commit fragment comes in. Although this is a valid
+                // situation, log a warning if a sac cannot be found as
+                // it may be an indication of  a bug too.
+                wsrep::log_warning() << "Could not find applier context for "
+                                     << ws_meta.server_id()
+                                     << ": " << ws_meta.transaction_id();
+            }
+            else
+            {
+                wsrep::client_context_switch(client_context, *sac);
+                sac->before_command();
+                sac->before_statement();
+                ret = sac->commit();
+                sac->after_statement();
+                sac->after_command_before_result();
+                sac->after_command_after_result();
+                stop_streaming_applier(
+                    ws_meta.server_id(), ws_meta.transaction_id());
+                delete sac;
+            }
         }
         else
         {
@@ -198,7 +276,7 @@ bool wsrep::server_context::statement_allowed_for_streaming(
     return false;
 }
 
-void wsrep::server_context::insert_streaming_applier(
+void wsrep::server_context::start_streaming_applier(
     const wsrep::id& server_id,
     const wsrep::transaction_id& transaction_id,
     wsrep::client_context* client_context)
@@ -211,6 +289,33 @@ void wsrep::server_context::insert_streaming_applier(
         delete client_context;
         throw wsrep::fatal_error();
     }
+}
+
+void wsrep::server_context::stop_streaming_applier(
+    const wsrep::id& server_id,
+    const wsrep::transaction_id& transaction_id)
+{
+    streaming_appliers_map::iterator i(
+        streaming_appliers_.find(std::make_pair(server_id, transaction_id)));
+    assert(i != streaming_appliers_.end());
+    if (i == streaming_appliers_.end())
+    {
+        wsrep::log_warning() << "Could not find streaming applier for "
+                             << server_id << ":" << transaction_id;
+    }
+    else
+    {
+        streaming_appliers_.erase(i);
+    }
+}
+
+wsrep::client_context* wsrep::server_context::find_streaming_applier(
+    const wsrep::id& server_id,
+    const wsrep::transaction_id& transaction_id) const
+{
+    streaming_appliers_map::const_iterator i(
+        streaming_appliers_.find(std::make_pair(server_id, transaction_id)));
+    return (i == streaming_appliers_.end() ? 0 : i->second);
 }
 
 // Private

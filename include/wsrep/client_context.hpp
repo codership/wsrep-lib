@@ -210,12 +210,6 @@ namespace wsrep
          */
         enum after_statement_result after_statement();
 
-        int start_transaction()
-        {
-            assert(state_ == s_exec);
-            return transaction_.start_transaction();
-        }
-
         int start_transaction(const wsrep::transaction_id& id)
         {
             assert(state_ == s_exec);

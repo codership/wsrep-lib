@@ -208,16 +208,23 @@ namespace wsrep
          * \param transaction_id Transaction ID of the SR transaction on the
          *        origin server.
          */
-        virtual client_context& streaming_applier_client_context(
-            const wsrep::id& server_id,
-            const wsrep::transaction_id& transaction_id
-            ) = 0;
+        virtual client_context* streaming_applier_client_context() = 0;
 
-        void insert_streaming_applier(
+        void start_streaming_applier(
             const wsrep::id&,
             const wsrep::transaction_id&,
             wsrep::client_context* client_context);
 
+        void stop_streaming_applier(
+            const wsrep::id&, const wsrep::transaction_id&);
+        /*!
+         * Return reference to streaming applier.
+         */
+        client_context* find_streaming_applier(const wsrep::id&,
+                                               const wsrep::transaction_id&) const;
+
+        virtual void log_dummy_write_set(wsrep::client_context&,
+                                         const wsrep::ws_meta&) = 0;
         /*!
          * Load WSRep provider.
          *

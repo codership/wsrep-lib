@@ -71,6 +71,7 @@ int wsrep::transaction_context::start_transaction(
 {
     assert(ws_meta.flags());
     assert(active() == false);
+    id_ = ws_meta.transaction_id();
     assert(client_context_.mode() == wsrep::client_context::m_applier);
     state_ = s_executing;
     ws_handle_ = ws_handle;
@@ -900,10 +901,11 @@ int wsrep::transaction_context::certify_commit(
 void wsrep::transaction_context::streaming_rollback()
 {
     assert(streaming_context_.rolled_back() == false);
-    wsrep::client_context& applier_context(
-        client_context_.server_context().streaming_applier_client_context(
-            client_context_.server_context().id(), id()));
-    applier_context.adopt_transaction(*this);
+    wsrep::client_context* sac(
+        client_context_.server_context().streaming_applier_client_context());
+    client_context_.server_context().start_streaming_applier(
+        client_context_.server_context().id(), id(), sac);
+    sac->adopt_transaction(*this);
     streaming_context_.cleanup();
     // Replicate rollback fragment
     provider_.rollback(id_.get());

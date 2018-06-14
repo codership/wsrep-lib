@@ -646,7 +646,7 @@ void wsrep::transaction_context::state(
             { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}, /* oc */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ct */
             { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}, /* cf */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0}, /* ma */
+            { 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0}, /* ma */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0}, /* ab */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ad */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, /* mr */
@@ -778,6 +778,7 @@ int wsrep::transaction_context::certify_commit(
     state(lock, s_certifying);
 
     flags(flags() | wsrep::provider::flag::commit);
+
     lock.unlock();
 
     if (client_context_.prepare_data_for_replication(*this))
@@ -797,16 +798,17 @@ int wsrep::transaction_context::certify_commit(
         return 1;
     }
 
+    client_context_.debug_sync("wsrep_before_certification");
     enum wsrep::provider::status
         cert_ret(provider_.certify(client_context_.id().get(),
                                    ws_handle_,
                                    flags(),
                                    ws_meta_));
+    client_context_.debug_sync("wsrep_after_certification");
 
     lock.lock();
 
     assert(state() == s_certifying || state() == s_must_abort);
-    client_context_.debug_sync(lock, "wsrep_after_certification");
 
     int ret(1);
     switch (cert_ret)

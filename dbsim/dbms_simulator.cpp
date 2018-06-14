@@ -412,7 +412,7 @@ public:
         wsrep::client_context::store_globals();
     }
 private:
-    void debug_sync(wsrep::unique_lock<wsrep::mutex>&, const char*) override { }
+    void debug_sync(const char*) override { }
     void debug_suicide(const char*) override { }
     void on_error(enum wsrep::client_error) override { }
 

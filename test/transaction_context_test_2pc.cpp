@@ -162,12 +162,12 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
     BOOST_REQUIRE(cc.before_prepare() == 0);
     BOOST_REQUIRE(cc.after_prepare() == 0);
-    sc.provider().commit_order_enter_status_ = wsrep::provider::error_bf_abort;
+    sc.provider().commit_order_enter_result_ = wsrep::provider::error_bf_abort;
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
     BOOST_REQUIRE(tc.certified() == true);
     BOOST_REQUIRE(tc.ordered() == true);
-    sc.provider().commit_order_enter_status_ = wsrep::provider::success;
+    sc.provider().commit_order_enter_result_ = wsrep::provider::success;
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
     BOOST_REQUIRE(cc.after_rollback() == 0);

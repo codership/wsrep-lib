@@ -522,7 +522,7 @@ namespace wsrep
         /*!
          * Enter debug synchronization point.
          */
-        virtual void debug_sync(wsrep::unique_lock<wsrep::mutex>&, const char*) = 0;
+        virtual void debug_sync(const char*) = 0;
 
         /*!
          *

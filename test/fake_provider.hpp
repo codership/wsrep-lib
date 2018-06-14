@@ -22,10 +22,10 @@ namespace wsrep
 
         fake_provider(wsrep::server_context& server_context)
             : provider(server_context)
-            , certify_status_()
-            , commit_order_enter_status_()
-            , commit_order_leave_status_()
-            , release_status_()
+            , certify_result_()
+            , commit_order_enter_result_()
+            , commit_order_leave_result_()
+            , release_result_()
             , group_id_("1")
             , server_id_("1")
             , group_seqno_(0)
@@ -57,11 +57,11 @@ namespace wsrep
                               << "client: " << client_id.get()
                               << " flags: " << std::hex << flags
                               << std::dec
-                              << " certify_status: " << certify_status_;
+                              << " certify_status: " << certify_result_;
 
-            if (certify_status_)
+            if (certify_result_)
             {
-                return certify_status_;
+                return certify_result_;
             }
 
             ++fragments_;
@@ -129,14 +129,14 @@ namespace wsrep
         enum wsrep::provider::status
         commit_order_enter(const wsrep::ws_handle&,
                                           const wsrep::ws_meta&)
-        { return commit_order_enter_status_; }
+        { return commit_order_enter_result_; }
 
         int commit_order_leave(const wsrep::ws_handle&,
                                const wsrep::ws_meta&)
-        { return commit_order_leave_status_;}
+        { return commit_order_leave_result_;}
 
         int release(wsrep::ws_handle&)
-        { return release_status_; }
+        { return release_result_; }
 
         int replay(wsrep::ws_handle&, void*) { ::abort(); /* not impl */}
 
@@ -171,10 +171,10 @@ namespace wsrep
         }
 
         // Parameters to control return value from the call
-        enum wsrep::provider::status certify_status_;
-        enum wsrep::provider::status commit_order_enter_status_;
-        enum wsrep::provider::status commit_order_leave_status_;
-        enum wsrep::provider::status release_status_;
+        enum wsrep::provider::status certify_result_;
+        enum wsrep::provider::status commit_order_enter_result_;
+        enum wsrep::provider::status commit_order_leave_result_;
+        enum wsrep::provider::status release_result_;
 
         size_t start_fragments() const { return start_fragments_; }
         size_t fragments() const { return fragments_; }

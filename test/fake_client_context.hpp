@@ -110,20 +110,20 @@ namespace wsrep
         bool killed() const WSREP_OVERRIDE { return killed_before_certify_; }
         void abort() WSREP_OVERRIDE { ++aborts_; }
         void store_globals() WSREP_OVERRIDE { }
-        void debug_sync(wsrep::unique_lock<wsrep::mutex>& lock,
-                        const char* sync_point) WSREP_OVERRIDE
+        void debug_sync(const char* sync_point) WSREP_OVERRIDE
         {
-            lock.unlock();
             if (sync_point_enabled_ == sync_point)
             {
                 switch (sync_point_action_)
                 {
-                case spa_bf_abort:
+                case spa_bf_abort_unordered:
+                    wsrep_test::bf_abort_unordered(*this);
+                    break;
+                case spa_bf_abort_ordered:
                     wsrep_test::bf_abort_ordered(*this);
                     break;
                 }
             }
-            lock.lock();
         }
         void debug_suicide(const char*) WSREP_OVERRIDE
         {
@@ -146,7 +146,8 @@ namespace wsrep
         std::string sync_point_enabled_;
         enum sync_point_action
         {
-            spa_bf_abort
+            spa_bf_abort_unordered,
+            spa_bf_abort_ordered
         } sync_point_action_;
         size_t bytes_generated_;
     private:

@@ -351,6 +351,42 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
 }
 
 //
+// Test a 1PC transaction which gets BF aborted simultaneously with
+// certification failure. BF abort should not succeed as the
+// transaction is going to roll back anyway. Certification failure
+// should not generate seqno for write set meta.
+//
+BOOST_FIXTURE_TEST_CASE_TEMPLATE(
+    transaction_context_1pc_bf_before_unordered_cert_failure, T,
+    replicating_fixtures, T)
+{
+    wsrep::fake_server_context& sc(T::sc);
+    wsrep::fake_client_context& cc(T::cc);
+    const wsrep::transaction_context& tc(T::tc);
+
+    cc.start_transaction(1);
+    BOOST_REQUIRE(tc.active());
+    BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+    cc.sync_point_enabled_ = "wsrep_before_certification";
+    cc.sync_point_action_ = wsrep::fake_client_context::spa_bf_abort_unordered;
+    sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
+    BOOST_REQUIRE(cc.before_commit());
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_cert_failed);
+    BOOST_REQUIRE(tc.certified() == false);
+    BOOST_REQUIRE(tc.ordered() == false);
+    BOOST_REQUIRE(cc.before_rollback() == 0);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborting);
+    BOOST_REQUIRE(cc.after_rollback() == 0);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborted);
+    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_error);
+    BOOST_REQUIRE(tc.active() == false);
+    BOOST_REQUIRE(tc.ordered() == false);
+    BOOST_REQUIRE(tc.certified() == false);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+}
+
+//
 // Test a 1PC transaction which gets "warning error" from certify call
 //
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(
@@ -367,7 +403,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().certify_status_ = wsrep::provider::error_warning;
+    sc.provider().certify_result_ = wsrep::provider::error_warning;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -375,7 +411,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().certify_status_ = wsrep::provider::success;
+    sc.provider().certify_result_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -408,7 +444,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().certify_status_ = wsrep::provider::error_transaction_missing;
+    sc.provider().certify_result_ = wsrep::provider::error_transaction_missing;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -416,7 +452,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().certify_status_ = wsrep::provider::success;
+    sc.provider().certify_result_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -449,7 +485,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().certify_status_ = wsrep::provider::error_size_exceeded;
+    sc.provider().certify_result_ = wsrep::provider::error_size_exceeded;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -457,7 +493,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().certify_status_ = wsrep::provider::success;
+    sc.provider().certify_result_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -490,7 +526,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().certify_status_ = wsrep::provider::error_connection_failed;
+    sc.provider().certify_result_ = wsrep::provider::error_connection_failed;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -498,7 +534,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().certify_status_ = wsrep::provider::success;
+    sc.provider().certify_result_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -531,7 +567,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().certify_status_ = wsrep::provider::error_not_allowed;
+    sc.provider().certify_result_ = wsrep::provider::error_not_allowed;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -539,7 +575,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().certify_status_ = wsrep::provider::success;
+    sc.provider().certify_result_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -572,7 +608,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().certify_status_ = wsrep::provider::error_fatal;
+    sc.provider().certify_result_ = wsrep::provider::error_fatal;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -580,7 +616,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().certify_status_ = wsrep::provider::success;
+    sc.provider().certify_result_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -614,7 +650,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
-    sc.provider().certify_status_ = wsrep::provider::error_unknown;
+    sc.provider().certify_result_ = wsrep::provider::error_unknown;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -622,7 +658,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 
-    sc.provider().certify_status_ = wsrep::provider::success;
+    sc.provider().certify_result_ = wsrep::provider::success;
 
     // Rollback sequence
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -643,7 +679,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
 // after certify call
 //
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(
-    transaction_context_1pc_bf_abort_after_certify_regain_lock, T,
+    transaction_context_1pc_bf_abort_before_certify_regain_lock, T,
     replicating_fixtures, T)
 {
     // wsrep::fake_server_context& sc(T::sc);
@@ -657,6 +693,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
 
     cc.sync_point_enabled_ = "wsrep_after_certification";
+    cc.sync_point_action_ = wsrep::fake_client_context::spa_bf_abort_ordered;
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
@@ -988,9 +1025,9 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_row_streaming_cert_fail_non_commit,
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
-    sc.provider().certify_status_ = wsrep::provider::error_certification_failed;
+    sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
     BOOST_REQUIRE(cc.after_row() == 1);
-    sc.provider().certify_status_ = wsrep::provider::success;
+    sc.provider().certify_result_ = wsrep::provider::success;
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(cc.after_rollback() == 0);
     BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_success);
@@ -1008,10 +1045,10 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_row_streaming_cert_fail_commit,
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
-    sc.provider().certify_status_ = wsrep::provider::error_certification_failed;
+    sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
     BOOST_REQUIRE(cc.before_commit() == 1);
     BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_cert_failed);
-    sc.provider().certify_status_ = wsrep::provider::success;
+    sc.provider().certify_result_ = wsrep::provider::success;
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(cc.after_rollback() == 0);
     BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_error);
@@ -1141,7 +1178,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_context_statement_streaming_cert_fail,
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
-    sc.provider().certify_status_ = wsrep::provider::error_certification_failed;
+    sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
     BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_error);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
     BOOST_REQUIRE(sc.provider().fragments() == 0);

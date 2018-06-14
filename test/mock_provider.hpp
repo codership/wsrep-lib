@@ -26,6 +26,7 @@ namespace wsrep
             , commit_order_enter_result_()
             , commit_order_leave_result_()
             , release_result_()
+            , replay_result_()
             , group_id_("1")
             , server_id_("1")
             , group_seqno_(0)
@@ -138,14 +139,43 @@ namespace wsrep
         int release(wsrep::ws_handle&)
         { return release_result_; }
 
-        int replay(wsrep::ws_handle&, void* ctx)
+        enum wsrep::provider::status replay(wsrep::ws_handle&, void* ctx)
         {
             wsrep::mock_client_context& cc(
                 *static_cast<wsrep::mock_client_context*>(ctx));
             wsrep::client_applier_mode applier_mode(cc);
             const wsrep::transaction_context& tc(cc.transaction());
-            return server_context_.on_apply(cc, tc.ws_handle(), tc.ws_meta(),
-                                            wsrep::const_buffer());
+            wsrep::ws_meta ws_meta;
+            if (replay_result_ == wsrep::provider::success)
+            {
+                // If the ws_meta was not assigned yet, the certify
+                // returned early due to BF abort.
+                if (tc.ws_meta().seqno().nil())
+                {
+                    ++group_seqno_;
+                    ws_meta = wsrep::ws_meta(
+                        wsrep::gtid(group_id_, wsrep::seqno(group_seqno_)),
+                        wsrep::stid(server_id_, tc.id(), cc.id()),
+                        wsrep::seqno(group_seqno_ - 1),
+                        wsrep::provider::flag::start_transaction |
+                        wsrep::provider::flag::commit);
+                }
+                else
+                {
+                    ws_meta = tc.ws_meta();
+                }
+            }
+            else
+            {
+                return replay_result_;
+            }
+
+            if (server_context_.on_apply(cc, tc.ws_handle(), ws_meta,
+                                         wsrep::const_buffer()))
+            {
+                return wsrep::provider::error_fatal;
+            }
+            return wsrep::provider::success;
         }
 
         int sst_sent(const wsrep::gtid&, int) { return 0; }
@@ -183,6 +213,7 @@ namespace wsrep
         enum wsrep::provider::status commit_order_enter_result_;
         enum wsrep::provider::status commit_order_leave_result_;
         enum wsrep::provider::status release_result_;
+        enum wsrep::provider::status replay_result_;
 
         size_t start_fragments() const { return start_fragments_; }
         size_t fragments() const { return fragments_; }

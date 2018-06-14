@@ -548,11 +548,13 @@ int wsrep::wsrep_provider_v26::release(wsrep::ws_handle& ws_handle)
     return (wsrep_->release(wsrep_, mwsh.native()) != WSREP_OK);
 }
 
-int wsrep::wsrep_provider_v26::replay(wsrep::ws_handle& ws_handle,
-                                      void* applier_ctx)
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::replay(wsrep::ws_handle& ws_handle,
+                                  void* applier_ctx)
 {
     mutable_ws_handle mwsh(ws_handle);
-    return (wsrep_->replay_trx(wsrep_, mwsh.native(), applier_ctx) != WSREP_OK);
+    return map_return_value(
+        wsrep_->replay_trx(wsrep_, mwsh.native(), applier_ctx));
 }
 
 int wsrep::wsrep_provider_v26::sst_sent(const wsrep::gtid& gtid, int err)

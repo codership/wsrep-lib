@@ -137,7 +137,7 @@ int wsrep::server_context::on_apply(
         }
         else
         {
-            client_context.start_replaying();
+            client_context.start_replaying(ws_meta);
         }
 
         if (client_context.apply(data))
@@ -251,7 +251,7 @@ int wsrep::server_context::on_apply(
         }
         else
         {
-            ret = client_context.start_replaying() ||
+            ret = client_context.start_replaying(ws_meta) ||
                 client_context.apply(wsrep::const_buffer()) ||
                 client_context.commit();
         }

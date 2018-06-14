@@ -55,9 +55,11 @@ namespace wsrep
         void remove_fragments(const wsrep::transaction_context& )
             WSREP_OVERRIDE { }
         void will_replay(wsrep::transaction_context&) WSREP_OVERRIDE { }
-        int replay(wsrep::transaction_context& tc) WSREP_OVERRIDE
+        enum wsrep::provider::status
+        replay(wsrep::transaction_context& tc) WSREP_OVERRIDE
         {
-            int ret(provider().replay(tc.ws_handle(), this));
+            enum wsrep::provider::status ret(
+                provider().replay(tc.ws_handle(), this));
             ++replays_;
             return ret;
         }

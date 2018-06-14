@@ -80,8 +80,9 @@ int wsrep::transaction_context::start_transaction(
     return 0;
 }
 
-int wsrep::transaction_context::start_replaying()
+int wsrep::transaction_context::start_replaying(const wsrep::ws_meta& ws_meta)
 {
+    ws_meta_ = ws_meta;
     assert(ws_meta_.flags() & wsrep::provider::flag::commit);
     assert(active());
     assert(client_context_.mode() == wsrep::client_context::m_applier);
@@ -506,12 +507,32 @@ int wsrep::transaction_context::after_statement()
         // Continue to replay if rollback() changed the state to s_must_replay
         // Fall through
     case s_must_replay:
+    {
         state(lock, s_replaying);
         lock.unlock();
-        ret = client_context_.replay(*this);
+        enum wsrep::provider::status replay_ret(client_context_.replay(*this));
+        switch (replay_ret)
+        {
+        case wsrep::provider::success:
+            break;
+        case wsrep::provider::error_certification_failed:
+            client_context_.override_error(
+                wsrep::e_deadlock_error);
+            ret = 1;
+            break;
+        default:
+            client_context_.abort();
+            break;
+        }
         lock.lock();
+        if (ret)
+        {
+            wsrep::log_info() << "Replay ret " << replay_ret;
+            state(lock, s_aborted);
+        }
         provider_.release(ws_handle_);
         break;
+    }
     case s_aborted:
         break;
     default:
@@ -650,7 +671,7 @@ void wsrep::transaction_context::state(
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0}, /* ab */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ad */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, /* mr */
-            { 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0}  /* re */
+            { 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0}  /* re */
         };
     if (allowed[state_][next_state])
     {
@@ -852,7 +873,6 @@ int wsrep::transaction_context::certify_commit(
         // yet known. Therefore the transaction must roll back
         // and go through replay either to replay and commit the whole
         // transaction or to determine failed certification status.
-        assert(ordered());
         client_context_.will_replay(*this);
         if (state() != s_must_abort)
         {

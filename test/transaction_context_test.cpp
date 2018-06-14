@@ -307,6 +307,45 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(cc.current_error());
 }
 
+//
+// Test a transaction which gets BF aborted inside provider before
+// certification result is known. Replaying will be successful
+//
+BOOST_FIXTURE_TEST_CASE(
+    transaction_context_bf_before_cert_result_replay_success,
+    replicating_client_fixture_sync_rm)
+{
+    BOOST_REQUIRE(cc.start_transaction(1) == 0);
+    sc.provider().certify_result_ = wsrep::provider::error_bf_abort;
+    sc.provider().replay_result_ = wsrep::provider::success;
+
+    BOOST_REQUIRE(cc.before_commit());
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
+    BOOST_REQUIRE(cc.after_statement() == 0);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_committed);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
+//
+// Test a transaction which gets BF aborted inside provider before
+// certification result is known. Replaying will fail because of
+// certification failure.
+//
+BOOST_FIXTURE_TEST_CASE(
+    transaction_context_bf_before_cert_result_replay_cert_fail,
+    replicating_client_fixture_sync_rm)
+{
+    BOOST_REQUIRE(cc.start_transaction(1) == 0);
+    sc.provider().certify_result_ = wsrep::provider::error_bf_abort;
+    sc.provider().replay_result_ = wsrep::provider::error_certification_failed;
+
+    BOOST_REQUIRE(cc.before_commit());
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_must_replay);
+    BOOST_REQUIRE(cc.after_statement() == wsrep::client_context::asr_error);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_aborted);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    BOOST_REQUIRE(tc.active() == false);
+}
 
 //
 // Test a 1PC transaction which gets BF aborted during before_commit via

@@ -85,7 +85,7 @@ namespace wsrep
         int start_transaction(const wsrep::ws_handle& ws_handle,
                               const wsrep::ws_meta& ws_meta);
 
-        int start_replaying();
+        int start_replaying(const wsrep::ws_meta&);
 
         int append_key(const wsrep::key&);
 

@@ -223,10 +223,10 @@ namespace wsrep
             return transaction_.start_transaction(wsh, meta);
         }
 
-        int start_replaying()
+        int start_replaying(const wsrep::ws_meta& ws_meta)
         {
             assert(mode_ == m_applier);
-            return transaction_.start_replaying();
+            return transaction_.start_replaying(ws_meta);
         }
 
         void adopt_transaction(wsrep::transaction_context& transaction)
@@ -483,7 +483,8 @@ namespace wsrep
         /*!
          * Replay the transaction.
          */
-        virtual int replay(wsrep::transaction_context& tc) = 0;
+        virtual enum wsrep::provider::status
+        replay(wsrep::transaction_context& tc) = 0;
 
 
         /*!

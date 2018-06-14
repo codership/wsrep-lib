@@ -388,7 +388,8 @@ private:
     }
 
     void will_replay(wsrep::transaction_context&) override { }
-    int replay(wsrep::transaction_context& txc) override
+    enum wsrep::provider::status
+    replay(wsrep::transaction_context& txc) override
     {
         // wsrep::log() << "replay: " << txc.id().get();
         wsrep::client_applier_mode applier_mode(*this);
@@ -490,6 +491,11 @@ private:
                 if (err == 0) se_trx_.commit();
                 err = err || ordered_commit();
                 err = err || after_commit();
+
+                if (err)
+                {
+                    rollback();
+                }
                 return err;
             });
 

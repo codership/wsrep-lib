@@ -41,7 +41,7 @@ namespace wsrep
         int commit_order_leave(const wsrep::ws_handle&,
                                const wsrep::ws_meta&);
         int release(wsrep::ws_handle&);
-        int replay(wsrep::ws_handle&, void*);
+        enum wsrep::provider::status replay(wsrep::ws_handle&, void*);
         int sst_sent(const wsrep::gtid&,int);
         int sst_received(const wsrep::gtid& gtid, int);
 

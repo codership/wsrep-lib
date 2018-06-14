@@ -6,47 +6,49 @@
 #include "mock_client_context.hpp"
 
 
-int wsrep::mock_client_context::apply(
+int wsrep::mock_client_service::apply(
+    wsrep::client_context& client_context,
     const wsrep::const_buffer& data __attribute__((unused)))
 
 {
-    assert(transaction_.state() == wsrep::transaction_context::s_executing ||
-           transaction_.state() == wsrep::transaction_context::s_replaying);
+    assert(client_context.transaction().state() == wsrep::transaction_context::s_executing ||
+           client_context.transaction().state() == wsrep::transaction_context::s_replaying);
     return (fail_next_applying_ ? 1 : 0);
 }
 
-int wsrep::mock_client_context::commit()
+int wsrep::mock_client_service::commit(wsrep::client_context& client_context, const wsrep::ws_handle&, const wsrep::ws_meta&)
 {
     int ret(0);
     if (do_2pc())
     {
-        if (before_prepare())
+        if (client_context.before_prepare())
         {
             ret = 1;
         }
-        else if (after_prepare())
+        else if (client_context.after_prepare())
         {
             ret = 1;
         }
     }
     if (ret == 0 &&
-        (transaction_.before_commit() ||
-         transaction_.ordered_commit() ||
-         transaction_.after_commit()))
+        (client_context.before_commit() ||
+         client_context.ordered_commit() ||
+         client_context.after_commit()))
     {
         ret = 1;
     }
     return ret;
 }
 
-int wsrep::mock_client_context::rollback()
+int wsrep::mock_client_service::rollback(
+    wsrep::client_context& client_context)
 {
     int ret(0);
-    if (transaction_.before_rollback())
+    if (client_context.before_rollback())
     {
         ret = 1;
     }
-    else if (transaction_.after_rollback())
+    else if (client_context.after_rollback())
     {
         ret = 1;
     }

@@ -13,10 +13,9 @@ namespace
         applying_server_fixture()
             : sc("s1", "s1",
                  wsrep::server_context::rm_sync)
-            , cc(sc,
+            , cc(sc, sc.client_service(),
                  wsrep::client_id(1),
-                 wsrep::client_context::m_applier,
-                 false)
+                 wsrep::client_context::m_applier)
             , ws_handle(1, (void*)1)
             , ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
                       wsrep::stid(wsrep::id("1"), 1, 1),
@@ -62,7 +61,7 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc,
 BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc_rollback,
                         applying_server_fixture)
 {
-    cc.fail_next_applying_ = true;
+    sc.client_service().fail_next_applying_ = true;
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
                               wsrep::const_buffer(buf, 1)) == 1);
@@ -75,7 +74,7 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc_rollback,
 BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc_rollback,
                         applying_server_fixture)
 {
-    cc.fail_next_applying_ = true;
+    sc.client_service().fail_next_applying_ = true;
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
                               wsrep::const_buffer(buf, 1)) == 1);
@@ -88,9 +87,9 @@ BOOST_AUTO_TEST_CASE(server_context_streaming)
     wsrep::mock_server_context sc("s1", "s1",
                                   wsrep::server_context::rm_sync);
     wsrep::mock_client_context cc(sc,
+                                  sc.client_service(),
                                   wsrep::client_id(1),
-                                  wsrep::client_context::m_applier,
-                                  false);
+                                  wsrep::client_context::m_applier);
     wsrep::ws_handle ws_handle(1, (void*)1);
     wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
                            wsrep::stid(wsrep::id("1"), 1, 1),

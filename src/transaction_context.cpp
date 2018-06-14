@@ -160,7 +160,7 @@ int wsrep::transaction_context::before_prepare(
     case wsrep::client_context::m_replicating:
         if (is_streaming())
         {
-            client_context_.debug_suicide(
+            client_context_.debug_crash(
                 "crash_last_fragment_commit_before_fragment_removal");
             lock.unlock();
             if (client_context_.server_context().statement_allowed_for_streaming(
@@ -171,10 +171,10 @@ int wsrep::transaction_context::before_prepare(
             }
             else
             {
-                client_context_.remove_fragments(*this);
+                client_context_.remove_fragments();
             }
             lock.lock();
-            client_context_.debug_suicide(
+            client_context_.debug_crash(
                 "crash_last_fragment_commit_after_fragment_removal");
         }
         break;
@@ -182,7 +182,7 @@ int wsrep::transaction_context::before_prepare(
     case wsrep::client_context::m_applier:
         if (is_streaming())
         {
-            client_context_.remove_fragments(*this);
+            client_context_.remove_fragments();
         }
         break;
     default:
@@ -522,7 +522,7 @@ int wsrep::transaction_context::after_statement()
             ret = 1;
             break;
         default:
-            client_context_.abort();
+            client_context_.emergency_shutdown();
             break;
         }
         lock.lock();
@@ -811,7 +811,7 @@ int wsrep::transaction_context::certify_commit(
         return 1;
     }
 
-    if (client_context_.killed())
+    if (client_context_.interrupted())
     {
         lock.lock();
         client_context_.override_error(wsrep::e_interrupted_error);
@@ -901,7 +901,7 @@ int wsrep::transaction_context::certify_commit(
     case wsrep::provider::error_fatal:
         client_context_.override_error(wsrep::e_error_during_commit);
         state(lock, s_must_abort);
-        client_context_.abort();
+        client_context_.emergency_shutdown();
         break;
     case wsrep::provider::error_not_implemented:
     case wsrep::provider::error_not_allowed:

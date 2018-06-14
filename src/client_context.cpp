@@ -58,7 +58,7 @@ int wsrep::client_context::before_command()
                    wsrep::server_context::rm_async);
             override_error(wsrep::e_deadlock_error);
             lock.unlock();
-            rollback();
+            client_service_.rollback(*this);
             (void)transaction_.after_statement();
             lock.lock();
             assert(transaction_.state() ==
@@ -96,7 +96,7 @@ void wsrep::client_context::after_command_before_result()
     {
         override_error(wsrep::e_deadlock_error);
         lock.unlock();
-        rollback();
+        client_service_.rollback(*this);
         (void)transaction_.after_statement();
         lock.lock();
         assert(transaction_.state() == wsrep::transaction_context::s_aborted);
@@ -116,7 +116,7 @@ void wsrep::client_context::after_command_after_result()
         transaction_.state() == wsrep::transaction_context::s_must_abort)
     {
         lock.unlock();
-        rollback();
+        client_service_.rollback(*this);
         lock.lock();
         assert(transaction_.state() == wsrep::transaction_context::s_aborted);
         override_error(wsrep::e_deadlock_error);
@@ -170,7 +170,7 @@ wsrep::client_context::after_statement()
     (void)transaction_.after_statement();
     if (current_error() == wsrep::e_deadlock_error)
     {
-        if (is_autocommit())
+        if (client_service_.is_autocommit())
         {
             debug_log_state("after_statement: may_retry");
             return asr_may_retry;

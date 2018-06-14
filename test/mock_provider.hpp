@@ -13,6 +13,8 @@
 #include <map>
 #include <iostream> // todo: proper logging
 
+#include <boost/test/unit_test.hpp>
+
 namespace wsrep
 {
     class mock_provider : public wsrep::provider
@@ -128,16 +130,27 @@ namespace wsrep
             return 0;
         }
         enum wsrep::provider::status
-        commit_order_enter(const wsrep::ws_handle&,
-                                          const wsrep::ws_meta&)
-        { return commit_order_enter_result_; }
+        commit_order_enter(const wsrep::ws_handle& ws_handle,
+                           const wsrep::ws_meta& ws_meta)
+        {
+            BOOST_REQUIRE(ws_handle.opaque());
+            BOOST_REQUIRE(ws_meta.seqno().nil() == false);
+            return commit_order_enter_result_;
+        }
 
-        int commit_order_leave(const wsrep::ws_handle&,
-                               const wsrep::ws_meta&)
-        { return commit_order_leave_result_;}
+        int commit_order_leave(const wsrep::ws_handle& ws_handle,
+                               const wsrep::ws_meta& ws_meta)
+        {
+            BOOST_REQUIRE(ws_handle.opaque());
+            BOOST_REQUIRE(ws_meta.seqno().nil() == false);
+            return commit_order_leave_result_;
+        }
 
-        int release(wsrep::ws_handle&)
-        { return release_result_; }
+        int release(wsrep::ws_handle& )
+        {
+            // BOOST_REQUIRE(ws_handle.opaque());
+            return release_result_;
+        }
 
         enum wsrep::provider::status replay(wsrep::ws_handle&, void* ctx)
         {

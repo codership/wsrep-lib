@@ -17,7 +17,7 @@ namespace
     {
         replicating_client_fixture_sync_rm()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
-            , cc(sc, wsrep::client_id(1),
+            , cc(sc, sc.client_service(), wsrep::client_id(1),
                  wsrep::client_context::m_replicating)
             , tc(cc.transaction())
         {
@@ -36,7 +36,7 @@ namespace
     {
         replicating_client_fixture_async_rm()
             : sc("s1", "s1", wsrep::server_context::rm_async)
-            , cc(sc, wsrep::client_id(1),
+            , cc(sc, sc.client_service(), wsrep::client_id(1),
                  wsrep::client_context::m_replicating)
             , tc(cc.transaction())
         {
@@ -55,10 +55,11 @@ namespace
     {
         replicating_client_fixture_2pc()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
-            , cc(sc, wsrep::client_id(1),
-                 wsrep::client_context::m_replicating, false, true)
+            , cc(sc, sc.client_service(), wsrep::client_id(1),
+                 wsrep::client_context::m_replicating)
             , tc(cc.transaction())
         {
+            sc.client_service().do_2pc_ = true;
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
@@ -74,10 +75,11 @@ namespace
     {
         replicating_client_fixture_autocommit()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
-            , cc(sc, wsrep::client_id(1),
-                 wsrep::client_context::m_replicating, true)
+            , cc(sc, sc.client_service(), wsrep::client_id(1),
+                 wsrep::client_context::m_replicating)
             , tc(cc.transaction())
         {
+            sc.client_service().is_autocommit_ = true;
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
@@ -94,7 +96,7 @@ namespace
         applying_client_fixture()
             : sc("s1", "s1",
                  wsrep::server_context::rm_async)
-            , cc(sc,
+            , cc(sc, sc.client_service(),
                  wsrep::client_id(1),
                  wsrep::client_context::m_applier)
             , tc(cc.transaction())
@@ -122,11 +124,12 @@ namespace
         applying_client_fixture_2pc()
             : sc("s1", "s1",
                  wsrep::server_context::rm_async)
-            , cc(sc,
+            , cc(sc, sc.client_service(),
                  wsrep::client_id(1),
-                 wsrep::client_context::m_applier, false, true)
+                 wsrep::client_context::m_applier)
             , tc(cc.transaction())
         {
+            sc.client_service().do_2pc_ = true;
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
             wsrep::ws_handle ws_handle(1, (void*)1);
@@ -149,7 +152,7 @@ namespace
     {
         streaming_client_fixture_row()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
-            , cc(sc, wsrep::client_id(1),
+            , cc(sc, sc.client_service(), wsrep::client_id(1),
                  wsrep::client_context::m_replicating)
             , tc(cc.transaction())
         {
@@ -169,7 +172,7 @@ namespace
     {
         streaming_client_fixture_byte()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
-            , cc(sc, wsrep::client_id(1),
+            , cc(sc, sc.client_service(), wsrep::client_id(1),
                  wsrep::client_context::m_replicating)
             , tc(cc.transaction())
         {
@@ -189,7 +192,7 @@ namespace
     {
         streaming_client_fixture_statement()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
-            , cc(sc, wsrep::client_id(1),
+            , cc(sc, sc.client_service(), wsrep::client_id(1),
                  wsrep::client_context::m_replicating)
             , tc(cc.transaction())
         {

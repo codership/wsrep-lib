@@ -9,16 +9,22 @@
  * which will be called by the wsrep-lib under certain circumstances,
  * for example when a transaction rollback is required by internal
  * wsrep-lib operation or applier client needs to apply a write set.
- *
- * \todo Figure out better name for this interface.
  */
+
+#include "buffer.hpp"
 
 namespace wsrep
 {
     class client_service
     {
     public:
+        client_service(wsrep::provider& provider)
+            : provider_(provider) { }
+        /*!
+         *
+         */
         virtual bool is_autocommit() const = 0;
+
         /*!
          * Return true if two pahase commit is required for transaction
          * to commit.
@@ -26,7 +32,8 @@ namespace wsrep
         virtual bool do_2pc() const = 0;
 
         /*!
-         * Return true if the current transaction has been interrupted.
+         * Return true if the current transaction has been interrupted
+         * by the DBMS.
          */
         virtual bool interrupted() const = 0;
 
@@ -45,28 +52,30 @@ namespace wsrep
         /*!
          * Set up a data for replication.
          */
-        virtual int prepare_data_for_replication(wsrep::data& data) = 0;
+        virtual int prepare_data_for_replication(wsrep::client_context&, const wsrep::transaction_context&) = 0;
 
+        //
+        // Streaming
+        //
+        virtual size_t bytes_generated() const = 0;
+        virtual int prepare_fragment_for_replication(
+            wsrep::client_context&, const wsrep::transaction_context&, wsrep::mutable_buffer&) = 0;
+        virtual void remove_fragments(const wsrep::transaction_context&) = 0;
 
         /*!
          * Apply a write set.
          */
-        virtual int apply() = 0;
-
-        /*!
-         * Prepare a transaction for commit.
-         */
-        virtual int prepare() = 0;
+        virtual int apply(wsrep::client_context&, const wsrep::const_buffer&) = 0;
 
         /*!
          * Commit transaction.
          */
-        virtual int commit() = 0;
+        virtual int commit(wsrep::client_context&, const wsrep::ws_handle&, const wsrep::ws_meta&) = 0;
 
         /*!
          * Roll back transaction.
          */
-        virtual int rollback() = 0;
+        virtual int rollback(wsrep::client_context&) = 0;
 
         /*!
          * Forcefully shut down the DBMS process or replication system.
@@ -84,7 +93,7 @@ namespace wsrep
          * \todo This should not be visible to DBMS level, should be
          * handled internally by wsrep-lib.
          */
-        virtual void will_replay() = 0;
+        virtual void will_replay(const wsrep::transaction_context&) = 0;
 
         /*!
          * Replay the current transaction. The implementation must put
@@ -94,7 +103,7 @@ namespace wsrep
          * \todo This should not be visible to DBMS level, should be
          * handled internally by wsrep-lib.
          */
-        virtual int replay() = 0;
+        virtual enum wsrep::provider::status replay(wsrep::transaction_context&) = 0;
 
         /*!
          * Wait until all replaying transactions have been finished
@@ -103,13 +112,32 @@ namespace wsrep
          * \todo This should not be visible to DBMS level, should be
          * handled internally by wsrep-lib.
          */
-        virtual void wait_for_replayers() = 0;
+        virtual void wait_for_replayers(wsrep::client_context&, wsrep::unique_lock<wsrep::mutex>&) = 0;
 
         // Streaming replication
         /*!
          * Append a write set fragment into fragment storage.
          */
-        virtual int append_fragment() = 0;
+        virtual int append_fragment(const wsrep::transaction_context&, int flag, const wsrep::const_buffer&) = 0;
+
+        //
+        // Debug interface
+        //
+        /*!
+         * Enter debug sync point.
+         *
+         * @params sync_point Name of the debug sync point.
+         */
+        virtual void debug_sync(wsrep::client_context&, const char* sync_point) = 0;
+
+        /*!
+         * Forcefully kill the process if the crash_point has
+         * been enabled.
+         */
+        virtual void debug_crash(const char* crash_point) = 0;
+
+    protected:
+        wsrep::provider& provider_;
     };
 
     /*!
@@ -119,18 +147,6 @@ namespace wsrep
     class client_debug_callback
     {
     public:
-        /*!
-         * Enter debug sync point.
-         *
-         * @params sync_point Name of the debug sync point.
-         */
-        void debug_sync(const char* sync_point) = 0;
-
-        /*!
-         * Forcefully kill the process if the suicide_point has
-         * been enabled.
-         */
-        void debug_suicide(const char* suicide_point) = 0;
     };
 
 

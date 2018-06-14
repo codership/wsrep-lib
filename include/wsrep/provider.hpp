@@ -241,7 +241,9 @@ namespace wsrep
         /*!
          * Replay a transaction.
          *
-         * @return Zero in case of success, non-zero on failure.
+         * \todo Inspect if the ws_handle could be made const
+         *
+         * \return Zero in case of success, non-zero on failure.
          */
         virtual enum status replay(
             wsrep::ws_handle& ws_handle, void* applier_ctx) = 0;

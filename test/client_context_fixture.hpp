@@ -5,8 +5,8 @@
 #ifndef WSREP_TEST_CLIENT_CONTEXT_FIXTURE_HPP
 #define WSREP_TEST_CLIENT_CONTEXT_FIXTURE_HPP
 
-#include "fake_server_context.hpp"
-#include "fake_client_context.hpp"
+#include "mock_server_context.hpp"
+#include "mock_client_context.hpp"
 
 
 #include <boost/test/unit_test.hpp>
@@ -27,8 +27,8 @@ namespace
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
         }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -46,8 +46,8 @@ namespace
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
         }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -65,8 +65,8 @@ namespace
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
         }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -84,8 +84,8 @@ namespace
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
         }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -112,8 +112,8 @@ namespace
             BOOST_REQUIRE(tc.certified() == true);
             BOOST_REQUIRE(tc.ordered() == true);
         }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -140,8 +140,8 @@ namespace
             BOOST_REQUIRE(tc.certified() == true);
             BOOST_REQUIRE(tc.ordered() == true);
         }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -160,8 +160,8 @@ namespace
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
             cc.enable_streaming(wsrep::streaming_context::row, 1);
         }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -180,8 +180,8 @@ namespace
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
             cc.enable_streaming(wsrep::streaming_context::bytes, 1);
         }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -201,8 +201,8 @@ namespace
             cc.enable_streaming(wsrep::streaming_context::row, 1);
         }
 
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
         const wsrep::transaction_context& tc;
     };
 }

@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "fake_server_context.hpp"
+#include "mock_server_context.hpp"
 
 #include <boost/test/unit_test.hpp>
 
@@ -25,8 +25,8 @@ namespace
                       wsrep::provider::flag::commit)
         {
         }
-        wsrep::fake_server_context sc;
-        wsrep::fake_client_context cc;
+        wsrep::mock_server_context sc;
+        wsrep::mock_client_context cc;
         wsrep::ws_handle ws_handle;
         wsrep::ws_meta ws_meta;
     };
@@ -85,9 +85,9 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc_rollback,
 
 BOOST_AUTO_TEST_CASE(server_context_streaming)
 {
-    wsrep::fake_server_context sc("s1", "s1",
+    wsrep::mock_server_context sc("s1", "s1",
                                   wsrep::server_context::rm_sync);
-    wsrep::fake_client_context cc(sc,
+    wsrep::mock_client_context cc(sc,
                                   wsrep::client_id(1),
                                   wsrep::client_context::m_applier,
                                   false);

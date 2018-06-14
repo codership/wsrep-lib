@@ -3,10 +3,10 @@
 //
 
 #include "wsrep/transaction_context.hpp"
-#include "fake_client_context.hpp"
+#include "mock_client_context.hpp"
 
 
-int wsrep::fake_client_context::apply(
+int wsrep::mock_client_context::apply(
     const wsrep::const_buffer& data __attribute__((unused)))
 
 {
@@ -15,7 +15,7 @@ int wsrep::fake_client_context::apply(
     return (fail_next_applying_ ? 1 : 0);
 }
 
-int wsrep::fake_client_context::commit()
+int wsrep::mock_client_context::commit()
 {
     int ret(0);
     if (do_2pc())
@@ -39,7 +39,7 @@ int wsrep::fake_client_context::commit()
     return ret;
 }
 
-int wsrep::fake_client_context::rollback()
+int wsrep::mock_client_context::rollback()
 {
     int ret(0);
     if (transaction_.before_rollback())

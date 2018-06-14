@@ -13,10 +13,10 @@
 
 namespace wsrep
 {
-    class fake_client_context : public wsrep::client_context
+    class mock_client_context : public wsrep::client_context
     {
     public:
-        fake_client_context(wsrep::server_context& server_context,
+        mock_client_context(wsrep::server_context& server_context,
                             const wsrep::client_id& id,
                             enum wsrep::client_context::mode mode,
                             bool is_autocommit = false,
@@ -37,7 +37,7 @@ namespace wsrep
             , replays_()
             , aborts_()
         { }
-        ~fake_client_context()
+        ~mock_client_context()
         {
             if (transaction().active())
             {
@@ -57,14 +57,9 @@ namespace wsrep
         void will_replay(wsrep::transaction_context&) WSREP_OVERRIDE { }
         int replay(wsrep::transaction_context& tc) WSREP_OVERRIDE
         {
-            wsrep::client_applier_mode am(*this);
-            if (server_context().on_apply(
-                    *this, tc.ws_handle(), tc.ws_meta(), wsrep::const_buffer()))
-            {
-                return 1;
-            }
+            int ret(provider().replay(tc.ws_handle(), this));
             ++replays_;
-            return 0;
+            return ret;
         }
         void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>& lock)
             WSREP_OVERRIDE

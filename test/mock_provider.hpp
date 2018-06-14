@@ -15,12 +15,12 @@
 
 namespace wsrep
 {
-    class fake_provider : public wsrep::provider
+    class mock_provider : public wsrep::provider
     {
     public:
         typedef std::map<wsrep::transaction_id, wsrep::seqno> bf_abort_map;
 
-        fake_provider(wsrep::server_context& server_context)
+        mock_provider(wsrep::server_context& server_context)
             : provider(server_context)
             , certify_result_()
             , commit_order_enter_result_()
@@ -138,7 +138,15 @@ namespace wsrep
         int release(wsrep::ws_handle&)
         { return release_result_; }
 
-        int replay(wsrep::ws_handle&, void*) { ::abort(); /* not impl */}
+        int replay(wsrep::ws_handle&, void* ctx)
+        {
+            wsrep::mock_client_context& cc(
+                *static_cast<wsrep::mock_client_context*>(ctx));
+            wsrep::client_applier_mode applier_mode(cc);
+            const wsrep::transaction_context& tc(cc.transaction());
+            return server_context_.on_apply(cc, tc.ws_handle(), tc.ws_meta(),
+                                            wsrep::const_buffer());
+        }
 
         int sst_sent(const wsrep::gtid&, int) { return 0; }
         int sst_received(const wsrep::gtid&, int) { return 0; }
@@ -148,7 +156,7 @@ namespace wsrep
             return std::vector<status_variable>();
         }
 
-        // Methods to modify fake state
+        // Methods to modify mock state
         /*! Inject BF abort event into the provider.
          *
          * \param bf_seqno Aborter sequence number

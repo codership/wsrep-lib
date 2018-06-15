@@ -210,6 +210,8 @@ namespace wsrep
          */
         virtual client_context* streaming_applier_client_context() = 0;
 
+        virtual void release_client_context(wsrep::client_context*) = 0;
+
         void start_streaming_applier(
             const wsrep::id&,
             const wsrep::transaction_id&,
@@ -440,6 +442,20 @@ namespace wsrep
         std::string working_dir_;
         enum rollback_mode rollback_mode_;
         int debug_log_level_;
+    };
+
+    class client_deleter
+    {
+    public:
+        client_deleter(wsrep::server_context& server_context)
+            : server_context_(server_context)
+        { }
+        void operator()(wsrep::client_context* client_context)
+        {
+            server_context_.release_client_context(client_context);
+        }
+    private:
+        wsrep::server_context& server_context_;
     };
 
     static inline std::string to_string(enum wsrep::server_context::state state)

@@ -31,7 +31,7 @@ namespace db
         void stop();
         void donate_sst(server&,
                         const std::string& req, const wsrep::gtid& gtid, bool);
-        const simulator_params& params() const
+        const db::params& params() const
         { return params_; }
         std::string stats() const;
     private:
@@ -44,7 +44,7 @@ namespace db
         std::string build_cluster_address() const;
 
         wsrep::default_mutex mutex_;
-        const simulator_params& params_;
+        const db::params& params_;
         std::map<size_t, std::unique_ptr<server>> servers_;
         std::chrono::time_point<std::chrono::steady_clock> clients_start_;
         std::chrono::time_point<std::chrono::steady_clock> clients_stop_;

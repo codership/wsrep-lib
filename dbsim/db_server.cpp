@@ -3,25 +3,67 @@
 //
 
 #include "db_server.hpp"
+#include "db_client.hpp"
+#include "db_simulator.hpp"
+
+db::server::server(simulator& simulator,
+                   const std::string& name,
+                   const std::string& server_id,
+                   const std::string& address)
+    : simulator_(simulator)
+    , storage_engine_(simulator_.params())
+    , mutex_()
+    , cond_()
+    , server_context_(name, server_id, address, "dbsim_" + name + "_data")
+    , last_client_id_(0)
+    , last_transaction_id_(0)
+    , appliers_()
+    , clients_()
+    , client_threads_()
+{ }
 
 void db::server::applier_thread()
 {
     wsrep::client_id client_id(last_client_id_.fetch_add(1) + 1);
     db::client applier(*this, client_id,
                        wsrep::client_context::m_applier, simulator_.params());
-    enum wsrep::provider::status ret(provider().run_applier(&applier));
+    enum wsrep::provider::status ret(server_context_.provider().run_applier(&applier));
     wsrep::log() << "Applier thread exited with error code " << ret;
 }
+
+void db::server::start_applier()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    appliers_.push_back(boost::thread(&server::applier_thread, this));
+}
+
+void db::server::stop_applier()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    appliers_.front().join();
+    appliers_.erase(appliers_.begin());
+}
+
+#if 0
+void db::server::on_sst_request(const std::string& req,
+                                const wsrep::gtid& gtid,
+                                bool bypass)
+{
+    simulator_.donate_sst(*this, req, gtid, bypass);
+}
+
 
 wsrep::client_context* db::server::local_client_context()
 {
     std::ostringstream id_os;
     size_t client_id(++last_client_id_);
-    return new db::client(*this, client_id,
-                          wsrep::client_context::m_replicating,
-                          simulator_.params());
+    db::client* client(new db::client(*this, client_id,
+                                      wsrep::client_context::m_replicating,
+                                      simulator_.params()));
+    return &client->client_context_;
 }
 
+#endif
 void db::server::start_clients()
 {
     size_t n_clients(simulator_.params().n_clients);
@@ -39,9 +81,9 @@ void db::server::stop_clients()
     }
     for (const auto& i : clients_)
     {
-        struct db::client::stats stats(i->stats());
+        const struct db::client::stats& stats(i->stats());
         simulator_.stats_.commits += stats.commits;
-        simulator_.stats_.aborts  += stats.aborts;
+        simulator_.stats_.aborts  += stats.rollbacks;
         simulator_.stats_.replays += stats.replays;
     }
 }

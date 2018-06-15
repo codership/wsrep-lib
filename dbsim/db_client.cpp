@@ -3,7 +3,20 @@
 //
 
 #include "db_client.hpp"
+#include "db_server.hpp"
 
+db::client::client(db::server& server,
+                   wsrep::client_id client_id,
+                   enum wsrep::client_context::mode mode,
+                   const db::params& params)
+    : mutex_()
+    , params_(params)
+    , server_context_(server.server_context())
+    , client_context_(mutex_, server_context_, client_service_, client_id, mode)
+    , client_service_(server_context_.provider(), client_context_)
+    , se_trx_(server.storage_engine())
+    , stats_()
+{ }
 
 template <class F>
 int db::client::client_command(F f)

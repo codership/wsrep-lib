@@ -41,6 +41,11 @@ namespace wsrep
                 *this, client_service_, ++last_client_id_,
                 wsrep::client_context::m_applier);
         }
+        void release_client_context(wsrep::client_context* client_context)
+        {
+            delete client_context;
+        }
+
         void log_dummy_write_set(wsrep::client_context&,
                                  const wsrep::ws_meta&)
             WSREP_OVERRIDE

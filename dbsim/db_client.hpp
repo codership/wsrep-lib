@@ -7,10 +7,12 @@
 
 #include "db_client_context.hpp"
 #include "db_server_context.hpp"
+#include "db_client_service.hpp"
 #include "db_storage_engine.hpp"
 
 namespace db
 {
+    class server;
     class client
     {
     public:
@@ -26,11 +28,20 @@ namespace db
             { }
         };
 
-        client();
+        client(db::server&,
+               wsrep::client_id,
+               enum wsrep::client_context::mode,
+               const db::params&);
 
         bool bf_abort(wsrep::seqno);
-    private:
+        const struct stats stats() const { return stats_; }
 
+        void store_globals() { }
+        void reset_globals() { }
+        void start();
+
+    private:
+        friend class db::server_context;
         template <class F> int client_command(F f);
         void run_one_transaction();
         void reset_error();
@@ -38,8 +49,9 @@ namespace db
         const db::params& params_;
         db::server_context& server_context_;
         db::client_context client_context_;
+        db::client_service client_service_;
         db::storage_engine::transaction se_trx_;
-        stats stats_;
+        struct stats stats_;
     };
 }
 

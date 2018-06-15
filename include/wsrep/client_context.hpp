@@ -649,6 +649,30 @@ namespace wsrep
         enum wsrep::client_context::mode orig_mode_;
     };
 
+    template <class D>
+    class scoped_client_context
+    {
+    public:
+        scoped_client_context(wsrep::client_context* client_context, D deleter)
+            : client_context_(client_context)
+            , deleter_(deleter)
+        {
+            if (client_context_ == 0)
+            {
+                throw wsrep::runtime_error("Null client_context provided");
+            }
+        }
+        wsrep::client_context& client_context() { return *client_context_; }
+        ~scoped_client_context()
+        {
+            deleter_(client_context_);
+        }
+    private:
+        scoped_client_context(const scoped_client_context&);
+        scoped_client_context& operator=(const scoped_client_context&);
+        wsrep::client_context* client_context_;
+        D deleter_;
+    };
 
 }
 

@@ -86,6 +86,8 @@ namespace db
         void will_replay(const wsrep::transaction_context&) override
         { }
 
+        void wait_for_replayers(wsrep::client_context&,
+                                wsrep::unique_lock<wsrep::mutex>&) override { }
         enum wsrep::provider::status replay(wsrep::client_context&,
                                             wsrep::transaction_context&)
             override
@@ -97,6 +99,7 @@ namespace db
             return 0;
         }
 
+        void emergency_shutdown() { ::abort(); }
         void debug_sync(wsrep::client_context&, const char*) override { }
         void debug_crash(const char*) override { }
     private:

@@ -719,18 +719,23 @@ int wsrep::transaction_context::certify_fragment(
     // Client context to store fragment in separate transaction
     // Switch temporarily to sr_transaction_context, switch back
     // to original when this goes out of scope
-    std::auto_ptr<wsrep::client_context> sr_client_context(
-        client_context_.server_context().local_client_context());
+    // std::auto_ptr<wsrep::client_context> sr_client_context(
+    //    client_context_.server_context().local_client_context());
+    wsrep::scoped_client_context<wsrep::client_deleter> sr_client_context_scope(
+        client_context_.server_context().local_client_context(),
+        wsrep::client_deleter(client_context_.server_context()));
+    wsrep::client_context& sr_client_context(
+        sr_client_context_scope.client_context());
     wsrep::client_context_switch client_context_switch(
         client_context_,
-        *sr_client_context);
+        sr_client_context);
 
-    wsrep::unique_lock<wsrep::mutex> sr_lock(sr_client_context->mutex());
+    wsrep::unique_lock<wsrep::mutex> sr_lock(sr_client_context.mutex());
     wsrep::transaction_context& sr_transaction_context(
-        sr_client_context->transaction_);
+        sr_client_context.transaction_);
     sr_transaction_context.state(sr_lock, s_certifying);
     sr_lock.unlock();
-    if (sr_client_context->append_fragment(
+    if (sr_client_context.append_fragment(
             sr_transaction_context, flags_,
             wsrep::const_buffer(data.data(), data.size())))
     {
@@ -755,7 +760,7 @@ int wsrep::transaction_context::certify_fragment(
         sr_transaction_context.certified_ = true;
         sr_transaction_context.state(sr_lock, s_committing);
         sr_lock.unlock();
-        if (sr_client_context->commit())
+        if (sr_client_context.commit())
         {
             ret = 1;
         }
@@ -764,7 +769,7 @@ int wsrep::transaction_context::certify_fragment(
         sr_lock.lock();
         sr_transaction_context.state(sr_lock, s_must_abort);
         sr_lock.unlock();
-        sr_client_context->rollback();
+        sr_client_context.rollback();
         ret = 1;
         break;
     }

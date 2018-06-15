@@ -246,7 +246,7 @@ int wsrep::server_context::on_apply(
                 sac->after_command_after_result();
                 stop_streaming_applier(
                     ws_meta.server_id(), ws_meta.transaction_id());
-                delete sac;
+                release_client_context(sac);
             }
         }
         else

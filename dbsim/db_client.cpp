@@ -11,12 +11,32 @@ db::client::client(db::server& server,
                    const db::params& params)
     : mutex_()
     , params_(params)
+    , server_(server)
     , server_context_(server.server_context())
-    , client_context_(mutex_, server_context_, client_service_, client_id, mode)
+    , client_context_(mutex_, this, server_context_, client_service_, client_id, mode)
     , client_service_(server_context_.provider(), client_context_)
     , se_trx_(server.storage_engine())
     , stats_()
 { }
+
+void db::client::start()
+{
+    for (size_t i(0); i < params_.n_transactions; ++i)
+    {
+        run_one_transaction();
+        report_progress(i + 1);
+    }
+}
+
+bool db::client::bf_abort(wsrep::seqno seqno)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    return client_context_.bf_abort(lock, seqno);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//                              Private                                       //
+////////////////////////////////////////////////////////////////////////////////
 
 template <class F>
 int db::client::client_command(F f)
@@ -54,7 +74,7 @@ void db::client::run_one_transaction()
         {
             // wsrep::log_debug() << "Start transaction";
             err = client_context_.start_transaction(
-                server_context_.next_transaction_id());
+                server_.next_transaction_id());
             assert(err == 0);
             se_trx_.start(this);
             return err;
@@ -124,8 +144,12 @@ void db::client::run_one_transaction()
     }
 }
 
-bool db::client::bf_abort(wsrep::seqno seqno)
+void db::client::report_progress(size_t i) const
 {
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    return client_context_.bf_abort(lock, seqno);
+    if ((i % 1000) == 0)
+    {
+        wsrep::log_info() << "client: " << client_context_.id().get()
+                          << " transactions: " << i
+                          << " " << 100*double(i)/params_.n_transactions << "%";
+    }
 }

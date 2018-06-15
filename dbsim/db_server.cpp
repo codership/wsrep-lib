@@ -14,7 +14,7 @@ db::server::server(simulator& simulator,
     , storage_engine_(simulator_.params())
     , mutex_()
     , cond_()
-    , server_context_(name, server_id, address, "dbsim_" + name + "_data")
+    , server_context_(*this, name, server_id, address, "dbsim_" + name + "_data")
     , last_client_id_(0)
     , last_transaction_id_(0)
     , appliers_()
@@ -44,26 +44,7 @@ void db::server::stop_applier()
     appliers_.erase(appliers_.begin());
 }
 
-#if 0
-void db::server::on_sst_request(const std::string& req,
-                                const wsrep::gtid& gtid,
-                                bool bypass)
-{
-    simulator_.donate_sst(*this, req, gtid, bypass);
-}
 
-
-wsrep::client_context* db::server::local_client_context()
-{
-    std::ostringstream id_os;
-    size_t client_id(++last_client_id_);
-    db::client* client(new db::client(*this, client_id,
-                                      wsrep::client_context::m_replicating,
-                                      simulator_.params()));
-    return &client->client_context_;
-}
-
-#endif
 void db::server::start_clients()
 {
     size_t n_clients(simulator_.params().n_clients);
@@ -105,3 +86,31 @@ void db::server::start_client(size_t id)
         boost::thread(&db::server::client_thread, this, client));
 }
 
+void db::server::donate_sst(const std::string& req,
+                            const wsrep::gtid& gtid,
+                            bool bypass)
+{
+    simulator_.sst(*this, req, gtid, bypass);
+}
+
+wsrep::client_context* db::server::local_client_context()
+{
+    std::ostringstream id_os;
+    size_t client_id(++last_client_id_);
+    db::client* client(new db::client(*this, client_id,
+                                      wsrep::client_context::m_replicating,
+                                      simulator_.params()));
+    return &client->client_context();
+}
+
+wsrep::client_context* db::server::streaming_applier_client_context()
+{
+    throw wsrep::not_implemented_error();
+}
+
+void db::server::release_client_context(wsrep::client_context* client_context)
+{
+    db::client_context* db_client_context(
+        dynamic_cast<db::client_context*>(client_context));
+    delete db_client_context->client();
+}

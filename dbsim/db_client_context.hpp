@@ -10,10 +10,12 @@
 
 namespace db
 {
+    class client;
     class client_context : public wsrep::client_context
     {
     public:
         client_context(wsrep::mutex& mutex,
+                       db::client* client,
                        db::server_context& server_context,
                        wsrep::client_service& client_service,
                        const wsrep::client_id& client_id,
@@ -23,14 +25,20 @@ namespace db
                                     client_service,
                                     client_id,
                                     mode)
+            , client_(client)
             , is_autocommit_(false)
             , do_2pc_(false)
         { }
+        db::client* client() { return client_; }
         void reset_globals() { }
         void store_globals() { }
         bool is_autocommit() const { return is_autocommit_; }
         bool do_2pc() const { return do_2pc_; }
+
     private:
+        client_context(const client_context&);
+        client_context& operator=(const client_context&);
+        db::client* client_;
         bool is_autocommit_;
         bool do_2pc_;
     };

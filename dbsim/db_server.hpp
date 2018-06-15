@@ -27,32 +27,24 @@ namespace db
                const std::string& name,
                const std::string& id,
                const std::string& address);
-
-        // Provider management
-
         void applier_thread();
-
         void start_applier();
-
         void stop_applier();
-
-
-
-        db::storage_engine& storage_engine() { return storage_engine_; }
-
-        int apply_to_storage_engine(const wsrep::transaction_context& txc,
-                                    const wsrep::const_buffer&)
-        {
-            storage_engine_.bf_abort_some(txc);
-            return 0;
-        }
-
         void start_clients();
         void stop_clients();
         void client_thread(const std::shared_ptr<db::client>& client);
+        db::storage_engine& storage_engine() { return storage_engine_; }
         db::server_context& server_context() { return server_context_; }
-    private:
+        wsrep::transaction_id next_transaction_id()
+        {
+            return (last_transaction_id_.fetch_add(1) + 1);
+        }
+        void donate_sst(const std::string&, const  wsrep::gtid&, bool);
+        wsrep::client_context* local_client_context();
+        wsrep::client_context* streaming_applier_client_context();
+        void release_client_context(wsrep::client_context*);
 
+    private:
         void start_client(size_t id);
 
         db::simulator& simulator_;

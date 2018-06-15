@@ -12,10 +12,12 @@
 
 namespace db
 {
+    class server;
     class server_context : public wsrep::server_context
     {
     public:
-        server_context(const std::string& name,
+        server_context(db::server& server,
+                       const std::string& name,
                        const std::string& server_id,
                        const std::string& address,
                        const std::string& working_dir)
@@ -29,7 +31,7 @@ namespace db
                 wsrep::server_context::rm_async)
             , mutex_()
             , cond_()
-            , last_transaction_id_()
+            , server_(server)
         { }
         wsrep::client_context* local_client_context() override;
         wsrep::client_context* streaming_applier_client_context() override;
@@ -40,14 +42,10 @@ namespace db
         void background_rollback(wsrep::client_context&) override;
         void log_dummy_write_set(wsrep::client_context&, const wsrep::ws_meta&)
             override;
-        size_t next_transaction_id()
-        {
-            return (last_transaction_id_.fetch_add(1) + 1);
-        }
     private:
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;
-        std::atomic<size_t> last_transaction_id_;
+        db::server& server_;
     };
 }
 

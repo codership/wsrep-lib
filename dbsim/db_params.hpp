@@ -33,6 +33,8 @@ namespace db
             , fast_exit(0)
         { }
     };
+
+    params parse_args(int argc, char** argv);
 }
 
 #endif // WSREP_DB_PARAMS_HPP

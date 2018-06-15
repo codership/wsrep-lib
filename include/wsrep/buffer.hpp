@@ -5,6 +5,7 @@
 #ifndef WSREP_BUFFER_HPP
 #define WSREP_BUFFER_HPP
 
+#include <cstddef>
 #include <vector>
 
 namespace wsrep

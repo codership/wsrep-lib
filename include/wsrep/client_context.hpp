@@ -556,10 +556,10 @@ namespace wsrep
         /*
          * Friend declarations
          */
-        friend int server_context::on_apply(client_context&,
-                                            const wsrep::ws_handle&,
-                                            const wsrep::ws_meta&,
-                                            const wsrep::const_buffer&);
+        //friend int server_context::on_apply(client_context&,
+        //                                  const wsrep::ws_handle&,
+        //                                  const wsrep::ws_meta&,
+        //                                  const wsrep::const_buffer&);
         friend class client_context_switch;
         friend class client_applier_mode;
         friend class client_toi_mode;

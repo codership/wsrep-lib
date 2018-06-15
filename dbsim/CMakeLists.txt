@@ -3,6 +3,10 @@
 #
 
 add_executable(dbms_simulator
-  dbms_simulator.cpp)
+  db_storage_engine.cpp
+  db_client.cpp
+#  db_client_service.cpp
+#  dbms_simulator.cpp
+)
 target_link_libraries(dbms_simulator wsrep-lib ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY})
 set_property(TARGET dbms_simulator PROPERTY CXX_STANDARD 14)

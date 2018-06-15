@@ -32,6 +32,7 @@
 
 class dbms_server;
 
+#if 0
 struct dbms_simulator_params
 {
     size_t n_servers;
@@ -55,7 +56,8 @@ struct dbms_simulator_params
         , fast_exit(0)
     { }
 };
-
+#endif
+#if 0
 class dbms_storage_engine
 {
 public:
@@ -154,7 +156,8 @@ private:
     size_t alg_freq_;
     std::atomic<long long> bf_aborts_;
 };
-
+#endif
+#if 0
 class dbms_simulator
 {
 public:
@@ -203,9 +206,11 @@ public:
         { }
     } stats_;
 };
+#endif
 
 class dbms_client;
 
+#if 0
 class dbms_server : public wsrep::server_context
 {
 public:
@@ -306,6 +311,7 @@ private:
     std::vector<boost::thread> client_threads_;
 };
 
+#endif
 class dbms_client : public wsrep::client_context
 {
 public:
@@ -534,65 +540,6 @@ private:
 };
 
 
-// Server methods
-void dbms_server::applier_thread()
-{
-    wsrep::client_id client_id(last_client_id_.fetch_add(1) + 1);
-    dbms_client applier(*this, client_id,
-                        wsrep::client_context::m_applier, simulator_.params());
-    enum wsrep::provider::status ret(provider().run_applier(&applier));
-    wsrep::log() << "Applier thread exited with error code " << ret;
-}
-
-wsrep::client_context* dbms_server::local_client_context()
-{
-    std::ostringstream id_os;
-    size_t client_id(++last_client_id_);
-    return new dbms_client(*this, client_id,
-                           wsrep::client_context::m_replicating,
-                           simulator_.params());
-}
-
-void dbms_server::start_clients()
-{
-    size_t n_clients(simulator_.params().n_clients);
-    for (size_t i(0); i < n_clients; ++i)
-    {
-        start_client(i + 1);
-    }
-}
-
-void dbms_server::stop_clients()
-{
-    for (auto& i : client_threads_)
-    {
-        i.join();
-    }
-    for (const auto& i : clients_)
-    {
-        struct dbms_client::stats stats(i->stats());
-        simulator_.stats_.commits += stats.commits;
-        simulator_.stats_.aborts  += stats.aborts;
-        simulator_.stats_.replays += stats.replays;
-    }
-}
-
-void dbms_server::client_thread(const std::shared_ptr<dbms_client>& client)
-{
-    client->store_globals();
-    client->start();
-}
-
-void dbms_server::start_client(size_t id)
-{
-    auto client(std::make_shared<dbms_client>(
-                    *this, id,
-                    wsrep::client_context::m_replicating,
-                    simulator_.params()));
-    clients_.push_back(client);
-    client_threads_.push_back(
-        boost::thread(&dbms_server::client_thread, this, client));
-}
 
 
 

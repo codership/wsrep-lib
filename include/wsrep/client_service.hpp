@@ -11,10 +11,18 @@
  * wsrep-lib operation or applier client needs to apply a write set.
  */
 
+#ifndef WSREP_CLIENT_SERVICE_HPP
+#define WSREP_CLIENT_SERVICE_HPP
+
 #include "buffer.hpp"
+#include "provider.hpp"
+#include "mutex.hpp"
+#include "lock.hpp"
 
 namespace wsrep
 {
+    class transaction_context;
+    class client_context;
     class client_service
     {
     public:
@@ -62,6 +70,10 @@ namespace wsrep
             wsrep::client_context&, const wsrep::transaction_context&, wsrep::mutable_buffer&) = 0;
         virtual void remove_fragments(const wsrep::transaction_context&) = 0;
 
+        //
+        // Applying interface
+        //
+
         /*!
          * Apply a write set.
          */
@@ -76,6 +88,10 @@ namespace wsrep
          * Roll back transaction.
          */
         virtual int rollback(wsrep::client_context&) = 0;
+
+        //
+        // Interface to global server state
+        //
 
         /*!
          * Forcefully shut down the DBMS process or replication system.
@@ -150,6 +166,6 @@ namespace wsrep
     {
     public:
     };
-
-
 }
+
+#endif // WSREP_CLIENT_SERVICE_HPP

@@ -98,7 +98,7 @@ namespace
                  wsrep::server_context::rm_async)
             , cc(sc, sc.client_service(),
                  wsrep::client_id(1),
-                 wsrep::client_context::m_applier)
+                 wsrep::client_context::m_high_priority)
             , tc(cc.transaction())
         {
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -126,7 +126,7 @@ namespace
                  wsrep::server_context::rm_async)
             , cc(sc, sc.client_service(),
                  wsrep::client_id(1),
-                 wsrep::client_context::m_applier)
+                 wsrep::client_context::m_high_priority)
             , tc(cc.transaction())
         {
             sc.client_service().do_2pc_ = true;

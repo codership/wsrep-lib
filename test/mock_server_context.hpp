@@ -39,7 +39,7 @@ namespace wsrep
         {
             return new wsrep::mock_client_context(
                 *this, client_service_, ++last_client_id_,
-                wsrep::client_context::m_applier);
+                wsrep::client_context::m_high_priority);
         }
         void release_client_context(wsrep::client_context* client_context)
         {
@@ -50,7 +50,6 @@ namespace wsrep
                                  const wsrep::ws_meta&)
             WSREP_OVERRIDE
         {
-            // 
         }
         void on_connect() WSREP_OVERRIDE { }
         void wait_until_connected() WSREP_OVERRIDE { }

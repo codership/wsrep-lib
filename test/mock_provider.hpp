@@ -156,7 +156,7 @@ namespace wsrep
         {
             wsrep::client_context& cc(
                 *static_cast<wsrep::client_context*>(ctx));
-            wsrep::client_applier_mode applier_mode(cc);
+            wsrep::high_priority_context high_priority_context(cc);
             const wsrep::transaction_context& tc(cc.transaction());
             wsrep::ws_meta ws_meta;
             if (replay_result_ == wsrep::provider::success)

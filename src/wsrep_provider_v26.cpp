@@ -312,7 +312,7 @@ namespace
         wsrep::client_context* client_context(
             reinterpret_cast<wsrep::client_context*>(ctx));
         assert(client_context);
-        assert(client_context->mode() == wsrep::client_context::m_applier);
+        assert(client_context->mode() == wsrep::client_context::m_high_priority);
 
         wsrep::const_buffer data(buf->ptr, buf->len);
         wsrep::ws_handle ws_handle(wsh->trx_id, wsh->opaque);

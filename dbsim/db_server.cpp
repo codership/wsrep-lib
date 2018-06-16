@@ -26,7 +26,8 @@ void db::server::applier_thread()
 {
     wsrep::client_id client_id(last_client_id_.fetch_add(1) + 1);
     db::client applier(*this, client_id,
-                       wsrep::client_context::m_applier, simulator_.params());
+                       wsrep::client_context::m_high_priority,
+                       simulator_.params());
     wsrep::client_context* cc(static_cast<wsrep::client_context*>(
                                   &applier.client_context()));
     enum wsrep::provider::status ret(

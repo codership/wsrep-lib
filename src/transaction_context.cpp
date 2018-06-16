@@ -55,7 +55,7 @@ int wsrep::transaction_context::start_transaction(
     switch (client_context_.mode())
     {
     case wsrep::client_context::m_local:
-    case wsrep::client_context::m_applier:
+    case wsrep::client_context::m_high_priority:
         return 0;
     case wsrep::client_context::m_replicating:
         return provider_.start_transaction(ws_handle_);
@@ -72,7 +72,7 @@ int wsrep::transaction_context::start_transaction(
     assert(ws_meta.flags());
     assert(active() == false);
     id_ = ws_meta.transaction_id();
-    assert(client_context_.mode() == wsrep::client_context::m_applier);
+    assert(client_context_.mode() == wsrep::client_context::m_high_priority);
     state_ = s_executing;
     state_hist_.clear();
     ws_handle_ = ws_handle;
@@ -86,7 +86,7 @@ int wsrep::transaction_context::start_replaying(const wsrep::ws_meta& ws_meta)
     ws_meta_ = ws_meta;
     assert(ws_meta_.flags() & wsrep::provider::flag::commit);
     assert(active());
-    assert(client_context_.mode() == wsrep::client_context::m_applier);
+    assert(client_context_.mode() == wsrep::client_context::m_high_priority);
     assert(state() == s_replaying);
     assert(ws_handle_.opaque());
     assert(ws_meta_.seqno().nil() == false);
@@ -180,7 +180,7 @@ int wsrep::transaction_context::before_prepare(
         }
         break;
     case wsrep::client_context::m_local:
-    case wsrep::client_context::m_applier:
+    case wsrep::client_context::m_high_priority:
         if (is_streaming())
         {
             client_context_.remove_fragments();
@@ -220,7 +220,7 @@ int wsrep::transaction_context::after_prepare(
                 state() == s_cert_failed));
         break;
     case wsrep::client_context::m_local:
-    case wsrep::client_context::m_applier:
+    case wsrep::client_context::m_high_priority:
         state(lock, s_certifying);
         state(lock, s_committing);
         ret = 0;
@@ -310,7 +310,7 @@ int wsrep::transaction_context::before_commit()
             }
         }
         break;
-    case wsrep::client_context::m_applier:
+    case wsrep::client_context::m_high_priority:
         assert(certified());
         assert(ordered());
         if (client_context_.do_2pc() == false)
@@ -360,7 +360,7 @@ int wsrep::transaction_context::after_commit()
     if (is_streaming())
     {
         assert(client_context_.mode() == wsrep::client_context::m_replicating ||
-               client_context_.mode() == wsrep::client_context::m_applier);
+               client_context_.mode() == wsrep::client_context::m_high_priority);
         clear_fragments();
     }
 
@@ -372,7 +372,7 @@ int wsrep::transaction_context::after_commit()
     case wsrep::client_context::m_replicating:
         ret = provider_.release(ws_handle_);
         break;
-    case wsrep::client_context::m_applier:
+    case wsrep::client_context::m_high_priority:
         break;
     default:
         assert(0);

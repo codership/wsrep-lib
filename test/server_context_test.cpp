@@ -15,7 +15,7 @@ namespace
                  wsrep::server_context::rm_sync)
             , cc(sc, sc.client_service(),
                  wsrep::client_id(1),
-                 wsrep::client_context::m_applier)
+                 wsrep::client_context::m_high_priority)
             , ws_handle(1, (void*)1)
             , ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
                       wsrep::stid(wsrep::id("1"), 1, 1),
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(server_context_streaming)
     wsrep::mock_client_context cc(sc,
                                   sc.client_service(),
                                   wsrep::client_id(1),
-                                  wsrep::client_context::m_applier);
+                                  wsrep::client_context::m_high_priority);
     wsrep::ws_handle ws_handle(1, (void*)1);
     wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
                            wsrep::stid(wsrep::id("1"), 1, 1),

@@ -93,8 +93,8 @@ namespace wsrep
             m_local,
             /*! Generates write sets for replication by the provider. */
             m_replicating,
-            /*! Applies write sets from the provider. */
-            m_applier,
+            /*! High priority mode */
+            m_high_priority,
             /*! Client is in total order isolation mode */
             m_toi
         };
@@ -321,19 +321,19 @@ namespace wsrep
         int start_transaction(const wsrep::ws_handle& wsh,
                               const wsrep::ws_meta& meta)
         {
-            assert(mode_ == m_applier);
+            assert(mode_ == m_high_priority);
             return transaction_.start_transaction(wsh, meta);
         }
 
         int apply(const wsrep::const_buffer& data)
         {
-            assert(mode_ == m_applier);
+            assert(mode_ == m_high_priority);
             return client_service_.apply(*this, data);
         }
 
         int commit()
         {
-            assert(mode_ == m_applier || mode_ == m_local);
+            assert(mode_ == m_high_priority || mode_ == m_local);
             return client_service_.commit(
                 *this,
                 transaction_.ws_handle(), transaction_.ws_meta());
@@ -411,13 +411,13 @@ namespace wsrep
 
         int start_replaying(const wsrep::ws_meta& ws_meta)
         {
-            assert(mode_ == m_applier);
+            assert(mode_ == m_high_priority);
             return transaction_.start_replaying(ws_meta);
         }
 
         void adopt_transaction(wsrep::transaction_context& transaction)
         {
-            assert(mode_ == m_applier);
+            assert(mode_ == m_high_priority);
             transaction_.start_transaction(transaction.id());
             transaction_.streaming_context_ = transaction.streaming_context_;
         }
@@ -561,7 +561,7 @@ namespace wsrep
         client_context& operator=(client_context&);
 
         friend class client_context_switch;
-        friend class client_applier_mode;
+        friend class high_priority_context;
         friend class client_toi_mode;
         friend class transaction_context;
 
@@ -612,16 +612,16 @@ namespace wsrep
         client_context& current_context_;
     };
 
-    class client_applier_mode
+    class high_priority_context
     {
     public:
-        client_applier_mode(wsrep::client_context& client)
+        high_priority_context(wsrep::client_context& client)
             : client_(client)
             , orig_mode_(client.mode_)
         {
-            client_.mode_ = wsrep::client_context::m_applier;
+            client_.mode_ = wsrep::client_context::m_high_priority;
         }
-        ~client_applier_mode()
+        ~high_priority_context()
         {
             client_.mode_ = orig_mode_;
         }
@@ -673,7 +673,6 @@ namespace wsrep
         wsrep::client_context* client_context_;
         D deleter_;
     };
-
 }
 
 #endif // WSREP_CLIENT_CONTEXT_HPP

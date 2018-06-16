@@ -34,12 +34,17 @@ namespace db
                const db::params&);
         bool bf_abort(wsrep::seqno);
         const struct stats stats() const { return stats_; }
-        void store_globals() { }
-        void reset_globals() { }
+        void store_globals()
+        {
+            client_context_.store_globals();
+        }
+        void reset_globals()
+        { }
         void start();
         wsrep::client_context& client_context() { return client_context_; }
     private:
         friend class db::server_context;
+        friend class db::client_service;
         template <class F> int client_command(F f);
         void run_one_transaction();
         void reset_error();

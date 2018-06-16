@@ -7,8 +7,8 @@
 
 
 int wsrep::mock_client_service::apply(
-    wsrep::client_context& client_context,
-    const wsrep::const_buffer& data __attribute__((unused)))
+    wsrep::client_context& client_context WSREP_UNUSED,
+    const wsrep::const_buffer&)
 
 {
     assert(client_context.transaction().state() == wsrep::transaction_context::s_executing ||

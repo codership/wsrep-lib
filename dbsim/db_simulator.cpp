@@ -6,6 +6,70 @@
 #include <boost/filesystem.hpp>
 #include <sstream>
 
+void db::simulator::run()
+{
+    start();
+    stop();
+    std::flush(std::cerr);
+    std::cout << "Results:\n";
+    std::cout << stats() << std::endl;
+}
+
+void db::simulator::sst(db::server& server,
+                               const std::string& request,
+                               const wsrep::gtid& gtid,
+                               bool bypass)
+{
+    size_t id;
+    std::istringstream is(request);
+    is >> id;
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    auto i(servers_.find(id));
+    if (i == servers_.end())
+    {
+        throw wsrep::runtime_error("Server " + request + " not found");
+    }
+    if (bypass == false)
+    {
+        wsrep::log_info() << "SST " << server.server_context().id() << " -> " << id;
+    }
+    i->second->server_context().sst_received(gtid, 0);
+    server.server_context().sst_sent(gtid, 0);
+}
+
+std::string db::simulator::stats() const
+{
+    size_t transactions(params_.n_servers * params_.n_clients
+                        * params_.n_transactions);
+    auto duration(std::chrono::duration<double>(
+                      clients_stop_ - clients_start_).count());
+    long long bf_aborts(0);
+    for (const auto& s : servers_)
+    {
+        bf_aborts += s.second->storage_engine().bf_aborts();
+    }
+    std::ostringstream os;
+    os << "Number of transactions: " << transactions
+       << "\n"
+       << "Seconds: " << duration
+       << " \n"
+       << "Transactions per second: " << transactions/duration
+       << "\n"
+       << "BF aborts: "
+       << bf_aborts
+       << "\n"
+       << "Client commits: " << stats_.commits
+       << "\n"
+       << "Client rollbacks: " << stats_.rollbacks
+       << "\n"
+       << "Client replays: " << stats_.replays;
+    return os.str();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//                              Private                                       //
+////////////////////////////////////////////////////////////////////////////////
+
 void db::simulator::start()
 {
     wsrep::log() << "Provider: " << params_.wsrep_provider;
@@ -65,63 +129,37 @@ void db::simulator::start()
 
 void db::simulator::stop()
 {
-
-}
-
-void db::simulator::sst(db::server& server,
-                               const std::string& request,
-                               const wsrep::gtid& gtid,
-                               bool bypass)
-{
-    size_t id;
-    std::istringstream is(request);
-    is >> id;
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    auto i(servers_.find(id));
-    if (i == servers_.end())
+    for (auto& i : servers_)
     {
-        throw wsrep::runtime_error("Server " + request + " not found");
+        db::server& server(*i.second);
+        server.stop_clients();
     }
-    if (bypass == false)
+    clients_stop_ = std::chrono::steady_clock::now();
+    wsrep::log() << "######## Stats ############";
+    wsrep::log()  << stats();
+    wsrep::log() << "######## Stats ############";
+    if (params_.fast_exit)
     {
-        wsrep::log_info() << "SST " << server.server_context().id() << " -> " << id;
+        exit(0);
     }
-    i->second->server_context().sst_received(gtid, 0);
-    server.server_context().sst_sent(gtid, 0);
-}
-
-std::string db::simulator::stats() const
-{
-    size_t transactions(params_.n_servers * params_.n_clients
-                        * params_.n_transactions);
-    auto duration(std::chrono::duration<double>(
-                      clients_stop_ - clients_start_).count());
-    long long bf_aborts(0);
-    for (const auto& s : servers_)
+    for (auto& i : servers_)
     {
-        bf_aborts += s.second->storage_engine().bf_aborts();
+        db::server& server(*i.second);
+        wsrep::log_info() << "Status for server: "
+                          << server.server_context().id();
+        auto status(server.server_context().provider().status());
+        for_each(status.begin(), status.end(),
+                 [](const wsrep::provider::status_variable& sv)
+                 {
+                     wsrep::log() << sv.name() << " = " << sv.value();
+                 });
+        server.server_context().disconnect();
+        server.server_context().wait_until_state(
+            wsrep::server_context::s_disconnected);
+        server.stop_applier();
+        server.server_context().unload_provider();
     }
-    std::ostringstream os;
-    os << "Number of transactions: " << transactions
-       << "\n"
-       << "Seconds: " << duration
-       << " \n"
-       << "Transactions per second: " << transactions/duration
-       << "\n"
-       << "BF aborts: "
-       << bf_aborts
-       << "\n"
-       << "Client commits: " << stats_.commits
-       << "\n"
-       << "Client aborts: " << stats_.aborts
-       << "\n"
-       << "Client replays: " << stats_.replays;
-    return os.str();
 }
-
-////////////////////////////////////////////////////////////////////////////////
-//                              Private                                       //
-////////////////////////////////////////////////////////////////////////////////
 
 std::string db::simulator::server_port(size_t i) const
 {

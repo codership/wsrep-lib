@@ -7,10 +7,6 @@
 
 int main(int argc, char** argv)
 {
-    db::params params(db::parse_args(argc, argv));
-    db::simulator simulator(params);
-    simulator.start();
-    simulator.stop();
-    std::cout << simulator.stats() << std::endl;
+    db::simulator(db::parse_args(argc, argv)).run();
     return 0;
 }

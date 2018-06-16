@@ -26,6 +26,12 @@ int wsrep::server_context::load_provider(const std::string& provider_spec,
     return (provider_ ? 0 : 1);
 }
 
+void wsrep::server_context::unload_provider()
+{
+    delete provider_;
+    provider_ = 0;
+}
+
 int wsrep::server_context::connect(const std::string& cluster_name,
                                    const std::string& cluster_address,
                                    const std::string& state_donor,

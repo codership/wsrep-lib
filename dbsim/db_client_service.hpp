@@ -2,11 +2,10 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#ifndef WSREP_DB_CLIENT_SREVICE_HPP
+#ifndef WSREP_DB_CLIENT_SERVICE_HPP
 #define WSREP_DB_CLIENT_SERVICE_HPP
 
 #include "wsrep/client_service.hpp"
-#include "wsrep/client_context.hpp"
 #include "wsrep/transaction_context.hpp"
 
 #include "db_client_context.hpp"
@@ -67,21 +66,12 @@ namespace db
         void remove_fragments(const wsrep::transaction_context&) override
         { }
 
-        int apply(wsrep::client_context&, const wsrep::const_buffer&) override
-        {
-            return 0;
-        }
+        int apply(wsrep::client_context&, const wsrep::const_buffer&) override;
 
         int commit(wsrep::client_context&,
-                   const wsrep::ws_handle&, const wsrep::ws_meta&) override
-        {
-            return 0;
-        }
+                   const wsrep::ws_handle&, const wsrep::ws_meta&) override;
 
-        int rollback(wsrep::client_context&) override
-        {
-            return 0;
-        }
+        int rollback(wsrep::client_context&) override;
 
         void will_replay(const wsrep::transaction_context&) override
         { }
@@ -90,8 +80,7 @@ namespace db
                                 wsrep::unique_lock<wsrep::mutex>&) override { }
         enum wsrep::provider::status replay(wsrep::client_context&,
                                             wsrep::transaction_context&)
-            override
-        { return wsrep::provider::success; }
+            override;
 
         int append_fragment(const wsrep::transaction_context&, int,
                             const wsrep::const_buffer&) override

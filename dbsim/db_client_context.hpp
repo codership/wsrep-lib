@@ -31,7 +31,7 @@ namespace db
         { }
         db::client* client() { return client_; }
         void reset_globals() { }
-        void store_globals() { }
+        void store_globals() { wsrep::client_context::store_globals(); }
         bool is_autocommit() const { return is_autocommit_; }
         bool do_2pc() const { return do_2pc_; }
 

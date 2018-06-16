@@ -32,14 +32,15 @@ namespace db
             , stats_()
         { }
 
-        void start();
-        void stop();
+        void run();
         void sst(db::server&,
                  const std::string&, const wsrep::gtid&, bool);
         const db::params& params() const
         { return params_; }
         std::string stats() const;
     private:
+        void start();
+        void stop();
         std::string server_port(size_t i) const;
         std::string build_cluster_address() const;
 
@@ -52,11 +53,11 @@ namespace db
         struct stats
         {
             long long commits;
-            long long aborts;
+            long long rollbacks;
             long long replays;
             stats()
                 : commits(0)
-                , aborts(0)
+                , rollbacks(0)
                 , replays(0)
             { }
         } stats_;

@@ -39,13 +39,15 @@ namespace db
             }
             bool active() const { return cc_ != nullptr; }
             void start(client* cc);
+            void apply(const wsrep::transaction_context&);
             void commit();
             void rollback();
+            db::client* client() { return cc_; }
             transaction(const transaction&) = delete;
             transaction& operator=(const transaction&) = delete;
         private:
-            storage_engine& se_;
-            client* cc_;
+            db::storage_engine& se_;
+            db::client* cc_;
         };
         void bf_abort_some(const wsrep::transaction_context& tc);
         long long bf_aborts() const { return bf_aborts_; }

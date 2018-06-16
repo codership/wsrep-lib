@@ -5,7 +5,7 @@
 #include "db_storage_engine.hpp"
 #include "db_client.hpp"
 
-void db::storage_engine::transaction::start(client* cc)
+void db::storage_engine::transaction::start(db::client* cc)
 {
     wsrep::unique_lock<wsrep::mutex> lock(se_.mutex_);
     if (se_.transactions_.insert(cc).second == false)
@@ -13,6 +13,13 @@ void db::storage_engine::transaction::start(client* cc)
         ::abort();
     }
     cc_ = cc;
+}
+
+void db::storage_engine::transaction::apply(
+    const wsrep::transaction_context& transaction_context)
+{
+    assert(cc_);
+    se_.bf_abort_some(transaction_context);
 }
 
 void db::storage_engine::transaction::commit()
@@ -43,10 +50,19 @@ void db::storage_engine::bf_abort_some(const wsrep::transaction_context& txc)
     {
         if (transactions_.empty() == false)
         {
-            auto* victim_txc(*transactions_.begin());
-            if (victim_txc->bf_abort(txc.seqno()))
+            for (auto victim : transactions_)
             {
-                ++bf_aborts_;
+                wsrep::client_context& cc(victim->client_context());
+                wsrep::unique_lock<wsrep::mutex> lock(cc.mutex());
+                if (cc.mode() == wsrep::client_context::m_replicating)
+                {
+                    lock.unlock();
+                    if (victim->bf_abort(txc.seqno()))
+                    {
+                        ++bf_aborts_;
+                        break;
+                    }
+                }
             }
         }
     }

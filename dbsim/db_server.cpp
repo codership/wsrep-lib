@@ -27,7 +27,10 @@ void db::server::applier_thread()
     wsrep::client_id client_id(last_client_id_.fetch_add(1) + 1);
     db::client applier(*this, client_id,
                        wsrep::client_context::m_applier, simulator_.params());
-    enum wsrep::provider::status ret(server_context_.provider().run_applier(&applier));
+    wsrep::client_context* cc(static_cast<wsrep::client_context*>(
+                                  &applier.client_context()));
+    enum wsrep::provider::status ret(
+        server_context_.provider().run_applier(cc));
     wsrep::log() << "Applier thread exited with error code " << ret;
 }
 
@@ -64,7 +67,7 @@ void db::server::stop_clients()
     {
         const struct db::client::stats& stats(i->stats());
         simulator_.stats_.commits += stats.commits;
-        simulator_.stats_.aborts  += stats.rollbacks;
+        simulator_.stats_.rollbacks  += stats.rollbacks;
         simulator_.stats_.replays += stats.replays;
     }
 }

@@ -126,6 +126,13 @@ namespace wsrep
         };
 
         const static int state_max_ = s_quitting + 1;
+
+
+        void store_globals()
+        {
+            thread_id_ = wsrep::this_thread::get_id();
+        }
+
         /*!
          * Destructor.
          */
@@ -133,7 +140,6 @@ namespace wsrep
         {
             assert(transaction_.active() == false);
         }
-
 
         /*!
          *
@@ -328,7 +334,8 @@ namespace wsrep
         int commit()
         {
             assert(mode_ == m_applier || mode_ == m_local);
-            return client_service_.commit(*this,
+            return client_service_.commit(
+                *this,
                 transaction_.ws_handle(), transaction_.ws_meta());
         }
         //
@@ -553,13 +560,6 @@ namespace wsrep
         client_context(const client_context&);
         client_context& operator=(client_context&);
 
-        /*
-         * Friend declarations
-         */
-        //friend int server_context::on_apply(client_context&,
-        //                                  const wsrep::ws_handle&,
-        //                                  const wsrep::ws_meta&,
-        //                                  const wsrep::const_buffer&);
         friend class client_context_switch;
         friend class client_applier_mode;
         friend class client_toi_mode;

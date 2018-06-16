@@ -239,6 +239,8 @@ namespace wsrep
         int load_provider(const std::string& provider,
                           const std::string& provider_options);
 
+        void unload_provider();
+
         /*!
          * Return reference to provider.
          *

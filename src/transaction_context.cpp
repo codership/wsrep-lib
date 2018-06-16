@@ -74,6 +74,7 @@ int wsrep::transaction_context::start_transaction(
     id_ = ws_meta.transaction_id();
     assert(client_context_.mode() == wsrep::client_context::m_applier);
     state_ = s_executing;
+    state_hist_.clear();
     ws_handle_ = ws_handle;
     ws_meta_ = ws_meta;
     certified_ = true;
@@ -946,6 +947,7 @@ void wsrep::transaction_context::clear_fragments()
 void wsrep::transaction_context::cleanup()
 {
     assert(is_streaming() == false);
+    assert(state() == s_committed || state() == s_aborted);
     debug_log_state("cleanup_enter");
     id_ = wsrep::transaction_id::invalid();
     ws_handle_ = wsrep::ws_handle();

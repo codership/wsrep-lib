@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-/*! \file server_context.hpp
+/** @file server_context.hpp
  *
  * Server Context Abstraction
  * ==========================
@@ -82,17 +82,17 @@ namespace wsrep
     class view;
     class const_buffer;
 
-    /*! \class Server Context
+    /** @class Server Context
      *
      *
      */
     class server_context
     {
     public:
-        /*!
+        /**
          * Server state enumeration.
          *
-         * \todo Fix UML generation
+         * @todo Fix UML generation
          *
          * Server state diagram if the sst_before_init() returns false.
          *
@@ -120,92 +120,92 @@ namespace wsrep
          */
         enum state
         {
-            /*! Server is in disconnected state. */
+            /** Server is in disconnected state. */
             s_disconnected,
-            /*! Server is initializing */
+            /** Server is initializing */
             s_initializing,
-            /*! Server has been initialized */
+            /** Server has been initialized */
             s_initialized,
-            /*! Server is connected to the cluster */
+            /** Server is connected to the cluster */
             s_connected,
-            /*! Server is receiving SST */
+            /** Server is receiving SST */
             s_joiner,
-            /*! Server has received SST succesfully but has not synced
+            /** Server has received SST succesfully but has not synced
               with rest of the cluster yet. */
             s_joined,
-            /*! Server is donating state snapshot transfer */
+            /** Server is donating state snapshot transfer */
             s_donor,
-            /*! Server has synced with the cluster */
+            /** Server has synced with the cluster */
             s_synced,
-            /*! Server is disconnecting from group */
+            /** Server is disconnecting from group */
             s_disconnecting
         };
 
         static const int n_states_ = s_disconnecting + 1;
 
-        /*!
+        /**
          * Rollback Mode enumeration
          */
         enum rollback_mode
         {
-            /*! Asynchronous rollback mode */
+            /** Asynchronous rollback mode */
             rm_async,
-            /*! Synchronous rollback mode */
+            /** Synchronous rollback mode */
             rm_sync
         };
 
 
         virtual ~server_context();
-        /*!
+        /**
          * Return human readable server name.
          *
-         * \return Human readable server name string.
+         * @return Human readable server name string.
          */
         const std::string& name() const { return name_; }
 
-        /*!
+        /**
          * Return Server identifier string.
          *
-         * \return Server indetifier string.
+         * @return Server indetifier string.
          */
         const std::string& id() const { return id_; }
 
-        /*!
+        /**
          * Return server group communication address.
          *
-         * \return Return server group communication address.
+         * @return Return server group communication address.
          */
         const std::string& address() const { return address_; }
 
-        /*!
+        /**
          * Return working directory
          *
-         * \return String containing path to working directory.
+         * @return String containing path to working directory.
          */
         const std::string& working_dir() const { return working_dir_; }
-        /*!
+        /**
          * Get the rollback mode which server is operating in.
          *
-         * \return Rollback mode.
+         * @return Rollback mode.
          */
         enum rollback_mode rollback_mode() const { return rollback_mode_; }
 
-        /*!
+        /**
          * Create client context which acts only locally, i.e. does
          * not participate in replication. However, local client
          * connection may execute transactions which require ordering,
          * as when modifying local SR fragment storage requires
          * strict commit ordering.
          *
-         * \return Pointer to Client Context.
+         * @return Pointer to Client Context.
          */
         virtual client_context* local_client_context() = 0;
 
-        /*!
+        /**
          * Create applier context for streaming transaction.
          *
-         * \param server_id Server id of the origin of the SR transaction.
-         * \param transaction_id Transaction ID of the SR transaction on the
+         * @param server_id Server id of the origin of the SR transaction.
+         * @param transaction_id Transaction ID of the SR transaction on the
          *        origin server.
          */
         virtual client_context* streaming_applier_client_context() = 0;
@@ -219,7 +219,7 @@ namespace wsrep
 
         void stop_streaming_applier(
             const wsrep::id&, const wsrep::transaction_id&);
-        /*!
+        /**
          * Return reference to streaming applier.
          */
         client_context* find_streaming_applier(const wsrep::id&,
@@ -227,26 +227,26 @@ namespace wsrep
 
         virtual void log_dummy_write_set(wsrep::client_context&,
                                          const wsrep::ws_meta&) = 0;
-        /*!
+        /**
          * Load WSRep provider.
          *
-         * \param provider WSRep provider library to be loaded.
-         * \param provider_options Provider specific options string
+         * @param provider WSRep provider library to be loaded.
+         * @param provider_options Provider specific options string
          *        to be passed for provider during initialization.
          *
-         * \return Zero on success, non-zero on error.
+         * @return Zero on success, non-zero on error.
          */
         int load_provider(const std::string& provider,
                           const std::string& provider_options);
 
         void unload_provider();
 
-        /*!
+        /**
          * Return reference to provider.
          *
-         * \return Reference to provider
+         * @return Reference to provider
          *
-         * \throw wsrep::runtime_error if provider has not been loaded
+         * @throw wsrep::runtime_error if provider has not been loaded
          */
         virtual wsrep::provider& provider() const
         {
@@ -264,23 +264,23 @@ namespace wsrep
 
         int disconnect();
 
-        /*!
+        /**
          * A method which will be called when the server
          * has been joined to the cluster
          */
         void on_connect();
 
-        /*!
+        /**
          * A method which will be called when a view
          * notification event has been delivered by the
          * provider.
          *
-         * \params view wsrep::view object which holds the new view
+         * @params view wsrep::view object which holds the new view
          *         information.
          */
         void on_view(const wsrep::view& view);
 
-        /*!
+        /**
          * A method which will be called when the server
          * has been synchronized with the cluster.
          *
@@ -289,19 +289,19 @@ namespace wsrep
          */
         void on_sync();
 
-        /*!
+        /**
          * Wait until server reaches given state.
          */
         void wait_until_state(wsrep::server_context::state) const;
 
-        /*!
+        /**
          * Virtual method to return true if the configured SST
          * method requires SST to be performed before DBMS storage
          * engine initialization, false otherwise.
          */
         virtual bool sst_before_init() const = 0;
 
-        /*!
+        /**
          * Virtual method which will be called on *joiner* when the provider
          * requests the SST request information. This method should
          * provide a string containing an information which the donor
@@ -309,78 +309,78 @@ namespace wsrep
          */
         virtual std::string on_sst_required() = 0;
 
-        /*!
+        /**
          * Virtual method which will be called on *donor* when the
          * SST request has been delivered by the provider.
          * This method should initiate SST transfer or throw
          * a wsrep::runtime_error
          * if the SST transfer cannot be initiated. If the SST request
          * initiation is succesful, the server remains in s_donor
-         * state until the SST is over or fails. The \param bypass
+         * state until the SST is over or fails. The @param bypass
          * should be passed to SST implementation. If the flag is true,
          * no actual SST should happen, but the joiner server should
          * be notified that the donor has seen the request. The notification
-         * should included \param gtid provided. This must be passed
+         * should included @param gtid provided. This must be passed
          * to sst_received() call on the joiner.
          *
-         *  \todo Figure out better exception for error codition.
+         *  @todo Figure out better exception for error codition.
          *
-         * \param sst_request SST request string provided by the joiner.
-         * \param gtid GTID denoting the current replication position.
-         * \param bypass Boolean bypass flag.
+         * @param sst_request SST request string provided by the joiner.
+         * @param gtid GTID denoting the current replication position.
+         * @param bypass Boolean bypass flag.
          */
         virtual void on_sst_request(const std::string& sst_request,
                                     const wsrep::gtid& gtid,
                                     bool bypass) = 0;
 
         virtual void background_rollback(wsrep::client_context&) = 0;
-        /*!
+        /**
          *
          */
         void sst_sent(const wsrep::gtid& gtid, int error);
 
-        /*!
+        /**
          * This method must be called by the joiner after the SST
          * transfer has been received.
          *
-         * \param gtid GTID provided by the SST transfer
+         * @param gtid GTID provided by the SST transfer
          */
         void sst_received(const wsrep::gtid& gtid, int error);
 
-        /*!
+        /**
          * This method must be called after the server initialization
          * has been completed. The call has a side effect of changing
          * the Server Context state to s_initialized.
          */
         void initialized();
 
-        /*!
+        /**
          *
          */
-        /*!
+        /**
          * This method will be called by the provider hen
          * a remote write set is being applied. It is the responsibility
          * of the caller to set up transaction context and data properly.
          *
-         * \todo Make this private, allow calls for provider implementations
+         * @todo Make this private, allow calls for provider implementations
          *       only.
-         * \param client_context Applier client context.
-         * \param transaction_context Transaction context.
-         * \param data Write set data
+         * @param client_context Applier client context.
+         * @param transaction_context Transaction context.
+         * @param data Write set data
          *
-         * \return Zero on success, non-zero on failure.
+         * @return Zero on success, non-zero on failure.
          */
         int on_apply(wsrep::client_context& client_context,
                      const wsrep::ws_handle& ws_handle,
                      const wsrep::ws_meta& ws_meta,
                      const wsrep::const_buffer& data);
 
-        /*!
+        /**
          * This virtual method should be implemented by the DBMS
          * to provide information if the current statement in processing
          * is allowd for streaming replication.
          *
-         * \return True if the statement is allowed for streaming
+         * @return True if the statement is allowed for streaming
          *         replication, false otherwise.
          */
         virtual bool statement_allowed_for_streaming(
@@ -391,17 +391,17 @@ namespace wsrep
         int debug_log_level() const { return debug_log_level_; }
 
     protected:
-                /*! Server Context constructor
+        /** Server Context constructor
          *
-         * \param mutex Mutex provided by the DBMS implementation.
-         * \param name Human Readable Server Name.
-         * \param id Server Identifier String, UUID or some unique
+         * @param mutex Mutex provided by the DBMS implementation.
+         * @param name Human Readable Server Name.
+         * @param id Server Identifier String, UUID or some unique
          *        identifier.
-         * \param address Server address in form of IPv4 address, IPv6 address
+         * @param address Server address in form of IPv4 address, IPv6 address
          *        or hostname.
-         * \param working_dir Working directory for replication specific
+         * @param working_dir Working directory for replication specific
          *        data files.
-         * \param rollback_mode Rollback mode which server operates on.
+         * @param rollback_mode Rollback mode which server operates on.
          */
         server_context(wsrep::mutex& mutex,
                        wsrep::condition_variable& cond,

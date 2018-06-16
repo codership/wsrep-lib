@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-/*! \file id.hpp
+/** @file id.hpp
  *
  * A generic identifier utility class.
  */
@@ -16,7 +16,7 @@
 
 namespace wsrep
 {
-    /*!
+    /**
      * The idientifier class stores identifiers either in UUID
      * format or in string format. The storage format is decided
      * upon construction. If the given string contains a valid
@@ -27,18 +27,18 @@ namespace wsrep
     class id
     {
     public:
-        /*!
+        /**
          * Default constructor. Constructs an empty identifier.
          */
         id() : data_() { std::memset(data_, 0, sizeof(data_)); }
 
-        /*!
+        /**
          * Construct from string. The input string may contain either
          * valid UUID or a string with maximum 16 bytes length.
          */
         id(const std::string&);
 
-        /*!
+        /**
          * Construct from void pointer.
          */
         id (const void* data, size_t size) : data_()

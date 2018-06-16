@@ -200,18 +200,17 @@ namespace wsrep
         }
 
         // Methods to modify mock state
-        /*! Inject BF abort event into the provider.
+        /** Inject BF abort event into the provider.
          *
-         * \param bf_seqno Aborter sequence number
-         * \param trx_id Trx id to be aborted
-         * \param[out] victim_seqno
+         * @param bf_seqno Aborter sequence number
+         * @param trx_id Trx id to be aborted
+         * @param[out] victim_seqno
          */
         enum wsrep::provider::status
         bf_abort(wsrep::seqno bf_seqno,
                  wsrep::transaction_id trx_id,
                  wsrep::seqno& victim_seqno)
         {
-            // std::cerr << "bf_abort: " << trx_id << "\n";
             bf_abort_map_.insert(std::make_pair(trx_id, bf_seqno));
             if (bf_seqno.nil() == false)
             {

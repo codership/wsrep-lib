@@ -96,7 +96,7 @@ int wsrep::transaction_context::start_replaying(const wsrep::ws_meta& ws_meta)
 
 int wsrep::transaction_context::append_key(const wsrep::key& key)
 {
-    /*! \todo Collect table level keys for SR commit */
+    /** @todo Collect table level keys for SR commit */
     return provider_.append_key(ws_handle_, key);
 }
 

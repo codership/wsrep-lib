@@ -3,7 +3,7 @@
 //
 
 
-/*! \file compiler.hpp
+/** @file compiler.hpp
  *
  * Compiler specific options.
  */

@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-/*! \file client_context.hpp
+/** @file client_context.hpp
  *
  * Client Context
  * ==============
@@ -76,50 +76,50 @@ namespace wsrep
         return "unknown";
     }
 
-    /*! \class Client Context
+    /** @class Client Context
      *
      * Client Contex abstract interface.
      */
     class client_context
     {
     public:
-        /*!
+        /**
          * Client mode enumeration.
-         * \todo m_toi total order isolation mode
+         * @todo m_toi total order isolation mode
          */
         enum mode
         {
-            /*! Operates in local only mode, no replication. */
+            /** Operates in local only mode, no replication. */
             m_local,
-            /*! Generates write sets for replication by the provider. */
+            /** Generates write sets for replication by the provider. */
             m_replicating,
-            /*! High priority mode */
+            /** High priority mode */
             m_high_priority,
-            /*! Client is in total order isolation mode */
+            /** Client is in total order isolation mode */
             m_toi
         };
 
-        /*!
+        /**
          * Client state enumeration.
          *
          */
         enum state
         {
-            /*!
+            /**
              * Client is idle, the control is in the application which
              * uses the DBMS system.
              */
             s_idle,
-            /*!
+            /**
              * The control of the client processing is inside the DBMS
              * system.
              */
             s_exec,
-            /*!
+            /**
              * Client handler is sending result to client.
              */
             s_result,
-            /*!
+            /**
              * The client session is terminating.
              */
             s_quitting
@@ -133,7 +133,7 @@ namespace wsrep
             thread_id_ = wsrep::this_thread::get_id();
         }
 
-        /*!
+        /**
          * Destructor.
          */
         virtual ~client_context()
@@ -141,7 +141,7 @@ namespace wsrep
             assert(transaction_.active() == false);
         }
 
-        /*!
+        /**
          *
          */
         bool do_2pc() const
@@ -149,7 +149,7 @@ namespace wsrep
             return client_service_.do_2pc();
         }
 
-        /*!
+        /**
          * Method which should be called before the client
          * starts processing the command received from the application.
          * This method will wait until the possible synchronous
@@ -157,12 +157,12 @@ namespace wsrep
          * The method has a side effect of changing the client
          * context state to executing.
          *
-         * \return Zero in case of success, non-zero in case of the
+         * @return Zero in case of success, non-zero in case of the
          *         associated transaction was BF aborted.
          */
         int before_command();
 
-        /*!
+        /**
          * Method which should be called before returning
          * the control back to application which uses the DBMS system.
          * This method will check if the transaction associated to
@@ -171,7 +171,7 @@ namespace wsrep
          */
         void after_command_before_result();
 
-        /*!
+        /**
          * Method which should be called after returning the
          * control back to application which uses the DBMS system.
          * The method will do the check if the transaction associated
@@ -185,7 +185,7 @@ namespace wsrep
          */
         void after_command_after_result();
 
-        /*!
+        /**
          * Before statement execution operations.
          *
          * Check if server is synced and if dirty reads are allowed.
@@ -194,28 +194,28 @@ namespace wsrep
          * method should be called before any implementation specifc
          * operations.
          *
-         * \return Zero in case of success, non-zero if the statement
+         * @return Zero in case of success, non-zero if the statement
          *         is not allowed to be executed due to read or write
          *         isolation requirements.
          */
         int before_statement();
 
-        /*!
+        /**
          * Return values for after_statement() method.
          */
         enum after_statement_result
         {
-            /*! Statement was executed succesfully */
+            /** Statement was executed succesfully */
             asr_success,
-            /*! Statement execution encountered an error, the transaction
+            /** Statement execution encountered an error, the transaction
              * was rolled back */
             asr_error,
-            /*! Statement execution encountered an error, the transaction
+            /** Statement execution encountered an error, the transaction
               was rolled back. However the statement was self contained
               (e.g. autocommit statement) so it can be retried. */
             asr_may_retry
         };
-        /*!
+        /**
          * After statement execution operations.
          *
          * * Check for must_replay state
@@ -304,7 +304,7 @@ namespace wsrep
         {
             return client_service_.append_fragment(tc, flags, buf);
         }
-        /*!
+        /**
          * Remove fragments from the fragment storage. If the
          * storage is transactional, this should be done within
          * the same transaction which is committing.
@@ -463,52 +463,52 @@ namespace wsrep
         {
             client_service_.debug_crash(crash_point);
         }
-        /*!
+        /**
          * Get reference to the client mutex.
          *
-         * \return Reference to the client mutex.
+         * @return Reference to the client mutex.
          */
         wsrep::mutex& mutex() { return mutex_; }
 
-        /*!
+        /**
          * Get server context associated the the client session.
          *
-         * \return Reference to server context.
+         * @return Reference to server context.
          */
         wsrep::server_context& server_context() const
         { return server_context_; }
 
-        /*!
+        /**
          * Get reference to the Provider which is associated
          * with the client context.
          *
-         * \return Reference to the provider.
-         * \throw wsrep::runtime_error if no providers are associated
+         * @return Reference to the provider.
+         * @throw wsrep::runtime_error if no providers are associated
          *        with the client context.
          */
         wsrep::provider& provider() const;
 
-        /*!
+        /**
          * Get Client identifier.
          *
-         * \return Client Identifier
+         * @return Client Identifier
          */
         client_id id() const { return id_; }
 
-        /*!
+        /**
          * Get Client mode.
          *
-         * \todo Enforce mutex protection if called from other threads.
+         * @todo Enforce mutex protection if called from other threads.
          *
-         * \return Client mode.
+         * @return Client mode.
          */
         enum mode mode() const { return mode_; }
-        /*!
+        /**
          * Get Client state.
          *
-         * \todo Enforce mutex protection if called from other threads.
+         * @todo Enforce mutex protection if called from other threads.
          *
-         * \return Client state
+         * @return Client state
          */
         enum state state() const { return state_; }
 
@@ -534,7 +534,7 @@ namespace wsrep
             return current_error_;
         }
     protected:
-        /*!
+        /**
          * Client context constuctor. This is protected so that it
          * can be called from derived class constructors only.
          */
@@ -566,7 +566,7 @@ namespace wsrep
         friend class transaction_context;
 
         void debug_log_state(const char*) const;
-        /*!
+        /**
          * Set client state.
          */
         void state(wsrep::unique_lock<wsrep::mutex>& lock, enum state state);
@@ -583,8 +583,8 @@ namespace wsrep
     protected:
         wsrep::transaction_context transaction_;
     private:
-        /*!
-         * \todo This boolean should be converted to better read isolation
+        /**
+         * @todo This boolean should be converted to better read isolation
          * semantics.
          */
         bool allow_dirty_reads_;

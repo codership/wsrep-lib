@@ -150,36 +150,36 @@ namespace wsrep
             std::string value_;
         };
 
-        /*!
+        /**
          * Return value enumeration
          *
-         * \todo Convert this to struct ec, get rid of prefixes.
+         * @todo Convert this to struct ec, get rid of prefixes.
          */
         enum status
         {
-            /*! Success */
+            /** Success */
             success,
-            /*! Warning*/
+            /** Warning*/
             error_warning,
-            /*! Transaction was not found from provider */
+            /** Transaction was not found from provider */
             error_transaction_missing,
-            /*! Certification failed */
+            /** Certification failed */
             error_certification_failed,
-            /*! Transaction was BF aborted */
+            /** Transaction was BF aborted */
             error_bf_abort,
-            /*! Transaction size exceeded */
+            /** Transaction size exceeded */
             error_size_exceeded,
-            /*! Connectivity to cluster lost */
+            /** Connectivity to cluster lost */
             error_connection_failed,
-            /*! Internal provider failure, provider must be reinitialized */
+            /** Internal provider failure, provider must be reinitialized */
             error_provider_failed,
-            /*! Fatal error, server must abort */
+            /** Fatal error, server must abort */
             error_fatal,
-            /*! Requested functionality is not implemented by the provider */
+            /** Requested functionality is not implemented by the provider */
             error_not_implemented,
-            /*! Operation is not allowed */
+            /** Operation is not allowed */
             error_not_allowed,
-            /*! Unknown error code from the provider */
+            /** Unknown error code from the provider */
             error_unknown
         };
 
@@ -218,7 +218,7 @@ namespace wsrep
         certify(wsrep::client_id, wsrep::ws_handle&,
                 int,
                 wsrep::ws_meta&) = 0;
-        /*!
+        /**
          * BF abort a transaction inside provider.
          *
          * @param[in] bf_seqno Seqno of the aborter transaction
@@ -238,12 +238,12 @@ namespace wsrep
                                        const wsrep::ws_meta&) = 0;
         virtual int release(wsrep::ws_handle&) = 0;
 
-        /*!
+        /**
          * Replay a transaction.
          *
-         * \todo Inspect if the ws_handle could be made const
+         * @todo Inspect if the ws_handle could be made const
          *
-         * \return Zero in case of success, non-zero on failure.
+         * @return Zero in case of success, non-zero on failure.
          */
         virtual enum status replay(
             wsrep::ws_handle& ws_handle, void* applier_ctx) = 0;
@@ -253,11 +253,11 @@ namespace wsrep
 
         virtual std::vector<status_variable> status() const = 0;
 
-        /*!
+        /**
          * Create a new provider.
          *
-         * \param provider_spec Provider specification
-         * \param provider_options Initial options to provider
+         * @param provider_spec Provider specification
+         * @param provider_options Initial options to provider
          */
         static provider* make_provider(
             wsrep::server_context&,

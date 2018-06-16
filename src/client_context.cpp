@@ -34,8 +34,8 @@ int wsrep::client_context::before_command()
     assert(state_ == s_idle);
     if (server_context_.rollback_mode() == wsrep::server_context::rm_sync)
     {
-        /*!
-         * \todo Wait until the possible synchronous rollback
+        /**
+         * @todo Wait until the possible synchronous rollback
          * has been finished.
          */
         while (transaction_.state() == wsrep::transaction_context::s_aborting)
@@ -134,8 +134,8 @@ int wsrep::client_context::before_statement()
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("before_statement: enter");
 #if 0
-    /*!
-     * \todo It might be beneficial to implement timed wait for
+    /**
+     * @todo It might be beneficial to implement timed wait for
      *       server synced state.
      */
     if (allow_dirty_reads_ == false &&
@@ -163,8 +163,8 @@ wsrep::client_context::after_statement()
     debug_log_state("after_statement: enter");
     assert(state() == s_exec);
 #if 0
-    /*!
-     * \todo Check for replay state, do rollback if requested.
+    /**
+     * @todo Check for replay state, do rollback if requested.
      */
 #endif // 0
     (void)transaction_.after_statement();

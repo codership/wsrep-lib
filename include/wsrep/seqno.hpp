@@ -11,7 +11,7 @@
 
 namespace wsrep
 {
-    /*! \class seqno
+    /** @class seqno
      *
      * Sequence number type.
      *

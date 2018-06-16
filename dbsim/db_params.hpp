@@ -17,6 +17,7 @@ namespace db
         size_t n_transactions;
         size_t n_rows;
         size_t alg_freq;
+        std::string topology;
         std::string wsrep_provider;
         std::string wsrep_provider_options;
         int debug_log_level;
@@ -27,6 +28,7 @@ namespace db
             , n_transactions(0)
             , n_rows(1000)
             , alg_freq(0)
+            , topology()
             , wsrep_provider()
             , wsrep_provider_options()
             , debug_log_level(0)

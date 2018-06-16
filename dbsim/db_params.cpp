@@ -6,6 +6,28 @@
 
 #include <boost/program_options.hpp>
 #include <iostream>
+#include <stdexcept>
+
+namespace
+{
+    void validate_params(const db::params& params)
+    {
+        std::ostringstream os;
+        if (params.n_servers != params.topology.size())
+        {
+            if (params.topology.size() > 0)
+            {
+                os << "Error: --topology=" << params.topology << " does not "
+                   << "match the number of server --servers="
+                   << params.n_servers << "\n";
+            }
+        }
+        if (os.str().size())
+        {
+            throw std::invalid_argument(os.str());
+        }
+    }
+}
 
 db::params db::parse_args(int argc, char** argv)
 {
@@ -22,8 +44,10 @@ db::params db::parse_args(int argc, char** argv)
          "wsrep provider options")
         ("servers", po::value<size_t>(&params.n_servers)->required(),
          "number of servers to start")
+        ("topology", po::value<std::string>(&params.topology),
+         "replication topology (e.g. mm for multi master, ms for master/slave")
         ("clients", po::value<size_t>(&params.n_clients)->required(),
-         "number of clients to start per server")
+         "number of clients to start per master")
         ("transactions", po::value<size_t>(&params.n_transactions),
          "number of transactions run by a client")
         ("rows", po::value<size_t>(&params.n_rows),
@@ -42,5 +66,7 @@ db::params db::parse_args(int argc, char** argv)
         std::cerr << desc << "\n";
         exit(0);
     }
+
+    validate_params(params);
     return params;
 }

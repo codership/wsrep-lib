@@ -7,6 +7,14 @@
 
 int main(int argc, char** argv)
 {
-    db::simulator(db::parse_args(argc, argv)).run();
+    try
+    {
+        db::simulator(db::parse_args(argc, argv)).run();
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what() << std::endl;
+        return 1;
+    }
     return 0;
 }

@@ -39,10 +39,9 @@ void db::simulator::sst(db::server& server,
 
 std::string db::simulator::stats() const
 {
-    size_t transactions(params_.n_servers * params_.n_clients
-                        * params_.n_transactions);
     auto duration(std::chrono::duration<double>(
                       clients_stop_ - clients_start_).count());
+    long long transactions(stats_.commits + stats_.rollbacks);
     long long bf_aborts(0);
     for (const auto& s : servers_)
     {
@@ -121,9 +120,14 @@ void db::simulator::start()
     // Start client threads
     wsrep::log() << "####################### Starting client load";
     clients_start_ = std::chrono::steady_clock::now();
+    size_t index(0);
     for (auto& i : servers_)
     {
-        i.second->start_clients();
+        if (params_.topology.size() == 0 || params_.topology[index]  == 'm')
+        {
+            i.second->start_clients();
+        }
+        ++index;
     }
 }
 

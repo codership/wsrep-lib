@@ -40,7 +40,7 @@
 
 #include "server_context.hpp"
 #include "provider.hpp"
-#include "transaction_context.hpp"
+#include "transaction.hpp"
 #include "client_id.hpp"
 #include "client_service.hpp"
 #include "mutex.hpp"
@@ -249,7 +249,7 @@ namespace wsrep
             return transaction_.append_data(data);
         }
 
-        int prepare_data_for_replication(const wsrep::transaction_context& tc)
+        int prepare_data_for_replication(const wsrep::transaction& tc)
         {
             return client_service_.prepare_data_for_replication(*this, tc);
         }
@@ -291,14 +291,14 @@ namespace wsrep
         }
 
         int prepare_fragment_for_replication(
-            const wsrep::transaction_context& tc,
+            const wsrep::transaction& tc,
             wsrep::mutable_buffer& mb)
         {
             return client_service_.prepare_fragment_for_replication(
                 *this, tc, mb);
         }
 
-        int append_fragment(const wsrep::transaction_context& tc,
+        int append_fragment(const wsrep::transaction& tc,
                             int flags,
                             const wsrep::const_buffer& buf)
         {
@@ -415,7 +415,7 @@ namespace wsrep
             return transaction_.start_replaying(ws_meta);
         }
 
-        void adopt_transaction(wsrep::transaction_context& transaction)
+        void adopt_transaction(wsrep::transaction& transaction)
         {
             assert(mode_ == m_high_priority);
             transaction_.start_transaction(transaction.id());
@@ -423,7 +423,7 @@ namespace wsrep
         }
 
         enum wsrep::provider::status replay(
-            wsrep::transaction_context& tc)
+            wsrep::transaction& tc)
         {
             return client_service_.replay(*this, tc);
         }
@@ -432,7 +432,7 @@ namespace wsrep
         //
         //
 
-        void will_replay(const wsrep::transaction_context& tc)
+        void will_replay(const wsrep::transaction& tc)
         {
             client_service_.will_replay(tc);
         }
@@ -512,7 +512,7 @@ namespace wsrep
          */
         enum state state() const { return state_; }
 
-        const wsrep::transaction_context& transaction() const
+        const wsrep::transaction& transaction() const
         {
             return transaction_;
         }
@@ -563,7 +563,7 @@ namespace wsrep
         friend class client_state_switch;
         friend class high_priority_context;
         friend class client_toi_mode;
-        friend class transaction_context;
+        friend class transaction;
 
         void debug_log_state(const char*) const;
         /**
@@ -581,7 +581,7 @@ namespace wsrep
         enum mode mode_;
         enum state state_;
     protected:
-        wsrep::transaction_context transaction_;
+        wsrep::transaction transaction_;
     private:
         /**
          * @todo This boolean should be converted to better read isolation

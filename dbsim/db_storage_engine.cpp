@@ -16,10 +16,10 @@ void db::storage_engine::transaction::start(db::client* cc)
 }
 
 void db::storage_engine::transaction::apply(
-    const wsrep::transaction_context& transaction_context)
+    const wsrep::transaction& transaction)
 {
     assert(cc_);
-    se_.bf_abort_some(transaction_context);
+    se_.bf_abort_some(transaction);
 }
 
 void db::storage_engine::transaction::commit()
@@ -43,7 +43,7 @@ void db::storage_engine::transaction::rollback()
     cc_ = nullptr;
 }
 
-void db::storage_engine::bf_abort_some(const wsrep::transaction_context& txc)
+void db::storage_engine::bf_abort_some(const wsrep::transaction& txc)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     if (alg_freq_ && (std::rand() % alg_freq_) == 0)

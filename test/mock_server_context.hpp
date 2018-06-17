@@ -67,8 +67,8 @@ namespace wsrep
             client_state.after_rollback();
         }
         // void sst_received(const wsrep_gtid_t&, int) WSREP_OVERRIDE { }
-        // void on_apply(wsrep::transaction_context&) { }
-        // void on_commit(wsrep::transaction_context&) { }
+        // void on_apply(wsrep::transaction&) { }
+        // void on_commit(wsrep::transaction&) { }
         wsrep::mock_client_service& client_service()
         {
             return client_service_;

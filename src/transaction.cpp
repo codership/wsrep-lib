@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "wsrep/transaction_context.hpp"
+#include "wsrep/transaction.hpp"
 #include "wsrep/client_state.hpp"
 #include "wsrep/server_context.hpp"
 #include "wsrep/key.hpp"
@@ -21,7 +21,7 @@
 
 // Public
 
-wsrep::transaction_context::transaction_context(
+wsrep::transaction::transaction(
     wsrep::client_state& client_state)
     : provider_(client_state.provider())
     , client_state_(client_state)
@@ -39,11 +39,11 @@ wsrep::transaction_context::transaction_context(
 { }
 
 
-wsrep::transaction_context::~transaction_context()
+wsrep::transaction::~transaction()
 {
 }
 
-int wsrep::transaction_context::start_transaction(
+int wsrep::transaction::start_transaction(
     const wsrep::transaction_id& id)
 {
     assert(active() == false);
@@ -65,7 +65,7 @@ int wsrep::transaction_context::start_transaction(
     }
 }
 
-int wsrep::transaction_context::start_transaction(
+int wsrep::transaction::start_transaction(
     const wsrep::ws_handle& ws_handle,
     const wsrep::ws_meta& ws_meta)
 {
@@ -81,7 +81,7 @@ int wsrep::transaction_context::start_transaction(
     return 0;
 }
 
-int wsrep::transaction_context::start_replaying(const wsrep::ws_meta& ws_meta)
+int wsrep::transaction::start_replaying(const wsrep::ws_meta& ws_meta)
 {
     ws_meta_ = ws_meta;
     assert(ws_meta_.flags() & wsrep::provider::flag::commit);
@@ -93,19 +93,19 @@ int wsrep::transaction_context::start_replaying(const wsrep::ws_meta& ws_meta)
     return 0;
 }
 
-int wsrep::transaction_context::append_key(const wsrep::key& key)
+int wsrep::transaction::append_key(const wsrep::key& key)
 {
     /** @todo Collect table level keys for SR commit */
     return provider_.append_key(ws_handle_, key);
 }
 
-int wsrep::transaction_context::append_data(const wsrep::const_buffer& data)
+int wsrep::transaction::append_data(const wsrep::const_buffer& data)
 {
 
     return provider_.append_data(ws_handle_, data);
 }
 
-int wsrep::transaction_context::after_row()
+int wsrep::transaction::after_row()
 {
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     if (streaming_context_.fragment_size() > 0)
@@ -137,7 +137,7 @@ int wsrep::transaction_context::after_row()
     return 0;
 }
 
-int wsrep::transaction_context::before_prepare(
+int wsrep::transaction::before_prepare(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
     assert(lock.owns_lock());
@@ -195,7 +195,7 @@ int wsrep::transaction_context::before_prepare(
     return ret;
 }
 
-int wsrep::transaction_context::after_prepare(
+int wsrep::transaction::after_prepare(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
     assert(lock.owns_lock());
@@ -232,7 +232,7 @@ int wsrep::transaction_context::after_prepare(
     return ret;
 }
 
-int wsrep::transaction_context::before_commit()
+int wsrep::transaction::before_commit()
 {
     int ret(1);
 
@@ -334,7 +334,7 @@ int wsrep::transaction_context::before_commit()
     return ret;
 }
 
-int wsrep::transaction_context::ordered_commit()
+int wsrep::transaction::ordered_commit()
 {
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("ordered_commit_enter");
@@ -348,7 +348,7 @@ int wsrep::transaction_context::ordered_commit()
     return ret;
 }
 
-int wsrep::transaction_context::after_commit()
+int wsrep::transaction::after_commit()
 {
     int ret(0);
 
@@ -383,7 +383,7 @@ int wsrep::transaction_context::after_commit()
     return ret;
 }
 
-int wsrep::transaction_context::before_rollback()
+int wsrep::transaction::before_rollback()
 {
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("before_rollback_enter");
@@ -440,7 +440,7 @@ int wsrep::transaction_context::before_rollback()
     return 0;
 }
 
-int wsrep::transaction_context::after_rollback()
+int wsrep::transaction::after_rollback()
 {
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("after_rollback_enter");
@@ -462,7 +462,7 @@ int wsrep::transaction_context::after_rollback()
     return 0;
 }
 
-int wsrep::transaction_context::after_statement()
+int wsrep::transaction::after_statement()
 {
     int ret(0);
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
@@ -565,7 +565,7 @@ int wsrep::transaction_context::after_statement()
     return ret;
 }
 
-bool wsrep::transaction_context::bf_abort(
+bool wsrep::transaction::bf_abort(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
     wsrep::seqno bf_seqno)
 {
@@ -634,7 +634,7 @@ bool wsrep::transaction_context::bf_abort(
             // otherwise it could happend that the client gains control
             // between releasing the lock and before background
             // rollbacker gets control.
-            state(lock, wsrep::transaction_context::s_aborting);
+            state(lock, wsrep::transaction::s_aborting);
             lock.unlock();
             client_state_.server_context().background_rollback(client_state_);
         }
@@ -646,9 +646,9 @@ bool wsrep::transaction_context::bf_abort(
 //                                 Private                                    //
 ////////////////////////////////////////////////////////////////////////////////
 
-void wsrep::transaction_context::state(
+void wsrep::transaction::state(
     wsrep::unique_lock<wsrep::mutex>& lock __attribute__((unused)),
-    enum wsrep::transaction_context::state next_state)
+    enum wsrep::transaction::state next_state)
 {
     if (client_state_.debug_log_level() >= 1)
     {
@@ -689,7 +689,7 @@ void wsrep::transaction_context::state(
     }
 }
 
-int wsrep::transaction_context::certify_fragment(
+int wsrep::transaction::certify_fragment(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
     assert(lock.owns_lock());
@@ -717,7 +717,7 @@ int wsrep::transaction_context::certify_fragment(
     }
 
     // Client context to store fragment in separate transaction
-    // Switch temporarily to sr_transaction_context, switch back
+    // Switch temporarily to sr_transaction, switch back
     // to original when this goes out of scope
     // std::auto_ptr<wsrep::client_state> sr_client_state(
     //    client_state_.server_context().local_client_state());
@@ -731,12 +731,12 @@ int wsrep::transaction_context::certify_fragment(
         sr_client_state);
 
     wsrep::unique_lock<wsrep::mutex> sr_lock(sr_client_state.mutex());
-    wsrep::transaction_context& sr_transaction_context(
+    wsrep::transaction& sr_transaction(
         sr_client_state.transaction_);
-    sr_transaction_context.state(sr_lock, s_certifying);
+    sr_transaction.state(sr_lock, s_certifying);
     sr_lock.unlock();
     if (sr_client_state.append_fragment(
-            sr_transaction_context, flags_,
+            sr_transaction, flags_,
             wsrep::const_buffer(data.data(), data.size())))
     {
         lock.lock();
@@ -747,18 +747,18 @@ int wsrep::transaction_context::certify_fragment(
 
     enum wsrep::provider::status
         cert_ret(provider_.certify(client_state_.id().get(),
-                                   sr_transaction_context.ws_handle_,
+                                   sr_transaction.ws_handle_,
                                    flags_,
-                                   sr_transaction_context.ws_meta_));
+                                   sr_transaction.ws_meta_));
 
     int ret(0);
     switch (cert_ret)
     {
     case wsrep::provider::success:
-        streaming_context_.certified(sr_transaction_context.ws_meta().seqno());
+        streaming_context_.certified(sr_transaction.ws_meta().seqno());
         sr_lock.lock();
-        sr_transaction_context.certified_ = true;
-        sr_transaction_context.state(sr_lock, s_committing);
+        sr_transaction.certified_ = true;
+        sr_transaction.state(sr_lock, s_committing);
         sr_lock.unlock();
         if (sr_client_state.commit())
         {
@@ -767,7 +767,7 @@ int wsrep::transaction_context::certify_fragment(
         break;
     default:
         sr_lock.lock();
-        sr_transaction_context.state(sr_lock, s_must_abort);
+        sr_transaction.state(sr_lock, s_must_abort);
         sr_lock.unlock();
         sr_client_state.rollback();
         ret = 1;
@@ -786,7 +786,7 @@ int wsrep::transaction_context::certify_fragment(
     return ret;
 }
 
-int wsrep::transaction_context::certify_commit(
+int wsrep::transaction::certify_commit(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
     assert(lock.owns_lock());
@@ -925,7 +925,7 @@ int wsrep::transaction_context::certify_commit(
     return ret;
 }
 
-void wsrep::transaction_context::streaming_rollback()
+void wsrep::transaction::streaming_rollback()
 {
     assert(streaming_context_.rolled_back() == false);
     wsrep::client_state* sac(
@@ -938,12 +938,12 @@ void wsrep::transaction_context::streaming_rollback()
     provider_.rollback(id_.get());
 }
 
-void wsrep::transaction_context::clear_fragments()
+void wsrep::transaction::clear_fragments()
 {
     streaming_context_.cleanup();
 }
 
-void wsrep::transaction_context::cleanup()
+void wsrep::transaction::cleanup()
 {
     assert(is_streaming() == false);
     assert(state() == s_committed || state() == s_aborted);
@@ -958,7 +958,7 @@ void wsrep::transaction_context::cleanup()
     debug_log_state("cleanup_leave");
 }
 
-void wsrep::transaction_context::debug_log_state(
+void wsrep::transaction::debug_log_state(
     const char* context) const
 {
     WSREP_TC_LOG_DEBUG(

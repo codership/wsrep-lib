@@ -38,10 +38,10 @@ int db::client_service::rollback(wsrep::client_state&)
 }
 enum wsrep::provider::status
 db::client_service::replay(wsrep::client_state&,
-                           wsrep::transaction_context& transaction_context)
+                           wsrep::transaction& transaction)
 {
     wsrep::high_priority_context high_priority_context(client_state_);
-    auto ret(provider_.replay(transaction_context.ws_handle(),
+    auto ret(provider_.replay(transaction.ws_handle(),
                               &client_state_));
     if (ret == wsrep::provider::success)
     {

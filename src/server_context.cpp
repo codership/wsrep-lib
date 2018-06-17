@@ -4,7 +4,7 @@
 
 #include "wsrep/server_context.hpp"
 #include "wsrep/client_state.hpp"
-#include "wsrep/transaction_context.hpp"
+#include "wsrep/transaction.hpp"
 #include "wsrep/view.hpp"
 #include "wsrep/logger.hpp"
 #include "wsrep/compiler.hpp"
@@ -124,11 +124,11 @@ int wsrep::server_context::on_apply(
     const wsrep::const_buffer& data)
 {
     int ret(0);
-    const wsrep::transaction_context& txc(client_state.transaction());
+    const wsrep::transaction& txc(client_state.transaction());
     assert(client_state.mode() == wsrep::client_state::m_high_priority);
 
     bool not_replaying(txc.state() !=
-                       wsrep::transaction_context::s_replaying);
+                       wsrep::transaction::s_replaying);
 
     if (starts_transaction(ws_meta.flags()) &&
         commits_transaction(ws_meta.flags()))
@@ -166,7 +166,7 @@ int wsrep::server_context::on_apply(
             client_state.after_command_after_result();
         }
         assert(ret ||
-               txc.state() == wsrep::transaction_context::s_committed);
+               txc.state() == wsrep::transaction::s_committed);
     }
     else if (starts_transaction(ws_meta.flags()))
     {
@@ -275,7 +275,7 @@ int wsrep::server_context::on_apply(
 
 bool wsrep::server_context::statement_allowed_for_streaming(
     const wsrep::client_state&,
-    const wsrep::transaction_context&) const
+    const wsrep::transaction&) const
 {
     /* Streaming not implemented yet. */
     return false;

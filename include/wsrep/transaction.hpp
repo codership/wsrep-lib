@@ -21,7 +21,7 @@ namespace wsrep
     class const_buffer;
 
 
-    class transaction_context
+    class transaction
     {
     public:
         enum state
@@ -43,8 +43,8 @@ namespace wsrep
         enum state state() const
         { return state_; }
 
-        transaction_context(wsrep::client_state& client_state);
-        ~transaction_context();
+        transaction(wsrep::client_state& client_state);
+        ~transaction();
         // Accessors
         wsrep::transaction_id id() const
         { return id_; }
@@ -124,8 +124,8 @@ namespace wsrep
         const wsrep::ws_handle& ws_handle() const { return ws_handle_; }
         const wsrep::ws_meta& ws_meta() const { return ws_meta_; }
     private:
-        transaction_context(const transaction_context&);
-        transaction_context operator=(const transaction_context&);
+        transaction(const transaction&);
+        transaction operator=(const transaction&);
 
         void flags(int flags) { flags_ = flags; }
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
@@ -151,22 +151,22 @@ namespace wsrep
         wsrep::streaming_context streaming_context_;
     };
 
-    static inline std::string to_string(enum wsrep::transaction_context::state state)
+    static inline std::string to_string(enum wsrep::transaction::state state)
     {
         switch (state)
         {
-        case wsrep::transaction_context::s_executing: return "executing";
-        case wsrep::transaction_context::s_preparing: return "preparing";
-        case wsrep::transaction_context::s_certifying: return "certifying";
-        case wsrep::transaction_context::s_committing: return "committing";
-        case wsrep::transaction_context::s_ordered_commit: return "ordered_commit";
-        case wsrep::transaction_context::s_committed: return "committed";
-        case wsrep::transaction_context::s_cert_failed: return "cert_failed";
-        case wsrep::transaction_context::s_must_abort: return "must_abort";
-        case wsrep::transaction_context::s_aborting: return "aborting";
-        case wsrep::transaction_context::s_aborted: return "aborted";
-        case wsrep::transaction_context::s_must_replay: return "must_replay";
-        case wsrep::transaction_context::s_replaying: return "replaying";
+        case wsrep::transaction::s_executing: return "executing";
+        case wsrep::transaction::s_preparing: return "preparing";
+        case wsrep::transaction::s_certifying: return "certifying";
+        case wsrep::transaction::s_committing: return "committing";
+        case wsrep::transaction::s_ordered_commit: return "ordered_commit";
+        case wsrep::transaction::s_committed: return "committed";
+        case wsrep::transaction::s_cert_failed: return "cert_failed";
+        case wsrep::transaction::s_must_abort: return "must_abort";
+        case wsrep::transaction::s_aborting: return "aborting";
+        case wsrep::transaction::s_aborted: return "aborted";
+        case wsrep::transaction::s_must_replay: return "must_replay";
+        case wsrep::transaction::s_replaying: return "replaying";
         }
         return "unknown";
     }

@@ -25,11 +25,11 @@ namespace
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
             BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
         }
         wsrep::mock_server_context sc;
         wsrep::mock_client_state cc;
-        const wsrep::transaction_context& tc;
+        const wsrep::transaction& tc;
     };
 
     struct replicating_client_fixture_async_rm
@@ -44,11 +44,11 @@ namespace
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
             BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
         }
         wsrep::mock_server_context sc;
         wsrep::mock_client_state cc;
-        const wsrep::transaction_context& tc;
+        const wsrep::transaction& tc;
     };
 
     struct replicating_client_fixture_2pc
@@ -64,11 +64,11 @@ namespace
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
             BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
         }
         wsrep::mock_server_context sc;
         wsrep::mock_client_state cc;
-        const wsrep::transaction_context& tc;
+        const wsrep::transaction& tc;
     };
 
     struct replicating_client_fixture_autocommit
@@ -84,11 +84,11 @@ namespace
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
             BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
         }
         wsrep::mock_server_context sc;
         wsrep::mock_client_state cc;
-        const wsrep::transaction_context& tc;
+        const wsrep::transaction& tc;
     };
 
     struct applying_client_fixture
@@ -116,7 +116,7 @@ namespace
         }
         wsrep::mock_server_context sc;
         wsrep::mock_client_state cc;
-        const wsrep::transaction_context& tc;
+        const wsrep::transaction& tc;
     };
 
     struct applying_client_fixture_2pc
@@ -145,7 +145,7 @@ namespace
         }
         wsrep::mock_server_context sc;
         wsrep::mock_client_state cc;
-        const wsrep::transaction_context& tc;
+        const wsrep::transaction& tc;
     };
 
     struct streaming_client_fixture_row
@@ -160,12 +160,12 @@ namespace
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
             BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
             cc.enable_streaming(wsrep::streaming_context::row, 1);
         }
         wsrep::mock_server_context sc;
         wsrep::mock_client_state cc;
-        const wsrep::transaction_context& tc;
+        const wsrep::transaction& tc;
     };
 
     struct streaming_client_fixture_byte
@@ -180,12 +180,12 @@ namespace
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
             BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
             cc.enable_streaming(wsrep::streaming_context::bytes, 1);
         }
         wsrep::mock_server_context sc;
         wsrep::mock_client_state cc;
-        const wsrep::transaction_context& tc;
+        const wsrep::transaction& tc;
     };
 
     struct streaming_client_fixture_statement
@@ -200,13 +200,13 @@ namespace
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
             BOOST_REQUIRE(tc.active() == false);
-            BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
             cc.enable_streaming(wsrep::streaming_context::row, 1);
         }
 
         wsrep::mock_server_context sc;
         wsrep::mock_client_state cc;
-        const wsrep::transaction_context& tc;
+        const wsrep::transaction& tc;
     };
 }
 #endif // WSREP_TEST_CLIENT_CONTEXT_FIXTURE_HPP

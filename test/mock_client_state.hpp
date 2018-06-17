@@ -76,17 +76,17 @@ namespace wsrep
         void reset_globals() WSREP_OVERRIDE { }
         void emergency_shutdown() WSREP_OVERRIDE { ++aborts_; }
 
-        int append_fragment(const wsrep::transaction_context&,
+        int append_fragment(const wsrep::transaction&,
                             int, const wsrep::const_buffer&) WSREP_OVERRIDE
         { return 0; }
-        void remove_fragments(const wsrep::transaction_context& )
+        void remove_fragments(const wsrep::transaction& )
             WSREP_OVERRIDE { }
-        void will_replay(const wsrep::transaction_context&)
+        void will_replay(const wsrep::transaction&)
             WSREP_OVERRIDE { }
 
         enum wsrep::provider::status
         replay(wsrep::client_state& client_state,
-               wsrep::transaction_context& tc) WSREP_OVERRIDE
+               wsrep::transaction& tc) WSREP_OVERRIDE
         {
             enum wsrep::provider::status ret(
                 provider_.replay(tc.ws_handle(), &client_state));
@@ -109,7 +109,7 @@ namespace wsrep
 
         int prepare_data_for_replication(
             wsrep::client_state& client_state,
-            const wsrep::transaction_context&) WSREP_OVERRIDE
+            const wsrep::transaction&) WSREP_OVERRIDE
         {
             if (error_during_prepare_data_)
             {
@@ -127,7 +127,7 @@ namespace wsrep
 
         int prepare_fragment_for_replication(
             wsrep::client_state& client_state,
-            const wsrep::transaction_context&,
+            const wsrep::transaction&,
             wsrep::mutable_buffer& buffer)
             WSREP_OVERRIDE
         {

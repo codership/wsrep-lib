@@ -57,7 +57,7 @@ int db::client::client_command(F f)
     {
         // wsrep::log_info() << "Current error";
         assert(client_state_.transaction().state() ==
-               wsrep::transaction_context::s_aborted);
+               wsrep::transaction::s_aborted);
         err = 1;
     }
     client_state_.after_command_after_result();
@@ -79,7 +79,7 @@ void db::client::run_one_transaction()
             return err;
         });
 
-    const wsrep::transaction_context& transaction(
+    const wsrep::transaction& transaction(
         client_state_.transaction());
 
     err = err || client_command(
@@ -125,17 +125,17 @@ void db::client::run_one_transaction()
         });
 
     assert(err ||
-           transaction.state() == wsrep::transaction_context::s_aborted ||
-           transaction.state() == wsrep::transaction_context::s_committed);
+           transaction.state() == wsrep::transaction::s_aborted ||
+           transaction.state() == wsrep::transaction::s_committed);
     assert(se_trx_.active() == false);
     assert(transaction.active() == false);
 
     switch (transaction.state())
     {
-    case wsrep::transaction_context::s_committed:
+    case wsrep::transaction::s_committed:
         ++stats_.commits;
         break;
-    case wsrep::transaction_context::s_aborted:
+    case wsrep::transaction::s_aborted:
         ++stats_.rollbacks;
         break;
     default:

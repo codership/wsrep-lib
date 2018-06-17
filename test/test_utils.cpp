@@ -21,7 +21,7 @@ void wsrep_test::bf_abort_ordered(wsrep::client_state& cc)
 }
 // BF abort method to abort transactions via provider
 void wsrep_test::bf_abort_provider(wsrep::mock_server_context& sc,
-                                   const wsrep::transaction_context& tc,
+                                   const wsrep::transaction& tc,
                                    wsrep::seqno bf_seqno)
 {
     wsrep::seqno victim_seqno;

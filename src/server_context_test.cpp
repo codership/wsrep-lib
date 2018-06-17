@@ -40,10 +40,10 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc,
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
                               wsrep::const_buffer(buf, 1)) == 0);
-    const wsrep::transaction_context& txc(cc.transaction());
+    const wsrep::transaction& txc(cc.transaction());
     // ::abort();
     BOOST_REQUIRE_MESSAGE(
-        txc.state() == wsrep::transaction_context::s_committed,
+        txc.state() == wsrep::transaction::s_committed,
         "Transaction state " << txc.state() << " not committed");
 }
 
@@ -54,8 +54,8 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc,
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
                               wsrep::const_buffer(buf, 1)) == 0);
-    const wsrep::transaction_context& txc(cc.transaction());
-    BOOST_REQUIRE(txc.state() == wsrep::transaction_context::s_committed);
+    const wsrep::transaction& txc(cc.transaction());
+    BOOST_REQUIRE(txc.state() == wsrep::transaction::s_committed);
 }
 
 // Test on_apply() method for 1pc transaction which
@@ -67,8 +67,8 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc_rollback,
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
                               wsrep::const_buffer(buf, 1)) == 1);
-    const wsrep::transaction_context& txc(cc.transaction());
-    BOOST_REQUIRE(txc.state() == wsrep::transaction_context::s_aborted);
+    const wsrep::transaction& txc(cc.transaction());
+    BOOST_REQUIRE(txc.state() == wsrep::transaction::s_aborted);
 }
 
 // Test on_apply() method for 2pc transaction which
@@ -80,6 +80,6 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc_rollback,
     char buf[1] = { 1 };
     BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
                               wsrep::const_buffer(buf, 1)) == 1);
-    const wsrep::transaction_context& txc(cc.transaction());
-    BOOST_REQUIRE(txc.state() == wsrep::transaction_context::s_aborted);
+    const wsrep::transaction& txc(cc.transaction());
+    BOOST_REQUIRE(txc.state() == wsrep::transaction::s_aborted);
 }

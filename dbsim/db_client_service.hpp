@@ -6,7 +6,7 @@
 #define WSREP_DB_CLIENT_SERVICE_HPP
 
 #include "wsrep/client_service.hpp"
-#include "wsrep/transaction_context.hpp"
+#include "wsrep/transaction.hpp"
 
 #include "db_client_state.hpp"
 
@@ -46,7 +46,7 @@ namespace db
             client_state_.store_globals();
         }
 
-        int prepare_data_for_replication(wsrep::client_state&, const wsrep::transaction_context&) override
+        int prepare_data_for_replication(wsrep::client_state&, const wsrep::transaction&) override
         {
             return 0;
         }
@@ -57,13 +57,13 @@ namespace db
         }
 
         int prepare_fragment_for_replication(wsrep::client_state&,
-                                             const wsrep::transaction_context&,
+                                             const wsrep::transaction&,
                                              wsrep::mutable_buffer&) override
         {
             return 0;
         }
 
-        void remove_fragments(const wsrep::transaction_context&) override
+        void remove_fragments(const wsrep::transaction&) override
         { }
 
         int apply(wsrep::client_state&, const wsrep::const_buffer&) override;
@@ -73,16 +73,16 @@ namespace db
 
         int rollback(wsrep::client_state&) override;
 
-        void will_replay(const wsrep::transaction_context&) override
+        void will_replay(const wsrep::transaction&) override
         { }
 
         void wait_for_replayers(wsrep::client_state&,
                                 wsrep::unique_lock<wsrep::mutex>&) override { }
         enum wsrep::provider::status replay(wsrep::client_state&,
-                                            wsrep::transaction_context&)
+                                            wsrep::transaction&)
             override;
 
-        int append_fragment(const wsrep::transaction_context&, int,
+        int append_fragment(const wsrep::transaction&, int,
                             const wsrep::const_buffer&) override
         {
             return 0;

@@ -76,7 +76,7 @@ namespace wsrep
     class provider;
     class client_state;
     class transaction_id;
-    class transaction_context;
+    class transaction;
     class id;
     class gtid;
     class view;
@@ -365,7 +365,7 @@ namespace wsrep
          * @todo Make this private, allow calls for provider implementations
          *       only.
          * @param client_state Applier client context.
-         * @param transaction_context Transaction context.
+         * @param transaction Transaction context.
          * @param data Write set data
          *
          * @return Zero on success, non-zero on failure.
@@ -385,7 +385,7 @@ namespace wsrep
          */
         virtual bool statement_allowed_for_streaming(
             const wsrep::client_state& client_state,
-            const wsrep::transaction_context& transaction_context) const;
+            const wsrep::transaction& transaction) const;
 
         void debug_log_level(int level) { debug_log_level_ = level; }
         int debug_log_level() const { return debug_log_level_; }

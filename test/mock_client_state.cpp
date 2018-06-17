@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "wsrep/transaction_context.hpp"
+#include "wsrep/transaction.hpp"
 #include "mock_client_state.hpp"
 
 
@@ -11,8 +11,8 @@ int wsrep::mock_client_service::apply(
     const wsrep::const_buffer&)
 
 {
-    assert(client_state.transaction().state() == wsrep::transaction_context::s_executing ||
-           client_state.transaction().state() == wsrep::transaction_context::s_replaying);
+    assert(client_state.transaction().state() == wsrep::transaction::s_executing ||
+           client_state.transaction().state() == wsrep::transaction::s_replaying);
     return (fail_next_applying_ ? 1 : 0);
 }
 

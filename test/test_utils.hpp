@@ -9,7 +9,7 @@ namespace wsrep
     class mock_server_context;
 }
 
-#include "wsrep/transaction_context.hpp"
+#include "wsrep/transaction.hpp"
 #include "wsrep/provider.hpp"
 
 //
@@ -26,7 +26,7 @@ namespace wsrep_test
 
     // BF abort method to abort transactions via provider
     void bf_abort_provider(wsrep::mock_server_context& sc,
-                           const wsrep::transaction_context& tc,
+                           const wsrep::transaction& tc,
                            wsrep::seqno bf_seqno);
 
 }

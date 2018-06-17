@@ -38,21 +38,21 @@ int wsrep::client_state::before_command()
          * @todo Wait until the possible synchronous rollback
          * has been finished.
          */
-        while (transaction_.state() == wsrep::transaction_context::s_aborting)
+        while (transaction_.state() == wsrep::transaction::s_aborting)
         {
             // cond_.wait(lock);
         }
     }
     state(lock, s_exec);
     assert(transaction_.active() == false ||
-           (transaction_.state() == wsrep::transaction_context::s_executing ||
-            transaction_.state() == wsrep::transaction_context::s_aborted ||
-            (transaction_.state() == wsrep::transaction_context::s_must_abort &&
+           (transaction_.state() == wsrep::transaction::s_executing ||
+            transaction_.state() == wsrep::transaction::s_aborted ||
+            (transaction_.state() == wsrep::transaction::s_must_abort &&
              server_context_.rollback_mode() == wsrep::server_context::rm_async)));
 
     if (transaction_.active())
     {
-        if (transaction_.state() == wsrep::transaction_context::s_must_abort)
+        if (transaction_.state() == wsrep::transaction::s_must_abort)
         {
             assert(server_context_.rollback_mode() ==
                    wsrep::server_context::rm_async);
@@ -62,13 +62,13 @@ int wsrep::client_state::before_command()
             (void)transaction_.after_statement();
             lock.lock();
             assert(transaction_.state() ==
-                   wsrep::transaction_context::s_aborted);
+                   wsrep::transaction::s_aborted);
             assert(transaction_.active() == false);
             assert(current_error() != wsrep::e_success);
             debug_log_state("before_command: error");
             return 1;
         }
-        else if (transaction_.state() == wsrep::transaction_context::s_aborted)
+        else if (transaction_.state() == wsrep::transaction::s_aborted)
         {
             // Transaction was rolled back either just before sending result
             // to the client, or after client_state become idle.
@@ -92,14 +92,14 @@ void wsrep::client_state::after_command_before_result()
     debug_log_state("after_command_before_result: enter");
     assert(state() == s_exec);
     if (transaction_.active() &&
-        transaction_.state() == wsrep::transaction_context::s_must_abort)
+        transaction_.state() == wsrep::transaction::s_must_abort)
     {
         override_error(wsrep::e_deadlock_error);
         lock.unlock();
         client_service_.rollback(*this);
         (void)transaction_.after_statement();
         lock.lock();
-        assert(transaction_.state() == wsrep::transaction_context::s_aborted);
+        assert(transaction_.state() == wsrep::transaction::s_aborted);
         assert(current_error() != wsrep::e_success);
     }
     state(lock, s_result);
@@ -111,14 +111,14 @@ void wsrep::client_state::after_command_after_result()
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("after_command_after_result_enter");
     assert(state() == s_result);
-    assert(transaction_.state() != wsrep::transaction_context::s_aborting);
+    assert(transaction_.state() != wsrep::transaction::s_aborting);
     if (transaction_.active() &&
-        transaction_.state() == wsrep::transaction_context::s_must_abort)
+        transaction_.state() == wsrep::transaction::s_must_abort)
     {
         lock.unlock();
         client_service_.rollback(*this);
         lock.lock();
-        assert(transaction_.state() == wsrep::transaction_context::s_aborted);
+        assert(transaction_.state() == wsrep::transaction::s_aborted);
         override_error(wsrep::e_deadlock_error);
     }
     else if (transaction_.active() == false)
@@ -146,7 +146,7 @@ int wsrep::client_state::before_statement()
 #endif // 0
 
     if (transaction_.active() &&
-        transaction_.state() == wsrep::transaction_context::s_must_abort)
+        transaction_.state() == wsrep::transaction::s_must_abort)
     {
         // Rollback and cleanup will happen in after_command_before_result()
         debug_log_state("before_statement_error");

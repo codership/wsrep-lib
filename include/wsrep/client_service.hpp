@@ -21,7 +21,7 @@
 
 namespace wsrep
 {
-    class transaction_context;
+    class transaction;
     class client_state;
     class client_service
     {
@@ -60,15 +60,15 @@ namespace wsrep
         /**
          * Set up a data for replication.
          */
-        virtual int prepare_data_for_replication(wsrep::client_state&, const wsrep::transaction_context&) = 0;
+        virtual int prepare_data_for_replication(wsrep::client_state&, const wsrep::transaction&) = 0;
 
         //
         // Streaming
         //
         virtual size_t bytes_generated() const = 0;
         virtual int prepare_fragment_for_replication(
-            wsrep::client_state&, const wsrep::transaction_context&, wsrep::mutable_buffer&) = 0;
-        virtual void remove_fragments(const wsrep::transaction_context&) = 0;
+            wsrep::client_state&, const wsrep::transaction&, wsrep::mutable_buffer&) = 0;
+        virtual void remove_fragments(const wsrep::transaction&) = 0;
 
         //
         // Applying interface
@@ -109,7 +109,7 @@ namespace wsrep
          * @todo This should not be visible to DBMS level, should be
          * handled internally by wsrep-lib.
          */
-        virtual void will_replay(const wsrep::transaction_context&) = 0;
+        virtual void will_replay(const wsrep::transaction&) = 0;
 
         /**
          * Replay the current transaction. The implementation must put
@@ -121,7 +121,7 @@ namespace wsrep
          */
         virtual enum wsrep::provider::status replay(
             wsrep::client_state&,
-            wsrep::transaction_context&) = 0;
+            wsrep::transaction&) = 0;
 
         /**
          * Wait until all replaying transactions have been finished
@@ -136,7 +136,7 @@ namespace wsrep
         /**
          * Append a write set fragment into fragment storage.
          */
-        virtual int append_fragment(const wsrep::transaction_context&, int flag, const wsrep::const_buffer&) = 0;
+        virtual int append_fragment(const wsrep::transaction&, int flag, const wsrep::const_buffer&) = 0;
 
         //
         // Debug interface

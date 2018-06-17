@@ -7,8 +7,8 @@ add_executable(wsrep-lib_test
   test_utils.cpp
   id_test.cpp
   server_context_test.cpp
-  transaction_context_test.cpp
-  transaction_context_test_2pc.cpp
+  transaction_test.cpp
+  transaction_test_2pc.cpp
   wsrep-lib_test.cpp
   )
 target_link_libraries(wsrep-lib_test wsrep-lib)

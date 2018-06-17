@@ -4,35 +4,6 @@
 
 /** @file client_state.hpp
  *
- * Client Context
- * ==============
- *
- * This file provides abstraction for integrating DBMS client
- * with replication system.
- *
- * Client Modes
- * ============
- *
- * Local
- * -----
- *
- * Replicating
- * -----------
- *
- * Applier
- * --------
- *
- * Client State
- * ============
- *
- * Client state is mainly relevant for the operation if the Server
- * supports synchronous rollback mode only. In this case the transactions
- * of the the idle clients (controls is in application which is using the
- * DBMS system) which encounter Brute Force Abort (BFA) must be rolled
- * back either by applier or a background process. If the client
- * state is executing, the control is inside the DBMS system and
- * the rollback process should be performed by the client which
- * drives the transaction.
  */
 
 #ifndef WSREP_CLIENT_CONTEXT_HPP
@@ -76,16 +47,14 @@ namespace wsrep
         return "unknown";
     }
 
-    /** @class Client Context
-     *
-     * Client Contex abstract interface.
+    /**
+     * Client State
      */
     class client_state
     {
     public:
         /**
          * Client mode enumeration.
-         * @todo m_toi total order isolation mode
          */
         enum mode
         {
@@ -127,7 +96,11 @@ namespace wsrep
 
         const static int state_max_ = s_quitting + 1;
 
-
+        /**
+         * Store variables related to global execution context.
+         * This method should be called every time the thread
+         * operating the client state changes.
+         */
         void store_globals()
         {
             thread_id_ = wsrep::this_thread::get_id();
@@ -142,7 +115,8 @@ namespace wsrep
         }
 
         /**
-         *
+         * Return true if the transaction commit requires
+         * two-phase commit.
          */
         bool do_2pc() const
         {
@@ -150,8 +124,9 @@ namespace wsrep
         }
 
         /**
-         * Method which should be called before the client
-         * starts processing the command received from the application.
+         * This mehod should be called before the processing of command
+         * received from DBMS client starts.
+         *
          * This method will wait until the possible synchronous
          * rollback for associated transaction has finished.
          * The method has a side effect of changing the client
@@ -163,22 +138,28 @@ namespace wsrep
         int before_command();
 
         /**
-         * Method which should be called before returning
-         * the control back to application which uses the DBMS system.
-         * This method will check if the transaction associated to
+         * This method should be called before returning
+         * a result to DBMS client.
+         *
+         * The method will check if the transaction associated to
          * the connection has been aborted. Rollback is performed
-         * if needed.
+         * if needed. After the call, current_error() will return an error
+         * code associated to the client state. If the error code is
+         * not success, the transaction associated to the client state
+         * has been aborted and rolled back.
          */
         void after_command_before_result();
 
         /**
          * Method which should be called after returning the
-         * control back to application which uses the DBMS system.
+         * control back to DBMS client..
+         *
          * The method will do the check if the transaction associated
          * to the connection has been aborted. If so, rollback is
-         * performed and the transaction is left to aborted state
-         * so that the client will get appropriate error on next
-         * command.
+         * performed and the transaction is left to aborted state.
+         * The next call to before_command() will return an error and
+         * the error state can be examined after after_command_before_resul()
+         * is called.
          *
          * This method has a side effect of changing state to
          * idle.
@@ -189,10 +170,6 @@ namespace wsrep
          * Before statement execution operations.
          *
          * Check if server is synced and if dirty reads are allowed.
-         *
-         * If the method is overridden by the implementation, base class
-         * method should be called before any implementation specifc
-         * operations.
          *
          * @return Zero in case of success, non-zero if the statement
          *         is not allowed to be executed due to read or write
@@ -220,21 +197,28 @@ namespace wsrep
          *
          * * Check for must_replay state
          * * Do rollback if requested
-         *
-         * If overridden by the implementation, base class method
-         * should be called after any implementation specific operations.
          */
         enum after_statement_result after_statement();
 
         //
         // Replicating interface
         //
+        /**
+         * Start a new transaction with a transaction id.
+         *
+         * @todo This method should
+         *       - Register the transaction on server level for bookkeeping
+         *       - Isolation levels? Or part of the transaction?
+         */
         int start_transaction(const wsrep::transaction_id& id)
         {
             assert(state_ == s_exec);
             return transaction_.start_transaction(id);
         }
 
+        /**
+         * Append a key into transaction write set.
+         */
         int append_key(const wsrep::key& key)
         {
             assert(mode_ == m_replicating);
@@ -242,6 +226,9 @@ namespace wsrep
             return transaction_.append_key(key);
         }
 
+        /**
+         * Append data into transaction write set.
+         */
         int append_data(const wsrep::const_buffer& data)
         {
             assert(mode_ == m_replicating);
@@ -257,13 +244,29 @@ namespace wsrep
         //
         // Streaming interface
         //
+        /**
+         * This method should be called after every row operation.
+         */
         int after_row()
         {
             assert(mode_ == m_replicating);
             assert(state_ == s_exec);
-            return transaction_.after_row();
+            return (transaction_.streaming_context_.fragment_size() ?
+                    transaction_.after_row() : 0);
         }
 
+        /**
+         * Enable streaming replication.
+         *
+         * Currently it is not possible to change the fragment unit
+         * for active streaming transaction.
+         *
+         * @param fragment_unit Desired fragment unit
+         * @param fragment_size Desired fragment size
+         *
+         * @return Zero on success, non-zero if the streaming cannot be
+         *         enabled.
+         */
         int enable_streaming(
             enum wsrep::streaming_context::fragment_unit
             fragment_unit,
@@ -284,12 +287,14 @@ namespace wsrep
             return 0;
         }
 
+        /** @todo deprecate */
         size_t bytes_generated() const
         {
             assert(mode_ == m_replicating);
             return client_service_.bytes_generated();
         }
 
+        /** @todo deprecate */
         int prepare_fragment_for_replication(
             const wsrep::transaction& tc,
             wsrep::mutable_buffer& mb)
@@ -298,6 +303,7 @@ namespace wsrep
                 *this, tc, mb);
         }
 
+        /** @todo deprecate */
         int append_fragment(const wsrep::transaction& tc,
                             int flags,
                             const wsrep::const_buffer& buf)
@@ -308,6 +314,8 @@ namespace wsrep
          * Remove fragments from the fragment storage. If the
          * storage is transactional, this should be done within
          * the same transaction which is committing.
+         *
+         * @todo deprecate
          */
         void remove_fragments()
         {
@@ -338,6 +346,7 @@ namespace wsrep
                 *this,
                 transaction_.ws_handle(), transaction_.ws_meta());
         }
+
         //
         // Commit ordering
         //
@@ -407,8 +416,6 @@ namespace wsrep
         //
         // Replaying
         //
-
-
         int start_replaying(const wsrep::ws_meta& ws_meta)
         {
             assert(mode_ == m_high_priority);
@@ -431,11 +438,11 @@ namespace wsrep
         //
         //
         //
-
         void will_replay(const wsrep::transaction& tc)
         {
             client_service_.will_replay(tc);
         }
+
         void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>& lock)
         {
             client_service_.wait_for_replayers(*this, lock);
@@ -450,6 +457,29 @@ namespace wsrep
         {
             client_service_.emergency_shutdown();
         }
+
+        //
+        // Causal reads
+        //
+
+        /**
+         * Perform a causal read in the cluster. After the call returns,
+         * all the causally preceding write sets have been committed
+         * or the error is returned.
+         *
+         * This operation may require communication with other processes
+         * in the DBMS cluster, so it may be relatively heavy operation.
+         * Method wait_for_gtid() should be used whenever possible.
+         */
+        int causal_read() const;
+
+        /**
+         * Wait until all the write sets up to given GTID have been
+         * committed.
+         *
+         * @return Zero on success, non-zero on failure.
+         */
+        int wait_for_gtid(const wsrep::gtid&) const;
 
         //
         // Debug interface
@@ -485,6 +515,8 @@ namespace wsrep
          * @return Reference to the provider.
          * @throw wsrep::runtime_error if no providers are associated
          *        with the client context.
+         *
+         * @todo Should be removed.
          */
         wsrep::provider& provider() const;
 
@@ -503,6 +535,7 @@ namespace wsrep
          * @return Client mode.
          */
         enum mode mode() const { return mode_; }
+
         /**
          * Get Client state.
          *
@@ -512,37 +545,72 @@ namespace wsrep
          */
         enum state state() const { return state_; }
 
+        /**
+         * Return a const reference to the transaction associated
+         * with the client state.
+         */
         const wsrep::transaction& transaction() const
         {
             return transaction_;
         }
 
+        /**
+         * Set debug logging level.
+         *
+         * Levels:
+         * 0 - Debug logging is disabled
+         * 1..n - Debug logging with increasing verbosity.
+         */
         void debug_log_level(int level) { debug_log_level_ = level; }
+
+        /**
+         * Return current debug logging level. The return value
+         * is a maximum of client state and server state debug log
+         * levels.
+         *
+         * @return Current debug log level.
+         */
         int debug_log_level() const
         {
             return std::max(debug_log_level_,
                             server_state_.debug_log_level());
         }
 
+        //
+        // Error handling
+        //
+
+        /**
+         * Reset the current error state.
+         *
+         * @todo There should be some protection about when this can
+         *       be done.
+         */
         void reset_error()
         {
             current_error_ = wsrep::e_success;
         }
 
+        /**
+         * Return current error code.
+         *
+         * @return Current error code.
+         */
         enum wsrep::client_error current_error() const
         {
             return current_error_;
         }
+
     protected:
         /**
          * Client context constuctor. This is protected so that it
          * can be called from derived class constructors only.
          */
         client_state(wsrep::mutex& mutex,
-                       wsrep::server_state& server_state,
-                       wsrep::client_service& client_service,
-                       const client_id& id,
-                       enum mode mode)
+                     wsrep::server_state& server_state,
+                     wsrep::client_service& client_service,
+                     const client_id& id,
+                     enum mode mode)
             : thread_id_(wsrep::this_thread::get_id())
             , mutex_(mutex)
             , server_state_(server_state)
@@ -566,32 +634,21 @@ namespace wsrep
         friend class transaction;
 
         void debug_log_state(const char*) const;
-        /**
-         * Set client state.
-         */
         void state(wsrep::unique_lock<wsrep::mutex>& lock, enum state state);
-
         void override_error(enum wsrep::client_error error);
 
         wsrep::thread::id thread_id_;
         wsrep::mutex& mutex_;
         wsrep::server_state& server_state_;
         wsrep::client_service& client_service_;
-        client_id id_;
+        wsrep::client_id id_;
         enum mode mode_;
         enum state state_;
-    protected:
         wsrep::transaction transaction_;
-    private:
-        /**
-         * @todo This boolean should be converted to better read isolation
-         * semantics.
-         */
         bool allow_dirty_reads_;
         int debug_log_level_;
         wsrep::client_error current_error_;
     };
-
 
     class client_state_switch
     {
@@ -612,6 +669,12 @@ namespace wsrep
         client_state& current_context_;
     };
 
+
+    /**
+     * Utility class to switch the client state to high priority
+     * mode. The client is switched back to the original mode
+     * when the high priority context goes out of scope.
+     */
     class high_priority_context
     {
     public:
@@ -621,7 +684,7 @@ namespace wsrep
         {
             client_.mode_ = wsrep::client_state::m_high_priority;
         }
-        ~high_priority_context()
+        virtual ~high_priority_context()
         {
             client_.mode_ = orig_mode_;
         }
@@ -630,6 +693,9 @@ namespace wsrep
         enum wsrep::client_state::mode orig_mode_;
     };
 
+    /**
+     *
+     */
     class client_toi_mode
     {
     public:

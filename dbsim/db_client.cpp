@@ -7,14 +7,14 @@
 
 db::client::client(db::server& server,
                    wsrep::client_id client_id,
-                   enum wsrep::client_context::mode mode,
+                   enum wsrep::client_state::mode mode,
                    const db::params& params)
     : mutex_()
     , params_(params)
     , server_(server)
     , server_context_(server.server_context())
-    , client_context_(mutex_, this, server_context_, client_service_, client_id, mode)
-    , client_service_(server_context_.provider(), client_context_)
+    , client_state_(mutex_, this, server_context_, client_service_, client_id, mode)
+    , client_service_(server_context_.provider(), client_state_)
     , se_trx_(server.storage_engine())
     , stats_()
 { }
@@ -30,7 +30,7 @@ void db::client::start()
 
 bool db::client::bf_abort(wsrep::seqno seqno)
 {
-    return client_context_.bf_abort(seqno);
+    return client_state_.bf_abort(seqno);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -40,39 +40,39 @@ bool db::client::bf_abort(wsrep::seqno seqno)
 template <class F>
 int db::client::client_command(F f)
 {
-    int err(client_context_.before_command());
+    int err(client_state_.before_command());
     // wsrep::log_debug() << "before_command: " << err;
     // If err != 0, transaction was BF aborted while client idle
     if (err == 0)
     {
-        err = client_context_.before_statement();
+        err = client_state_.before_statement();
         if (err == 0)
         {
             err = f();
         }
-        client_context_.after_statement();
+        client_state_.after_statement();
     }
-    client_context_.after_command_before_result();
-    if (client_context_.current_error())
+    client_state_.after_command_before_result();
+    if (client_state_.current_error())
     {
         // wsrep::log_info() << "Current error";
-        assert(client_context_.transaction().state() ==
+        assert(client_state_.transaction().state() ==
                wsrep::transaction_context::s_aborted);
         err = 1;
     }
-    client_context_.after_command_after_result();
+    client_state_.after_command_after_result();
     // wsrep::log_info() << "client_command(): " << err;
     return err;
 }
 
 void db::client::run_one_transaction()
 {
-    client_context_.reset_error();
+    client_state_.reset_error();
     int err = client_command(
         [&]()
         {
             // wsrep::log_debug() << "Start transaction";
-            err = client_context_.start_transaction(
+            err = client_state_.start_transaction(
                 server_.next_transaction_id());
             assert(err == 0);
             se_trx_.start(this);
@@ -80,7 +80,7 @@ void db::client::run_one_transaction()
         });
 
     const wsrep::transaction_context& transaction(
-        client_context_.transaction());
+        client_state_.transaction());
 
     err = err || client_command(
         [&]()
@@ -93,11 +93,11 @@ void db::client::run_one_transaction()
             os << data;
             wsrep::key key(wsrep::key::exclusive);
             key.append_key_part("dbms", 4);
-            unsigned long long client_key(client_context_.id().get());
+            unsigned long long client_key(client_state_.id().get());
             key.append_key_part(&client_key, sizeof(client_key));
             key.append_key_part(&data, sizeof(data));
-            err = client_context_.append_key(key);
-            err = err || client_context_.append_data(
+            err = client_state_.append_key(key);
+            err = err || client_state_.append_data(
                 wsrep::const_buffer(os.str().c_str(),
                                     os.str().size()));
             return err;
@@ -108,18 +108,18 @@ void db::client::run_one_transaction()
         {
             // wsrep::log_debug() << "Commit";
             assert(err == 0);
-            if (client_context_.do_2pc())
+            if (client_state_.do_2pc())
             {
-                err = err || client_context_.before_prepare();
-                err = err || client_context_.after_prepare();
+                err = err || client_state_.before_prepare();
+                err = err || client_state_.after_prepare();
             }
-            err = err || client_context_.before_commit();
+            err = err || client_state_.before_commit();
             if (err == 0) se_trx_.commit();
-            err = err || client_context_.ordered_commit();
-            err = err || client_context_.after_commit();
+            err = err || client_state_.ordered_commit();
+            err = err || client_state_.after_commit();
             if (err)
             {
-                client_context_.rollback();
+                client_state_.rollback();
             }
             return err;
         });
@@ -147,7 +147,7 @@ void db::client::report_progress(size_t i) const
 {
     if ((i % 1000) == 0)
     {
-        wsrep::log_info() << "client: " << client_context_.id().get()
+        wsrep::log_info() << "client: " << client_state_.id().get()
                           << " transactions: " << i
                           << " " << 100*double(i)/params_.n_transactions << "%";
     }

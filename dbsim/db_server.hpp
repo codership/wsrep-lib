@@ -6,7 +6,7 @@
 #define WSREP_DB_SERVER_HPP
 
 #include "wsrep/gtid.hpp"
-#include "wsrep/client_context.hpp"
+#include "wsrep/client_state.hpp"
 
 #include "db_storage_engine.hpp"
 #include "db_server_context.hpp"
@@ -40,9 +40,9 @@ namespace db
             return (last_transaction_id_.fetch_add(1) + 1);
         }
         void donate_sst(const std::string&, const  wsrep::gtid&, bool);
-        wsrep::client_context* local_client_context();
-        wsrep::client_context* streaming_applier_client_context();
-        void release_client_context(wsrep::client_context*);
+        wsrep::client_state* local_client_state();
+        wsrep::client_state* streaming_applier_client_state();
+        void release_client_state(wsrep::client_state*);
 
     private:
         void start_client(size_t id);

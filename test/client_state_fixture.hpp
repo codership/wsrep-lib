@@ -6,7 +6,7 @@
 #define WSREP_TEST_CLIENT_CONTEXT_FIXTURE_HPP
 
 #include "mock_server_context.hpp"
-#include "mock_client_context.hpp"
+#include "mock_client_state.hpp"
 
 
 #include <boost/test/unit_test.hpp>
@@ -18,7 +18,7 @@ namespace
         replicating_client_fixture_sync_rm()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
             , cc(sc, sc.client_service(), wsrep::client_id(1),
-                 wsrep::client_context::m_replicating)
+                 wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -28,7 +28,7 @@ namespace
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
         }
         wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::mock_client_state cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -37,7 +37,7 @@ namespace
         replicating_client_fixture_async_rm()
             : sc("s1", "s1", wsrep::server_context::rm_async)
             , cc(sc, sc.client_service(), wsrep::client_id(1),
-                 wsrep::client_context::m_replicating)
+                 wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -47,7 +47,7 @@ namespace
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
         }
         wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::mock_client_state cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -56,7 +56,7 @@ namespace
         replicating_client_fixture_2pc()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
             , cc(sc, sc.client_service(), wsrep::client_id(1),
-                 wsrep::client_context::m_replicating)
+                 wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
             sc.client_service().do_2pc_ = true;
@@ -67,7 +67,7 @@ namespace
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
         }
         wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::mock_client_state cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -76,7 +76,7 @@ namespace
         replicating_client_fixture_autocommit()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
             , cc(sc, sc.client_service(), wsrep::client_id(1),
-                 wsrep::client_context::m_replicating)
+                 wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
             sc.client_service().is_autocommit_ = true;
@@ -87,7 +87,7 @@ namespace
             BOOST_REQUIRE(tc.state() == wsrep::transaction_context::s_executing);
         }
         wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::mock_client_state cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -98,7 +98,7 @@ namespace
                  wsrep::server_context::rm_async)
             , cc(sc, sc.client_service(),
                  wsrep::client_id(1),
-                 wsrep::client_context::m_high_priority)
+                 wsrep::client_state::m_high_priority)
             , tc(cc.transaction())
         {
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -115,7 +115,7 @@ namespace
             BOOST_REQUIRE(tc.ordered() == true);
         }
         wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::mock_client_state cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -126,7 +126,7 @@ namespace
                  wsrep::server_context::rm_async)
             , cc(sc, sc.client_service(),
                  wsrep::client_id(1),
-                 wsrep::client_context::m_high_priority)
+                 wsrep::client_state::m_high_priority)
             , tc(cc.transaction())
         {
             sc.client_service().do_2pc_ = true;
@@ -144,7 +144,7 @@ namespace
             BOOST_REQUIRE(tc.ordered() == true);
         }
         wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::mock_client_state cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -153,7 +153,7 @@ namespace
         streaming_client_fixture_row()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
             , cc(sc, sc.client_service(), wsrep::client_id(1),
-                 wsrep::client_context::m_replicating)
+                 wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -164,7 +164,7 @@ namespace
             cc.enable_streaming(wsrep::streaming_context::row, 1);
         }
         wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::mock_client_state cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -173,7 +173,7 @@ namespace
         streaming_client_fixture_byte()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
             , cc(sc, sc.client_service(), wsrep::client_id(1),
-                 wsrep::client_context::m_replicating)
+                 wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -184,7 +184,7 @@ namespace
             cc.enable_streaming(wsrep::streaming_context::bytes, 1);
         }
         wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::mock_client_state cc;
         const wsrep::transaction_context& tc;
     };
 
@@ -193,7 +193,7 @@ namespace
         streaming_client_fixture_statement()
             : sc("s1", "s1", wsrep::server_context::rm_sync)
             , cc(sc, sc.client_service(), wsrep::client_id(1),
-                 wsrep::client_context::m_replicating)
+                 wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -205,7 +205,7 @@ namespace
         }
 
         wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::mock_client_state cc;
         const wsrep::transaction_context& tc;
     };
 }

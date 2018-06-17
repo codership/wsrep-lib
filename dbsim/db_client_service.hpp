@@ -8,7 +8,7 @@
 #include "wsrep/client_service.hpp"
 #include "wsrep/transaction_context.hpp"
 
-#include "db_client_context.hpp"
+#include "db_client_state.hpp"
 
 namespace db
 {
@@ -16,19 +16,19 @@ namespace db
     {
     public:
         client_service(wsrep::provider& provider,
-                       db::client_context& client_context)
+                       db::client_state& client_state)
             : wsrep::client_service(provider)
-            , client_context_(client_context)
+            , client_state_(client_state)
         { }
 
         bool is_autocommit() const override
         {
-            return client_context_.is_autocommit();
+            return client_state_.is_autocommit();
         }
 
         bool do_2pc() const override
         {
-            return client_context_.do_2pc();
+            return client_state_.do_2pc();
         }
 
         bool interrupted() const override
@@ -38,15 +38,15 @@ namespace db
 
         void reset_globals() override
         {
-            client_context_.reset_globals();
+            client_state_.reset_globals();
         }
 
         void store_globals() override
         {
-            client_context_.store_globals();
+            client_state_.store_globals();
         }
 
-        int prepare_data_for_replication(wsrep::client_context&, const wsrep::transaction_context&) override
+        int prepare_data_for_replication(wsrep::client_state&, const wsrep::transaction_context&) override
         {
             return 0;
         }
@@ -56,7 +56,7 @@ namespace db
             return 0;
         }
 
-        int prepare_fragment_for_replication(wsrep::client_context&,
+        int prepare_fragment_for_replication(wsrep::client_state&,
                                              const wsrep::transaction_context&,
                                              wsrep::mutable_buffer&) override
         {
@@ -66,19 +66,19 @@ namespace db
         void remove_fragments(const wsrep::transaction_context&) override
         { }
 
-        int apply(wsrep::client_context&, const wsrep::const_buffer&) override;
+        int apply(wsrep::client_state&, const wsrep::const_buffer&) override;
 
-        int commit(wsrep::client_context&,
+        int commit(wsrep::client_state&,
                    const wsrep::ws_handle&, const wsrep::ws_meta&) override;
 
-        int rollback(wsrep::client_context&) override;
+        int rollback(wsrep::client_state&) override;
 
         void will_replay(const wsrep::transaction_context&) override
         { }
 
-        void wait_for_replayers(wsrep::client_context&,
+        void wait_for_replayers(wsrep::client_state&,
                                 wsrep::unique_lock<wsrep::mutex>&) override { }
-        enum wsrep::provider::status replay(wsrep::client_context&,
+        enum wsrep::provider::status replay(wsrep::client_state&,
                                             wsrep::transaction_context&)
             override;
 
@@ -89,10 +89,10 @@ namespace db
         }
 
         void emergency_shutdown() { ::abort(); }
-        void debug_sync(wsrep::client_context&, const char*) override { }
+        void debug_sync(wsrep::client_state&, const char*) override { }
         void debug_crash(const char*) override { }
     private:
-        db::client_context& client_context_;
+        db::client_state& client_state_;
     };
 }
 

@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "wsrep/client_context.hpp"
+#include "wsrep/client_state.hpp"
 #include "wsrep/compiler.hpp"
 #include "wsrep/logger.hpp"
 
@@ -10,12 +10,12 @@
 #include <iostream>
 
 
-wsrep::provider& wsrep::client_context::provider() const
+wsrep::provider& wsrep::client_state::provider() const
 {
     return server_context_.provider();
 }
 
-void wsrep::client_context::override_error(enum wsrep::client_error error)
+void wsrep::client_state::override_error(enum wsrep::client_error error)
 {
     assert(wsrep::this_thread::get_id() == thread_id_);
     if (current_error_ != wsrep::e_success &&
@@ -27,7 +27,7 @@ void wsrep::client_context::override_error(enum wsrep::client_error error)
 }
 
 
-int wsrep::client_context::before_command()
+int wsrep::client_state::before_command()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("before_command: enter");
@@ -71,7 +71,7 @@ int wsrep::client_context::before_command()
         else if (transaction_.state() == wsrep::transaction_context::s_aborted)
         {
             // Transaction was rolled back either just before sending result
-            // to the client, or after client_context become idle.
+            // to the client, or after client_state become idle.
             // Clean up the transaction and return error.
             override_error(wsrep::e_deadlock_error);
             lock.unlock();
@@ -86,7 +86,7 @@ int wsrep::client_context::before_command()
     return 0;
 }
 
-void wsrep::client_context::after_command_before_result()
+void wsrep::client_state::after_command_before_result()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("after_command_before_result: enter");
@@ -106,7 +106,7 @@ void wsrep::client_context::after_command_before_result()
     debug_log_state("after_command_before_result: leave");
 }
 
-void wsrep::client_context::after_command_after_result()
+void wsrep::client_state::after_command_after_result()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("after_command_after_result_enter");
@@ -129,7 +129,7 @@ void wsrep::client_context::after_command_after_result()
     debug_log_state("after_command_after_result: leave");
 }
 
-int wsrep::client_context::before_statement()
+int wsrep::client_state::before_statement()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("before_statement: enter");
@@ -156,8 +156,8 @@ int wsrep::client_context::before_statement()
     return 0;
 }
 
-enum wsrep::client_context::after_statement_result
-wsrep::client_context::after_statement()
+enum wsrep::client_state::after_statement_result
+wsrep::client_state::after_statement()
 {
     // wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("after_statement: enter");
@@ -187,20 +187,20 @@ wsrep::client_context::after_statement()
 
 // Private
 
-void wsrep::client_context::debug_log_state(const char* context) const
+void wsrep::client_state::debug_log_state(const char* context) const
 {
     if (debug_log_level() >= 1)
     {
-        wsrep::log_debug() << "client_context: " << context
+        wsrep::log_debug() << "client_state: " << context
                            << ": server: " << server_context_.name()
                            << " client: " << id_.get()
                            << " current_error: " << current_error_;
     }
 }
 
-void wsrep::client_context::state(
+void wsrep::client_state::state(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
-    enum wsrep::client_context::state state)
+    enum wsrep::client_state::state state)
 {
     assert(wsrep::this_thread::get_id() == thread_id_);
     assert(lock.owns_lock());
@@ -219,7 +219,7 @@ void wsrep::client_context::state(
     else
     {
         std::ostringstream os;
-        os << "client_context: Unallowed state transition: "
+        os << "client_state: Unallowed state transition: "
            << state_ << " -> " << state;
         throw wsrep::runtime_error(os.str());
     }

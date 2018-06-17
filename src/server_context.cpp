@@ -3,7 +3,7 @@
 //
 
 #include "wsrep/server_context.hpp"
-#include "wsrep/client_context.hpp"
+#include "wsrep/client_state.hpp"
 #include "wsrep/transaction_context.hpp"
 #include "wsrep/view.hpp"
 #include "wsrep/logger.hpp"
@@ -118,14 +118,14 @@ void wsrep::server_context::on_sync()
 }
 
 int wsrep::server_context::on_apply(
-    wsrep::client_context& client_context,
+    wsrep::client_state& client_state,
     const wsrep::ws_handle& ws_handle,
     const wsrep::ws_meta& ws_meta,
     const wsrep::const_buffer& data)
 {
     int ret(0);
-    const wsrep::transaction_context& txc(client_context.transaction());
-    assert(client_context.mode() == wsrep::client_context::m_high_priority);
+    const wsrep::transaction_context& txc(client_state.transaction());
+    assert(client_state.mode() == wsrep::client_state::m_high_priority);
 
     bool not_replaying(txc.state() !=
                        wsrep::transaction_context::s_replaying);
@@ -135,35 +135,35 @@ int wsrep::server_context::on_apply(
     {
         if (not_replaying)
         {
-            client_context.before_command();
-            client_context.before_statement();
+            client_state.before_command();
+            client_state.before_statement();
             assert(txc.active() == false);
-            client_context.start_transaction(ws_handle, ws_meta);
+            client_state.start_transaction(ws_handle, ws_meta);
         }
         else
         {
-            client_context.start_replaying(ws_meta);
+            client_state.start_replaying(ws_meta);
         }
 
-        if (client_context.apply(data))
+        if (client_state.apply(data))
         {
             ret = 1;
         }
-        else if (client_context.commit())
+        else if (client_state.commit())
         {
             ret = 1;
         }
 
         if (ret)
         {
-            client_context.rollback();
+            client_state.rollback();
         }
 
         if (not_replaying)
         {
-            client_context.after_statement();
-            client_context.after_command_before_result();
-            client_context.after_command_after_result();
+            client_state.after_statement();
+            client_state.after_command_before_result();
+            client_state.after_command_after_result();
         }
         assert(ret ||
                txc.state() == wsrep::transaction_context::s_committed);
@@ -173,7 +173,7 @@ int wsrep::server_context::on_apply(
         assert(not_replaying);
         assert(find_streaming_applier(
                    ws_meta.server_id(), ws_meta.transaction_id()) == 0);
-        wsrep::client_context* sac(streaming_applier_client_context());
+        wsrep::client_state* sac(streaming_applier_client_state());
         start_streaming_applier(
             ws_meta.server_id(), ws_meta.transaction_id(), sac);
         sac->start_transaction(ws_handle, ws_meta);
@@ -183,7 +183,7 @@ int wsrep::server_context::on_apply(
             // introduce a virtual method call which takes
             // both original and sac client contexts as argument
             // and a functor which does the applying.
-            wsrep::client_context_switch sw(client_context, *sac);
+            wsrep::client_state_switch sw(client_state, *sac);
             sac->before_command();
             sac->before_statement();
             sac->apply(data);
@@ -191,11 +191,11 @@ int wsrep::server_context::on_apply(
             sac->after_command_before_result();
             sac->after_command_after_result();
         }
-        log_dummy_write_set(client_context, ws_meta);
+        log_dummy_write_set(client_state, ws_meta);
     }
     else if (ws_meta.flags() == 0)
     {
-        wsrep::client_context* sac(
+        wsrep::client_state* sac(
             find_streaming_applier(
                 ws_meta.server_id(), ws_meta.transaction_id()));
         if (sac == 0)
@@ -211,7 +211,7 @@ int wsrep::server_context::on_apply(
         }
         else
         {
-            wsrep::client_context_switch(client_context, *sac);
+            wsrep::client_state_switch(client_state, *sac);
             sac->before_command();
             sac->before_statement();
             ret = sac->apply(data);
@@ -219,13 +219,13 @@ int wsrep::server_context::on_apply(
             sac->after_command_before_result();
             sac->after_command_after_result();
         }
-        log_dummy_write_set(client_context, ws_meta);
+        log_dummy_write_set(client_state, ws_meta);
     }
     else if (commits_transaction(ws_meta.flags()))
     {
         if (not_replaying)
         {
-            wsrep::client_context* sac(
+            wsrep::client_state* sac(
                 find_streaming_applier(
                     ws_meta.server_id(), ws_meta.transaction_id()));
             assert(sac);
@@ -242,7 +242,7 @@ int wsrep::server_context::on_apply(
             }
             else
             {
-                wsrep::client_context_switch(client_context, *sac);
+                wsrep::client_state_switch(client_state, *sac);
                 sac->before_command();
                 sac->before_statement();
                 ret = sac->commit();
@@ -251,14 +251,14 @@ int wsrep::server_context::on_apply(
                 sac->after_command_after_result();
                 stop_streaming_applier(
                     ws_meta.server_id(), ws_meta.transaction_id());
-                release_client_context(sac);
+                release_client_state(sac);
             }
         }
         else
         {
-            ret = client_context.start_replaying(ws_meta) ||
-                client_context.apply(wsrep::const_buffer()) ||
-                client_context.commit();
+            ret = client_state.start_replaying(ws_meta) ||
+                client_state.apply(wsrep::const_buffer()) ||
+                client_state.commit();
         }
     }
     else
@@ -274,7 +274,7 @@ int wsrep::server_context::on_apply(
 }
 
 bool wsrep::server_context::statement_allowed_for_streaming(
-    const wsrep::client_context&,
+    const wsrep::client_state&,
     const wsrep::transaction_context&) const
 {
     /* Streaming not implemented yet. */
@@ -284,14 +284,14 @@ bool wsrep::server_context::statement_allowed_for_streaming(
 void wsrep::server_context::start_streaming_applier(
     const wsrep::id& server_id,
     const wsrep::transaction_id& transaction_id,
-    wsrep::client_context* client_context)
+    wsrep::client_state* client_state)
 {
     if (streaming_appliers_.insert(
             std::make_pair(std::make_pair(server_id, transaction_id),
-                           client_context)).second == false)
+                           client_state)).second == false)
     {
         wsrep::log_error() << "Could not insert streaming applier";
-        delete client_context;
+        delete client_state;
         throw wsrep::fatal_error();
     }
 }
@@ -314,7 +314,7 @@ void wsrep::server_context::stop_streaming_applier(
     }
 }
 
-wsrep::client_context* wsrep::server_context::find_streaming_applier(
+wsrep::client_state* wsrep::server_context::find_streaming_applier(
     const wsrep::id& server_id,
     const wsrep::transaction_id& transaction_id) const
 {

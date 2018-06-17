@@ -154,8 +154,8 @@ namespace wsrep
 
         enum wsrep::provider::status replay(wsrep::ws_handle&, void* ctx)
         {
-            wsrep::client_context& cc(
-                *static_cast<wsrep::client_context*>(ctx));
+            wsrep::client_state& cc(
+                *static_cast<wsrep::client_state*>(ctx));
             wsrep::high_priority_context high_priority_context(cc);
             const wsrep::transaction_context& tc(cc.transaction());
             wsrep::ws_meta ws_meta;

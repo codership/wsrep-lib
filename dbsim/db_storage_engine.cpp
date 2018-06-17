@@ -52,8 +52,8 @@ void db::storage_engine::bf_abort_some(const wsrep::transaction_context& txc)
         {
             for (auto victim : transactions_)
             {
-                wsrep::client_context& cc(victim->client_context());
-                if (cc.mode() == wsrep::client_context::m_replicating)
+                wsrep::client_state& cc(victim->client_state());
+                if (cc.mode() == wsrep::client_state::m_replicating)
                 {
                     if (victim->bf_abort(txc.seqno()))
                     {

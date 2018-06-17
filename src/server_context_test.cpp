@@ -15,7 +15,7 @@ namespace
                  wsrep::server_context::rm_sync)
             , cc(sc,
                  wsrep::client_id(1),
-                 wsrep::client_context::m_applier,
+                 wsrep::client_state::m_applier,
                  false)
             , ws_handle(1, (void*)1)
             , ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
@@ -27,7 +27,7 @@ namespace
             cc.start_transaction(ws_handle, ws_meta);
         }
         wsrep::mock_server_context sc;
-        wsrep::mock_client_context cc;
+        wsrep::mock_client_state cc;
         wsrep::ws_handle ws_handle;
         wsrep::ws_meta ws_meta;
     };

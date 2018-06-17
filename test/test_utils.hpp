@@ -5,7 +5,7 @@
 // Forward declarations
 namespace wsrep
 {
-    class client_context;
+    class client_state;
     class mock_server_context;
 }
 
@@ -19,10 +19,10 @@ namespace wsrep_test
 {
 
     // Simple BF abort method to BF abort unordered transasctions
-    void bf_abort_unordered(wsrep::client_context& cc);
+    void bf_abort_unordered(wsrep::client_state& cc);
 
     // Simple BF abort method to BF abort unordered transasctions
-    void bf_abort_ordered(wsrep::client_context& cc);
+    void bf_abort_ordered(wsrep::client_state& cc);
 
     // BF abort method to abort transactions via provider
     void bf_abort_provider(wsrep::mock_server_context& sc,

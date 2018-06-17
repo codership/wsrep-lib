@@ -6,7 +6,7 @@
 #define WSREP_MOCK_SERVER_CONTEXT_HPP
 
 #include "wsrep/server_context.hpp"
-#include "mock_client_context.hpp"
+#include "mock_client_state.hpp"
 #include "mock_provider.hpp"
 
 #include "wsrep/compiler.hpp"
@@ -29,24 +29,24 @@ namespace wsrep
         { }
         wsrep::mock_provider& provider() const
         { return provider_; }
-        wsrep::client_context* local_client_context()
+        wsrep::client_state* local_client_state()
         {
-            return new wsrep::mock_client_context(
+            return new wsrep::mock_client_state(
                 *this, client_service_, ++last_client_id_,
-                wsrep::client_context::m_local);
+                wsrep::client_state::m_local);
         }
-        wsrep::client_context* streaming_applier_client_context()
+        wsrep::client_state* streaming_applier_client_state()
         {
-            return new wsrep::mock_client_context(
+            return new wsrep::mock_client_state(
                 *this, client_service_, ++last_client_id_,
-                wsrep::client_context::m_high_priority);
+                wsrep::client_state::m_high_priority);
         }
-        void release_client_context(wsrep::client_context* client_context)
+        void release_client_state(wsrep::client_state* client_state)
         {
-            delete client_context;
+            delete client_state;
         }
 
-        void log_dummy_write_set(wsrep::client_context&,
+        void log_dummy_write_set(wsrep::client_state&,
                                  const wsrep::ws_meta&)
             WSREP_OVERRIDE
         {
@@ -60,11 +60,11 @@ namespace wsrep
         void on_sst_request(const std::string&,
                             const wsrep::gtid&,
                             bool) WSREP_OVERRIDE { }
-        void background_rollback(wsrep::client_context& client_context)
+        void background_rollback(wsrep::client_state& client_state)
             WSREP_OVERRIDE
         {
-            client_context.before_rollback();
-            client_context.after_rollback();
+            client_state.before_rollback();
+            client_state.after_rollback();
         }
         // void sst_received(const wsrep_gtid_t&, int) WSREP_OVERRIDE { }
         // void on_apply(wsrep::transaction_context&) { }

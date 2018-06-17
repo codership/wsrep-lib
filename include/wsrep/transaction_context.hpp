@@ -16,7 +16,7 @@
 
 namespace wsrep
 {
-    class client_context;
+    class client_state;
     class key;
     class const_buffer;
 
@@ -43,7 +43,7 @@ namespace wsrep
         enum state state() const
         { return state_; }
 
-        transaction_context(wsrep::client_context& client_context);
+        transaction_context(wsrep::client_state& client_state);
         ~transaction_context();
         // Accessors
         wsrep::transaction_id id() const
@@ -136,7 +136,7 @@ namespace wsrep
         void debug_log_state(const char*) const;
 
         wsrep::provider& provider_;
-        wsrep::client_context& client_context_;
+        wsrep::client_state& client_state_;
         wsrep::transaction_id id_;
         enum state state_;
         std::vector<enum state> state_hist_;

@@ -3,18 +3,18 @@
 //
 
 #include "test_utils.hpp"
-#include "wsrep/client_context.hpp"
+#include "wsrep/client_state.hpp"
 #include "mock_server_context.hpp"
 
 
 // Simple BF abort method to BF abort unordered transasctions
-void wsrep_test::bf_abort_unordered(wsrep::client_context& cc)
+void wsrep_test::bf_abort_unordered(wsrep::client_state& cc)
 {
     assert(cc.transaction().ordered() == false);
     cc.bf_abort(wsrep::seqno(1));
 }
 
-void wsrep_test::bf_abort_ordered(wsrep::client_context& cc)
+void wsrep_test::bf_abort_ordered(wsrep::client_state& cc)
 {
     assert(cc.transaction().ordered());
     cc.bf_abort(wsrep::seqno(0));

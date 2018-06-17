@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-/** @file client_context.hpp
+/** @file client_state.hpp
  *
  * Client Context
  * ==============
@@ -80,7 +80,7 @@ namespace wsrep
      *
      * Client Contex abstract interface.
      */
-    class client_context
+    class client_state
     {
     public:
         /**
@@ -136,7 +136,7 @@ namespace wsrep
         /**
          * Destructor.
          */
-        virtual ~client_context()
+        virtual ~client_state()
         {
             assert(transaction_.active() == false);
         }
@@ -538,7 +538,7 @@ namespace wsrep
          * Client context constuctor. This is protected so that it
          * can be called from derived class constructors only.
          */
-        client_context(wsrep::mutex& mutex,
+        client_state(wsrep::mutex& mutex,
                        wsrep::server_context& server_context,
                        wsrep::client_service& client_service,
                        const client_id& id,
@@ -557,10 +557,10 @@ namespace wsrep
         { }
 
     private:
-        client_context(const client_context&);
-        client_context& operator=(client_context&);
+        client_state(const client_state&);
+        client_state& operator=(client_state&);
 
-        friend class client_context_switch;
+        friend class client_state_switch;
         friend class high_priority_context;
         friend class client_toi_mode;
         friend class transaction_context;
@@ -593,84 +593,84 @@ namespace wsrep
     };
 
 
-    class client_context_switch
+    class client_state_switch
     {
     public:
-        client_context_switch(wsrep::client_context& orig_context,
-                              wsrep::client_context& current_context)
+        client_state_switch(wsrep::client_state& orig_context,
+                              wsrep::client_state& current_context)
             : orig_context_(orig_context)
             , current_context_(current_context)
         {
             current_context_.client_service_.store_globals();
         }
-        ~client_context_switch()
+        ~client_state_switch()
         {
             orig_context_.client_service_.store_globals();
         }
     private:
-        client_context& orig_context_;
-        client_context& current_context_;
+        client_state& orig_context_;
+        client_state& current_context_;
     };
 
     class high_priority_context
     {
     public:
-        high_priority_context(wsrep::client_context& client)
+        high_priority_context(wsrep::client_state& client)
             : client_(client)
             , orig_mode_(client.mode_)
         {
-            client_.mode_ = wsrep::client_context::m_high_priority;
+            client_.mode_ = wsrep::client_state::m_high_priority;
         }
         ~high_priority_context()
         {
             client_.mode_ = orig_mode_;
         }
     private:
-        wsrep::client_context& client_;
-        enum wsrep::client_context::mode orig_mode_;
+        wsrep::client_state& client_;
+        enum wsrep::client_state::mode orig_mode_;
     };
 
     class client_toi_mode
     {
     public:
-        client_toi_mode(wsrep::client_context& client)
+        client_toi_mode(wsrep::client_state& client)
             : client_(client)
             , orig_mode_(client.mode_)
         {
-            client_.mode_ = wsrep::client_context::m_toi;
+            client_.mode_ = wsrep::client_state::m_toi;
         }
         ~client_toi_mode()
         {
-            assert(client_.mode() == wsrep::client_context::m_toi);
+            assert(client_.mode() == wsrep::client_state::m_toi);
             client_.mode_ = orig_mode_;
         }
     private:
-        wsrep::client_context& client_;
-        enum wsrep::client_context::mode orig_mode_;
+        wsrep::client_state& client_;
+        enum wsrep::client_state::mode orig_mode_;
     };
 
     template <class D>
-    class scoped_client_context
+    class scoped_client_state
     {
     public:
-        scoped_client_context(wsrep::client_context* client_context, D deleter)
-            : client_context_(client_context)
+        scoped_client_state(wsrep::client_state* client_state, D deleter)
+            : client_state_(client_state)
             , deleter_(deleter)
         {
-            if (client_context_ == 0)
+            if (client_state_ == 0)
             {
-                throw wsrep::runtime_error("Null client_context provided");
+                throw wsrep::runtime_error("Null client_state provided");
             }
         }
-        wsrep::client_context& client_context() { return *client_context_; }
-        ~scoped_client_context()
+        wsrep::client_state& client_state() { return *client_state_; }
+        ~scoped_client_state()
         {
-            deleter_(client_context_);
+            deleter_(client_state_);
         }
     private:
-        scoped_client_context(const scoped_client_context&);
-        scoped_client_context& operator=(const scoped_client_context&);
-        wsrep::client_context* client_context_;
+        scoped_client_state(const scoped_client_state&);
+        scoped_client_state& operator=(const scoped_client_state&);
+        wsrep::client_state* client_state_;
         D deleter_;
     };
 }

@@ -6,7 +6,7 @@
 #define WSREP_DB_SERVER_CONTEXT_HPP
 
 #include "wsrep/server_context.hpp"
-#include "wsrep/client_context.hpp"
+#include "wsrep/client_state.hpp"
 
 #include <atomic>
 
@@ -33,14 +33,14 @@ namespace db
             , cond_()
             , server_(server)
         { }
-        wsrep::client_context* local_client_context() override;
-        wsrep::client_context* streaming_applier_client_context() override;
-        void release_client_context(wsrep::client_context*) override;
+        wsrep::client_state* local_client_state() override;
+        wsrep::client_state* streaming_applier_client_state() override;
+        void release_client_state(wsrep::client_state*) override;
         bool sst_before_init() const override;
         void on_sst_request(const std::string&, const wsrep::gtid&, bool) override;
         std::string on_sst_required() override;
-        void background_rollback(wsrep::client_context&) override;
-        void log_dummy_write_set(wsrep::client_context&, const wsrep::ws_meta&)
+        void background_rollback(wsrep::client_state&) override;
+        void log_dummy_write_set(wsrep::client_state&, const wsrep::ws_meta&)
             override;
     private:
         wsrep::default_mutex mutex_;

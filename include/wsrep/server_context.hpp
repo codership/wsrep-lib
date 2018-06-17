@@ -74,7 +74,7 @@ namespace wsrep
     class ws_handle;
     class ws_meta;
     class provider;
-    class client_context;
+    class client_state;
     class transaction_id;
     class transaction_context;
     class id;
@@ -199,7 +199,7 @@ namespace wsrep
          *
          * @return Pointer to Client Context.
          */
-        virtual client_context* local_client_context() = 0;
+        virtual client_state* local_client_state() = 0;
 
         /**
          * Create applier context for streaming transaction.
@@ -208,24 +208,24 @@ namespace wsrep
          * @param transaction_id Transaction ID of the SR transaction on the
          *        origin server.
          */
-        virtual client_context* streaming_applier_client_context() = 0;
+        virtual client_state* streaming_applier_client_state() = 0;
 
-        virtual void release_client_context(wsrep::client_context*) = 0;
+        virtual void release_client_state(wsrep::client_state*) = 0;
 
         void start_streaming_applier(
             const wsrep::id&,
             const wsrep::transaction_id&,
-            wsrep::client_context* client_context);
+            wsrep::client_state* client_state);
 
         void stop_streaming_applier(
             const wsrep::id&, const wsrep::transaction_id&);
         /**
          * Return reference to streaming applier.
          */
-        client_context* find_streaming_applier(const wsrep::id&,
+        client_state* find_streaming_applier(const wsrep::id&,
                                                const wsrep::transaction_id&) const;
 
-        virtual void log_dummy_write_set(wsrep::client_context&,
+        virtual void log_dummy_write_set(wsrep::client_state&,
                                          const wsrep::ws_meta&) = 0;
         /**
          * Load WSRep provider.
@@ -333,7 +333,7 @@ namespace wsrep
                                     const wsrep::gtid& gtid,
                                     bool bypass) = 0;
 
-        virtual void background_rollback(wsrep::client_context&) = 0;
+        virtual void background_rollback(wsrep::client_state&) = 0;
         /**
          *
          */
@@ -364,13 +364,13 @@ namespace wsrep
          *
          * @todo Make this private, allow calls for provider implementations
          *       only.
-         * @param client_context Applier client context.
+         * @param client_state Applier client context.
          * @param transaction_context Transaction context.
          * @param data Write set data
          *
          * @return Zero on success, non-zero on failure.
          */
-        int on_apply(wsrep::client_context& client_context,
+        int on_apply(wsrep::client_state& client_state,
                      const wsrep::ws_handle& ws_handle,
                      const wsrep::ws_meta& ws_meta,
                      const wsrep::const_buffer& data);
@@ -384,7 +384,7 @@ namespace wsrep
          *         replication, false otherwise.
          */
         virtual bool statement_allowed_for_streaming(
-            const wsrep::client_context& client_context,
+            const wsrep::client_state& client_state,
             const wsrep::transaction_context& transaction_context) const;
 
         void debug_log_level(int level) { debug_log_level_ = level; }
@@ -435,7 +435,7 @@ namespace wsrep
         wsrep::condition_variable& cond_;
         enum state state_;
         mutable std::vector<int> state_waiters_;
-        typedef std::map<std::pair<wsrep::id, wsrep::transaction_id>, wsrep::client_context*> streaming_appliers_map;
+        typedef std::map<std::pair<wsrep::id, wsrep::transaction_id>, wsrep::client_state*> streaming_appliers_map;
         streaming_appliers_map streaming_appliers_;
         wsrep::provider* provider_;
         std::string name_;
@@ -452,9 +452,9 @@ namespace wsrep
         client_deleter(wsrep::server_context& server_context)
             : server_context_(server_context)
         { }
-        void operator()(wsrep::client_context* client_context)
+        void operator()(wsrep::client_state* client_state)
         {
-            server_context_.release_client_context(client_context);
+            server_context_.release_client_state(client_state);
         }
     private:
         wsrep::server_context& server_context_;

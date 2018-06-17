@@ -26,10 +26,10 @@ void db::server::applier_thread()
 {
     wsrep::client_id client_id(last_client_id_.fetch_add(1) + 1);
     db::client applier(*this, client_id,
-                       wsrep::client_context::m_high_priority,
+                       wsrep::client_state::m_high_priority,
                        simulator_.params());
-    wsrep::client_context* cc(static_cast<wsrep::client_context*>(
-                                  &applier.client_context()));
+    wsrep::client_state* cc(static_cast<wsrep::client_state*>(
+                                  &applier.client_state()));
     enum wsrep::provider::status ret(
         server_context_.provider().run_applier(cc));
     wsrep::log() << "Applier thread exited with error code " << ret;
@@ -83,7 +83,7 @@ void db::server::start_client(size_t id)
 {
     auto client(std::make_shared<db::client>(
                     *this, id,
-                    wsrep::client_context::m_replicating,
+                    wsrep::client_state::m_replicating,
                     simulator_.params()));
     clients_.push_back(client);
     client_threads_.push_back(
@@ -97,24 +97,24 @@ void db::server::donate_sst(const std::string& req,
     simulator_.sst(*this, req, gtid, bypass);
 }
 
-wsrep::client_context* db::server::local_client_context()
+wsrep::client_state* db::server::local_client_state()
 {
     std::ostringstream id_os;
     size_t client_id(++last_client_id_);
     db::client* client(new db::client(*this, client_id,
-                                      wsrep::client_context::m_replicating,
+                                      wsrep::client_state::m_replicating,
                                       simulator_.params()));
-    return &client->client_context();
+    return &client->client_state();
 }
 
-wsrep::client_context* db::server::streaming_applier_client_context()
+wsrep::client_state* db::server::streaming_applier_client_state()
 {
     throw wsrep::not_implemented_error();
 }
 
-void db::server::release_client_context(wsrep::client_context* client_context)
+void db::server::release_client_state(wsrep::client_state* client_state)
 {
-    db::client_context* db_client_context(
-        dynamic_cast<db::client_context*>(client_context));
-    delete db_client_context->client();
+    db::client_state* db_client_state(
+        dynamic_cast<db::client_state*>(client_state));
+    delete db_client_state->client();
 }

@@ -3,7 +3,7 @@
 #
 
 add_library(wsrep-lib
-  client_context.cpp
+  client_state.cpp
   id.cpp
   logger.cpp
   provider.cpp

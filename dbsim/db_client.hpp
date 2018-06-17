@@ -7,7 +7,7 @@
 
 #include "db_server_context.hpp"
 #include "db_storage_engine.hpp"
-#include "db_client_context.hpp"
+#include "db_client_state.hpp"
 #include "db_client_service.hpp"
 
 
@@ -30,18 +30,18 @@ namespace db
         };
         client(db::server&,
                wsrep::client_id,
-               enum wsrep::client_context::mode,
+               enum wsrep::client_state::mode,
                const db::params&);
         bool bf_abort(wsrep::seqno);
         const struct stats stats() const { return stats_; }
         void store_globals()
         {
-            client_context_.store_globals();
+            client_state_.store_globals();
         }
         void reset_globals()
         { }
         void start();
-        wsrep::client_context& client_context() { return client_context_; }
+        wsrep::client_state& client_state() { return client_state_; }
     private:
         friend class db::server_context;
         friend class db::client_service;
@@ -53,7 +53,7 @@ namespace db
         const db::params& params_;
         db::server& server_;
         db::server_context& server_context_;
-        db::client_context client_context_;
+        db::client_state client_state_;
         db::client_service client_service_;
         db::storage_engine::transaction se_trx_;
         struct stats stats_;

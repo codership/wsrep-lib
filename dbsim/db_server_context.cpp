@@ -5,20 +5,20 @@
 #include "db_server_context.hpp"
 #include "db_server.hpp"
 
-wsrep::client_context* db::server_context::local_client_context()
+wsrep::client_state* db::server_context::local_client_state()
 {
-    return server_.local_client_context();
+    return server_.local_client_state();
 }
 
-wsrep::client_context* db::server_context::streaming_applier_client_context()
+wsrep::client_state* db::server_context::streaming_applier_client_state()
 {
-    return server_.streaming_applier_client_context();
+    return server_.streaming_applier_client_state();
 }
 
-void db::server_context::release_client_context(
-    wsrep::client_context* client_context)
+void db::server_context::release_client_state(
+    wsrep::client_state* client_state)
 {
-    server_.release_client_context(client_context);
+    server_.release_client_state(client_state);
 }
 
 bool db::server_context::sst_before_init() const
@@ -37,12 +37,12 @@ void db::server_context::on_sst_request(
     server_.donate_sst(request, gtid, bypass);
 }
 
-void db::server_context::background_rollback(wsrep::client_context&)
+void db::server_context::background_rollback(wsrep::client_state&)
 {
 }
 
 void db::server_context::log_dummy_write_set(
-    wsrep::client_context&, const wsrep::ws_meta& meta)
+    wsrep::client_state&, const wsrep::ws_meta& meta)
 {
     wsrep::log_info() << "Dummy write set: " << meta.seqno();
 }

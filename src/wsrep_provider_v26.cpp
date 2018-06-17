@@ -5,7 +5,7 @@
 #include "wsrep_provider_v26.hpp"
 
 #include "wsrep/server_context.hpp"
-#include "wsrep/client_context.hpp"
+#include "wsrep/client_state.hpp"
 #include "wsrep/view.hpp"
 #include "wsrep/exception.hpp"
 
@@ -309,10 +309,10 @@ namespace
     {
         wsrep_cb_status_t ret(WSREP_CB_SUCCESS);
 
-        wsrep::client_context* client_context(
-            reinterpret_cast<wsrep::client_context*>(ctx));
-        assert(client_context);
-        assert(client_context->mode() == wsrep::client_context::m_high_priority);
+        wsrep::client_state* client_state(
+            reinterpret_cast<wsrep::client_state*>(ctx));
+        assert(client_state);
+        assert(client_state->mode() == wsrep::client_state::m_high_priority);
 
         wsrep::const_buffer data(buf->ptr, buf->len);
         wsrep::ws_handle ws_handle(wsh->trx_id, wsh->opaque);
@@ -326,8 +326,8 @@ namespace
                         meta->stid.conn), wsrep::seqno(seqno_from_native(meta->depends_on)),
             map_flags_from_native(flags));
         if (ret == WSREP_CB_SUCCESS &&
-            client_context->server_context().on_apply(
-                *client_context, ws_handle, ws_meta, data))
+            client_state->server_context().on_apply(
+                *client_state, ws_handle, ws_meta, data))
         {
             ret = WSREP_CB_FAILURE;
         }

@@ -8,7 +8,7 @@
 #include "db_params.hpp"
 
 #include "wsrep/mutex.hpp"
-#include "wsrep/client_context.hpp"
+#include "wsrep/client_state.hpp"
 
 #include <atomic>
 #include <unordered_set>

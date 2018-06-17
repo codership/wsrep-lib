@@ -203,10 +203,6 @@ namespace wsrep
 
         /**
          * Create applier context for streaming transaction.
-         *
-         * @param server_id Server id of the origin of the SR transaction.
-         * @param transaction_id Transaction ID of the SR transaction on the
-         *        origin server.
          */
         virtual client_state* streaming_applier_client_state() = 0;
 
@@ -247,6 +243,8 @@ namespace wsrep
          * @return Reference to provider
          *
          * @throw wsrep::runtime_error if provider has not been loaded
+         *
+         * @todo This should not be virtual.
          */
         virtual wsrep::provider& provider() const
         {
@@ -382,16 +380,34 @@ namespace wsrep
          *
          * @return True if the statement is allowed for streaming
          *         replication, false otherwise.
+         *
+         * @todo Move to client service interface.
          */
         virtual bool statement_allowed_for_streaming(
             const wsrep::client_state& client_state,
             const wsrep::transaction& transaction) const;
 
+        /**
+         * Set server wide wsrep debug logging level.
+         *
+         * Log levels are
+         * - 0 - No debug logging.
+         * - 1..n - Debug logging with increasing verbosity.
+         */
         void debug_log_level(int level) { debug_log_level_ = level; }
+
+        /**
+         *
+         */
         int debug_log_level() const { return debug_log_level_; }
 
+        /**
+         * @todo Set filter for debug logging.
+         */
+        void debug_log_filter(const std::string&);
+
     protected:
-        /** Server Context constructor
+        /** Server state constructor
          *
          * @param mutex Mutex provided by the DBMS implementation.
          * @param name Human Readable Server Name.

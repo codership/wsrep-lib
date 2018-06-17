@@ -88,7 +88,6 @@ int wsrep::transaction_context::start_replaying(const wsrep::ws_meta& ws_meta)
     assert(active());
     assert(client_context_.mode() == wsrep::client_context::m_high_priority);
     assert(state() == s_replaying);
-    assert(ws_handle_.opaque());
     assert(ws_meta_.seqno().nil() == false);
     certified_ = true;
     return 0;

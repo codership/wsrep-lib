@@ -397,9 +397,9 @@ namespace wsrep
         //
         // BF aborting
         //
-        int bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
-                     wsrep::seqno bf_seqno)
+        int bf_abort(wsrep::seqno bf_seqno)
         {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(mode_ == m_replicating);
             return transaction_.bf_abort(lock, bf_seqno);
         }

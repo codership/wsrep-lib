@@ -53,15 +53,13 @@ void db::storage_engine::bf_abort_some(const wsrep::transaction_context& txc)
             for (auto victim : transactions_)
             {
                 wsrep::client_context& cc(victim->client_context());
-                wsrep::unique_lock<wsrep::mutex> lock(cc.mutex());
                 if (cc.mode() == wsrep::client_context::m_replicating)
                 {
-                    lock.unlock();
                     if (victim->bf_abort(txc.seqno()))
                     {
                         ++bf_aborts_;
-                        break;
                     }
+                    break;
                 }
             }
         }

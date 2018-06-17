@@ -125,9 +125,8 @@ int wsrep::server_context::on_apply(
 {
     int ret(0);
     const wsrep::transaction_context& txc(client_context.transaction());
-    // wsrep::log_debug() << "server_context::on apply flags: "
-    //                  << flags_to_string(ws_meta.flags());
-    assert(ws_handle.opaque());
+    assert(client_context.mode() == wsrep::client_context::m_high_priority);
+
     bool not_replaying(txc.state() !=
                        wsrep::transaction_context::s_replaying);
 

@@ -10,16 +10,14 @@
 // Simple BF abort method to BF abort unordered transasctions
 void wsrep_test::bf_abort_unordered(wsrep::client_context& cc)
 {
-    wsrep::unique_lock<wsrep::mutex> lock(cc.mutex());
     assert(cc.transaction().ordered() == false);
-    cc.bf_abort(lock, wsrep::seqno(1));
+    cc.bf_abort(wsrep::seqno(1));
 }
 
 void wsrep_test::bf_abort_ordered(wsrep::client_context& cc)
 {
-    wsrep::unique_lock<wsrep::mutex> lock(cc.mutex());
     assert(cc.transaction().ordered());
-    cc.bf_abort(lock, wsrep::seqno(0));
+    cc.bf_abort(wsrep::seqno(0));
 }
 // BF abort method to abort transactions via provider
 void wsrep_test::bf_abort_provider(wsrep::mock_server_context& sc,

@@ -30,8 +30,7 @@ void db::client::start()
 
 bool db::client::bf_abort(wsrep::seqno seqno)
 {
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    return client_context_.bf_abort(lock, seqno);
+    return client_context_.bf_abort(seqno);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

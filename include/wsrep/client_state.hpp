@@ -18,7 +18,6 @@
 #include "lock.hpp"
 #include "buffer.hpp"
 #include "thread.hpp"
-#include "logger.hpp"
 
 namespace wsrep
 {
@@ -117,12 +116,16 @@ namespace wsrep
         /**
          * Return true if the transaction commit requires
          * two-phase commit.
+         *
+         * @todo deprecate
          */
         bool do_2pc() const
         {
             return client_service_.do_2pc();
         }
 
+        /** @name Client command handling */
+        /** @{ */
         /**
          * This mehod should be called before the processing of command
          * received from DBMS client starts.
@@ -165,7 +168,10 @@ namespace wsrep
          * idle.
          */
         void after_command_after_result();
+        /** @} */
 
+        /** @name Statement level operations */
+        /** @{ */
         /**
          * Before statement execution operations.
          *
@@ -199,10 +205,10 @@ namespace wsrep
          * * Do rollback if requested
          */
         enum after_statement_result after_statement();
+        /** @} */
 
-        //
-        // Replicating interface
-        //
+        /** @name Replication interface */
+        /** @{ */
         /**
          * Start a new transaction with a transaction id.
          *
@@ -240,10 +246,10 @@ namespace wsrep
         {
             return client_service_.prepare_data_for_replication(*this, tc);
         }
+        /** @} */
 
-        //
-        // Streaming interface
-        //
+        /** @name Streaming replication interface */
+        /** @{ */
         /**
          * This method should be called after every row operation.
          */
@@ -270,22 +276,7 @@ namespace wsrep
         int enable_streaming(
             enum wsrep::streaming_context::fragment_unit
             fragment_unit,
-            size_t fragment_size)
-        {
-            assert(mode_ == m_replicating);
-            if (transaction_.active() &&
-                transaction_.streaming_context_.fragment_unit() !=
-                fragment_unit)
-            {
-                wsrep::log_error()
-                    << "Changing fragment unit for active transaction "
-                    << "not allowed";
-                return 1;
-            }
-            transaction_.streaming_context_.enable(
-                fragment_unit, fragment_size);
-            return 0;
-        }
+            size_t fragment_size);
 
         /** @todo deprecate */
         size_t bytes_generated() const
@@ -321,11 +312,10 @@ namespace wsrep
         {
             client_service_.remove_fragments(transaction_);
         }
+        /** @} */
 
-        //
-        // Applying interface
-        //
-
+        /** @name Applying interface */
+        /** @{ */
         int start_transaction(const wsrep::ws_handle& wsh,
                               const wsrep::ws_meta& meta)
         {
@@ -346,11 +336,10 @@ namespace wsrep
                 *this,
                 transaction_.ws_handle(), transaction_.ws_meta());
         }
+        /** @} */
 
-        //
-        // Commit ordering
-        //
-
+        /** @name Commit ordering interface */
+        /** @{ */
         int before_prepare()
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
@@ -382,10 +371,10 @@ namespace wsrep
             assert(state_ == s_exec || mode_ == m_local);
             return transaction_.after_commit();
         }
+        /** @} */
 
-        //
-        // Rollback
-        //
+        /** @name Rollback interface */
+        /** @{ */
         int rollback()
         {
             return client_service_.rollback(*this);
@@ -402,6 +391,7 @@ namespace wsrep
             assert(state_ == s_idle || state_ == s_exec || state_ == s_result);
             return transaction_.after_rollback();
         }
+        /** @} */
 
         //
         // BF aborting
@@ -481,6 +471,33 @@ namespace wsrep
          */
         int wait_for_gtid(const wsrep::gtid&) const;
 
+        //
+        //
+        //
+
+        /** @name Non-transactional operations */
+        /** @{*/
+
+        /**
+         * Enter total order isolation critical section.
+         */
+        int enter_toi();
+
+        /**
+         * Leave total order isolation critical section.
+         */
+        void leave_toi();
+
+        /**
+         * Begin non-blocking operation.
+         */
+        int begin_nbo();
+
+        /**
+         * End non-blocking operation
+         */
+        void end_nbo();
+        /** @} */
         //
         // Debug interface
         //

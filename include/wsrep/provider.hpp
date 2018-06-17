@@ -16,8 +16,6 @@
 
 #include <string>
 #include <vector>
-#include <ostream>
-#include <sstream>
 
 namespace wsrep
 {
@@ -267,26 +265,7 @@ namespace wsrep
         wsrep::server_state& server_state_;
     };
 
-    static inline std::string flags_to_string(int flags)
-    {
-        std::ostringstream oss;
-        if (flags & provider::flag::start_transaction)
-            oss << "start_transaction | ";
-        if (flags & provider::flag::commit)
-            oss << "commit | ";
-        if (flags & provider::flag::rollback)
-            oss << "rollback | ";
-        if (flags & provider::flag::isolation)
-            oss << "isolation | ";
-        if (flags & provider::flag::pa_unsafe)
-            oss << "pa_unsafe | ";
-        if (flags & provider::flag::snapshot)
-            oss << "snapshot | ";
-
-        std::string ret(oss.str());
-        if (ret.size() > 3) ret.erase(ret.size() - 3);
-        return ret;
-    }
+    std::string flags_to_string(int flags);
 
     static inline bool starts_transaction(int flags)
     {

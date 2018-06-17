@@ -5,6 +5,8 @@
 #include "db_server_state.hpp"
 #include "db_server.hpp"
 
+#include "wsrep/logger.hpp"
+
 wsrep::client_state* db::server_state::local_client_state()
 {
     return server_.local_client_state();

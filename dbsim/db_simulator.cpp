@@ -3,6 +3,9 @@
 //
 
 #include "db_simulator.hpp"
+
+#include "wsrep/logger.hpp"
+
 #include <boost/filesystem.hpp>
 #include <sstream>
 

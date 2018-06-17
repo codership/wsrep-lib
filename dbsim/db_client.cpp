@@ -5,6 +5,8 @@
 #include "db_client.hpp"
 #include "db_server.hpp"
 
+#include "wsrep/logger.hpp"
+
 db::client::client(db::server& server,
                    wsrep::client_id client_id,
                    enum wsrep::client_state::mode mode,

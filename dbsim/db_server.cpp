@@ -6,6 +6,8 @@
 #include "db_client.hpp"
 #include "db_simulator.hpp"
 
+#include "wsrep/logger.hpp"
+
 db::server::server(simulator& simulator,
                    const std::string& name,
                    const std::string& server_id,
@@ -32,7 +34,7 @@ void db::server::applier_thread()
                                   &applier.client_state()));
     enum wsrep::provider::status ret(
         server_state_.provider().run_applier(cc));
-    wsrep::log() << "Applier thread exited with error code " << ret;
+    wsrep::log_info() << "Applier thread exited with error code " << ret;
 }
 
 void db::server::start_applier()

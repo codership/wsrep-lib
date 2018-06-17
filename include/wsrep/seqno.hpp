@@ -7,7 +7,7 @@
 
 #include "exception.hpp"
 
-#include <ostream>
+#include <iosfwd>
 
 namespace wsrep
 {
@@ -65,10 +65,7 @@ namespace wsrep
         long long seqno_;
     };
 
-    static inline std::ostream& operator<<(std::ostream& os, wsrep::seqno seqno)
-    {
-        return (os << seqno.get());
-    }
+    std::ostream& operator<<(std::ostream& os, wsrep::seqno seqno);
 }
 
 #endif // WSREP_SEQNO_HPP

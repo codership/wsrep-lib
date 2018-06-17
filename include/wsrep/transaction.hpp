@@ -2,6 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
+/** @file transaction.hpp */
 #ifndef WSREP_TRANSACTION_CONTEXT_HPP
 #define WSREP_TRANSACTION_CONTEXT_HPP
 

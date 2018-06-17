@@ -33,3 +33,24 @@ wsrep::provider* wsrep::provider::make_provider(
     }
     return 0;
 }
+
+std::string wsrep::flags_to_string(int flags)
+{
+    std::ostringstream oss;
+    if (flags & provider::flag::start_transaction)
+        oss << "start_transaction | ";
+    if (flags & provider::flag::commit)
+        oss << "commit | ";
+    if (flags & provider::flag::rollback)
+        oss << "rollback | ";
+    if (flags & provider::flag::isolation)
+        oss << "isolation | ";
+    if (flags & provider::flag::pa_unsafe)
+        oss << "pa_unsafe | ";
+    if (flags & provider::flag::snapshot)
+        oss << "snapshot | ";
+
+    std::string ret(oss.str());
+    if (ret.size() > 3) ret.erase(ret.size() - 3);
+    return ret;
+}

@@ -185,6 +185,26 @@ wsrep::client_state::after_statement()
     return asr_success;
 }
 
+int wsrep::client_state::enable_streaming(
+    enum wsrep::streaming_context::fragment_unit
+    fragment_unit,
+    size_t fragment_size)
+{
+    assert(mode_ == m_replicating);
+    if (transaction_.active() &&
+        transaction_.streaming_context_.fragment_unit() !=
+        fragment_unit)
+    {
+        wsrep::log_error()
+            << "Changing fragment unit for active transaction "
+            << "not allowed";
+        return 1;
+    }
+    transaction_.streaming_context_.enable(
+        fragment_unit, fragment_size);
+    return 0;
+}
+
 // Private
 
 void wsrep::client_state::debug_log_state(const char* context) const

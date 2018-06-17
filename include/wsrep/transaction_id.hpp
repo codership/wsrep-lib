@@ -5,7 +5,7 @@
 #ifndef WSREP_TRANSACTION_ID_HPP
 #define WSREP_TRANSACTION_ID_HPP
 
-#include <ostream>
+#include <iosfwd>
 
 namespace wsrep
 {

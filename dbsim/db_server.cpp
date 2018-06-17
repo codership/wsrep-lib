@@ -14,7 +14,7 @@ db::server::server(simulator& simulator,
     , storage_engine_(simulator_.params())
     , mutex_()
     , cond_()
-    , server_context_(*this, name, server_id, address, "dbsim_" + name + "_data")
+    , server_state_(*this, name, server_id, address, "dbsim_" + name + "_data")
     , last_client_id_(0)
     , last_transaction_id_(0)
     , appliers_()
@@ -31,7 +31,7 @@ void db::server::applier_thread()
     wsrep::client_state* cc(static_cast<wsrep::client_state*>(
                                   &applier.client_state()));
     enum wsrep::provider::status ret(
-        server_context_.provider().run_applier(cc));
+        server_state_.provider().run_applier(cc));
     wsrep::log() << "Applier thread exited with error code " << ret;
 }
 

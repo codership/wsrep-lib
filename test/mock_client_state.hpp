@@ -16,11 +16,11 @@ namespace wsrep
     class mock_client_state : public wsrep::client_state
     {
     public:
-        mock_client_state(wsrep::server_context& server_context,
+        mock_client_state(wsrep::server_state& server_state,
                             wsrep::client_service& client_service,
                             const wsrep::client_id& id,
                             enum wsrep::client_state::mode mode)
-            : wsrep::client_state(mutex_, server_context, client_service, id, mode)
+            : wsrep::client_state(mutex_, server_state, client_service, id, mode)
               // Note: Mutex is initialized only after passed
               // to client_state constructor.
             , mutex_()

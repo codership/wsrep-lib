@@ -12,9 +12,9 @@ db::client::client(db::server& server,
     : mutex_()
     , params_(params)
     , server_(server)
-    , server_context_(server.server_context())
-    , client_state_(mutex_, this, server_context_, client_service_, client_id, mode)
-    , client_service_(server_context_.provider(), client_state_)
+    , server_state_(server.server_state())
+    , client_state_(mutex_, this, server_state_, client_service_, client_id, mode)
+    , client_service_(server_state_.provider(), client_state_)
     , se_trx_(server.storage_engine())
     , stats_()
 { }

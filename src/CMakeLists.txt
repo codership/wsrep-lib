@@ -7,7 +7,7 @@ add_library(wsrep-lib
   id.cpp
   logger.cpp
   provider.cpp
-  server_context.cpp
+  server_state.cpp
   transaction.cpp
   wsrep_provider_v26.cpp)
 target_link_libraries(wsrep-lib wsrep_api_v26 pthread dl)

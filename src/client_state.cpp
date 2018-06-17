@@ -12,7 +12,7 @@
 
 wsrep::provider& wsrep::client_state::provider() const
 {
-    return server_context_.provider();
+    return server_state_.provider();
 }
 
 void wsrep::client_state::override_error(enum wsrep::client_error error)
@@ -32,7 +32,7 @@ int wsrep::client_state::before_command()
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("before_command: enter");
     assert(state_ == s_idle);
-    if (server_context_.rollback_mode() == wsrep::server_context::rm_sync)
+    if (server_state_.rollback_mode() == wsrep::server_state::rm_sync)
     {
         /**
          * @todo Wait until the possible synchronous rollback
@@ -48,14 +48,14 @@ int wsrep::client_state::before_command()
            (transaction_.state() == wsrep::transaction::s_executing ||
             transaction_.state() == wsrep::transaction::s_aborted ||
             (transaction_.state() == wsrep::transaction::s_must_abort &&
-             server_context_.rollback_mode() == wsrep::server_context::rm_async)));
+             server_state_.rollback_mode() == wsrep::server_state::rm_async)));
 
     if (transaction_.active())
     {
         if (transaction_.state() == wsrep::transaction::s_must_abort)
         {
-            assert(server_context_.rollback_mode() ==
-                   wsrep::server_context::rm_async);
+            assert(server_state_.rollback_mode() ==
+                   wsrep::server_state::rm_async);
             override_error(wsrep::e_deadlock_error);
             lock.unlock();
             client_service_.rollback(*this);
@@ -139,7 +139,7 @@ int wsrep::client_state::before_statement()
      *       server synced state.
      */
     if (allow_dirty_reads_ == false &&
-        server_context_.state() != wsrep::server_context::s_synced)
+        server_state_.state() != wsrep::server_state::s_synced)
     {
         return 1;
     }
@@ -192,7 +192,7 @@ void wsrep::client_state::debug_log_state(const char* context) const
     if (debug_log_level() >= 1)
     {
         wsrep::log_debug() << "client_state: " << context
-                           << ": server: " << server_context_.name()
+                           << ": server: " << server_state_.name()
                            << " client: " << id_.get()
                            << " current_error: " << current_error_;
     }

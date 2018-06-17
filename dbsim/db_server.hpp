@@ -9,7 +9,7 @@
 #include "wsrep/client_state.hpp"
 
 #include "db_storage_engine.hpp"
-#include "db_server_context.hpp"
+#include "db_server_state.hpp"
 
 #include <boost/thread.hpp>
 
@@ -34,7 +34,7 @@ namespace db
         void stop_clients();
         void client_thread(const std::shared_ptr<db::client>& client);
         db::storage_engine& storage_engine() { return storage_engine_; }
-        db::server_context& server_context() { return server_context_; }
+        db::server_state& server_state() { return server_state_; }
         wsrep::transaction_id next_transaction_id()
         {
             return (last_transaction_id_.fetch_add(1) + 1);
@@ -51,7 +51,7 @@ namespace db
         db::storage_engine storage_engine_;
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;
-        db::server_context server_context_;
+        db::server_state server_state_;
         std::atomic<size_t> last_client_id_;
         std::atomic<size_t> last_transaction_id_;
         std::vector<boost::thread> appliers_;

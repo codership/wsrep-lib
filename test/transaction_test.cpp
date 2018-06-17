@@ -158,7 +158,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_during_before_commit_uncertified, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -198,7 +198,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_during_commit_wait_for_replayers, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -237,7 +237,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_error_during_prepare_data, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -277,7 +277,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_killed_before_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -359,7 +359,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_during_before_commit_certified, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -402,7 +402,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_before_unordered_cert_failure, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -435,7 +435,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_warning_error_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -476,7 +476,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_transaction_missing_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -517,7 +517,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_size_exceeded_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -558,7 +558,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_connection_failed_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -599,7 +599,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_no_allowed_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -640,7 +640,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_fatal_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -682,7 +682,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_unknown_from_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
@@ -724,7 +724,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_abort_before_certify_regain_lock, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_context& sc(T::sc);
+    wsrep::mock_server_state& sc(T::sc);
     wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 

@@ -5,7 +5,7 @@
 #ifndef WSREP_DB_SERVER_CONTEXT_HPP
 #define WSREP_DB_SERVER_CONTEXT_HPP
 
-#include "wsrep/server_context.hpp"
+#include "wsrep/server_state.hpp"
 #include "wsrep/client_state.hpp"
 
 #include <atomic>
@@ -13,22 +13,22 @@
 namespace db
 {
     class server;
-    class server_context : public wsrep::server_context
+    class server_state : public wsrep::server_state
     {
     public:
-        server_context(db::server& server,
+        server_state(db::server& server,
                        const std::string& name,
                        const std::string& server_id,
                        const std::string& address,
                        const std::string& working_dir)
-            : wsrep::server_context(
+            : wsrep::server_state(
                 mutex_,
                 cond_,
                 name,
                 server_id,
                 address,
                 working_dir,
-                wsrep::server_context::rm_async)
+                wsrep::server_state::rm_async)
             , mutex_()
             , cond_()
             , server_(server)

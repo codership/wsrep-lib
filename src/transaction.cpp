@@ -4,7 +4,7 @@
 
 #include "wsrep/transaction.hpp"
 #include "wsrep/client_state.hpp"
-#include "wsrep/server_context.hpp"
+#include "wsrep/server_state.hpp"
 #include "wsrep/key.hpp"
 #include "wsrep/logger.hpp"
 #include "wsrep/compiler.hpp"
@@ -163,7 +163,7 @@ int wsrep::transaction::before_prepare(
             client_state_.debug_crash(
                 "crash_last_fragment_commit_before_fragment_removal");
             lock.unlock();
-            if (client_state_.server_context().statement_allowed_for_streaming(
+            if (client_state_.server_state().statement_allowed_for_streaming(
                     client_state_, *this))
             {
                 client_state_.override_error(wsrep::e_error_during_commit);
@@ -626,8 +626,8 @@ bool wsrep::transaction::bf_abort(
     {
         bf_abort_client_state_ = client_state_.state();
         if (client_state_.state() == wsrep::client_state::s_idle &&
-            client_state_.server_context().rollback_mode() ==
-            wsrep::server_context::rm_sync)
+            client_state_.server_state().rollback_mode() ==
+            wsrep::server_state::rm_sync)
         {
             // We need to change the state to aborting under the
             // lock protection to avoid a race between client thread,
@@ -636,7 +636,7 @@ bool wsrep::transaction::bf_abort(
             // rollbacker gets control.
             state(lock, wsrep::transaction::s_aborting);
             lock.unlock();
-            client_state_.server_context().background_rollback(client_state_);
+            client_state_.server_state().background_rollback(client_state_);
         }
     }
     return ret;
@@ -720,10 +720,10 @@ int wsrep::transaction::certify_fragment(
     // Switch temporarily to sr_transaction, switch back
     // to original when this goes out of scope
     // std::auto_ptr<wsrep::client_state> sr_client_state(
-    //    client_state_.server_context().local_client_state());
+    //    client_state_.server_state().local_client_state());
     wsrep::scoped_client_state<wsrep::client_deleter> sr_client_state_scope(
-        client_state_.server_context().local_client_state(),
-        wsrep::client_deleter(client_state_.server_context()));
+        client_state_.server_state().local_client_state(),
+        wsrep::client_deleter(client_state_.server_state()));
     wsrep::client_state& sr_client_state(
         sr_client_state_scope.client_state());
     wsrep::client_state_switch client_state_switch(
@@ -929,9 +929,9 @@ void wsrep::transaction::streaming_rollback()
 {
     assert(streaming_context_.rolled_back() == false);
     wsrep::client_state* sac(
-        client_state_.server_context().streaming_applier_client_state());
-    client_state_.server_context().start_streaming_applier(
-        client_state_.server_context().id(), id(), sac);
+        client_state_.server_state().streaming_applier_client_state());
+    client_state_.server_state().start_streaming_applier(
+        client_state_.server_state().id(), id(), sac);
     sac->adopt_transaction(*this);
     streaming_context_.cleanup();
     // Replicate rollback fragment
@@ -963,7 +963,7 @@ void wsrep::transaction::debug_log_state(
 {
     WSREP_TC_LOG_DEBUG(
         1, context
-        << ": server: " << client_state_.server_context().name()
+        << ": server: " << client_state_.server_state().name()
         << " client: " << client_state_.id().get()
         << " trx: " << int64_t(id_.get())
         << " state: " << wsrep::to_string(state_)

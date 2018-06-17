@@ -6,7 +6,7 @@
 #define WSREP_DB_CLIENT_CONTEXT_HPP
 
 #include "wsrep/client_state.hpp"
-#include "db_server_context.hpp"
+#include "db_server_state.hpp"
 
 namespace db
 {
@@ -16,12 +16,12 @@ namespace db
     public:
         client_state(wsrep::mutex& mutex,
                        db::client* client,
-                       db::server_context& server_context,
+                       db::server_state& server_state,
                        wsrep::client_service& client_service,
                        const wsrep::client_id& client_id,
                        enum wsrep::client_state::mode mode)
             : wsrep::client_state(mutex,
-                                    server_context,
+                                    server_state,
                                     client_service,
                                     client_id,
                                     mode)

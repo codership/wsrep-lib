@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "mock_server_context.hpp"
+#include "mock_server_state.hpp"
 
 #include <boost/test/unit_test.hpp>
 
@@ -12,7 +12,7 @@ namespace
     {
         applying_server_fixture()
             : sc("s1", "s1",
-                 wsrep::server_context::rm_sync)
+                 wsrep::server_state::rm_sync)
             , cc(sc, sc.client_service(),
                  wsrep::client_id(1),
                  wsrep::client_state::m_high_priority)
@@ -24,7 +24,7 @@ namespace
                       wsrep::provider::flag::commit)
         {
         }
-        wsrep::mock_server_context sc;
+        wsrep::mock_server_state sc;
         wsrep::mock_client_state cc;
         wsrep::ws_handle ws_handle;
         wsrep::ws_meta ws_meta;
@@ -32,7 +32,7 @@ namespace
 }
 
 // Test on_apply() method for 1pc
-BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc,
+BOOST_FIXTURE_TEST_CASE(server_state_applying_1pc,
                         applying_server_fixture)
 {
     char buf[1] = { 1 };
@@ -46,7 +46,7 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc,
 }
 
 // Test on_apply() method for 2pc
-BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc,
+BOOST_FIXTURE_TEST_CASE(server_state_applying_2pc,
                         applying_server_fixture)
 {
     char buf[1] = { 1 };
@@ -58,7 +58,7 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc,
 
 // Test on_apply() method for 1pc transaction which
 // fails applying and rolls back
-BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc_rollback,
+BOOST_FIXTURE_TEST_CASE(server_state_applying_1pc_rollback,
                         applying_server_fixture)
 {
     sc.client_service().fail_next_applying_ = true;
@@ -71,7 +71,7 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_1pc_rollback,
 
 // Test on_apply() method for 2pc transaction which
 // fails applying and rolls back
-BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc_rollback,
+BOOST_FIXTURE_TEST_CASE(server_state_applying_2pc_rollback,
                         applying_server_fixture)
 {
     sc.client_service().fail_next_applying_ = true;
@@ -82,10 +82,10 @@ BOOST_FIXTURE_TEST_CASE(server_context_applying_2pc_rollback,
     BOOST_REQUIRE(txc.state() == wsrep::transaction::s_aborted);
 }
 
-BOOST_AUTO_TEST_CASE(server_context_streaming)
+BOOST_AUTO_TEST_CASE(server_state_streaming)
 {
-    wsrep::mock_server_context sc("s1", "s1",
-                                  wsrep::server_context::rm_sync);
+    wsrep::mock_server_state sc("s1", "s1",
+                                  wsrep::server_state::rm_sync);
     wsrep::mock_client_state cc(sc,
                                   sc.client_service(),
                                   wsrep::client_id(1),
@@ -116,26 +116,26 @@ BOOST_AUTO_TEST_CASE(server_context_streaming)
 }
 
 
-BOOST_AUTO_TEST_CASE(server_context_state_strings)
+BOOST_AUTO_TEST_CASE(server_state_state_strings)
 {
     BOOST_REQUIRE(wsrep::to_string(
-                      wsrep::server_context::s_disconnected) == "disconnected");
+                      wsrep::server_state::s_disconnected) == "disconnected");
     BOOST_REQUIRE(wsrep::to_string(
-                      wsrep::server_context::s_initializing) == "initilizing");
+                      wsrep::server_state::s_initializing) == "initilizing");
     BOOST_REQUIRE(wsrep::to_string(
-                      wsrep::server_context::s_initialized) == "initilized");
+                      wsrep::server_state::s_initialized) == "initilized");
     BOOST_REQUIRE(wsrep::to_string(
-                      wsrep::server_context::s_connected) == "connected");
+                      wsrep::server_state::s_connected) == "connected");
     BOOST_REQUIRE(wsrep::to_string(
-                      wsrep::server_context::s_joiner) == "joiner");
+                      wsrep::server_state::s_joiner) == "joiner");
     BOOST_REQUIRE(wsrep::to_string(
-                      wsrep::server_context::s_joined) == "joined");
+                      wsrep::server_state::s_joined) == "joined");
     BOOST_REQUIRE(wsrep::to_string(
-                      wsrep::server_context::s_donor) == "donor");
+                      wsrep::server_state::s_donor) == "donor");
     BOOST_REQUIRE(wsrep::to_string(
-                      wsrep::server_context::s_synced) == "synced");
+                      wsrep::server_state::s_synced) == "synced");
     BOOST_REQUIRE(wsrep::to_string(
-                      wsrep::server_context::s_disconnecting) == "disconnecting");
+                      wsrep::server_state::s_disconnecting) == "disconnecting");
     BOOST_REQUIRE(wsrep::to_string(
-                      static_cast<enum wsrep::server_context::state>(0xff)) == "unknown");
+                      static_cast<enum wsrep::server_state::state>(0xff)) == "unknown");
 }

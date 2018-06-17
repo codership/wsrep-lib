@@ -38,7 +38,7 @@
 #ifndef WSREP_CLIENT_CONTEXT_HPP
 #define WSREP_CLIENT_CONTEXT_HPP
 
-#include "server_context.hpp"
+#include "server_state.hpp"
 #include "provider.hpp"
 #include "transaction.hpp"
 #include "client_id.hpp"
@@ -51,7 +51,7 @@
 
 namespace wsrep
 {
-    class server_context;
+    class server_state;
     class provider;
 
     enum client_error
@@ -475,8 +475,8 @@ namespace wsrep
          *
          * @return Reference to server context.
          */
-        wsrep::server_context& server_context() const
-        { return server_context_; }
+        wsrep::server_state& server_state() const
+        { return server_state_; }
 
         /**
          * Get reference to the Provider which is associated
@@ -521,7 +521,7 @@ namespace wsrep
         int debug_log_level() const
         {
             return std::max(debug_log_level_,
-                            server_context_.debug_log_level());
+                            server_state_.debug_log_level());
         }
 
         void reset_error()
@@ -539,13 +539,13 @@ namespace wsrep
          * can be called from derived class constructors only.
          */
         client_state(wsrep::mutex& mutex,
-                       wsrep::server_context& server_context,
+                       wsrep::server_state& server_state,
                        wsrep::client_service& client_service,
                        const client_id& id,
                        enum mode mode)
             : thread_id_(wsrep::this_thread::get_id())
             , mutex_(mutex)
-            , server_context_(server_context)
+            , server_state_(server_state)
             , client_service_(client_service)
             , id_(id)
             , mode_(mode)
@@ -575,7 +575,7 @@ namespace wsrep
 
         wsrep::thread::id thread_id_;
         wsrep::mutex& mutex_;
-        wsrep::server_context& server_context_;
+        wsrep::server_state& server_state_;
         wsrep::client_service& client_service_;
         client_id id_;
         enum mode mode_;

@@ -21,7 +21,7 @@
 
 namespace wsrep
 {
-    class server_context;
+    class server_state;
 
     class stid
     {
@@ -195,8 +195,8 @@ namespace wsrep
             static const int snapshot = (1 << 7);
         };
 
-        provider(wsrep::server_context& server_context)
-            : server_context_(server_context)
+        provider(wsrep::server_state& server_state)
+            : server_state_(server_state)
         { }
         virtual ~provider() { }
         // Provider state management
@@ -260,11 +260,11 @@ namespace wsrep
          * @param provider_options Initial options to provider
          */
         static provider* make_provider(
-            wsrep::server_context&,
+            wsrep::server_state&,
             const std::string& provider_spec,
             const std::string& provider_options);
     protected:
-        wsrep::server_context& server_context_;
+        wsrep::server_state& server_state_;
     };
 
     static inline std::string flags_to_string(int flags)

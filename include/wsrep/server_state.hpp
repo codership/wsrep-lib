@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-/** @file server_context.hpp
+/** @file server_state.hpp
  *
  * Server Context Abstraction
  * ==========================
@@ -86,7 +86,7 @@ namespace wsrep
      *
      *
      */
-    class server_context
+    class server_state
     {
     public:
         /**
@@ -155,7 +155,7 @@ namespace wsrep
         };
 
 
-        virtual ~server_context();
+        virtual ~server_state();
         /**
          * Return human readable server name.
          *
@@ -292,7 +292,7 @@ namespace wsrep
         /**
          * Wait until server reaches given state.
          */
-        void wait_until_state(wsrep::server_context::state) const;
+        void wait_until_state(wsrep::server_state::state) const;
 
         /**
          * Virtual method to return true if the configured SST
@@ -403,7 +403,7 @@ namespace wsrep
          *        data files.
          * @param rollback_mode Rollback mode which server operates on.
          */
-        server_context(wsrep::mutex& mutex,
+        server_state(wsrep::mutex& mutex,
                        wsrep::condition_variable& cond,
                        const std::string& name,
                        const std::string& id,
@@ -426,8 +426,8 @@ namespace wsrep
 
     private:
 
-        server_context(const server_context&);
-        server_context& operator=(const server_context&);
+        server_state(const server_state&);
+        server_state& operator=(const server_state&);
 
         void state(wsrep::unique_lock<wsrep::mutex>&, enum state);
 
@@ -449,30 +449,30 @@ namespace wsrep
     class client_deleter
     {
     public:
-        client_deleter(wsrep::server_context& server_context)
-            : server_context_(server_context)
+        client_deleter(wsrep::server_state& server_state)
+            : server_state_(server_state)
         { }
         void operator()(wsrep::client_state* client_state)
         {
-            server_context_.release_client_state(client_state);
+            server_state_.release_client_state(client_state);
         }
     private:
-        wsrep::server_context& server_context_;
+        wsrep::server_state& server_state_;
     };
 
-    static inline std::string to_string(enum wsrep::server_context::state state)
+    static inline std::string to_string(enum wsrep::server_state::state state)
     {
         switch (state)
         {
-        case wsrep::server_context::s_disconnected:  return "disconnected";
-        case wsrep::server_context::s_initializing:  return "initilizing";
-        case wsrep::server_context::s_initialized:   return "initilized";
-        case wsrep::server_context::s_connected:     return "connected";
-        case wsrep::server_context::s_joiner:        return "joiner";
-        case wsrep::server_context::s_joined:        return "joined";
-        case wsrep::server_context::s_donor:         return "donor";
-        case wsrep::server_context::s_synced:        return "synced";
-        case wsrep::server_context::s_disconnecting: return "disconnecting";
+        case wsrep::server_state::s_disconnected:  return "disconnected";
+        case wsrep::server_state::s_initializing:  return "initilizing";
+        case wsrep::server_state::s_initialized:   return "initilized";
+        case wsrep::server_state::s_connected:     return "connected";
+        case wsrep::server_state::s_joiner:        return "joiner";
+        case wsrep::server_state::s_joined:        return "joined";
+        case wsrep::server_state::s_donor:         return "donor";
+        case wsrep::server_state::s_synced:        return "synced";
+        case wsrep::server_state::s_disconnecting: return "disconnecting";
         }
         return "unknown";
     }

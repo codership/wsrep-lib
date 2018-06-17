@@ -4,7 +4,7 @@
 
 #include "wsrep_provider_v26.hpp"
 
-#include "wsrep/server_context.hpp"
+#include "wsrep/server_state.hpp"
 #include "wsrep/client_state.hpp"
 #include "wsrep/view.hpp"
 #include "wsrep/exception.hpp"
@@ -240,14 +240,14 @@ namespace
         const wsrep_view_info_t* view __attribute((unused)))
     {
         assert(app_ctx);
-        wsrep::server_context& server_context(
-            *reinterpret_cast<wsrep::server_context*>(app_ctx));
+        wsrep::server_state& server_state(
+            *reinterpret_cast<wsrep::server_state*>(app_ctx));
         //
         // TODO: Fetch server id and group id from view infor
         //
         try
         {
-            server_context.on_connect();
+            server_state.on_connect();
             return WSREP_CB_SUCCESS;
         }
         catch (const wsrep::runtime_error& e)
@@ -265,12 +265,12 @@ namespace
     {
         assert(app_ctx);
         assert(view_info);
-        wsrep::server_context& server_context(
-            *reinterpret_cast<wsrep::server_context*>(app_ctx));
+        wsrep::server_state& server_state(
+            *reinterpret_cast<wsrep::server_state*>(app_ctx));
         try
         {
             wsrep::view view(*view_info);
-            server_context.on_view(view);
+            server_state.on_view(view);
             return WSREP_CB_SUCCESS;
         }
         catch (const wsrep::runtime_error& e)
@@ -284,12 +284,12 @@ namespace
                                      void **sst_req, size_t* sst_req_len)
     {
         assert(app_ctx);
-        wsrep::server_context& server_context(
-            *reinterpret_cast<wsrep::server_context*>(app_ctx));
+        wsrep::server_state& server_state(
+            *reinterpret_cast<wsrep::server_state*>(app_ctx));
 
         try
         {
-            std::string req(server_context.on_sst_required());
+            std::string req(server_state.on_sst_required());
             *sst_req = ::strdup(req.c_str());
             *sst_req_len = strlen(req.c_str());
             return WSREP_CB_SUCCESS;
@@ -326,7 +326,7 @@ namespace
                         meta->stid.conn), wsrep::seqno(seqno_from_native(meta->depends_on)),
             map_flags_from_native(flags));
         if (ret == WSREP_CB_SUCCESS &&
-            client_state->server_context().on_apply(
+            client_state->server_state().on_apply(
                 *client_state, ws_handle, ws_meta, data))
         {
             ret = WSREP_CB_FAILURE;
@@ -337,11 +337,11 @@ namespace
     wsrep_cb_status_t synced_cb(void* app_ctx)
     {
         assert(app_ctx);
-        wsrep::server_context& server_context(
-            *reinterpret_cast<wsrep::server_context*>(app_ctx));
+        wsrep::server_state& server_state(
+            *reinterpret_cast<wsrep::server_state*>(app_ctx));
         try
         {
-            server_context.on_sync();
+            server_state.on_sync();
             return WSREP_CB_SUCCESS;
         }
         catch (const wsrep::runtime_error& e)
@@ -360,8 +360,8 @@ namespace
                                     bool bypass)
     {
         assert(app_ctx);
-        wsrep::server_context& server_context(
-            *reinterpret_cast<wsrep::server_context*>(app_ctx));
+        wsrep::server_state& server_state(
+            *reinterpret_cast<wsrep::server_state*>(app_ctx));
         try
         {
             std::string req(reinterpret_cast<const char*>(req_buf->ptr),
@@ -369,7 +369,7 @@ namespace
             wsrep::gtid gtid(wsrep::id(req_gtid->uuid.data,
                                        sizeof(req_gtid->uuid.data)),
                              wsrep::seqno(req_gtid->seqno));
-            server_context.on_sst_request(req, gtid, bypass);
+            server_state.on_sst_request(req, gtid, bypass);
             return WSREP_CB_SUCCESS;
         }
         catch (const wsrep::runtime_error& e)
@@ -380,19 +380,19 @@ namespace
 }
 
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
-    wsrep::server_context& server_context,
+    wsrep::server_state& server_state,
     const std::string& provider_options,
     const std::string& provider_spec)
-    : provider(server_context)
+    : provider(server_state)
     , wsrep_()
 {
     struct wsrep_init_args init_args;
     memset(&init_args, 0, sizeof(init_args));
-    init_args.app_ctx = &server_context;
-    init_args.node_name = server_context_.name().c_str();
-    init_args.node_address = server_context_.address().c_str();
+    init_args.app_ctx = &server_state;
+    init_args.node_name = server_state_.name().c_str();
+    init_args.node_address = server_state_.address().c_str();
     init_args.node_incoming = "";
-    init_args.data_dir = server_context_.working_dir().c_str();
+    init_args.data_dir = server_state_.working_dir().c_str();
     init_args.options = provider_options.c_str();
     init_args.proto_ver = 1;
     init_args.state_id = 0;

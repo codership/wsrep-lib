@@ -31,10 +31,10 @@ void db::simulator::sst(db::server& server,
     }
     if (bypass == false)
     {
-        wsrep::log_info() << "SST " << server.server_context().id() << " -> " << id;
+        wsrep::log_info() << "SST " << server.server_state().id() << " -> " << id;
     }
-    i->second->server_context().sst_received(gtid, 0);
-    server.server_context().sst_sent(gtid, 0);
+    i->second->server_state().sst_received(gtid, 0);
+    server.server_state().sst_sent(gtid, 0);
 }
 
 std::string db::simulator::stats() const
@@ -99,22 +99,22 @@ void db::simulator::start()
         boost::filesystem::create_directory(dir);
 
         db::server& server(*it.first->second);
-        server.server_context().debug_log_level(params_.debug_log_level);
+        server.server_state().debug_log_level(params_.debug_log_level);
         std::string server_options(params_.wsrep_provider_options);
 
-        if (server.server_context().load_provider(
+        if (server.server_state().load_provider(
                 params_.wsrep_provider, server_options))
         {
             throw wsrep::runtime_error("Failed to load provider");
         }
-        if (server.server_context().connect("sim_cluster", cluster_address, "",
+        if (server.server_state().connect("sim_cluster", cluster_address, "",
                                             i == 0))
         {
             throw wsrep::runtime_error("Failed to connect");
         }
         server.start_applier();
-        server.server_context().wait_until_state(
-            wsrep::server_context::s_synced);
+        server.server_state().wait_until_state(
+            wsrep::server_state::s_synced);
     }
 
     // Start client threads
@@ -150,18 +150,18 @@ void db::simulator::stop()
     {
         db::server& server(*i.second);
         wsrep::log_info() << "Status for server: "
-                          << server.server_context().id();
-        auto status(server.server_context().provider().status());
+                          << server.server_state().id();
+        auto status(server.server_state().provider().status());
         for_each(status.begin(), status.end(),
                  [](const wsrep::provider::status_variable& sv)
                  {
                      wsrep::log() << sv.name() << " = " << sv.value();
                  });
-        server.server_context().disconnect();
-        server.server_context().wait_until_state(
-            wsrep::server_context::s_disconnected);
+        server.server_state().disconnect();
+        server.server_state().wait_until_state(
+            wsrep::server_state::s_disconnected);
         server.stop_applier();
-        server.server_context().unload_provider();
+        server.server_state().unload_provider();
     }
 }
 

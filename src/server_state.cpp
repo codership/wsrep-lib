@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
-#include "wsrep/server_context.hpp"
+#include "wsrep/server_state.hpp"
 #include "wsrep/client_state.hpp"
 #include "wsrep/transaction.hpp"
 #include "wsrep/view.hpp"
@@ -18,7 +18,7 @@ namespace
 
 }
 
-int wsrep::server_context::load_provider(const std::string& provider_spec,
+int wsrep::server_state::load_provider(const std::string& provider_spec,
                                          const std::string& provider_options)
 {
     wsrep::log_info() << "Loading provider " << provider_spec;
@@ -26,13 +26,13 @@ int wsrep::server_context::load_provider(const std::string& provider_spec,
     return (provider_ ? 0 : 1);
 }
 
-void wsrep::server_context::unload_provider()
+void wsrep::server_state::unload_provider()
 {
     delete provider_;
     provider_ = 0;
 }
 
-int wsrep::server_context::connect(const std::string& cluster_name,
+int wsrep::server_state::connect(const std::string& cluster_name,
                                    const std::string& cluster_address,
                                    const std::string& state_donor,
                                    bool bootstrap)
@@ -41,7 +41,7 @@ int wsrep::server_context::connect(const std::string& cluster_name,
                               bootstrap);
 }
 
-int wsrep::server_context::disconnect()
+int wsrep::server_state::disconnect()
 {
     {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
@@ -50,22 +50,22 @@ int wsrep::server_context::disconnect()
     return provider().disconnect();
 }
 
-wsrep::server_context::~server_context()
+wsrep::server_state::~server_state()
 {
     delete provider_;
 }
 
-void wsrep::server_context::sst_sent(const wsrep::gtid& gtid, int error)
+void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
 {
     provider_->sst_sent(gtid, error);
 }
-void wsrep::server_context::sst_received(const wsrep::gtid& gtid, int error)
+void wsrep::server_state::sst_received(const wsrep::gtid& gtid, int error)
 {
     provider_->sst_received(gtid, error);
 }
 
-void wsrep::server_context::wait_until_state(
-    enum wsrep::server_context::state state) const
+void wsrep::server_state::wait_until_state(
+    enum wsrep::server_state::state state) const
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     ++state_waiters_[state];
@@ -77,14 +77,14 @@ void wsrep::server_context::wait_until_state(
     cond_.notify_all();
 }
 
-void wsrep::server_context::on_connect()
+void wsrep::server_state::on_connect()
 {
     wsrep::log() << "Server " << name_ << " connected to cluster";
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     state(lock, s_connected);
 }
 
-void wsrep::server_context::on_view(const wsrep::view& view)
+void wsrep::server_state::on_view(const wsrep::view& view)
 {
     wsrep::log() << "================================================\nView:\n"
                  << "id: " << view.id() << "\n"
@@ -107,7 +107,7 @@ void wsrep::server_context::on_view(const wsrep::view& view)
     }
 }
 
-void wsrep::server_context::on_sync()
+void wsrep::server_state::on_sync()
 {
     wsrep::log() << "Server " << name_ << " synced with group";
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
@@ -117,7 +117,7 @@ void wsrep::server_context::on_sync()
     }
 }
 
-int wsrep::server_context::on_apply(
+int wsrep::server_state::on_apply(
     wsrep::client_state& client_state,
     const wsrep::ws_handle& ws_handle,
     const wsrep::ws_meta& ws_meta,
@@ -273,7 +273,7 @@ int wsrep::server_context::on_apply(
     return ret;
 }
 
-bool wsrep::server_context::statement_allowed_for_streaming(
+bool wsrep::server_state::statement_allowed_for_streaming(
     const wsrep::client_state&,
     const wsrep::transaction&) const
 {
@@ -281,7 +281,7 @@ bool wsrep::server_context::statement_allowed_for_streaming(
     return false;
 }
 
-void wsrep::server_context::start_streaming_applier(
+void wsrep::server_state::start_streaming_applier(
     const wsrep::id& server_id,
     const wsrep::transaction_id& transaction_id,
     wsrep::client_state* client_state)
@@ -296,7 +296,7 @@ void wsrep::server_context::start_streaming_applier(
     }
 }
 
-void wsrep::server_context::stop_streaming_applier(
+void wsrep::server_state::stop_streaming_applier(
     const wsrep::id& server_id,
     const wsrep::transaction_id& transaction_id)
 {
@@ -314,7 +314,7 @@ void wsrep::server_context::stop_streaming_applier(
     }
 }
 
-wsrep::client_state* wsrep::server_context::find_streaming_applier(
+wsrep::client_state* wsrep::server_state::find_streaming_applier(
     const wsrep::id& server_id,
     const wsrep::transaction_id& transaction_id) const
 {
@@ -325,9 +325,9 @@ wsrep::client_state* wsrep::server_context::find_streaming_applier(
 
 // Private
 
-void wsrep::server_context::state(
+void wsrep::server_state::state(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
-    enum wsrep::server_context::state state)
+    enum wsrep::server_state::state state)
 {
     assert(lock.owns_lock());
     static const char allowed[n_states_][n_states_] =

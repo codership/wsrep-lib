@@ -6,7 +6,7 @@
 #define WSREP_TRANSACTION_CONTEXT_HPP
 
 #include "provider.hpp"
-#include "server_context.hpp"
+#include "server_state.hpp"
 #include "transaction_id.hpp"
 #include "streaming_context.hpp"
 #include "lock.hpp"

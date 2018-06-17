@@ -5,7 +5,7 @@
 #ifndef WSREP_DB_CLIENT_HPP
 #define WSREP_DB_CLIENT_HPP
 
-#include "db_server_context.hpp"
+#include "db_server_state.hpp"
 #include "db_storage_engine.hpp"
 #include "db_client_state.hpp"
 #include "db_client_service.hpp"
@@ -43,7 +43,7 @@ namespace db
         void start();
         wsrep::client_state& client_state() { return client_state_; }
     private:
-        friend class db::server_context;
+        friend class db::server_state;
         friend class db::client_service;
         template <class F> int client_command(F f);
         void run_one_transaction();
@@ -52,7 +52,7 @@ namespace db
         wsrep::default_mutex mutex_;
         const db::params& params_;
         db::server& server_;
-        db::server_context& server_context_;
+        db::server_state& server_state_;
         db::client_state client_state_;
         db::client_service client_service_;
         db::storage_engine::transaction se_trx_;

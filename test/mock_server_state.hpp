@@ -5,7 +5,7 @@
 #ifndef WSREP_MOCK_SERVER_CONTEXT_HPP
 #define WSREP_MOCK_SERVER_CONTEXT_HPP
 
-#include "wsrep/server_context.hpp"
+#include "wsrep/server_state.hpp"
 #include "mock_client_state.hpp"
 #include "mock_provider.hpp"
 
@@ -13,13 +13,13 @@
 
 namespace wsrep
 {
-    class mock_server_context : public wsrep::server_context
+    class mock_server_state : public wsrep::server_state
     {
     public:
-        mock_server_context(const std::string& name,
+        mock_server_state(const std::string& name,
                             const std::string& id,
-                            enum wsrep::server_context::rollback_mode rollback_mode)
-            : wsrep::server_context(mutex_, cond_,
+                            enum wsrep::server_state::rollback_mode rollback_mode)
+            : wsrep::server_state(mutex_, cond_,
                                     name, id, "", "./", rollback_mode)
             , mutex_()
             , cond_()

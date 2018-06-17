@@ -22,8 +22,8 @@ namespace wsrep
     public:
         typedef std::map<wsrep::transaction_id, wsrep::seqno> bf_abort_map;
 
-        mock_provider(wsrep::server_context& server_context)
-            : provider(server_context)
+        mock_provider(wsrep::server_state& server_state)
+            : provider(server_state)
             , certify_result_()
             , commit_order_enter_result_()
             , commit_order_leave_result_()
@@ -183,7 +183,7 @@ namespace wsrep
                 return replay_result_;
             }
 
-            if (server_context_.on_apply(cc, tc.ws_handle(), ws_meta,
+            if (server_state_.on_apply(cc, tc.ws_handle(), ws_meta,
                                          wsrep::const_buffer()))
             {
                 return wsrep::provider::error_fatal;

@@ -231,6 +231,54 @@ namespace
         wsrep_trx_meta_t trx_meta_;
     };
 
+    enum wsrep::view::status map_view_status_from_native(
+        wsrep_view_status_t status)
+    {
+        switch (status)
+        {
+        case WSREP_VIEW_PRIMARY: return wsrep::view::primary;
+        case WSREP_VIEW_NON_PRIMARY: return wsrep::view::non_primary;
+        case WSREP_VIEW_DISCONNECTED: return wsrep::view::disconnected;
+        default: throw wsrep::runtime_error("Unknown view status");
+        }
+    }
+
+    /** @todo Currently capabilities defined in provider.hpp
+     * are one to one with wsrep_api.h. However, the mapping should
+     * be made explicit. */
+    int map_capabilities_from_native(wsrep_cap_t capabilities)
+    {
+        return capabilities;
+    }
+    wsrep::view view_from_native(const wsrep_view_info& view_info)
+    {
+        std::vector<wsrep::view::member> members;
+        for (int i(0); i < view_info.memb_num; ++i)
+        {
+            wsrep::id id(view_info.members[i].id.data, sizeof(view_info.members[i].id.data));
+            std::string name(
+                view_info.members[i].name,
+                strnlen(view_info.members[i].name,
+                        sizeof(view_info.members[i].name)));
+            std::string incoming(
+                view_info.members[i].incoming,
+                strnlen(view_info.members[i].incoming,
+                        sizeof(view_info.members[i].incoming)));
+            members.push_back(wsrep::view::member(id, name, incoming));
+        }
+        return wsrep::view(
+            wsrep::gtid(
+                wsrep::id(view_info.state_id.uuid.data,
+                          sizeof(view_info.state_id.uuid.data)),
+                wsrep::seqno(view_info.state_id.seqno)),
+            wsrep::seqno(view_info.view),
+            map_view_status_from_native(view_info.status),
+            map_capabilities_from_native(view_info.capabilities),
+            view_info.my_idx,
+            view_info.proto_ver,
+            members);
+    }
+
     /////////////////////////////////////////////////////////////////////
     //                         Callbacks                               //
     /////////////////////////////////////////////////////////////////////
@@ -269,7 +317,7 @@ namespace
             *reinterpret_cast<wsrep::server_state*>(app_ctx));
         try
         {
-            wsrep::view view(*view_info);
+            wsrep::view view(view_from_native(*view_info));
             server_state.on_view(view);
             return WSREP_CB_SUCCESS;
         }

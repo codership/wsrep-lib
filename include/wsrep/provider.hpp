@@ -193,6 +193,30 @@ namespace wsrep
             static const int snapshot = (1 << 7);
         };
 
+        /**
+         * Provider capabilities.
+         */
+        struct capabilities
+        {
+            static const int multi_master = (1 << 0);
+            static const int certification = (1 << 1);
+            static const int parallel_applying = (1 << 2);
+            static const int transaction_replay = (1 << 3);
+            static const int isolation = (1 << 4);
+            static const int pause = (1 << 5);
+            static const int causal_reads = (1 << 6);
+            static const int causal_transaction = (1 << 7);
+            static const int incremental_writeset = (1 << 8);
+            static const int session_locks = (1 << 9);
+            static const int distributed_locks = (1 << 10);
+            static const int consistency_check = (1 << 11);
+            static const int unordered = (1 << 12);
+            static const int annotation = (1 << 13);
+            static const int preordered = (1 << 14);
+            static const int streaming = (1 << 15);
+            static const int snapshot = (1 << 16);
+            static const int nbo = (1 << 17);
+        };
         provider(wsrep::server_state& server_state)
             : server_state_(server_state)
         { }

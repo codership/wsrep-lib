@@ -87,7 +87,7 @@ void wsrep::server_state::on_connect()
 void wsrep::server_state::on_view(const wsrep::view& view)
 {
     wsrep::log() << "================================================\nView:\n"
-                 << "id: " << view.id() << "\n"
+                 << "id: " << view.state_id() << "\n"
                  << "status: " << view.status() << "\n"
                  << "own_index: " << view.own_index() << "\n"
                  << "final: " << view.final() << "\n"

@@ -7,7 +7,7 @@
 
 #include "wsrep/provider.hpp"
 
-#include <wsrep_api.h>
+struct wsrep_st;
 
 namespace wsrep
 {
@@ -49,7 +49,7 @@ namespace wsrep
     private:
         wsrep_provider_v26(const wsrep_provider_v26&);
         wsrep_provider_v26& operator=(const wsrep_provider_v26);
-        wsrep_t* wsrep_;
+        struct wsrep_st* wsrep_;
     };
 }
 

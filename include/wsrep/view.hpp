@@ -2,11 +2,16 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
+/** @file view.hpp
+ *
+ *
+ */
+
+
 #ifndef WSREP_VIEW_HPP
 #define WSREP_VIEW_HPP
 
-#include <wsrep_api.h>
-
+#include "id.hpp"
 #include <vector>
 
 namespace wsrep
@@ -14,76 +19,78 @@ namespace wsrep
     class view
     {
     public:
+        enum status
+        {
+            primary,
+            non_primary,
+            disconnected
+        };
         class member
         {
         public:
-            member(const wsrep_member_info_t& member_info)
-                : id_()
-                , name_(member_info.name, WSREP_MEMBER_NAME_LEN)
-                , incoming_(member_info.incoming, WSREP_INCOMING_LEN)
+            member(const wsrep::id& id,
+                   const std::string& name,
+                   const std::string& incoming)
+                : id_(id)
+                , name_(name)
+                , incoming_(incoming)
             {
-                char uuid_str[WSREP_UUID_STR_LEN + 1];
-                wsrep_uuid_print(&member_info.id, uuid_str, sizeof(uuid_str));
-                id_ = uuid_str;
             }
-            const std::string& id() const { return id_; }
+            const wsrep::id& id() const { return id_; }
             const std::string& name() const { return name_; }
             const std::string& incoming() const { return incoming_; }
         private:
-            std::string id_;
+            wsrep::id id_;
             std::string name_;
             std::string incoming_;
         };
 
-        view(const wsrep_view_info_t& view_info)
-            : state_id_(view_info.state_id)
-            , view_(view_info.view)
-            , status_(view_info.status)
-            , capabilities_(view_info.capabilities)
-            , my_idx_(view_info.my_idx)
-            , proto_ver_(view_info.proto_ver)
-            , members_()
-        {
-            for (int i(0); i < view_info.memb_num; ++i)
-            {
-                members_.push_back(view_info.members[i]);
-            }
-        }
+        view(const wsrep::gtid& state_id,
+             wsrep::seqno view_seqno,
+             enum wsrep::view::status status,
+             int capabilities,
+             ssize_t own_index,
+             int protocol_version,
+             const std::vector<wsrep::view::member>& members)
+            : state_id_(state_id)
+            , view_seqno_(view_seqno)
+            , status_(status)
+            , capabilities_(capabilities)
+            , own_index_(own_index)
+            , protocol_version_(protocol_version)
+            , members_(members)
+        { }
 
+        wsrep::gtid state_id() const
+        { return state_id_; }
 
-        wsrep_seqno_t id() const
-        { return view_; }
-        wsrep_view_status_t status() const
+        wsrep::seqno view_seqno() const
+        { return view_seqno_; }
+
+        wsrep::view::status status() const
         { return status_; }
-        int own_index() const
-        { return my_idx_; }
 
-        std::vector<member> members() const
-        {
-            std::vector<member> ret;
-            for (std::vector<wsrep_member_info_t>::const_iterator i(members_.begin());
-                 i != members_.end(); ++i)
-            {
-                ret.push_back(member(*i));
-            }
-            return ret;
-        }
-        //
-        // Return true if the view is final
-        //
+        ssize_t own_index() const
+        { return own_index_; }
+
+        const std::vector<member>& members() const { return members_; }
+
+        /**
+         * Return true if the view is final
+         */
         bool final() const
         {
-            return (members_.empty() && my_idx_ == -1);
+            return (members_.empty() && own_index_ == -1);
         }
 
     private:
-        wsrep_gtid_t state_id_;
-        wsrep_seqno_t view_;
-        wsrep_view_status_t status_;
-        wsrep_cap_t capabilities_;
-        int my_idx_;
-        int proto_ver_;
-        std::vector<wsrep_member_info_t> members_;
+        wsrep::gtid state_id_;
+        wsrep::seqno view_seqno_;
+        enum wsrep::view::status status_;
+        int capabilities_;
+        ssize_t own_index_;
+        int protocol_version_;
+        std::vector<wsrep::view::member> members_;
     };
 }
 

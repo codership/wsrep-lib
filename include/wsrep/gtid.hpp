@@ -8,6 +8,8 @@
 #include "id.hpp"
 #include "seqno.hpp"
 
+#include <iosfwd>
+
 namespace wsrep
 {
     class gtid
@@ -27,6 +29,8 @@ namespace wsrep
         wsrep::id id_;
         wsrep::seqno seqno_;
     };
+
+    std::ostream& operator<<(std::ostream&, const wsrep::gtid&);
 }
 
 #endif // WSREP_GTID_HPP

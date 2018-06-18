@@ -4,6 +4,7 @@
 
 add_library(wsrep-lib
   client_state.cpp
+  gtid.cpp
   id.cpp
   logger.cpp
   provider.cpp

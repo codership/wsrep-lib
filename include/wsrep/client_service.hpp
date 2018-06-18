@@ -14,6 +14,8 @@
 #ifndef WSREP_CLIENT_SERVICE_HPP
 #define WSREP_CLIENT_SERVICE_HPP
 
+#include "transaction_termination_service.hpp"
+
 #include "buffer.hpp"
 #include "provider.hpp"
 #include "mutex.hpp"
@@ -22,7 +24,7 @@
 namespace wsrep
 {
     class transaction;
-    class client_service
+    class client_service : public wsrep::transaction_termination_service
     {
     public:
         client_service(wsrep::provider& provider)
@@ -76,17 +78,6 @@ namespace wsrep
          * Apply a write set.
          */
         virtual int apply(const wsrep::const_buffer&) = 0;
-
-        /**
-         * Commit transaction.
-         */
-        virtual int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) = 0;
-
-        /**
-         * Roll back transaction.
-         */
-        virtual int rollback() = 0;
-
         //
         // Interface to global server state
         //

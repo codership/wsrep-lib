@@ -37,11 +37,12 @@ namespace db
         wsrep::client_state* streaming_applier_client_state() override;
         void release_client_state(wsrep::client_state*) override;
         bool sst_before_init() const override;
-        void on_sst_request(const std::string&, const wsrep::gtid&, bool) override;
-        std::string on_sst_required() override;
+        int start_sst(const std::string&, const wsrep::gtid&, bool) override;
+        std::string sst_request() override;
         void background_rollback(wsrep::client_state&) override;
         void log_dummy_write_set(wsrep::client_state&, const wsrep::ws_meta&)
             override;
+        void log_view(wsrep::client_state&, const wsrep::view&) override;
     private:
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;

@@ -56,6 +56,10 @@ namespace db
             return 0;
         }
 
+        bool statement_allowed_for_streaming() const override
+        {
+            return true;
+        }
         int prepare_fragment_for_replication(wsrep::mutable_buffer&) override
         {
             return 0;

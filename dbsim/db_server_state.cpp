@@ -28,15 +28,16 @@ bool db::server_state::sst_before_init() const
     return false;
 }
 
-std::string db::server_state::on_sst_required()
+std::string db::server_state::sst_request()
 {
     return id();
 }
 
-void db::server_state::on_sst_request(
+int db::server_state::start_sst(
     const std::string& request, const wsrep::gtid& gtid, bool bypass)
 {
     server_.donate_sst(request, gtid, bypass);
+    return 0;
 }
 
 void db::server_state::background_rollback(wsrep::client_state&)
@@ -47,4 +48,9 @@ void db::server_state::log_dummy_write_set(
     wsrep::client_state&, const wsrep::ws_meta& meta)
 {
     wsrep::log_info() << "Dummy write set: " << meta.seqno();
+}
+
+void db::server_state::log_view(wsrep::client_state&, const wsrep::view&)
+{
+    wsrep::log_info() << "View";
 }

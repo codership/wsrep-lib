@@ -163,8 +163,7 @@ int wsrep::transaction::before_prepare(
             client_state_.debug_crash(
                 "crash_last_fragment_commit_before_fragment_removal");
             lock.unlock();
-            if (client_state_.server_state().statement_allowed_for_streaming(
-                    client_state_, *this))
+            if (client_state_.statement_allowed_for_streaming() == false)
             {
                 client_state_.override_error(wsrep::e_error_during_commit);
                 ret = 1;

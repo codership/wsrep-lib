@@ -289,7 +289,7 @@ namespace
 
         try
         {
-            std::string req(server_state.on_sst_required());
+            std::string req(server_state.sst_request());
             *sst_req = ::strdup(req.c_str());
             *sst_req_len = strlen(req.c_str());
             return WSREP_CB_SUCCESS;
@@ -369,7 +369,10 @@ namespace
             wsrep::gtid gtid(wsrep::id(req_gtid->uuid.data,
                                        sizeof(req_gtid->uuid.data)),
                              wsrep::seqno(req_gtid->seqno));
-            server_state.on_sst_request(req, gtid, bypass);
+            if (server_state.start_sst(req, gtid, bypass))
+            {
+                return WSREP_CB_FAILURE;
+            }
             return WSREP_CB_SUCCESS;
         }
         catch (const wsrep::runtime_error& e)

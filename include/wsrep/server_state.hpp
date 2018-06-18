@@ -63,6 +63,7 @@
 
 #include "mutex.hpp"
 #include "condition_variable.hpp"
+#include "server_service.hpp"
 
 #include <vector>
 #include <string>
@@ -86,7 +87,7 @@ namespace wsrep
      *
      *
      */
-    class server_state
+    class server_state : public wsrep::server_service
     {
     public:
         /**
@@ -190,24 +191,6 @@ namespace wsrep
          */
         enum rollback_mode rollback_mode() const { return rollback_mode_; }
 
-        /**
-         * Create client context which acts only locally, i.e. does
-         * not participate in replication. However, local client
-         * connection may execute transactions which require ordering,
-         * as when modifying local SR fragment storage requires
-         * strict commit ordering.
-         *
-         * @return Pointer to Client Context.
-         */
-        virtual client_state* local_client_state() = 0;
-
-        /**
-         * Create applier context for streaming transaction.
-         */
-        virtual client_state* streaming_applier_client_state() = 0;
-
-        virtual void release_client_state(wsrep::client_state*) = 0;
-
         void start_streaming_applier(
             const wsrep::id&,
             const wsrep::transaction_id&,
@@ -219,10 +202,7 @@ namespace wsrep
          * Return reference to streaming applier.
          */
         client_state* find_streaming_applier(const wsrep::id&,
-                                               const wsrep::transaction_id&) const;
-
-        virtual void log_dummy_write_set(wsrep::client_state&,
-                                         const wsrep::ws_meta&) = 0;
+                                             const wsrep::transaction_id&) const;
         /**
          * Load WSRep provider.
          *
@@ -293,46 +273,6 @@ namespace wsrep
         void wait_until_state(wsrep::server_state::state) const;
 
         /**
-         * Virtual method to return true if the configured SST
-         * method requires SST to be performed before DBMS storage
-         * engine initialization, false otherwise.
-         */
-        virtual bool sst_before_init() const = 0;
-
-        /**
-         * Virtual method which will be called on *joiner* when the provider
-         * requests the SST request information. This method should
-         * provide a string containing an information which the donor
-         * server can use to donate SST.
-         */
-        virtual std::string on_sst_required() = 0;
-
-        /**
-         * Virtual method which will be called on *donor* when the
-         * SST request has been delivered by the provider.
-         * This method should initiate SST transfer or throw
-         * a wsrep::runtime_error
-         * if the SST transfer cannot be initiated. If the SST request
-         * initiation is succesful, the server remains in s_donor
-         * state until the SST is over or fails. The @param bypass
-         * should be passed to SST implementation. If the flag is true,
-         * no actual SST should happen, but the joiner server should
-         * be notified that the donor has seen the request. The notification
-         * should included @param gtid provided. This must be passed
-         * to sst_received() call on the joiner.
-         *
-         *  @todo Figure out better exception for error codition.
-         *
-         * @param sst_request SST request string provided by the joiner.
-         * @param gtid GTID denoting the current replication position.
-         * @param bypass Boolean bypass flag.
-         */
-        virtual void on_sst_request(const std::string& sst_request,
-                                    const wsrep::gtid& gtid,
-                                    bool bypass) = 0;
-
-        virtual void background_rollback(wsrep::client_state&) = 0;
-        /**
          *
          */
         void sst_sent(const wsrep::gtid& gtid, int error);
@@ -374,20 +314,6 @@ namespace wsrep
                      const wsrep::const_buffer& data);
 
         /**
-         * This virtual method should be implemented by the DBMS
-         * to provide information if the current statement in processing
-         * is allowd for streaming replication.
-         *
-         * @return True if the statement is allowed for streaming
-         *         replication, false otherwise.
-         *
-         * @todo Move to client service interface.
-         */
-        virtual bool statement_allowed_for_streaming(
-            const wsrep::client_state& client_state,
-            const wsrep::transaction& transaction) const;
-
-        /**
          * Set server wide wsrep debug logging level.
          *
          * Log levels are
@@ -420,12 +346,12 @@ namespace wsrep
          * @param rollback_mode Rollback mode which server operates on.
          */
         server_state(wsrep::mutex& mutex,
-                       wsrep::condition_variable& cond,
-                       const std::string& name,
-                       const std::string& id,
-                       const std::string& address,
-                       const std::string& working_dir,
-                       enum rollback_mode rollback_mode)
+                     wsrep::condition_variable& cond,
+                     const std::string& name,
+                     const std::string& id,
+                     const std::string& address,
+                     const std::string& working_dir,
+                     enum rollback_mode rollback_mode)
             : mutex_(mutex)
             , cond_(cond)
             , state_(s_disconnected)

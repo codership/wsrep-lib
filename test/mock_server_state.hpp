@@ -40,6 +40,7 @@ namespace wsrep
                 *this, ++last_client_id_,
                 wsrep::client_state::m_high_priority);
         }
+
         void release_client_state(wsrep::client_state* client_state)
         {
             delete client_state;
@@ -50,15 +51,17 @@ namespace wsrep
             WSREP_OVERRIDE
         {
         }
+        void log_view(wsrep::client_state&, const wsrep::view&) { }
+
         void on_connect() WSREP_OVERRIDE { }
         void wait_until_connected() WSREP_OVERRIDE { }
         void on_view(const wsrep::view&) WSREP_OVERRIDE { }
         void on_sync() WSREP_OVERRIDE { }
         bool sst_before_init() const WSREP_OVERRIDE { return false; }
-        std::string on_sst_required() WSREP_OVERRIDE { return ""; }
-        void on_sst_request(const std::string&,
-                            const wsrep::gtid&,
-                            bool) WSREP_OVERRIDE { }
+        std::string sst_request() WSREP_OVERRIDE { return ""; }
+        int start_sst(const std::string&,
+                      const wsrep::gtid&,
+                      bool) WSREP_OVERRIDE { return 0; }
         void background_rollback(wsrep::client_state& client_state)
             WSREP_OVERRIDE
         {

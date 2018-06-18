@@ -124,6 +124,8 @@ namespace wsrep
             return bytes_generated_;
         }
 
+        bool statement_allowed_for_streaming() const WSREP_OVERRIDE
+        { return true; }
         int prepare_fragment_for_replication(wsrep::mutable_buffer& buffer)
             WSREP_OVERRIDE
         {

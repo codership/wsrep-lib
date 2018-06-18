@@ -277,7 +277,10 @@ namespace wsrep
             enum wsrep::streaming_context::fragment_unit
             fragment_unit,
             size_t fragment_size);
-
+        bool statement_allowed_for_streaming() const
+        {
+            return client_service_.statement_allowed_for_streaming();
+        }
         /** @todo deprecate */
         size_t bytes_generated() const
         {

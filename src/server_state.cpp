@@ -273,6 +273,7 @@ int wsrep::server_state::on_apply(
     return ret;
 }
 
+#if 0
 bool wsrep::server_state::statement_allowed_for_streaming(
     const wsrep::client_state&,
     const wsrep::transaction&) const
@@ -280,6 +281,7 @@ bool wsrep::server_state::statement_allowed_for_streaming(
     /* Streaming not implemented yet. */
     return false;
 }
+#endif
 
 void wsrep::server_state::start_streaming_applier(
     const wsrep::id& server_id,

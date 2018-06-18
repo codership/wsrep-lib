@@ -66,6 +66,11 @@ namespace wsrep
         //
         // Streaming
         //
+        /**
+         * Return true if current statement is allowed for streaming,
+         * otherwise false.
+         */
+        virtual bool statement_allowed_for_streaming() const = 0;
         virtual size_t bytes_generated() const = 0;
         virtual int prepare_fragment_for_replication(wsrep::mutable_buffer&) = 0;
         virtual void remove_fragments() = 0;

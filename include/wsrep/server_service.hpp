@@ -12,8 +12,12 @@
 namespace wsrep
 {
     class client_state;
+    class ws_meta;
+    class gtid;
+    class view;
     class server_service
     {
+    public:
         /**
          * Create client state instance which acts only locally, i.e. does
          * not participate in replication. However, local client

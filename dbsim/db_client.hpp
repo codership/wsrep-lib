@@ -2,6 +2,8 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
+/** @file db_client.hpp */
+
 #ifndef WSREP_DB_CLIENT_HPP
 #define WSREP_DB_CLIENT_HPP
 

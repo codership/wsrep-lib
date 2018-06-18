@@ -112,18 +112,6 @@ namespace wsrep
         {
             assert(transaction_.active() == false);
         }
-
-        /**
-         * Return true if the transaction commit requires
-         * two-phase commit.
-         *
-         * @todo deprecate
-         */
-        bool do_2pc() const
-        {
-            return client_service_.do_2pc();
-        }
-
         /** @name Client command handling */
         /** @{ */
         /**
@@ -242,10 +230,6 @@ namespace wsrep
             return transaction_.append_data(data);
         }
 
-        int prepare_data_for_replication()
-        {
-            return client_service_.prepare_data_for_replication();
-        }
         /** @} */
 
         /** @name Streaming replication interface */
@@ -277,43 +261,6 @@ namespace wsrep
             enum wsrep::streaming_context::fragment_unit
             fragment_unit,
             size_t fragment_size);
-        bool statement_allowed_for_streaming() const
-        {
-            return client_service_.statement_allowed_for_streaming();
-        }
-        /** @todo deprecate */
-        size_t bytes_generated() const
-        {
-            assert(mode_ == m_replicating);
-            return client_service_.bytes_generated();
-        }
-
-        /** @todo deprecate */
-        int prepare_fragment_for_replication(wsrep::mutable_buffer& mb)
-        {
-            return client_service_.prepare_fragment_for_replication(mb);
-        }
-
-        /** @todo deprecate */
-        int append_fragment(const wsrep::transaction& tc,
-                            int flags,
-                            const wsrep::const_buffer& buf)
-        {
-            return client_service_.append_fragment(tc, flags, buf);
-        }
-        /**
-         * Remove fragments from the fragment storage. If the
-         * storage is transactional, this should be done within
-         * the same transaction which is committing.
-         *
-         * @todo deprecate
-         */
-        void remove_fragments()
-        {
-            client_service_.remove_fragments();
-        }
-        /** @} */
-
         /** @name Applying interface */
         /** @{ */
         int start_transaction(const wsrep::ws_handle& wsh,
@@ -322,21 +269,6 @@ namespace wsrep
             assert(mode_ == m_high_priority);
             return transaction_.start_transaction(wsh, meta);
         }
-
-        /** @todo deprecate */
-        int apply(const wsrep::const_buffer& data)
-        {
-            assert(mode_ == m_high_priority);
-            return client_service_.apply(data);
-        }
-
-        int commit()
-        {
-            assert(mode_ == m_high_priority || mode_ == m_local);
-            return client_service_.commit(
-                transaction_.ws_handle(), transaction_.ws_meta());
-        }
-        /** @} */
 
         /** @name Commit ordering interface */
         /** @{ */
@@ -372,14 +304,6 @@ namespace wsrep
             return transaction_.after_commit();
         }
         /** @} */
-
-        /** @name Rollback interface */
-        /** @{ */
-        int rollback()
-        {
-            return client_service_.rollback();
-        }
-
         int before_rollback()
         {
             assert(state_ == s_idle || state_ == s_exec || state_ == s_result);
@@ -417,37 +341,6 @@ namespace wsrep
             assert(mode_ == m_high_priority);
             transaction_.start_transaction(transaction.id());
             transaction_.streaming_context_ = transaction.streaming_context_;
-        }
-
-        /** @todo deprecate */
-        enum wsrep::provider::status replay(
-            wsrep::transaction&)
-        {
-            return client_service_.replay();
-        }
-
-        //
-        //
-        //
-        void will_replay(const wsrep::transaction&)
-        {
-            client_service_.will_replay();
-        }
-
-        /** @todo deprecate */
-        void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>& lock)
-        {
-            client_service_.wait_for_replayers(lock);
-        }
-
-        bool interrupted() const
-        {
-            return client_service_.interrupted();
-        }
-
-        void emergency_shutdown()
-        {
-            client_service_.emergency_shutdown();
         }
 
         //
@@ -499,19 +392,7 @@ namespace wsrep
          * End non-blocking operation
          */
         void end_nbo();
-        /** @} */
-        //
-        // Debug interface
-        //
-        void debug_sync(const char* sync_point)
-        {
-            client_service_.debug_sync(sync_point);
-        }
 
-        void debug_crash(const char* crash_point)
-        {
-            client_service_.debug_crash(crash_point);
-        }
         /**
          * Get reference to the client mutex.
          *
@@ -527,6 +408,8 @@ namespace wsrep
         wsrep::server_state& server_state() const
         { return server_state_; }
 
+        wsrep::client_service& client_service() const
+        { return client_service_; }
         /**
          * Get reference to the Provider which is associated
          * with the client context.

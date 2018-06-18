@@ -25,6 +25,7 @@ wsrep::transaction::transaction(
     wsrep::client_state& client_state)
     : provider_(client_state.provider())
     , server_service_(client_state.server_state().server_service())
+    , client_service_(client_state.client_service())
     , client_state_(client_state)
     , id_(transaction_id::invalid())
     , state_(s_executing)
@@ -123,7 +124,7 @@ int wsrep::transaction::after_row()
             }
             break;
         case streaming_context::bytes:
-            if (client_state_.bytes_generated() >=
+            if (client_service_.bytes_generated() >=
                 streaming_context_.bytes_certified()
                 + streaming_context_.fragment_size())
             {
@@ -161,20 +162,20 @@ int wsrep::transaction::before_prepare(
     case wsrep::client_state::m_replicating:
         if (is_streaming())
         {
-            client_state_.debug_crash(
+            client_service_.debug_crash(
                 "crash_last_fragment_commit_before_fragment_removal");
             lock.unlock();
-            if (client_state_.statement_allowed_for_streaming() == false)
+            if (client_service_.statement_allowed_for_streaming() == false)
             {
                 client_state_.override_error(wsrep::e_error_during_commit);
                 ret = 1;
             }
             else
             {
-                client_state_.remove_fragments();
+                client_service_.remove_fragments();
             }
             lock.lock();
-            client_state_.debug_crash(
+            client_service_.debug_crash(
                 "crash_last_fragment_commit_after_fragment_removal");
         }
         break;
@@ -182,7 +183,7 @@ int wsrep::transaction::before_prepare(
     case wsrep::client_state::m_high_priority:
         if (is_streaming())
         {
-            client_state_.remove_fragments();
+            client_service_.remove_fragments();
         }
         break;
     default:
@@ -257,7 +258,7 @@ int wsrep::transaction::before_commit()
     case wsrep::client_state::m_replicating:
         if (state() == s_executing)
         {
-            assert(client_state_.do_2pc() == false);
+            assert(client_service_.do_2pc() == false);
             ret = before_prepare(lock) || after_prepare(lock);
             assert((ret == 0 && state() == s_committing)
                    ||
@@ -312,7 +313,7 @@ int wsrep::transaction::before_commit()
     case wsrep::client_state::m_high_priority:
         assert(certified());
         assert(ordered());
-        if (client_state_.do_2pc() == false)
+        if (client_service_.do_2pc() == false)
         {
             ret = before_prepare(lock) || after_prepare(lock);
         }
@@ -498,7 +499,7 @@ int wsrep::transaction::after_statement()
     case s_cert_failed:
         client_state_.override_error(wsrep::e_deadlock_error);
         lock.unlock();
-        ret = client_state_.rollback();
+        ret = client_service_.rollback();
         lock.lock();
         if (state() != s_must_replay)
         {
@@ -510,7 +511,7 @@ int wsrep::transaction::after_statement()
     {
         state(lock, s_replaying);
         lock.unlock();
-        enum wsrep::provider::status replay_ret(client_state_.replay(*this));
+        enum wsrep::provider::status replay_ret(client_service_.replay());
         switch (replay_ret)
         {
         case wsrep::provider::success:
@@ -522,7 +523,7 @@ int wsrep::transaction::after_statement()
             ret = 1;
             break;
         default:
-            client_state_.emergency_shutdown();
+            client_service_.emergency_shutdown();
             break;
         }
         lock.lock();
@@ -697,7 +698,7 @@ int wsrep::transaction::certify_fragment(
     assert(client_state_.mode() == wsrep::client_state::m_replicating);
     assert(streaming_context_.rolled_back() == false);
 
-    client_state_.wait_for_replayers(lock);
+    client_service_.wait_for_replayers(lock);
     if (state() == s_must_abort)
     {
         client_state_.override_error(wsrep::e_deadlock_error);
@@ -709,7 +710,7 @@ int wsrep::transaction::certify_fragment(
     lock.unlock();
 
     wsrep::mutable_buffer data;
-    if (client_state_.prepare_fragment_for_replication(data))
+    if (client_service_.prepare_fragment_for_replication(data))
     {
         lock.lock();
         state(lock, s_must_abort);
@@ -719,8 +720,6 @@ int wsrep::transaction::certify_fragment(
     // Client context to store fragment in separate transaction
     // Switch temporarily to sr_transaction, switch back
     // to original when this goes out of scope
-    // std::auto_ptr<wsrep::client_state> sr_client_state(
-    //    client_state_.server_state().local_client_state());
     wsrep::scoped_client_state<wsrep::client_deleter> sr_client_state_scope(
         server_service_.local_client_state(),
         wsrep::client_deleter(server_service_));
@@ -735,7 +734,7 @@ int wsrep::transaction::certify_fragment(
         sr_client_state.transaction_);
     sr_transaction.state(sr_lock, s_certifying);
     sr_lock.unlock();
-    if (sr_client_state.append_fragment(
+    if (sr_client_state.client_service().append_fragment(
             sr_transaction, flags_,
             wsrep::const_buffer(data.data(), data.size())))
     {
@@ -760,7 +759,8 @@ int wsrep::transaction::certify_fragment(
         sr_transaction.certified_ = true;
         sr_transaction.state(sr_lock, s_committing);
         sr_lock.unlock();
-        if (sr_client_state.commit())
+        if (sr_client_state.client_service().commit(
+                sr_transaction.ws_handle(), sr_transaction.ws_meta()))
         {
             ret = 1;
         }
@@ -769,7 +769,7 @@ int wsrep::transaction::certify_fragment(
         sr_lock.lock();
         sr_transaction.state(sr_lock, s_must_abort);
         sr_lock.unlock();
-        sr_client_state.rollback();
+        sr_client_state.client_service().rollback();
         ret = 1;
         break;
     }
@@ -791,7 +791,7 @@ int wsrep::transaction::certify_commit(
 {
     assert(lock.owns_lock());
     assert(active());
-    client_state_.wait_for_replayers(lock);
+    client_service_.wait_for_replayers(lock);
 
     assert(lock.owns_lock());
 
@@ -807,7 +807,7 @@ int wsrep::transaction::certify_commit(
 
     lock.unlock();
 
-    if (client_state_.prepare_data_for_replication())
+    if (client_service_.prepare_data_for_replication())
     {
         // Note: Error must be set by prepare_data_for_replication()
         lock.lock();
@@ -816,7 +816,7 @@ int wsrep::transaction::certify_commit(
         return 1;
     }
 
-    if (client_state_.interrupted())
+    if (client_service_.interrupted())
     {
         lock.lock();
         client_state_.override_error(wsrep::e_interrupted_error);
@@ -824,13 +824,13 @@ int wsrep::transaction::certify_commit(
         return 1;
     }
 
-    client_state_.debug_sync("wsrep_before_certification");
+    client_service_.debug_sync("wsrep_before_certification");
     enum wsrep::provider::status
         cert_ret(provider_.certify(client_state_.id().get(),
                                    ws_handle_,
                                    flags(),
                                    ws_meta_));
-    client_state_.debug_sync("wsrep_after_certification");
+    client_service_.debug_sync("wsrep_after_certification");
 
     lock.lock();
 
@@ -852,7 +852,7 @@ int wsrep::transaction::certify_commit(
             // We got BF aborted after succesful certification
             // and before acquiring client context lock. This means that
             // the trasaction must be replayed.
-            client_state_.will_replay(*this);
+            client_service_.will_replay();
             state(lock, s_must_replay);
             break;
         default:
@@ -878,7 +878,7 @@ int wsrep::transaction::certify_commit(
         // yet known. Therefore the transaction must roll back
         // and go through replay either to replay and commit the whole
         // transaction or to determine failed certification status.
-        client_state_.will_replay(*this);
+        client_service_.will_replay();
         if (state() != s_must_abort)
         {
             state(lock, s_must_abort);
@@ -906,7 +906,7 @@ int wsrep::transaction::certify_commit(
     case wsrep::provider::error_fatal:
         client_state_.override_error(wsrep::e_error_during_commit);
         state(lock, s_must_abort);
-        client_state_.emergency_shutdown();
+        client_service_.emergency_shutdown();
         break;
     case wsrep::provider::error_not_implemented:
     case wsrep::provider::error_not_allowed:

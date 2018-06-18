@@ -17,6 +17,7 @@
 
 namespace wsrep
 {
+    class client_service;
     class client_state;
     class key;
     class const_buffer;
@@ -138,6 +139,7 @@ namespace wsrep
 
         wsrep::provider& provider_;
         wsrep::server_service& server_service_;
+        wsrep::client_service& client_service_;
         wsrep::client_state& client_state_;
         wsrep::transaction_id id_;
         enum state state_;

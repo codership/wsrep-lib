@@ -29,7 +29,7 @@ namespace wsrep
         {
             if (transaction().active())
             {
-                (void)rollback();
+                (void)client_service().rollback();
             }
         }
     private:

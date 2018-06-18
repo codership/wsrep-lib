@@ -121,7 +121,9 @@ void db::client::run_one_transaction()
             err = err || client_state_.after_commit();
             if (err)
             {
-                client_state_.rollback();
+                client_state_.before_rollback();
+                se_trx_.rollback();
+                client_state_.after_rollback();
             }
             return err;
         });

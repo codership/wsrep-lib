@@ -145,18 +145,18 @@ int wsrep::server_state::on_apply(
             client_state.start_replaying(ws_meta);
         }
 
-        if (client_state.apply(data))
+        if (client_state.client_service().apply(data))
         {
             ret = 1;
         }
-        else if (client_state.commit())
+        else if (client_state.client_service().commit(ws_handle, ws_meta))
         {
             ret = 1;
         }
 
         if (ret)
         {
-            client_state.rollback();
+            client_state.client_service().rollback();
         }
 
         if (not_replaying)
@@ -186,7 +186,7 @@ int wsrep::server_state::on_apply(
             wsrep::client_state_switch sw(client_state, *sac);
             sac->before_command();
             sac->before_statement();
-            sac->apply(data);
+            sac->client_service().apply(data);
             sac->after_statement();
             sac->after_command_before_result();
             sac->after_command_after_result();
@@ -214,7 +214,7 @@ int wsrep::server_state::on_apply(
             wsrep::client_state_switch(client_state, *sac);
             sac->before_command();
             sac->before_statement();
-            ret = sac->apply(data);
+            ret = sac->client_service().apply(data);
             sac->after_statement();
             sac->after_command_before_result();
             sac->after_command_after_result();
@@ -245,7 +245,7 @@ int wsrep::server_state::on_apply(
                 wsrep::client_state_switch(client_state, *sac);
                 sac->before_command();
                 sac->before_statement();
-                ret = sac->commit();
+                ret = sac->client_service().commit(ws_handle, ws_meta);
                 sac->after_statement();
                 sac->after_command_before_result();
                 sac->after_command_after_result();
@@ -257,8 +257,8 @@ int wsrep::server_state::on_apply(
         else
         {
             ret = client_state.start_replaying(ws_meta) ||
-                client_state.apply(wsrep::const_buffer()) ||
-                client_state.commit();
+                client_state.client_service().apply(wsrep::const_buffer()) ||
+                client_state.client_service().commit(ws_handle, ws_meta);
         }
     }
     else

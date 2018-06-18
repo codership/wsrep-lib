@@ -24,6 +24,7 @@
 wsrep::transaction::transaction(
     wsrep::client_state& client_state)
     : provider_(client_state.provider())
+    , server_service_(client_state.server_state().server_service())
     , client_state_(client_state)
     , id_(transaction_id::invalid())
     , state_(s_executing)
@@ -635,7 +636,7 @@ bool wsrep::transaction::bf_abort(
             // rollbacker gets control.
             state(lock, wsrep::transaction::s_aborting);
             lock.unlock();
-            client_state_.server_state().background_rollback(client_state_);
+            server_service_.background_rollback(client_state_);
         }
     }
     return ret;
@@ -721,8 +722,8 @@ int wsrep::transaction::certify_fragment(
     // std::auto_ptr<wsrep::client_state> sr_client_state(
     //    client_state_.server_state().local_client_state());
     wsrep::scoped_client_state<wsrep::client_deleter> sr_client_state_scope(
-        client_state_.server_state().local_client_state(),
-        wsrep::client_deleter(client_state_.server_state()));
+        server_service_.local_client_state(),
+        wsrep::client_deleter(server_service_));
     wsrep::client_state& sr_client_state(
         sr_client_state_scope.client_state());
     wsrep::client_state_switch client_state_switch(
@@ -928,7 +929,7 @@ void wsrep::transaction::streaming_rollback()
 {
     assert(streaming_context_.rolled_back() == false);
     wsrep::client_state* sac(
-        client_state_.server_state().streaming_applier_client_state());
+        server_service_.streaming_applier_client_state());
     client_state_.server_state().start_streaming_applier(
         client_state_.server_state().id(), id(), sac);
     sac->adopt_transaction(*this);

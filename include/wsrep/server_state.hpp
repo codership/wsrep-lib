@@ -87,7 +87,7 @@ namespace wsrep
      *
      *
      */
-    class server_state : public wsrep::server_service
+    class server_state
     {
     public:
         /**
@@ -157,6 +157,9 @@ namespace wsrep
 
 
         virtual ~server_state();
+
+
+        wsrep::server_service& server_service() { return server_service_; }
         /**
          * Return human readable server name.
          *
@@ -347,6 +350,7 @@ namespace wsrep
          */
         server_state(wsrep::mutex& mutex,
                      wsrep::condition_variable& cond,
+                     wsrep::server_service& server_service,
                      const std::string& name,
                      const std::string& id,
                      const std::string& address,
@@ -354,6 +358,7 @@ namespace wsrep
                      enum rollback_mode rollback_mode)
             : mutex_(mutex)
             , cond_(cond)
+            , server_service_(server_service)
             , state_(s_disconnected)
             , state_waiters_(n_states_)
             , streaming_appliers_()
@@ -375,6 +380,7 @@ namespace wsrep
 
         wsrep::mutex& mutex_;
         wsrep::condition_variable& cond_;
+        wsrep::server_service& server_service_;
         enum state state_;
         mutable std::vector<int> state_waiters_;
         typedef std::map<std::pair<wsrep::id, wsrep::transaction_id>, wsrep::client_state*> streaming_appliers_map;
@@ -391,15 +397,15 @@ namespace wsrep
     class client_deleter
     {
     public:
-        client_deleter(wsrep::server_state& server_state)
-            : server_state_(server_state)
+        client_deleter(wsrep::server_service& server_service)
+            : server_service_(server_service)
         { }
         void operator()(wsrep::client_state* client_state)
         {
-            server_state_.release_client_state(client_state);
+            server_service_.release_client_state(client_state);
         }
     private:
-        wsrep::server_state& server_state_;
+        wsrep::server_service& server_service_;
     };
 
     static inline std::string to_string(enum wsrep::server_state::state state)

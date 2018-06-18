@@ -2,12 +2,18 @@
 // Copyright (C) 2018 Codership Oy <info@codership.com>
 //
 
+
 /** @file server_service.hpp
  *
  * An abstract interface for a DBMS server services.
  * The interface will define methods which will be called from
  * the wsrep-lib.
  */
+
+#ifndef WSREP_SERVER_SERVICE_HPP
+#define WSREP_SERVER_SERVICE_HPP
+
+#include <string>
 
 namespace wsrep
 {
@@ -99,3 +105,5 @@ namespace wsrep
 
     };
 }
+
+#endif // WSREP_SERVER_SERVICE_HPP

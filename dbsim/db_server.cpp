@@ -3,6 +3,7 @@
 //
 
 #include "db_server.hpp"
+#include "db_server_service.hpp"
 #include "db_client.hpp"
 #include "db_simulator.hpp"
 
@@ -16,7 +17,9 @@ db::server::server(simulator& simulator,
     , storage_engine_(simulator_.params())
     , mutex_()
     , cond_()
-    , server_state_(*this, name, server_id, address, "dbsim_" + name + "_data")
+    , server_service_(*this)
+    , server_state_(*this, server_service_,
+                    name, server_id, address, "dbsim_" + name + "_data")
     , last_client_id_(0)
     , last_transaction_id_(0)
     , appliers_()

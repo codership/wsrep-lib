@@ -13,13 +13,15 @@
 
 namespace wsrep
 {
-    class mock_server_state : public wsrep::server_state
+    class mock_server_state
+        : public wsrep::server_state
+        , public wsrep::server_service
     {
     public:
         mock_server_state(const std::string& name,
                             const std::string& id,
                             enum wsrep::server_state::rollback_mode rollback_mode)
-            : wsrep::server_state(mutex_, cond_,
+            : wsrep::server_state(mutex_, cond_, *this,
                                     name, id, "", "./", rollback_mode)
             , mutex_()
             , cond_()

@@ -173,7 +173,7 @@ int wsrep::server_state::on_apply(
         assert(not_replaying);
         assert(find_streaming_applier(
                    ws_meta.server_id(), ws_meta.transaction_id()) == 0);
-        wsrep::client_state* sac(streaming_applier_client_state());
+        wsrep::client_state* sac(server_service_.streaming_applier_client_state());
         start_streaming_applier(
             ws_meta.server_id(), ws_meta.transaction_id(), sac);
         sac->start_transaction(ws_handle, ws_meta);
@@ -191,7 +191,7 @@ int wsrep::server_state::on_apply(
             sac->after_command_before_result();
             sac->after_command_after_result();
         }
-        log_dummy_write_set(client_state, ws_meta);
+        server_service_.log_dummy_write_set(client_state, ws_meta);
     }
     else if (ws_meta.flags() == 0)
     {
@@ -219,7 +219,7 @@ int wsrep::server_state::on_apply(
             sac->after_command_before_result();
             sac->after_command_after_result();
         }
-        log_dummy_write_set(client_state, ws_meta);
+        server_service_.log_dummy_write_set(client_state, ws_meta);
     }
     else if (commits_transaction(ws_meta.flags()))
     {
@@ -251,7 +251,7 @@ int wsrep::server_state::on_apply(
                 sac->after_command_after_result();
                 stop_streaming_applier(
                     ws_meta.server_id(), ws_meta.transaction_id());
-                release_client_state(sac);
+                server_service_.release_client_state(sac);
             }
         }
         else
@@ -272,16 +272,6 @@ int wsrep::server_state::on_apply(
     }
     return ret;
 }
-
-#if 0
-bool wsrep::server_state::statement_allowed_for_streaming(
-    const wsrep::client_state&,
-    const wsrep::transaction&) const
-{
-    /* Streaming not implemented yet. */
-    return false;
-}
-#endif
 
 void wsrep::server_state::start_streaming_applier(
     const wsrep::id& server_id,

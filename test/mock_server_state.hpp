@@ -24,21 +24,20 @@ namespace wsrep
             , mutex_()
             , cond_()
             , provider_(*this)
-            , client_service_(provider_)
             , last_client_id_(0)
         { }
         wsrep::mock_provider& provider() const
         { return provider_; }
         wsrep::client_state* local_client_state()
         {
-            return new wsrep::mock_client_state(
-                *this, client_service_, ++last_client_id_,
+            return new wsrep::mock_client(
+                *this, ++last_client_id_,
                 wsrep::client_state::m_local);
         }
         wsrep::client_state* streaming_applier_client_state()
         {
-            return new wsrep::mock_client_state(
-                *this, client_service_, ++last_client_id_,
+            return new wsrep::mock_client(
+                *this, ++last_client_id_,
                 wsrep::client_state::m_high_priority);
         }
         void release_client_state(wsrep::client_state* client_state)
@@ -66,18 +65,10 @@ namespace wsrep
             client_state.before_rollback();
             client_state.after_rollback();
         }
-        // void sst_received(const wsrep_gtid_t&, int) WSREP_OVERRIDE { }
-        // void on_apply(wsrep::transaction&) { }
-        // void on_commit(wsrep::transaction&) { }
-        wsrep::mock_client_service& client_service()
-        {
-            return client_service_;
-        }
     private:
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;
         mutable wsrep::mock_provider provider_;
-        wsrep::mock_client_service client_service_;
         unsigned long long last_client_id_;
     };
 }

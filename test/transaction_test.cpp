@@ -43,7 +43,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_append_key_data,
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_1pc, T,
                                  replicating_fixtures, T)
 {
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
     // Start a new transaction with ID 1
     cc.start_transaction(1);
@@ -85,7 +85,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_1pc, T,
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_rollback, T,
                                  replicating_fixtures, T)
 {
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -117,7 +117,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_before_before_commit, T,
     replicating_fixtures, T)
 {
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -159,7 +159,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     replicating_fixtures, T)
 {
     wsrep::mock_server_state& sc(T::sc);
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -198,8 +198,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_during_commit_wait_for_replayers, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_state& sc(T::sc);
-    wsrep::mock_client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -208,7 +207,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
 
-    sc.client_service().bf_abort_during_wait_ = true;
+    cc.bf_abort_during_wait_ = true;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -237,8 +236,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_error_during_prepare_data, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_state& sc(T::sc);
-    wsrep::mock_client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -247,7 +245,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
 
-    sc.client_service().error_during_prepare_data_ = true;
+    cc.error_during_prepare_data_ = true;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -277,8 +275,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_killed_before_certify, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_state& sc(T::sc);
-    wsrep::mock_client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -287,7 +284,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
 
-    sc.client_service().killed_before_certify_ = true;
+    cc.killed_before_certify_ = true;
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -360,7 +357,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     replicating_fixtures, T)
 {
     wsrep::mock_server_state& sc(T::sc);
-    wsrep::mock_client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -389,7 +386,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.ordered() == false);
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
-    BOOST_REQUIRE(sc.client_service().replays() == 1);
+    BOOST_REQUIRE(cc.replays() == 1);
 }
 
 //
@@ -403,15 +400,15 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     replicating_fixtures, T)
 {
     wsrep::mock_server_state& sc(T::sc);
-    wsrep::mock_client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     cc.start_transaction(1);
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
-    sc.client_service().sync_point_enabled_ = "wsrep_before_certification";
-    sc.client_service().sync_point_action_ = wsrep::mock_client_service::spa_bf_abort_unordered;
+    cc.sync_point_enabled_ = "wsrep_before_certification";
+    cc.sync_point_action_ = wsrep::mock_client_service::spa_bf_abort_unordered;
     sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_cert_failed);
@@ -436,7 +433,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     replicating_fixtures, T)
 {
     wsrep::mock_server_state& sc(T::sc);
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -477,7 +474,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     replicating_fixtures, T)
 {
     wsrep::mock_server_state& sc(T::sc);
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -518,7 +515,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     replicating_fixtures, T)
 {
     wsrep::mock_server_state& sc(T::sc);
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -559,7 +556,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     replicating_fixtures, T)
 {
     wsrep::mock_server_state& sc(T::sc);
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -600,7 +597,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     replicating_fixtures, T)
 {
     wsrep::mock_server_state& sc(T::sc);
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -641,7 +638,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     replicating_fixtures, T)
 {
     wsrep::mock_server_state& sc(T::sc);
-    wsrep::mock_client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -672,7 +669,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.ordered() == false);
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_error_during_commit);
-    BOOST_REQUIRE(sc.client_service().aborts() == 1);
+    BOOST_REQUIRE(cc.aborts() == 1);
 }
 
 //
@@ -683,7 +680,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     replicating_fixtures, T)
 {
     wsrep::mock_server_state& sc(T::sc);
-    wsrep::mock_client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -724,8 +721,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_abort_before_certify_regain_lock, T,
     replicating_fixtures, T)
 {
-    wsrep::mock_server_state& sc(T::sc);
-    wsrep::mock_client_state& cc(T::cc);
+    wsrep::mock_client& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -734,8 +730,8 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
 
-    sc.client_service().sync_point_enabled_ = "wsrep_after_certification";
-    sc.client_service().sync_point_action_ = wsrep::mock_client_service::spa_bf_abort_ordered;
+    cc.sync_point_enabled_ = "wsrep_after_certification";
+    cc.sync_point_action_ = wsrep::mock_client_service::spa_bf_abort_ordered;
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
@@ -750,7 +746,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
 
     // Cleanup after statement
     cc.after_statement();
-    BOOST_REQUIRE(sc.client_service().replays() == 1);
+    BOOST_REQUIRE(cc.replays() == 1);
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(tc.ordered() == false);
     BOOST_REQUIRE(tc.certified() == false);
@@ -1129,7 +1125,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_byte_streaming_1pc_commit,
                         streaming_client_fixture_byte)
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
-    sc.client_service().bytes_generated_ = 1;
+    cc.bytes_generated_ = 1;
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_commit() == 0);
@@ -1148,10 +1144,10 @@ BOOST_FIXTURE_TEST_CASE(transaction_byte_batch_streaming_1pc_commit,
         cc.enable_streaming(
             wsrep::streaming_context::bytes, 2) == 0);
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
-    sc.client_service().bytes_generated_ = 1;
+    cc.bytes_generated_ = 1;
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
-    sc.client_service().bytes_generated_ = 2;
+    cc.bytes_generated_ = 2;
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_commit() == 0);

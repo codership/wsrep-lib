@@ -709,7 +709,7 @@ int wsrep::transaction::certify_fragment(
     lock.unlock();
 
     wsrep::mutable_buffer data;
-    if (client_state_.prepare_fragment_for_replication(*this, data))
+    if (client_state_.prepare_fragment_for_replication(data))
     {
         lock.lock();
         state(lock, s_must_abort);
@@ -807,7 +807,7 @@ int wsrep::transaction::certify_commit(
 
     lock.unlock();
 
-    if (client_state_.prepare_data_for_replication(*this))
+    if (client_state_.prepare_data_for_replication())
     {
         // Note: Error must be set by prepare_data_for_replication()
         lock.lock();

@@ -46,7 +46,7 @@ namespace db
             client_state_.store_globals();
         }
 
-        int prepare_data_for_replication(wsrep::client_state&, const wsrep::transaction&) override
+        int prepare_data_for_replication() override
         {
             return 0;
         }
@@ -56,30 +56,25 @@ namespace db
             return 0;
         }
 
-        int prepare_fragment_for_replication(wsrep::client_state&,
-                                             const wsrep::transaction&,
-                                             wsrep::mutable_buffer&) override
+        int prepare_fragment_for_replication(wsrep::mutable_buffer&) override
         {
             return 0;
         }
 
-        void remove_fragments(const wsrep::transaction&) override
+        void remove_fragments() override
         { }
 
-        int apply(wsrep::client_state&, const wsrep::const_buffer&) override;
+        int apply(const wsrep::const_buffer&) override;
 
-        int commit(wsrep::client_state&,
-                   const wsrep::ws_handle&, const wsrep::ws_meta&) override;
+        int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
 
-        int rollback(wsrep::client_state&) override;
+        int rollback() override;
 
-        void will_replay(const wsrep::transaction&) override
+        void will_replay() override
         { }
 
-        void wait_for_replayers(wsrep::client_state&,
-                                wsrep::unique_lock<wsrep::mutex>&) override { }
-        enum wsrep::provider::status replay(wsrep::client_state&,
-                                            wsrep::transaction&)
+        void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) override { }
+        enum wsrep::provider::status replay()
             override;
 
         int append_fragment(const wsrep::transaction&, int,
@@ -89,7 +84,7 @@ namespace db
         }
 
         void emergency_shutdown() { ::abort(); }
-        void debug_sync(wsrep::client_state&, const char*) override { }
+        void debug_sync(const char*) override { }
         void debug_crash(const char*) override { }
     private:
         db::client_state& client_state_;

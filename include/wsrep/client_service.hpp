@@ -22,7 +22,6 @@
 namespace wsrep
 {
     class transaction;
-    class client_state;
     class client_service
     {
     public:
@@ -60,15 +59,14 @@ namespace wsrep
         /**
          * Set up a data for replication.
          */
-        virtual int prepare_data_for_replication(wsrep::client_state&, const wsrep::transaction&) = 0;
+        virtual int prepare_data_for_replication() = 0;
 
         //
         // Streaming
         //
         virtual size_t bytes_generated() const = 0;
-        virtual int prepare_fragment_for_replication(
-            wsrep::client_state&, const wsrep::transaction&, wsrep::mutable_buffer&) = 0;
-        virtual void remove_fragments(const wsrep::transaction&) = 0;
+        virtual int prepare_fragment_for_replication(wsrep::mutable_buffer&) = 0;
+        virtual void remove_fragments() = 0;
 
         //
         // Applying interface
@@ -77,17 +75,17 @@ namespace wsrep
         /**
          * Apply a write set.
          */
-        virtual int apply(wsrep::client_state&, const wsrep::const_buffer&) = 0;
+        virtual int apply(const wsrep::const_buffer&) = 0;
 
         /**
          * Commit transaction.
          */
-        virtual int commit(wsrep::client_state&, const wsrep::ws_handle&, const wsrep::ws_meta&) = 0;
+        virtual int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) = 0;
 
         /**
          * Roll back transaction.
          */
-        virtual int rollback(wsrep::client_state&) = 0;
+        virtual int rollback() = 0;
 
         //
         // Interface to global server state
@@ -109,7 +107,7 @@ namespace wsrep
          * @todo This should not be visible to DBMS level, should be
          * handled internally by wsrep-lib.
          */
-        virtual void will_replay(const wsrep::transaction&) = 0;
+        virtual void will_replay() = 0;
 
         /**
          * Replay the current transaction. The implementation must put
@@ -119,9 +117,7 @@ namespace wsrep
          * @todo This should not be visible to DBMS level, should be
          * handled internally by wsrep-lib.
          */
-        virtual enum wsrep::provider::status replay(
-            wsrep::client_state&,
-            wsrep::transaction&) = 0;
+        virtual enum wsrep::provider::status replay() = 0;
 
         /**
          * Wait until all replaying transactions have been finished
@@ -130,7 +126,7 @@ namespace wsrep
          * @todo This should not be visible to DBMS level, should be
          * handled internally by wsrep-lib.
          */
-        virtual void wait_for_replayers(wsrep::client_state&, wsrep::unique_lock<wsrep::mutex>&) = 0;
+        virtual void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) = 0;
 
         // Streaming replication
         /**
@@ -146,7 +142,7 @@ namespace wsrep
          *
          * @params sync_point Name of the debug sync point.
          */
-        virtual void debug_sync(wsrep::client_state&, const char* sync_point) = 0;
+        virtual void debug_sync(const char* sync_point) = 0;
 
         /**
          * Forcefully kill the process if the crash_point has

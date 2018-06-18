@@ -242,9 +242,9 @@ namespace wsrep
             return transaction_.append_data(data);
         }
 
-        int prepare_data_for_replication(const wsrep::transaction& tc)
+        int prepare_data_for_replication()
         {
-            return client_service_.prepare_data_for_replication(*this, tc);
+            return client_service_.prepare_data_for_replication();
         }
         /** @} */
 
@@ -286,12 +286,9 @@ namespace wsrep
         }
 
         /** @todo deprecate */
-        int prepare_fragment_for_replication(
-            const wsrep::transaction& tc,
-            wsrep::mutable_buffer& mb)
+        int prepare_fragment_for_replication(wsrep::mutable_buffer& mb)
         {
-            return client_service_.prepare_fragment_for_replication(
-                *this, tc, mb);
+            return client_service_.prepare_fragment_for_replication(mb);
         }
 
         /** @todo deprecate */
@@ -310,7 +307,7 @@ namespace wsrep
          */
         void remove_fragments()
         {
-            client_service_.remove_fragments(transaction_);
+            client_service_.remove_fragments();
         }
         /** @} */
 
@@ -323,17 +320,17 @@ namespace wsrep
             return transaction_.start_transaction(wsh, meta);
         }
 
+        /** @todo deprecate */
         int apply(const wsrep::const_buffer& data)
         {
             assert(mode_ == m_high_priority);
-            return client_service_.apply(*this, data);
+            return client_service_.apply(data);
         }
 
         int commit()
         {
             assert(mode_ == m_high_priority || mode_ == m_local);
             return client_service_.commit(
-                *this,
                 transaction_.ws_handle(), transaction_.ws_meta());
         }
         /** @} */
@@ -377,7 +374,7 @@ namespace wsrep
         /** @{ */
         int rollback()
         {
-            return client_service_.rollback(*this);
+            return client_service_.rollback();
         }
 
         int before_rollback()
@@ -419,23 +416,25 @@ namespace wsrep
             transaction_.streaming_context_ = transaction.streaming_context_;
         }
 
+        /** @todo deprecate */
         enum wsrep::provider::status replay(
-            wsrep::transaction& tc)
+            wsrep::transaction&)
         {
-            return client_service_.replay(*this, tc);
+            return client_service_.replay();
         }
 
         //
         //
         //
-        void will_replay(const wsrep::transaction& tc)
+        void will_replay(const wsrep::transaction&)
         {
-            client_service_.will_replay(tc);
+            client_service_.will_replay();
         }
 
+        /** @todo deprecate */
         void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>& lock)
         {
-            client_service_.wait_for_replayers(*this, lock);
+            client_service_.wait_for_replayers(lock);
         }
 
         bool interrupted() const
@@ -503,7 +502,7 @@ namespace wsrep
         //
         void debug_sync(const char* sync_point)
         {
-            client_service_.debug_sync(*this, sync_point);
+            client_service_.debug_sync(sync_point);
         }
 
         void debug_crash(const char* crash_point)

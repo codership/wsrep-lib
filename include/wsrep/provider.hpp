@@ -268,7 +268,7 @@ namespace wsrep
          * @return Zero in case of success, non-zero on failure.
          */
         virtual enum status replay(
-            wsrep::ws_handle& ws_handle, void* applier_ctx) = 0;
+            const wsrep::ws_handle& ws_handle, void* applier_ctx) = 0;
 
         virtual int sst_sent(const wsrep::gtid&, int) = 0;
         virtual int sst_received(const wsrep::gtid&, int) = 0;

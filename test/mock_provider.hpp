@@ -152,7 +152,8 @@ namespace wsrep
             return release_result_;
         }
 
-        enum wsrep::provider::status replay(wsrep::ws_handle&, void* ctx)
+        enum wsrep::provider::status replay(const wsrep::ws_handle&,
+                                            void* ctx)
         {
             wsrep::client_state& cc(
                 *static_cast<wsrep::client_state*>(ctx));

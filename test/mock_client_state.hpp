@@ -89,8 +89,7 @@ namespace wsrep
         replay() WSREP_OVERRIDE
         {
             enum wsrep::provider::status ret(
-                provider_.replay(const_cast<wsrep::ws_handle&>(
-                                     client_state_.transaction().ws_handle()),
+                provider_.replay(client_state_.transaction().ws_handle(),
                                  &client_state_));
             ++replays_;
             return ret;

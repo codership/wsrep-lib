@@ -600,10 +600,10 @@ int wsrep::wsrep_provider_v26::release(wsrep::ws_handle& ws_handle)
 }
 
 enum wsrep::provider::status
-wsrep::wsrep_provider_v26::replay(wsrep::ws_handle& ws_handle,
+wsrep::wsrep_provider_v26::replay(const wsrep::ws_handle& ws_handle,
                                   void* applier_ctx)
 {
-    mutable_ws_handle mwsh(ws_handle);
+    const_ws_handle mwsh(ws_handle);
     return map_return_value(
         wsrep_->replay_trx(wsrep_, mwsh.native(), applier_ctx));
 }

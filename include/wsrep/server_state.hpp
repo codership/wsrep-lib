@@ -64,6 +64,8 @@
 #include "mutex.hpp"
 #include "condition_variable.hpp"
 #include "server_service.hpp"
+#include "id.hpp"
+#include "transaction_id.hpp"
 
 #include <vector>
 #include <string>
@@ -76,9 +78,7 @@ namespace wsrep
     class ws_meta;
     class provider;
     class client_state;
-    class transaction_id;
     class transaction;
-    class id;
     class gtid;
     class view;
     class const_buffer;

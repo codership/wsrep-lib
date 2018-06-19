@@ -129,6 +129,7 @@ namespace wsrep
         transaction(const transaction&);
         transaction operator=(const transaction&);
 
+        wsrep::provider& provider();
         void flags(int flags) { flags_ = flags; }
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
@@ -137,7 +138,6 @@ namespace wsrep
         void cleanup();
         void debug_log_state(const char*) const;
 
-        wsrep::provider& provider_;
         wsrep::server_service& server_service_;
         wsrep::client_service& client_service_;
         wsrep::client_state& client_state_;

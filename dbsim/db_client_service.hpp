@@ -15,9 +15,8 @@ namespace db
     class client_service : public wsrep::client_service
     {
     public:
-        client_service(wsrep::provider& provider,
-                       db::client_state& client_state)
-            : wsrep::client_service(provider)
+        client_service(db::client_state& client_state)
+            : wsrep::client_service()
             , client_state_(client_state)
         { }
 

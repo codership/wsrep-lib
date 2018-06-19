@@ -27,8 +27,8 @@ namespace wsrep
     class client_service : public wsrep::transaction_termination_service
     {
     public:
-        client_service(wsrep::provider& provider)
-            : provider_(provider) { }
+        client_service() { }
+
         /**
          *
          */
@@ -145,9 +145,6 @@ namespace wsrep
          * been enabled.
          */
         virtual void debug_crash(const char* crash_point) = 0;
-
-    protected:
-        wsrep::provider& provider_;
     };
 
     /**

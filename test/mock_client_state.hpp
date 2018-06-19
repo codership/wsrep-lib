@@ -43,7 +43,7 @@ namespace wsrep
     {
     public:
         mock_client_service(wsrep::mock_client_state& client_state)
-            : wsrep::client_service(client_state.provider())
+            : wsrep::client_service()
             , is_autocommit_()
             , do_2pc_()
             , fail_next_applying_()
@@ -89,8 +89,9 @@ namespace wsrep
         replay() WSREP_OVERRIDE
         {
             enum wsrep::provider::status ret(
-                provider_.replay(client_state_.transaction().ws_handle(),
-                                 &client_state_));
+                client_state_.provider().replay(
+                    client_state_.transaction().ws_handle(),
+                    &client_state_));
             ++replays_;
             return ret;
         }

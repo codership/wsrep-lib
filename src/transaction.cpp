@@ -23,8 +23,7 @@
 
 wsrep::transaction::transaction(
     wsrep::client_state& client_state)
-    : provider_(client_state.provider())
-    , server_service_(client_state.server_state().server_service())
+    : server_service_(client_state.server_state().server_service())
     , client_service_(client_state.client_service())
     , client_state_(client_state)
     , id_(transaction_id::invalid())
@@ -60,7 +59,7 @@ int wsrep::transaction::start_transaction(
     case wsrep::client_state::m_high_priority:
         return 0;
     case wsrep::client_state::m_replicating:
-        return provider_.start_transaction(ws_handle_);
+        return provider().start_transaction(ws_handle_);
     default:
         assert(0);
         return 1;
@@ -98,13 +97,13 @@ int wsrep::transaction::start_replaying(const wsrep::ws_meta& ws_meta)
 int wsrep::transaction::append_key(const wsrep::key& key)
 {
     /** @todo Collect table level keys for SR commit */
-    return provider_.append_key(ws_handle_, key);
+    return provider().append_key(ws_handle_, key);
 }
 
 int wsrep::transaction::append_data(const wsrep::const_buffer& data)
 {
 
-    return provider_.append_data(ws_handle_, data);
+    return provider().append_data(ws_handle_, data);
 }
 
 int wsrep::transaction::after_row()
@@ -252,7 +251,7 @@ int wsrep::transaction::before_commit()
     case wsrep::client_state::m_local:
         if (ordered())
         {
-            ret = provider_.commit_order_enter(ws_handle_, ws_meta_);
+            ret = provider().commit_order_enter(ws_handle_, ws_meta_);
         }
         break;
     case wsrep::client_state::m_replicating:
@@ -289,7 +288,7 @@ int wsrep::transaction::before_commit()
             assert(ordered());
             lock.unlock();
             enum wsrep::provider::status
-                status(provider_.commit_order_enter(ws_handle_, ws_meta_));
+                status(provider().commit_order_enter(ws_handle_, ws_meta_));
             lock.lock();
             switch (status)
             {
@@ -321,7 +320,7 @@ int wsrep::transaction::before_commit()
         {
             ret = 0;
         }
-        ret = ret || provider_.commit_order_enter(ws_handle_, ws_meta_);
+        ret = ret || provider().commit_order_enter(ws_handle_, ws_meta_);
         if (ret)
         {
             state(lock, s_must_abort);
@@ -341,7 +340,7 @@ int wsrep::transaction::ordered_commit()
     debug_log_state("ordered_commit_enter");
     assert(state() == s_committing);
     assert(ordered());
-    int ret(provider_.commit_order_leave(ws_handle_, ws_meta_));
+    int ret(provider().commit_order_leave(ws_handle_, ws_meta_));
     // Should always succeed
     assert(ret == 0);
     state(lock, s_ordered_commit);
@@ -370,7 +369,7 @@ int wsrep::transaction::after_commit()
         // Nothing to do
         break;
     case wsrep::client_state::m_replicating:
-        ret = provider_.release(ws_handle_);
+        ret = provider().release(ws_handle_);
         break;
     case wsrep::client_state::m_high_priority:
         break;
@@ -428,7 +427,7 @@ int wsrep::transaction::before_rollback()
     case s_aborting:
         if (is_streaming())
         {
-            provider_.rollback(id_.get());
+            provider().rollback(id_.get());
         }
         break;
     case s_must_replay:
@@ -515,7 +514,7 @@ int wsrep::transaction::after_statement()
         switch (replay_ret)
         {
         case wsrep::provider::success:
-            provider_.release(ws_handle_);
+            provider().release(ws_handle_);
             break;
         case wsrep::provider::error_certification_failed:
             client_state_.override_error(
@@ -550,10 +549,10 @@ int wsrep::transaction::after_statement()
     {
         if (ordered())
         {
-            ret = provider_.commit_order_enter(ws_handle_, ws_meta_);
-            if (ret == 0) provider_.commit_order_leave(ws_handle_, ws_meta_);
+            ret = provider().commit_order_enter(ws_handle_, ws_meta_);
+            if (ret == 0) provider().commit_order_leave(ws_handle_, ws_meta_);
         }
-        provider_.release(ws_handle_);
+        provider().release(ws_handle_);
     }
 
     if (state() != s_executing)
@@ -646,6 +645,11 @@ bool wsrep::transaction::bf_abort(
 ////////////////////////////////////////////////////////////////////////////////
 //                                 Private                                    //
 ////////////////////////////////////////////////////////////////////////////////
+
+inline wsrep::provider& wsrep::transaction::provider()
+{
+    return client_state_.server_state().provider();
+}
 
 void wsrep::transaction::state(
     wsrep::unique_lock<wsrep::mutex>& lock __attribute__((unused)),
@@ -745,7 +749,7 @@ int wsrep::transaction::certify_fragment(
     }
 
     enum wsrep::provider::status
-        cert_ret(provider_.certify(client_state_.id().get(),
+        cert_ret(provider().certify(client_state_.id().get(),
                                    sr_transaction.ws_handle_,
                                    flags_,
                                    sr_transaction.ws_meta_));
@@ -826,7 +830,7 @@ int wsrep::transaction::certify_commit(
 
     client_service_.debug_sync("wsrep_before_certification");
     enum wsrep::provider::status
-        cert_ret(provider_.certify(client_state_.id().get(),
+        cert_ret(provider().certify(client_state_.id().get(),
                                    ws_handle_,
                                    flags(),
                                    ws_meta_));
@@ -935,7 +939,7 @@ void wsrep::transaction::streaming_rollback()
     sac->adopt_transaction(*this);
     streaming_context_.cleanup();
     // Replicate rollback fragment
-    provider_.rollback(id_.get());
+    provider().rollback(id_.get());
 }
 
 void wsrep::transaction::clear_fragments()

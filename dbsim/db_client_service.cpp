@@ -38,8 +38,9 @@ enum wsrep::provider::status
 db::client_service::replay()
 {
     wsrep::high_priority_context high_priority_context(client_state_);
-    auto ret(provider_.replay(client_state_.transaction().ws_handle(),
-                              &client_state_));
+    auto ret(client_state_.provider().replay(
+                 client_state_.transaction().ws_handle(),
+                 &client_state_));
     if (ret == wsrep::provider::success)
     {
         ++client_state_.client()->stats_.replays;

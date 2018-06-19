@@ -276,6 +276,11 @@ namespace wsrep
         virtual std::vector<status_variable> status() const = 0;
 
         /**
+         * Return pointer to native provider handle.
+         */
+        virtual void* native() const = 0;
+
+        /**
          * Create a new provider.
          *
          * @param provider_spec Provider specification

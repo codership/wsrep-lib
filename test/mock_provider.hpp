@@ -199,8 +199,11 @@ namespace wsrep
         {
             return std::vector<status_variable>();
         }
+        void* native() const { return 0; }
 
+        //
         // Methods to modify mock state
+        //
         /** Inject BF abort event into the provider.
          *
          * @param bf_seqno Aborter sequence number

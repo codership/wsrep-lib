@@ -673,3 +673,8 @@ wsrep::wsrep_provider_v26::status() const
     }
     return ret;
 }
+
+void* wsrep::wsrep_provider_v26::native() const
+{
+    return wsrep_;
+}

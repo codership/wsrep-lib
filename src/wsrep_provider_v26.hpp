@@ -46,6 +46,7 @@ namespace wsrep
         int sst_received(const wsrep::gtid& gtid, int);
 
         std::vector<status_variable> status() const;
+        void* native() const;
     private:
         wsrep_provider_v26(const wsrep_provider_v26&);
         wsrep_provider_v26& operator=(const wsrep_provider_v26);

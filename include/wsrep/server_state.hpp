@@ -316,6 +316,7 @@ namespace wsrep
                      const wsrep::ws_meta& ws_meta,
                      const wsrep::const_buffer& data);
 
+        enum state state() const { return state_; }
         /**
          * Set server wide wsrep debug logging level.
          *

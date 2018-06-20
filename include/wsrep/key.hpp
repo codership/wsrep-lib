@@ -57,6 +57,9 @@ namespace wsrep
         wsrep::const_buffer key_parts_[3];
         size_t key_parts_len_;
     };
+
+    typedef std::vector<wsrep::key> key_array;
+
 }
 
 #endif // WSREP_KEY_HPP

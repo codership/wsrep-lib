@@ -43,6 +43,11 @@ namespace wsrep
                     bool)
         { return 0; }
         int disconnect() { return 0; }
+        int capabilities() const { return 0; }
+        int desync() { return 0; }
+        int resync() { return 0; }
+        int pause() { return 0; }
+        int resume() { return 0; }
         enum wsrep::provider::status run_applier(void*)
         {
             return wsrep::provider::success;
@@ -121,8 +126,9 @@ namespace wsrep
 
         int append_key(wsrep::ws_handle&, const wsrep::key&)
         { return 0; }
-        int append_data(wsrep::ws_handle&, const wsrep::const_buffer&)
-        { return 0; }
+        enum wsrep::provider::status
+        append_data(wsrep::ws_handle&, const wsrep::const_buffer&)
+        { return wsrep::provider::success; }
         int rollback(const wsrep::transaction_id)
         {
             ++fragments_;
@@ -199,6 +205,9 @@ namespace wsrep
         {
             return std::vector<status_variable>();
         }
+        void reset_status() { }
+        std::string options() const { return ""; }
+        void options(const std::string&) { }
         void* native() const { return 0; }
 
         //

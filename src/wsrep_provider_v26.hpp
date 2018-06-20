@@ -21,11 +21,18 @@ namespace wsrep
         int connect(const std::string&, const std::string&, const std::string&,
                     bool);
         int disconnect();
+        int capabilities() const;
+
+        int desync();
+        int resync();
+        int pause();
+        int resume();
 
         enum wsrep::provider::status run_applier(void*);
         int start_transaction(wsrep::ws_handle&) { return 0; }
         int append_key(wsrep::ws_handle&, const wsrep::key&);
-        int append_data(wsrep::ws_handle&, const wsrep::const_buffer&);
+        enum wsrep::provider::status
+        append_data(wsrep::ws_handle&, const wsrep::const_buffer&);
         enum wsrep::provider::status
         certify(wsrep::client_id, wsrep::ws_handle&,
                 int,
@@ -46,6 +53,9 @@ namespace wsrep
         int sst_received(const wsrep::gtid& gtid, int);
 
         std::vector<status_variable> status() const;
+        void reset_status();
+        std::string options() const;
+        void options(const std::string&);
         void* native() const;
     private:
         wsrep_provider_v26(const wsrep_provider_v26&);

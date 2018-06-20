@@ -155,7 +155,7 @@ namespace wsrep
         wsrep::streaming_context streaming_context_;
     };
 
-    static inline std::string to_string(enum wsrep::transaction::state state)
+    static inline const char* to_c_string(enum wsrep::transaction::state state)
     {
         switch (state)
         {
@@ -173,6 +173,10 @@ namespace wsrep
         case wsrep::transaction::s_replaying: return "replaying";
         }
         return "unknown";
+    }
+    static inline std::string to_string(enum wsrep::transaction::state state)
+    {
+        return to_c_string(state);
     }
 
 }

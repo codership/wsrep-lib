@@ -506,6 +506,30 @@ int wsrep::wsrep_provider_v26::disconnect()
     return ret;
 }
 
+int wsrep::wsrep_provider_v26::capabilities() const
+{
+    return wsrep_->capabilities(wsrep_);
+}
+int wsrep::wsrep_provider_v26::desync()
+{
+    return (wsrep_->desync(wsrep_) != WSREP_OK);
+}
+
+int wsrep::wsrep_provider_v26::resync()
+{
+    return (wsrep_->resync(wsrep_) != WSREP_OK);
+}
+
+int wsrep::wsrep_provider_v26::pause()
+{
+    return (wsrep_->pause(wsrep_) != WSREP_OK);
+}
+
+int wsrep::wsrep_provider_v26::resume()
+{
+    return (wsrep_->resume(wsrep_) != WSREP_OK);
+}
+
 enum wsrep::provider::status
 wsrep::wsrep_provider_v26::run_applier(void *applier_ctx)
 {
@@ -534,14 +558,15 @@ int wsrep::wsrep_provider_v26::append_key(wsrep::ws_handle& ws_handle,
             != WSREP_OK);
 }
 
-int wsrep::wsrep_provider_v26::append_data(wsrep::ws_handle& ws_handle,
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::append_data(wsrep::ws_handle& ws_handle,
                                            const wsrep::const_buffer& data)
 {
     const wsrep_buf_t wsrep_buf = {data.data(), data.size()};
     mutable_ws_handle mwsh(ws_handle);
-    return (wsrep_->append_data(wsrep_, mwsh.native(), &wsrep_buf,
-                                1, WSREP_DATA_ORDERED, true)
-            != WSREP_OK);
+    return map_return_value(
+        wsrep_->append_data(wsrep_, mwsh.native(), &wsrep_buf,
+                            1, WSREP_DATA_ORDERED, true));
 }
 
 enum wsrep::provider::status
@@ -672,6 +697,35 @@ wsrep::wsrep_provider_v26::status() const
         wsrep_->stats_free(wsrep_, stats);
     }
     return ret;
+}
+
+void wsrep::wsrep_provider_v26::reset_status()
+{
+    wsrep_->stats_reset(wsrep_);
+}
+
+std::string wsrep::wsrep_provider_v26::options() const
+{
+    std::string ret;
+    char* opts;
+    if ((opts = wsrep_->options_get(wsrep_)))
+    {
+        ret = opts;
+        free(opts);
+    }
+    else
+    {
+        throw wsrep::runtime_error("Failed to get provider options");
+    }
+    return ret;
+}
+
+void wsrep::wsrep_provider_v26::options(const std::string& opts)
+{
+    if (wsrep_->options_set(wsrep_, opts.c_str()) != WSREP_OK)
+    {
+        throw wsrep::runtime_error("Failed to set provider options");
+    }
 }
 
 void* wsrep::wsrep_provider_v26::native() const

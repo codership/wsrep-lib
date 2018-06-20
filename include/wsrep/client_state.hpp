@@ -30,6 +30,7 @@ namespace wsrep
         e_error_during_commit,
         e_deadlock_error,
         e_interrupted_error,
+        e_size_exceeded_error,
         e_append_fragment_error
     };
 
@@ -41,6 +42,7 @@ namespace wsrep
         case e_error_during_commit:   return "error_during_commit";
         case e_deadlock_error:        return "deadlock_error";
         case e_interrupted_error:     return "interrupted_error";
+        case e_size_exceeded_error:   return "size_exceeded";
         case e_append_fragment_error: return "append_fragment_error";
         }
         return "unknown";
@@ -393,7 +395,7 @@ namespace wsrep
          * in the DBMS cluster, so it may be relatively heavy operation.
          * Method wait_for_gtid() should be used whenever possible.
          */
-        int causal_read() const;
+        enum wsrep::provider::status causal_read() const;
 
         /**
          * Wait until all the write sets up to given GTID have been
@@ -401,7 +403,7 @@ namespace wsrep
          *
          * @return Zero on success, non-zero on failure.
          */
-        int wait_for_gtid(const wsrep::gtid&) const;
+        enum wsrep::provider::status wait_for_gtid(const wsrep::gtid&) const;
 
         //
         //
@@ -413,7 +415,7 @@ namespace wsrep
         /**
          * Enter total order isolation critical section.
          */
-        int enter_toi();
+        enum wsrep::provider::status enter_toi();
 
         /**
          * Leave total order isolation critical section.
@@ -423,7 +425,7 @@ namespace wsrep
         /**
          * Begin non-blocking operation.
          */
-        int begin_nbo();
+        int begin_nbo(const wsrep::key_array&);
 
         /**
          * End non-blocking operation

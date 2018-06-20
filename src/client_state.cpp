@@ -196,7 +196,7 @@ wsrep::client_state::after_statement()
     (void)transaction_.after_statement();
     if (current_error() == wsrep::e_deadlock_error)
     {
-        if (client_service_.is_autocommit())
+        if (mode_ == m_replicating && client_service_.is_autocommit())
         {
             debug_log_state("after_statement: may_retry");
             return asr_may_retry;

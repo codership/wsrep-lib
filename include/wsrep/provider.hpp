@@ -196,7 +196,7 @@ namespace wsrep
         /**
          * Provider capabilities.
          */
-        struct capabilities
+        struct capability
         {
             static const int multi_master = (1 << 0);
             static const int certification = (1 << 1);
@@ -228,6 +228,12 @@ namespace wsrep
                             bool bootstrap) = 0;
         virtual int disconnect() = 0;
 
+        virtual int capabilities() const = 0;
+        virtual int desync() = 0;
+        virtual int resync() = 0;
+
+        virtual int pause() = 0;
+        virtual int resume() = 0;
 
         // Applier interface
         virtual enum status run_applier(void* applier_ctx) = 0;
@@ -235,7 +241,8 @@ namespace wsrep
         // TODO: Rename to assing_read_view()
         virtual int start_transaction(wsrep::ws_handle&) = 0;
         virtual int append_key(wsrep::ws_handle&, const wsrep::key&) = 0;
-        virtual int append_data(wsrep::ws_handle&, const wsrep::const_buffer&) = 0;
+        virtual enum status append_data(
+            wsrep::ws_handle&, const wsrep::const_buffer&) = 0;
         virtual enum status
         certify(wsrep::client_id, wsrep::ws_handle&,
                 int,
@@ -274,6 +281,10 @@ namespace wsrep
         virtual int sst_received(const wsrep::gtid&, int) = 0;
 
         virtual std::vector<status_variable> status() const = 0;
+        virtual void reset_status() = 0;
+
+        virtual std::string options() const = 0;
+        virtual void options(const std::string&) = 0;
 
         /**
          * Return pointer to native provider handle.

@@ -35,6 +35,7 @@ void db::server::applier_thread()
                        simulator_.params());
     wsrep::client_state* cc(static_cast<wsrep::client_state*>(
                                   &applier.client_state()));
+    cc->open(cc->id());
     enum wsrep::provider::status ret(
         server_state_.provider().run_applier(cc));
     wsrep::log_info() << "Applier thread exited with error code " << ret;

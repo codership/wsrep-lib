@@ -32,15 +32,20 @@ namespace wsrep
         { return provider_; }
         wsrep::client_state* local_client_state()
         {
-            return new wsrep::mock_client(
-                *this, ++last_client_id_,
-                wsrep::client_state::m_local);
+            wsrep::client_state* ret(new wsrep::mock_client(
+                                         *this, ++last_client_id_,
+                                         wsrep::client_state::m_local));
+            ret->open(ret->id());
+            return ret;
         }
         wsrep::client_state* streaming_applier_client_state()
         {
-            return new wsrep::mock_client(
-                *this, ++last_client_id_,
-                wsrep::client_state::m_high_priority);
+            wsrep::client_state* ret(
+                new wsrep::mock_client(
+                    *this, ++last_client_id_,
+                    wsrep::client_state::m_high_priority));
+            ret->open(ret->id());
+            return ret;
         }
 
         void release_client_state(wsrep::client_state* client_state)

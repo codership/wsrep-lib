@@ -23,11 +23,14 @@ db::client::client(db::server& server,
 
 void db::client::start()
 {
+    client_state_.open(client_state_.id());
     for (size_t i(0); i < params_.n_transactions; ++i)
     {
         run_one_transaction();
         report_progress(i + 1);
     }
+    client_state_.close();
+    client_state_.cleanup();
 }
 
 bool db::client::bf_abort(wsrep::seqno seqno)

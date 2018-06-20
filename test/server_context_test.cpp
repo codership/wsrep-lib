@@ -23,6 +23,7 @@ namespace
                       wsrep::provider::flag::start_transaction |
                       wsrep::provider::flag::commit)
         {
+            cc.open(cc.id());
         }
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;
@@ -94,6 +95,7 @@ BOOST_AUTO_TEST_CASE(server_state_streaming)
                            wsrep::stid(wsrep::id("1"), 1, 1),
                            wsrep::seqno(0),
                            wsrep::provider::flag::start_transaction);
+    cc.open(cc.id());
     BOOST_REQUIRE(sc.on_apply(cc, ws_handle, ws_meta,
                               wsrep::const_buffer("1", 1)) == 0);
     BOOST_REQUIRE(sc.find_streaming_applier(

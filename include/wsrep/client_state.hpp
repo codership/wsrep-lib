@@ -33,7 +33,7 @@ namespace wsrep
         e_append_fragment_error
     };
 
-    static inline std::string to_string(enum client_error error)
+    static inline const char* to_string(enum client_error error)
     {
         switch (error)
         {
@@ -74,6 +74,10 @@ namespace wsrep
         enum state
         {
             /**
+             * Client session has not been initialized yet.
+             */
+            s_none,
+            /**
              * Client is idle, the control is in the application which
              * uses the DBMS system.
              */
@@ -102,7 +106,7 @@ namespace wsrep
          */
         void store_globals()
         {
-            thread_id_ = wsrep::this_thread::get_id();
+            current_thread_id_ = wsrep::this_thread::get_id();
         }
 
         /**
@@ -112,6 +116,33 @@ namespace wsrep
         {
             assert(transaction_.active() == false);
         }
+
+        /** @name Client session handling */
+        /** @{ */
+        /**
+         * This method should be called when opening the client session.
+         *
+         * Initializes client id and changes the state to s_idle.
+         */
+        void open(wsrep::client_id);
+
+        /**
+         * This method should be called before closing the client session.
+         *
+         * The state is changed to s_quitting and any open transactions
+         * are rolled back.
+         */
+        void close();
+
+        /**
+         * This method should be called after closing the client session
+         * to clean up.
+         *
+         * The state is changed to s_none.
+         */
+        void cleanup();
+        /** @} */
+
         /** @name Client command handling */
         /** @{ */
         /**
@@ -306,13 +337,19 @@ namespace wsrep
         /** @} */
         int before_rollback()
         {
-            assert(state_ == s_idle || state_ == s_exec || state_ == s_result);
+            assert(state_ == s_idle ||
+                   state_ == s_exec ||
+                   state_ == s_result ||
+                   state_ == s_quitting);
             return transaction_.before_rollback();
         }
 
         int after_rollback()
         {
-            assert(state_ == s_idle || state_ == s_exec || state_ == s_result);
+            assert(state_ == s_idle ||
+                   state_ == s_exec ||
+                   state_ == s_result ||
+                   state_ == s_quitting);
             return transaction_.after_rollback();
         }
         /** @} */
@@ -513,13 +550,14 @@ namespace wsrep
                      wsrep::client_service& client_service,
                      const client_id& id,
                      enum mode mode)
-            : thread_id_(wsrep::this_thread::get_id())
+            : owning_thread_id_(wsrep::this_thread::get_id())
+            , current_thread_id_(owning_thread_id_)
             , mutex_(mutex)
             , server_state_(server_state)
             , client_service_(client_service)
             , id_(id)
             , mode_(mode)
-            , state_(s_idle)
+            , state_(s_none)
             , transaction_(*this)
             , allow_dirty_reads_()
             , debug_log_level_(0)
@@ -539,7 +577,8 @@ namespace wsrep
         void state(wsrep::unique_lock<wsrep::mutex>& lock, enum state state);
         void override_error(enum wsrep::client_error error);
 
-        wsrep::thread::id thread_id_;
+        wsrep::thread::id owning_thread_id_;
+        wsrep::thread::id current_thread_id_;
         wsrep::mutex& mutex_;
         wsrep::server_state& server_state_;
         wsrep::client_service& client_service_;
@@ -552,6 +591,18 @@ namespace wsrep
         wsrep::client_error current_error_;
     };
 
+    static inline const char* to_string(enum wsrep::client_state::state state)
+    {
+        switch (state)
+        {
+        case wsrep::client_state::s_none: return "none";
+        case wsrep::client_state::s_idle: return "idle";
+        case wsrep::client_state::s_exec: return "exec";
+        case wsrep::client_state::s_result: return "result";
+        case wsrep::client_state::s_quitting: return "quit";
+        }
+        return "unknown";
+    }
     class client_state_switch
     {
     public:

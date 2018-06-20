@@ -21,6 +21,7 @@ namespace
                  wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
+            cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
@@ -40,6 +41,7 @@ namespace
                  wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
+            cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
@@ -59,6 +61,7 @@ namespace
                  wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
+            cc.open(cc.id());
             cc.do_2pc_ = true;
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
@@ -79,6 +82,7 @@ namespace
                  wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
+            cc.open(cc.id());
             cc.is_autocommit_ = true;
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
@@ -101,6 +105,7 @@ namespace
                  wsrep::client_state::m_high_priority)
             , tc(cc.transaction())
         {
+            cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
             wsrep::ws_handle ws_handle(1, (void*)1);
@@ -129,6 +134,7 @@ namespace
                  wsrep::client_state::m_high_priority)
             , tc(cc.transaction())
         {
+            cc.open(cc.id());
             cc.do_2pc_ = true;
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
@@ -157,6 +163,7 @@ namespace
                  wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
+            cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
@@ -178,6 +185,7 @@ namespace
                  wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
+            cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state
@@ -199,6 +207,7 @@ namespace
                  wsrep::client_state::m_replicating)
             , tc(cc.transaction())
         {
+            cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
             // Verify initial state

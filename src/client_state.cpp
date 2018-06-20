@@ -15,9 +15,35 @@ wsrep::provider& wsrep::client_state::provider() const
     return server_state_.provider();
 }
 
+void wsrep::client_state::open(wsrep::client_id id)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    owning_thread_id_ = wsrep::this_thread::get_id();
+    current_thread_id_ = owning_thread_id_;
+    state(lock, s_idle);
+    id_ = id;
+}
+
+void wsrep::client_state::close()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    state(lock, s_quitting);
+    lock.unlock();
+    if (transaction_.active())
+    {
+        client_service_.rollback();
+    }
+}
+
+void wsrep::client_state::cleanup()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    state(lock, s_none);
+}
+
 void wsrep::client_state::override_error(enum wsrep::client_error error)
 {
-    assert(wsrep::this_thread::get_id() == thread_id_);
+    assert(wsrep::this_thread::get_id() == owning_thread_id_);
     if (current_error_ != wsrep::e_success &&
         error == wsrep::e_success)
     {
@@ -222,15 +248,16 @@ void wsrep::client_state::state(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
     enum wsrep::client_state::state state)
 {
-    assert(wsrep::this_thread::get_id() == thread_id_);
+    assert(wsrep::this_thread::get_id() == owning_thread_id_);
     assert(lock.owns_lock());
     static const char allowed[state_max_][state_max_] =
         {
-            /* idle exec result quit */
-            {  0,   1,   0,     1}, /* idle */
-            {  0,   0,   1,     0}, /* exec */
-            {  1,   0,   0,     1}, /* result */
-            {  0,   0,   0,     0}  /* quit */
+            /* none idle exec result quit */
+            {  0,   1,   0,   0,     0}, /* none */
+            {  0,   0,   1,   0,     1}, /* idle */
+            {  0,   0,   0,   1,     0}, /* exec */
+            {  0,   1,   0,   0,     0}, /* result */
+            {  1,   0,   0,   0,     0}  /* quit */
         };
     if (allowed[state_][state])
     {

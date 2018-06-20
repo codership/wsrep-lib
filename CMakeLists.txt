@@ -8,7 +8,7 @@ include(CheckIncludeFile)
 include(CTest)
 
 # Options
-option(WITH_AUTO_TEST "Run unit tests automatically after build" ON)
+option(WITH_AUTO_TEST "Run unit tests automatically after build" OFF)
 option(WITH_ASAN "Enable address sanitizer" OFF)
 option(WITH_TSAN "Enable thread sanitizer" OFF)
 

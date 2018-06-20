@@ -34,6 +34,7 @@ int db::client_service::rollback()
     assert(ret == 0);
     return ret;
 }
+
 enum wsrep::provider::status
 db::client_service::replay()
 {

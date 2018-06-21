@@ -60,11 +60,24 @@ namespace wsrep
         {
             return (std::memcmp(data_, other.data_, sizeof(data_)) == 0);
         }
-
+        bool operator!=(const id& other) const
+        {
+            return !(*this == other);
+        }
         const void* data() const { return data_; }
 
         size_t size() const { return sizeof(data_); }
 
+        bool is_undefined() const
+        {
+            return (*this == undefined());
+        }
+
+        static const wsrep::id& undefined()
+        {
+            static wsrep::id ret = wsrep::id();
+            return ret;
+        }
     private:
         unsigned char data_[16];
     };

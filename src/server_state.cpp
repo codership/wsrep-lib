@@ -77,6 +77,41 @@ void wsrep::server_state::wait_until_state(
     cond_.notify_all();
 }
 
+void wsrep::server_state::last_committed_gtid(const wsrep::gtid& gtid)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    assert(last_committed_gtid_.is_undefined() ||
+           last_committed_gtid_.seqno() + 1 == gtid.seqno());
+    last_committed_gtid_ = gtid;
+    cond_.notify_all();
+}
+
+wsrep::gtid wsrep::server_state::last_committed_gtid() const
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    return last_committed_gtid_;
+}
+
+int wsrep::server_state::wait_for_gtid(const wsrep::gtid& gtid) const
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    if (gtid.id() != last_committed_gtid_.id())
+    {
+        return 1;
+    }
+    while (last_committed_gtid_.seqno() < gtid.seqno())
+    {
+        cond_.wait(lock);
+    }
+    return 0;
+}
+
+enum wsrep::provider::status
+wsrep::server_state::causal_read(int timeout) const
+{
+    return provider_->causal_read(timeout);
+}
+
 void wsrep::server_state::on_connect()
 {
     wsrep::log() << "Server " << name_ << " connected to cluster";

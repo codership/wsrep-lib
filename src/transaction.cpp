@@ -89,7 +89,7 @@ int wsrep::transaction::start_replaying(const wsrep::ws_meta& ws_meta)
     assert(active());
     assert(client_state_.mode() == wsrep::client_state::m_high_priority);
     assert(state() == s_replaying);
-    assert(ws_meta_.seqno().nil() == false);
+    assert(ws_meta_.seqno().is_undefined() == false);
     certified_ = true;
     return 0;
 }

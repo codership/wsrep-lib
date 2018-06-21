@@ -4,11 +4,11 @@
 
 /** @file server_state.hpp
  *
- * Server Context Abstraction
+ * Server State Abstraction
  * ==========================
  *
- * This file defines an interface for WSREP Server Context.
- * The Server Context will encapsulate server identification,
+ * This file defines an interface for WSREP Server State.
+ * The Server State t will encapsulate server identification,
  * server state and server capabilities. The class also
  * defines an interface for manipulating server state, applying
  * of remote transaction write sets, processing SST requests,
@@ -56,16 +56,24 @@
  * to be aborted or in case of fully optimistic concurrency control,
  * the conflict is detected at commit.
  *
+ *
+ * # Return value conventions
+ *
+ * The calls which are proxies to corresponding provider functionality
+ * will return wsrep::provider::status enum as a result. Otherwise
+ * the return value is generally zero on success, non zero on failure.
  */
 
-#ifndef WSREP_SERVER_CONTEXT_HPP
-#define WSREP_SERVER_CONTEXT_HPP
+#ifndef WSREP_SERVER_STATE_HPP
+#define WSREP_SERVER_STATE_HPP
 
 #include "mutex.hpp"
 #include "condition_variable.hpp"
 #include "server_service.hpp"
 #include "id.hpp"
 #include "transaction_id.hpp"
+#include "provider.hpp"
+// #include "gtid.hpp"
 
 #include <vector>
 #include <string>
@@ -76,10 +84,8 @@ namespace wsrep
     // Forward declarations
     class ws_handle;
     class ws_meta;
-    class provider;
     class client_state;
     class transaction;
-    class gtid;
     class view;
     class const_buffer;
 
@@ -276,6 +282,37 @@ namespace wsrep
         void wait_until_state(wsrep::server_state::state) const;
 
         /**
+         * Set last committed GTID.
+         */
+        void last_committed_gtid(const wsrep::gtid&);
+        /**
+         * Return the last committed GTID known to be committed
+         * on server.
+         */
+        wsrep::gtid last_committed_gtid() const;
+
+        /**
+         * Wait until all the write sets up to given GTID have been
+         * committed.
+         *
+         * @return Zero on success, non-zero on failure.
+         */
+        int wait_for_gtid(const wsrep::gtid&) const;
+
+        /**
+         * Perform a causal read in the cluster. After the call returns,
+         * all the causally preceding write sets have been committed
+         * or the error is returned.
+         *
+         * This operation may require communication with other processes
+         * in the DBMS cluster, so it may be relatively heavy operation.
+         * Method wait_for_gtid() should be used whenever possible.
+         *
+         * @param timeout Timeout in seconds
+         */
+        enum wsrep::provider::status causal_read(int timeout) const;
+
+        /**
          *
          */
         void sst_sent(const wsrep::gtid& gtid, int error);
@@ -369,6 +406,7 @@ namespace wsrep
             , address_(address)
             , working_dir_(working_dir)
             , rollback_mode_(rollback_mode)
+            , last_committed_gtid_()
             , debug_log_level_(0)
         { }
 
@@ -392,6 +430,7 @@ namespace wsrep
         std::string address_;
         std::string working_dir_;
         enum rollback_mode rollback_mode_;
+        wsrep::gtid last_committed_gtid_;
         int debug_log_level_;
     };
 
@@ -428,4 +467,4 @@ namespace wsrep
 
 }
 
-#endif // WSREP_SERVER_CONTEXT_HPP
+#endif // WSREP_SERVER_STATE_HPP

@@ -25,6 +25,10 @@ namespace wsrep
         { }
         const wsrep::id& id() const { return id_; }
         wsrep::seqno seqno() const { return seqno_ ; }
+        bool is_undefined() const
+        {
+            return (seqno_.is_undefined() && id_.is_undefined());
+        }
     private:
         wsrep::id id_;
         wsrep::seqno seqno_;

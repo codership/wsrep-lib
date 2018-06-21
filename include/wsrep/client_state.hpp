@@ -4,10 +4,17 @@
 
 /** @file client_state.hpp
  *
+ *
+ * Return value conventions:
+ *
+ * The calls which may alter either client_state or associated
+ * transaction state will generally return zero on success and
+ * non-zero on failure. More detailed error information is stored
+ * into client state and persisted there until explicitly cleared.
  */
 
-#ifndef WSREP_CLIENT_CONTEXT_HPP
-#define WSREP_CLIENT_CONTEXT_HPP
+#ifndef WSREP_CLIENT_STATE_HPP
+#define WSREP_CLIENT_STATE_HPP
 
 #include "server_state.hpp"
 #include "provider.hpp"
@@ -34,7 +41,7 @@ namespace wsrep
         e_append_fragment_error
     };
 
-    static inline const char* to_string(enum client_error error)
+    static inline const char* to_c_string(enum client_error error)
     {
         switch (error)
         {
@@ -48,6 +55,10 @@ namespace wsrep
         return "unknown";
     }
 
+    static inline std::string to_string(enum client_error error)
+    {
+        return to_c_string(error);
+    }
     /**
      * Client State
      */
@@ -382,45 +393,18 @@ namespace wsrep
             transaction_.streaming_context_ = transaction.streaming_context_;
         }
 
-        //
-        // Causal reads
-        //
-
-        /**
-         * Perform a causal read in the cluster. After the call returns,
-         * all the causally preceding write sets have been committed
-         * or the error is returned.
-         *
-         * This operation may require communication with other processes
-         * in the DBMS cluster, so it may be relatively heavy operation.
-         * Method wait_for_gtid() should be used whenever possible.
-         */
-        enum wsrep::provider::status causal_read() const;
-
-        /**
-         * Wait until all the write sets up to given GTID have been
-         * committed.
-         *
-         * @return Zero on success, non-zero on failure.
-         */
-        enum wsrep::provider::status wait_for_gtid(const wsrep::gtid&) const;
-
-        //
-        //
-        //
-
         /** @name Non-transactional operations */
         /** @{*/
 
         /**
          * Enter total order isolation critical section.
          */
-        enum wsrep::provider::status enter_toi();
+        int enter_toi(const wsrep::key_array&, const wsrep::const_buffer&);
 
         /**
          * Leave total order isolation critical section.
          */
-        void leave_toi();
+        int leave_toi();
 
         /**
          * Begin non-blocking operation.
@@ -430,7 +414,7 @@ namespace wsrep
         /**
          * End non-blocking operation
          */
-        void end_nbo();
+        int end_nbo();
 
         /**
          * Get reference to the client mutex.
@@ -696,4 +680,4 @@ namespace wsrep
     };
 }
 
-#endif // WSREP_CLIENT_CONTEXT_HPP
+#endif // WSREP_CLIENT_STATE_HPP

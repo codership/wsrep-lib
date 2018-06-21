@@ -46,7 +46,7 @@ namespace wsrep
         int capabilities() const { return 0; }
         int desync() { return 0; }
         int resync() { return 0; }
-        int pause() { return 0; }
+        wsrep::seqno pause() { return wsrep::seqno(0); }
         int resume() { return 0; }
         enum wsrep::provider::status run_applier(void*)
         {
@@ -104,7 +104,7 @@ namespace wsrep
             else
             {
                 enum wsrep::provider::status ret;
-                if (it->second.nil())
+                if (it->second.is_undefined())
                 {
                     ws_meta = wsrep::ws_meta(wsrep::gtid(), wsrep::stid(),
                                              wsrep::seqno::undefined(), 0);
@@ -140,7 +140,7 @@ namespace wsrep
                            const wsrep::ws_meta& ws_meta)
         {
             BOOST_REQUIRE(ws_handle.opaque());
-            BOOST_REQUIRE(ws_meta.seqno().nil() == false);
+            BOOST_REQUIRE(ws_meta.seqno().is_undefined() == false);
             return commit_order_enter_result_;
         }
 
@@ -148,7 +148,7 @@ namespace wsrep
                                const wsrep::ws_meta& ws_meta)
         {
             BOOST_REQUIRE(ws_handle.opaque());
-            BOOST_REQUIRE(ws_meta.seqno().nil() == false);
+            BOOST_REQUIRE(ws_meta.seqno().is_undefined() == false);
             return commit_order_leave_result_;
         }
 
@@ -170,7 +170,7 @@ namespace wsrep
             {
                 // If the ws_meta was not assigned yet, the certify
                 // returned early due to BF abort.
-                if (tc.ws_meta().seqno().nil())
+                if (tc.ws_meta().seqno().is_undefined())
                 {
                     ++group_seqno_;
                     ws_meta = wsrep::ws_meta(
@@ -198,6 +198,10 @@ namespace wsrep
             return wsrep::provider::success;
         }
 
+        enum wsrep::provider::status causal_read(int) const WSREP_OVERRIDE
+        {
+            return wsrep::provider::success;
+        }
         int sst_sent(const wsrep::gtid&, int) { return 0; }
         int sst_received(const wsrep::gtid&, int) { return 0; }
 
@@ -225,7 +229,7 @@ namespace wsrep
                  wsrep::seqno& victim_seqno)
         {
             bf_abort_map_.insert(std::make_pair(trx_id, bf_seqno));
-            if (bf_seqno.nil() == false)
+            if (bf_seqno.is_undefined() == false)
             {
                 group_seqno_ = bf_seqno.get();
             }

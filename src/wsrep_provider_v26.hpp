@@ -25,7 +25,7 @@ namespace wsrep
 
         int desync();
         int resync();
-        int pause();
+        wsrep::seqno pause();
         int resume();
 
         enum wsrep::provider::status run_applier(void*);
@@ -49,6 +49,9 @@ namespace wsrep
                                const wsrep::ws_meta&);
         int release(wsrep::ws_handle&);
         enum wsrep::provider::status replay(const wsrep::ws_handle&, void*);
+
+        enum wsrep::provider::status causal_read(int) const;
+
         int sst_sent(const wsrep::gtid&,int);
         int sst_received(const wsrep::gtid& gtid, int);
 

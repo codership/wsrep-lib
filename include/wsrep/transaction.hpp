@@ -68,7 +68,7 @@ namespace wsrep
         // Return true if the last fragment was ordered by the
         // provider
         bool ordered() const
-        { return (ws_meta_.seqno().nil() == false); }
+        { return (ws_meta_.seqno().is_undefined() == false); }
 
         /*!
          * Return true if any fragments have been succesfully certified

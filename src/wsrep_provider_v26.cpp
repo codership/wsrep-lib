@@ -69,12 +69,12 @@ namespace
 
     static inline wsrep_seqno_t seqno_to_native(wsrep::seqno seqno)
     {
-        return (seqno.nil() ? WSREP_SEQNO_UNDEFINED : seqno.get());
+        return seqno.get();
     }
 
     static inline wsrep::seqno seqno_from_native(wsrep_seqno_t seqno)
     {
-        return wsrep::seqno(seqno == WSREP_SEQNO_UNDEFINED ? 0 : seqno);
+        return wsrep::seqno(seqno);
     }
     template <typename F, typename T>
     inline uint32_t map_one(const int flags, const F from,
@@ -520,9 +520,9 @@ int wsrep::wsrep_provider_v26::resync()
     return (wsrep_->resync(wsrep_) != WSREP_OK);
 }
 
-int wsrep::wsrep_provider_v26::pause()
+wsrep::seqno wsrep::wsrep_provider_v26::pause()
 {
-    return (wsrep_->pause(wsrep_) != WSREP_OK);
+    return wsrep::seqno(wsrep_->pause(wsrep_));
 }
 
 int wsrep::wsrep_provider_v26::resume()
@@ -631,6 +631,12 @@ wsrep::wsrep_provider_v26::replay(const wsrep::ws_handle& ws_handle,
     const_ws_handle mwsh(ws_handle);
     return map_return_value(
         wsrep_->replay_trx(wsrep_, mwsh.native(), applier_ctx));
+}
+
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::causal_read(int timeout) const
+{
+    return map_return_value(wsrep_->sync_wait(wsrep_, 0, timeout, 0));
 }
 
 int wsrep::wsrep_provider_v26::sst_sent(const wsrep::gtid& gtid, int err)

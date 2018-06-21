@@ -23,15 +23,15 @@ namespace wsrep
     {
     public:
         seqno()
-            : seqno_()
+            : seqno_(-1)
         { }
 
         explicit seqno(long long seqno)
             : seqno_(seqno)
         {
-            if (seqno_ < 0)
+            if (seqno_ < -1)
             {
-                throw wsrep::runtime_error("Negative seqno given");
+                throw wsrep::runtime_error("Too negative seqno given");
             }
         }
 
@@ -40,9 +40,9 @@ namespace wsrep
             return seqno_;
         }
 
-        bool nil() const
+        bool is_undefined() const
         {
-            return (seqno_ == 0);
+            return (seqno_ == -1);
         }
 
         bool operator<(seqno other) const
@@ -54,13 +54,19 @@ namespace wsrep
         {
             return (seqno_ > other.seqno_);
         }
-
+        bool operator==(seqno other) const
+        {
+            return (seqno_ == other.seqno_);
+        }
         seqno operator+(seqno other) const
         {
             return (seqno(seqno_ + other.seqno_));
         }
-
-        static seqno undefined() { return seqno(0); }
+        seqno operator+(long long other) const
+        {
+            return (*this + seqno(other));
+        }
+        static seqno undefined() { return seqno(-1); }
     private:
         long long seqno_;
     };

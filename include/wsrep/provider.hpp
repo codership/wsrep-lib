@@ -232,7 +232,7 @@ namespace wsrep
         virtual int desync() = 0;
         virtual int resync() = 0;
 
-        virtual int pause() = 0;
+        virtual wsrep::seqno pause() = 0;
         virtual int resume() = 0;
 
         // Applier interface
@@ -277,6 +277,14 @@ namespace wsrep
         virtual enum status replay(
             const wsrep::ws_handle& ws_handle, void* applier_ctx) = 0;
 
+        /**
+         * Perform a causal read on cluster.
+         *
+         * @param timeout Timeout in seconds
+         *
+         * @return Provider status indicating the result of the call.
+         */
+        virtual enum wsrep::provider::status causal_read(int timeout) const = 0;
         virtual int sst_sent(const wsrep::gtid&, int) = 0;
         virtual int sst_received(const wsrep::gtid&, int) = 0;
 

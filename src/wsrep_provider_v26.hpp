@@ -49,7 +49,12 @@ namespace wsrep
                                const wsrep::ws_meta&);
         int release(wsrep::ws_handle&);
         enum wsrep::provider::status replay(const wsrep::ws_handle&, void*);
-
+        enum wsrep::provider::status enter_toi(wsrep::client_id,
+                                               const wsrep::key_array&,
+                                               const wsrep::const_buffer&,
+                                               wsrep::ws_meta&,
+                                               int);
+        enum wsrep::provider::status leave_toi(wsrep::client_id);
         enum wsrep::provider::status causal_read(int) const;
 
         int sst_sent(const wsrep::gtid&,int);

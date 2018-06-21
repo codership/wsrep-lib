@@ -231,6 +231,47 @@ int wsrep::client_state::enable_streaming(
     return 0;
 }
 
+int wsrep::client_state::enter_toi(const wsrep::key_array& keys,
+                                   const wsrep::const_buffer& buffer,
+                                   int flags)
+{
+    assert(state_ == s_exec);
+    int ret;
+    switch (provider().enter_toi(id_, keys, buffer, toi_meta_, flags))
+    {
+    case wsrep::provider::success:
+    {
+        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        mode(lock, m_toi);
+        ret = 0;
+        break;
+    }
+    default:
+        override_error(wsrep::e_error_during_commit);
+        ret = 1;
+        break;
+    }
+    return ret;
+}
+
+int wsrep::client_state::leave_toi()
+{
+    int ret;
+    switch (provider().leave_toi(id_))
+    {
+    case wsrep::provider::success:
+        ret = 0;
+        break;
+    default:
+        assert(0);
+        override_error(wsrep::e_error_during_commit);
+        ret = 1;
+        break;
+    }
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    mode(lock, m_replicating);
+    return ret;
+}
 // Private
 
 void wsrep::client_state::debug_log_state(const char* context) const
@@ -270,4 +311,30 @@ void wsrep::client_state::state(
            << state_ << " -> " << state;
         throw wsrep::runtime_error(os.str());
     }
+}
+
+void wsrep::client_state::mode(
+    wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
+    enum mode mode)
+{
+    assert(lock.owns_lock());
+    static const char allowed[mode_max_][mode_max_] =
+        {
+            { 0, 0, 0, 0}, /* local */
+            { 0, 0, 1, 1}, /* repl */
+            { 0, 1, 0, 0}, /* high prio */
+            { 0, 1, 0, 0} /* toi */
+        };
+    if (allowed[mode_][mode])
+    {
+        mode_ = mode;
+    }
+    else
+    {
+        std::ostringstream os;
+        os << "client_state: Unallowed mode transition: "
+           << mode_ << " -> " << mode;
+        throw wsrep::runtime_error(os.str());
+    }
+
 }

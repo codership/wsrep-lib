@@ -634,6 +634,50 @@ wsrep::wsrep_provider_v26::replay(const wsrep::ws_handle& ws_handle,
 }
 
 enum wsrep::provider::status
+wsrep::wsrep_provider_v26::enter_toi(
+    wsrep::client_id client_id,
+    const wsrep::key_array& keys,
+    const wsrep::const_buffer& buffer,
+    wsrep::ws_meta& ws_meta,
+    int flags)
+{
+    mutable_ws_meta mmeta(ws_meta, flags);
+    std::vector<wsrep_buf_t> key_parts;
+    size_t key_parts_offset(0);
+    std::vector<wsrep_key_t> wsrep_keys;
+    wsrep_buf_t wsrep_buf = {buffer.data(), buffer.size()};
+    for (wsrep::key_array::const_iterator i(keys.begin());
+         i != keys.end(); ++i)
+    {
+        for (size_t kp(0); kp < i->size(); ++kp)
+        {
+            wsrep_buf_t buf = {i->key_parts()[kp].data(),
+                               i->key_parts()[kp].size()};
+            key_parts.push_back(buf);
+        }
+        wsrep_key_t key = {&key_parts[0] + key_parts_offset, i->size()};
+        wsrep_keys.push_back(key);
+        key_parts_offset += i->size();
+    }
+    return map_return_value(wsrep_->to_execute_start(
+                                wsrep_,
+                                client_id.get(),
+                                &wsrep_keys[0],
+                                wsrep_keys.size(),
+                                &wsrep_buf,
+                                1,
+                                mmeta.native_flags(),
+                                mmeta.native()));
+}
+
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::leave_toi(wsrep::client_id client_id)
+{
+    return map_return_value(wsrep_->to_execute_end(
+                                wsrep_, client_id.get(), 0));
+}
+
+enum wsrep::provider::status
 wsrep::wsrep_provider_v26::causal_read(int timeout) const
 {
     return map_return_value(wsrep_->sync_wait(wsrep_, 0, timeout, 0));

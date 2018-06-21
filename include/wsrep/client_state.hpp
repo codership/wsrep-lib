@@ -80,6 +80,7 @@ namespace wsrep
             m_toi
         };
 
+        static const int mode_max_ = m_toi + 1;
         /**
          * Client state enumeration.
          *
@@ -110,7 +111,7 @@ namespace wsrep
             s_quitting
         };
 
-        const static int state_max_ = s_quitting + 1;
+        static const int state_max_ = s_quitting + 1;
 
         /**
          * Store variables related to global execution context.
@@ -398,8 +399,16 @@ namespace wsrep
 
         /**
          * Enter total order isolation critical section.
+         * @param key_array Array of keys
+         * @param buffer Buffer containing the action to execute inside
+         *               total order isolation section
+         * @param flags  Provider flags for TOI operation
+         *
+         * @return Zero on success, non-zero otherwise.
          */
-        int enter_toi(const wsrep::key_array&, const wsrep::const_buffer&);
+        int enter_toi(const wsrep::key_array& key_array,
+                      const wsrep::const_buffer& buffer,
+                      int flags);
 
         /**
          * Leave total order isolation critical section.
@@ -545,6 +554,7 @@ namespace wsrep
             , mode_(mode)
             , state_(s_none)
             , transaction_(*this)
+            , toi_meta_()
             , allow_dirty_reads_()
             , debug_log_level_(0)
             , current_error_(wsrep::e_success)
@@ -561,6 +571,7 @@ namespace wsrep
 
         void debug_log_state(const char*) const;
         void state(wsrep::unique_lock<wsrep::mutex>& lock, enum state state);
+        void mode(wsrep::unique_lock<wsrep::mutex>& lock, enum mode mode);
         void override_error(enum wsrep::client_error error);
 
         wsrep::thread::id owning_thread_id_;
@@ -572,6 +583,7 @@ namespace wsrep
         enum mode mode_;
         enum state state_;
         wsrep::transaction transaction_;
+        wsrep::ws_meta toi_meta_;
         bool allow_dirty_reads_;
         int debug_log_level_;
         wsrep::client_error current_error_;
@@ -621,11 +633,14 @@ namespace wsrep
             : client_(client)
             , orig_mode_(client.mode_)
         {
-            client_.mode_ = wsrep::client_state::m_high_priority;
+            wsrep::unique_lock<wsrep::mutex> lock(client.mutex_);
+            client.mode(lock, wsrep::client_state::m_high_priority);
         }
         virtual ~high_priority_context()
         {
-            client_.mode_ = orig_mode_;
+            wsrep::unique_lock<wsrep::mutex> lock(client_.mutex_);
+            assert(client_.mode() == wsrep::client_state::m_high_priority);
+            client_.mode(lock, orig_mode_);
         }
     private:
         wsrep::client_state& client_;
@@ -642,12 +657,14 @@ namespace wsrep
             : client_(client)
             , orig_mode_(client.mode_)
         {
-            client_.mode_ = wsrep::client_state::m_toi;
+            wsrep::unique_lock<wsrep::mutex> lock(client.mutex_);
+            client.mode(lock, wsrep::client_state::m_toi);
         }
         ~client_toi_mode()
         {
+            wsrep::unique_lock<wsrep::mutex> lock(client_.mutex_);
             assert(client_.mode() == wsrep::client_state::m_toi);
-            client_.mode_ = orig_mode_;
+            client_.mode(lock, orig_mode_);
         }
     private:
         wsrep::client_state& client_;

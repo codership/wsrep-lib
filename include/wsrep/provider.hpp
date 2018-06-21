@@ -278,13 +278,26 @@ namespace wsrep
             const wsrep::ws_handle& ws_handle, void* applier_ctx) = 0;
 
         /**
+         * Enter total order isolation critical section
+         */
+        virtual enum status enter_toi(wsrep::client_id,
+                                      const wsrep::key_array& keys,
+                                      const wsrep::const_buffer& buffer,
+                                      wsrep::ws_meta& ws_meta,
+                                      int flags) = 0;
+        /**
+         * Leave total order isolation critical section
+         */
+        virtual enum status leave_toi(wsrep::client_id) = 0;
+
+        /**
          * Perform a causal read on cluster.
          *
          * @param timeout Timeout in seconds
          *
          * @return Provider status indicating the result of the call.
          */
-        virtual enum wsrep::provider::status causal_read(int timeout) const = 0;
+        virtual enum status causal_read(int timeout) const = 0;
         virtual int sst_sent(const wsrep::gtid&, int) = 0;
         virtual int sst_received(const wsrep::gtid&, int) = 0;
 

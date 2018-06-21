@@ -198,6 +198,15 @@ namespace wsrep
             return wsrep::provider::success;
         }
 
+        enum wsrep::provider::status enter_toi(wsrep::client_id,
+                                               const wsrep::key_array&,
+                                               const wsrep::const_buffer&,
+                                               wsrep::ws_meta&,
+                                               int)
+        { return wsrep::provider::success; }
+        enum wsrep::provider::status leave_toi(wsrep::client_id)
+        { return wsrep::provider::success; }
+
         enum wsrep::provider::status causal_read(int) const WSREP_OVERRIDE
         {
             return wsrep::provider::success;

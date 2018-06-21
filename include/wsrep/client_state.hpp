@@ -488,6 +488,10 @@ namespace wsrep
             return transaction_;
         }
 
+        const wsrep::ws_meta& toi_meta() const
+        {
+            return toi_meta_;
+        }
         /**
          * Set debug logging level.
          *
@@ -589,7 +593,8 @@ namespace wsrep
         wsrep::client_error current_error_;
     };
 
-    static inline const char* to_string(enum wsrep::client_state::state state)
+    static inline const char* to_c_string(
+        enum wsrep::client_state::state state)
     {
         switch (state)
         {
@@ -601,6 +606,29 @@ namespace wsrep
         }
         return "unknown";
     }
+
+    static inline std::string to_string(enum wsrep::client_state::state state)
+    {
+        return to_c_string(state);
+    }
+
+    static inline const char* to_c_string(enum wsrep::client_state::mode mode)
+    {
+        switch (mode)
+        {
+        case wsrep::client_state::m_local: return "local";
+        case wsrep::client_state::m_replicating: return "replicating";
+        case wsrep::client_state::m_high_priority: return "high priority";
+        case wsrep::client_state::m_toi: return "toi";
+        }
+        return "unknown";
+    }
+
+    static inline std::string to_string(enum wsrep::client_state::mode mode)
+    {
+        return to_c_string(mode);
+    }
+
     class client_state_switch
     {
     public:

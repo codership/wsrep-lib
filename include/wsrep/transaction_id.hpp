@@ -24,7 +24,7 @@ namespace wsrep
             : id_(static_cast<type>(id))
         { }
         type get() const { return id_; }
-        static unsigned long long invalid() { return type(-1); }
+        static unsigned long long undefined() { return type(-1); }
         bool operator<(const transaction_id& other) const
         {
             return (id_ < other.id_);

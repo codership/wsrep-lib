@@ -26,7 +26,7 @@ wsrep::transaction::transaction(
     : server_service_(client_state.server_state().server_service())
     , client_service_(client_state.client_service())
     , client_state_(client_state)
-    , id_(transaction_id::invalid())
+    , id_(transaction_id::undefined())
     , state_(s_executing)
     , state_hist_()
     , bf_abort_state_(s_executing)
@@ -952,7 +952,7 @@ void wsrep::transaction::cleanup()
     assert(is_streaming() == false);
     assert(state() == s_committed || state() == s_aborted);
     debug_log_state("cleanup_enter");
-    id_ = wsrep::transaction_id::invalid();
+    id_ = wsrep::transaction_id::undefined();
     ws_handle_ = wsrep::ws_handle();
     // Keep the state history for troubleshooting. Reset at start_transaction().
     // state_hist_.clear();

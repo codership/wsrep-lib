@@ -52,7 +52,7 @@ namespace wsrep
         { return id_; }
 
         bool active() const
-        { return (id_ != wsrep::transaction_id::invalid()); }
+        { return (id_ != wsrep::transaction_id::undefined()); }
 
 
         void state(wsrep::unique_lock<wsrep::mutex>&, enum state);

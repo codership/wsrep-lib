@@ -59,14 +59,14 @@ namespace wsrep
 
             void rolled_back(wsrep::transaction_id id)
             {
-                assert(rollback_replicated_for_ == wsrep::transaction_id::invalid());
+                assert(rollback_replicated_for_ == wsrep::transaction_id::undefined());
                 rollback_replicated_for_ = id;
             }
 
             bool rolled_back() const
             {
                 return (rollback_replicated_for_ !=
-                        wsrep::transaction_id::invalid());
+                        wsrep::transaction_id::undefined());
             }
 
             size_t unit_counter() const { return unit_counter_; }
@@ -80,7 +80,7 @@ namespace wsrep
             void cleanup()
             {
                 fragments_.clear();
-                rollback_replicated_for_ = wsrep::transaction_id::invalid();
+                rollback_replicated_for_ = wsrep::transaction_id::undefined();
                 bytes_certified_ = 0;
                 unit_counter_ = 0;
             }

@@ -29,6 +29,12 @@ namespace wsrep
         {
             return (seqno_.is_undefined() && id_.is_undefined());
         }
+        static wsrep::gtid undefined()
+        {
+            static const wsrep::gtid ret(wsrep::id::undefined(),
+                                         wsrep::seqno::undefined());
+            return ret;
+        }
     private:
         wsrep::id id_;
         wsrep::seqno seqno_;

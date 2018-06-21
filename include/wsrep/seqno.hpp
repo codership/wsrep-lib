@@ -58,6 +58,10 @@ namespace wsrep
         {
             return (seqno_ == other.seqno_);
         }
+        bool operator!=(seqno other) const
+        {
+            return !(seqno_ == other.seqno_);
+        }
         seqno operator+(seqno other) const
         {
             return (seqno(seqno_ + other.seqno_));

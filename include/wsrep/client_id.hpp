@@ -19,7 +19,7 @@ namespace wsrep
             : id_(static_cast<type>(id))
         { }
         type get() const { return id_; }
-        static type invalid() { return -1; }
+        static type undefined() { return -1; }
     private:
         type id_;
     };

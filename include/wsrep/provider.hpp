@@ -92,6 +92,7 @@ namespace wsrep
             , flags_(flags)
         { }
 
+        const wsrep::gtid& gtid() const { return gtid_; }
         const wsrep::id& group_id() const
         {
             return gtid_.id();

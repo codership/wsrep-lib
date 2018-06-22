@@ -13,6 +13,8 @@
 #ifndef WSREP_SERVER_SERVICE_HPP
 #define WSREP_SERVER_SERVICE_HPP
 
+#include "logger.hpp"
+
 #include <string>
 
 namespace wsrep
@@ -53,6 +55,14 @@ namespace wsrep
          */
         virtual void background_rollback(wsrep::client_state&) = 0;
 
+        /**
+         * Log message
+         *
+         * @param level   Requested logging level
+         * @param message Message
+         */
+        virtual void log_message(enum wsrep::log::level level,
+                                 const char* message) = 0;
         /**
          * Log a dummy write set. A dummy write set is usually either
          * a remotely generated write set which failed certification in

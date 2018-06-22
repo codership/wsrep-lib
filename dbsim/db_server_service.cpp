@@ -48,6 +48,11 @@ void db::server_service::background_rollback(wsrep::client_state&)
 {
 }
 
+void db::server_service::log_message(enum wsrep::log::level level,
+                                     const char* message)
+{
+    wsrep::log(level, server_.server_state().name().c_str()) << message;
+}
 void db::server_service::log_dummy_write_set(
     wsrep::client_state&, const wsrep::ws_meta& meta)
 {

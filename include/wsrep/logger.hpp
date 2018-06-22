@@ -16,14 +16,33 @@ namespace wsrep
     class log
     {
     public:
-        log(const std::string& prefix = "INFO")
-            : prefix_(prefix)
+        enum level
+        {
+            debug,
+            info,
+            warning,
+            error
+        };
+        static const char* to_c_string(enum level level)
+        {
+            switch (level)
+            {
+            case debug:   return "debug";
+            case info:    return "info";
+            case warning: return "warning";
+            case error:   return "error";
+            };
+            return "unknown";
+        }
+        log(enum wsrep::log::level level, const char* prefix = "")
+            : level_(level)
+            , prefix_(prefix)
             , oss_()
         { }
         ~log()
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            os_ << prefix_ << ": " << oss_.str() << "\n";
+            os_ << prefix_ << ": " << oss_.str() << std::endl;
         }
         template <typename T>
         std::ostream& operator<<(const T& val)
@@ -31,7 +50,10 @@ namespace wsrep
             return (oss_ << val);
         }
     private:
-        const std::string prefix_;
+        log(const log&);
+        log& operator=(const log&);
+        enum level level_;
+        const char* prefix_;
         std::ostringstream oss_;
         static wsrep::mutex& mutex_;
         static std::ostream& os_;
@@ -41,28 +63,28 @@ namespace wsrep
     {
     public:
         log_error()
-            : log("ERROR") { }
+            : log(error) { }
     };
 
     class log_warning : public log
     {
     public:
         log_warning()
-            : log("WARNING") { }
+            : log(warning) { }
     };
 
     class log_info : public log
     {
     public:
         log_info()
-            : log("INFO") { }
+            : log(info) { }
     };
 
     class log_debug : public log
     {
     public:
         log_debug()
-            : log("DEBUG") { }
+            : log(debug) { }
     };
 }
 

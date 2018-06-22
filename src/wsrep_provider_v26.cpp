@@ -8,6 +8,7 @@
 #include "wsrep/client_state.hpp"
 #include "wsrep/view.hpp"
 #include "wsrep/exception.hpp"
+#include "wsrep/logger.hpp"
 
 #include <wsrep_api.h>
 
@@ -306,10 +307,10 @@ namespace
     }
 
     wsrep_cb_status_t view_cb(void* app_ctx,
-                                     void* recv_ctx __attribute__((unused)),
-                                     const wsrep_view_info_t* view_info,
-                                     const char*,
-                                     size_t)
+                              void* recv_ctx __attribute__((unused)),
+                              const wsrep_view_info_t* view_info,
+                              const char*,
+                              size_t)
     {
         assert(app_ctx);
         assert(view_info);
@@ -337,7 +338,7 @@ namespace
 
         try
         {
-            std::string req(server_state.server_service().sst_request());
+            std::string req(server_state.prepare_for_sst());
             *sst_req = ::strdup(req.c_str());
             *sst_req_len = strlen(req.c_str());
             return WSREP_CB_SUCCESS;
@@ -417,7 +418,7 @@ namespace
             wsrep::gtid gtid(wsrep::id(req_gtid->uuid.data,
                                        sizeof(req_gtid->uuid.data)),
                              wsrep::seqno(req_gtid->seqno));
-            if (server_state.server_service().start_sst(req, gtid, bypass))
+            if (server_state.start_sst(req, gtid, bypass))
             {
                 return WSREP_CB_FAILURE;
             }
@@ -428,6 +429,27 @@ namespace
             return WSREP_CB_FAILURE;
         }
     }
+
+    void logger_cb(wsrep_log_level_t level, const char* msg)
+    {
+        switch (level)
+        {
+        case WSREP_LOG_FATAL:
+        case WSREP_LOG_ERROR:
+            wsrep::log_error() << "wsrep-lib: " << msg;
+            break;
+        case WSREP_LOG_WARN:
+            wsrep::log_warning() << "wsrep-lib: " <<msg;
+            break;
+        case WSREP_LOG_INFO:
+            wsrep::log_info() << "wsrep-lib: " << msg;
+            break;
+        case WSREP_LOG_DEBUG:
+            wsrep::log_debug() << "wsrep-lib: " << msg;
+            break;
+        }
+    }
+
 }
 
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
@@ -448,7 +470,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     init_args.proto_ver = 1;
     init_args.state_id = 0;
     init_args.state = 0;
-    init_args.logger_cb = 0;
+    init_args.logger_cb = &logger_cb;
     init_args.connected_cb = &connected_cb;
     init_args.view_cb = &view_cb;
     init_args.sst_request_cb = &sst_request_cb;

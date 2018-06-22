@@ -73,7 +73,6 @@
 #include "id.hpp"
 #include "transaction_id.hpp"
 #include "provider.hpp"
-// #include "gtid.hpp"
 
 #include <vector>
 #include <string>
@@ -313,6 +312,26 @@ namespace wsrep
         enum wsrep::provider::status causal_read(int timeout) const;
 
         /**
+         * Prepares server state for SST.
+         *
+         * @return String containing a SST request
+         */
+        std::string prepare_for_sst();
+
+        /**
+         * Start a state snapshot transfer.
+         *
+         * @param sst_requets SST request string
+         * @param gtid Current GTID
+         * @param bypass Bypass flag
+         *
+         * @return Zero in case of success, non-zero otherwise
+         */
+        int start_sst(const std::string& sst_request,
+                      const wsrep::gtid& gtid,
+                      bool bypass);
+
+        /**
          *
          */
         void sst_sent(const wsrep::gtid& gtid, int error);
@@ -353,7 +372,11 @@ namespace wsrep
                      const wsrep::ws_meta& ws_meta,
                      const wsrep::const_buffer& data);
 
-        enum state state() const { return state_; }
+        enum state state() const
+        {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            return state_;
+        }
         /**
          * Set server wide wsrep debug logging level.
          *

@@ -74,10 +74,10 @@ std::string db::simulator::stats() const
 
 void db::simulator::start()
 {
-    wsrep::log() << "Provider: " << params_.wsrep_provider;
+    wsrep::log_info() << "Provider: " << params_.wsrep_provider;
 
     std::string cluster_address(build_cluster_address());
-    wsrep::log() << "Cluster address: " << cluster_address;
+    wsrep::log_info() << "Cluster address: " << cluster_address;
     for (size_t i(0); i < params_.n_servers; ++i)
     {
         std::ostringstream name_os;
@@ -121,7 +121,7 @@ void db::simulator::start()
     }
 
     // Start client threads
-    wsrep::log() << "####################### Starting client load";
+    wsrep::log_info() << "####################### Starting client load";
     clients_start_ = std::chrono::steady_clock::now();
     size_t index(0);
     for (auto& i : servers_)
@@ -142,9 +142,9 @@ void db::simulator::stop()
         server.stop_clients();
     }
     clients_stop_ = std::chrono::steady_clock::now();
-    wsrep::log() << "######## Stats ############";
-    wsrep::log()  << stats();
-    wsrep::log() << "######## Stats ############";
+    wsrep::log_info() << "######## Stats ############";
+    wsrep::log_info()  << stats();
+    wsrep::log_info() << "######## Stats ############";
     if (params_.fast_exit)
     {
         exit(0);
@@ -158,7 +158,7 @@ void db::simulator::stop()
         for_each(status.begin(), status.end(),
                  [](const wsrep::provider::status_variable& sv)
                  {
-                     wsrep::log() << sv.name() << " = " << sv.value();
+                     wsrep::log_info() << sv.name() << " = " << sv.value();
                  });
         server.server_state().disconnect();
         server.server_state().wait_until_state(

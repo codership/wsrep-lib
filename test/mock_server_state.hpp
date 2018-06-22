@@ -52,7 +52,10 @@ namespace wsrep
         {
             delete client_state;
         }
-
+        void log_message(enum wsrep::log::level level, const char* message)
+        {
+            wsrep::log(level, name().c_str()) << message;
+        }
         void log_dummy_write_set(wsrep::client_state&,
                                  const wsrep::ws_meta&)
             WSREP_OVERRIDE

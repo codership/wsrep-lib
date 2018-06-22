@@ -22,6 +22,7 @@ namespace db
         int start_sst(const std::string&, const wsrep::gtid&, bool) override;
         std::string sst_request() override;
         void background_rollback(wsrep::client_state&) override;
+        void log_message(enum wsrep::log::level, const char* message);
         void log_dummy_write_set(wsrep::client_state&, const wsrep::ws_meta&)
             override;
         void log_view(wsrep::client_state&, const wsrep::view&) override;

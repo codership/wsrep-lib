@@ -55,13 +55,50 @@ wsrep::server_state::~server_state()
     delete provider_;
 }
 
+std::string wsrep::server_state::prepare_for_sst()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    state(lock, s_joiner);
+    return server_service_.sst_request();
+}
+
+int wsrep::server_state::start_sst(const std::string& sst_request,
+                                   const wsrep::gtid& gtid,
+                                   bool bypass)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    state(lock, s_donor);
+    int ret(0);
+    lock.unlock();
+    if (server_service_.start_sst(sst_request, gtid, bypass))
+    {
+        lock.lock();
+        wsrep::log_warning() << "SST start failed";
+        state(lock, s_synced);
+        ret = 1;
+    }
+    return ret;
+}
+
 void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
 {
-    provider_->sst_sent(gtid, error);
+    if (provider_->sst_sent(gtid, error))
+    {
+        server_service_.log_message(wsrep::log::warning,
+                                    "SST sent returned an error");
+    }
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    state(lock, s_joined);
 }
+
 void wsrep::server_state::sst_received(const wsrep::gtid& gtid, int error)
 {
-    provider_->sst_received(gtid, error);
+    if (provider_->sst_received(gtid, error))
+    {
+        throw wsrep::runtime_error("SST received failed");
+    }
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    state(lock, s_joined);
 }
 
 void wsrep::server_state::wait_until_state(
@@ -114,14 +151,14 @@ wsrep::server_state::causal_read(int timeout) const
 
 void wsrep::server_state::on_connect()
 {
-    wsrep::log() << "Server " << name_ << " connected to cluster";
+    wsrep::log_info() << "Server " << name_ << " connected to cluster";
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     state(lock, s_connected);
 }
 
 void wsrep::server_state::on_view(const wsrep::view& view)
 {
-    wsrep::log() << "================================================\nView:\n"
+    wsrep::log_info() << "================================================\nView:\n"
                  << "id: " << view.state_id() << "\n"
                  << "status: " << view.status() << "\n"
                  << "own_index: " << view.own_index() << "\n"
@@ -131,10 +168,10 @@ void wsrep::server_state::on_view(const wsrep::view& view)
     for (std::vector<wsrep::view::member>::const_iterator i(members.begin());
          i != members.end(); ++i)
     {
-        wsrep::log() << "id: " << i->id() << " "
-                     << "name: " << i->name();
+        wsrep::log_info() << "id: " << i->id() << " "
+                          << "name: " << i->name();
     }
-    wsrep::log() << "=================================================";
+    wsrep::log_info() << "=================================================";
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     if (view.final())
     {
@@ -144,12 +181,23 @@ void wsrep::server_state::on_view(const wsrep::view& view)
 
 void wsrep::server_state::on_sync()
 {
-    wsrep::log() << "Server " << name_ << " synced with group";
+    wsrep::log_info() << "Server " << name_ << " synced with group";
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    if (state_ != s_synced)
+    /* Follow the path joiner -> joined -> synced to notify possible
+       waiters. */
+    switch (state_)
     {
+    case s_connected:
+        state(lock, s_joiner);
+    case s_joiner:
+        state(lock, s_joined);
+    case s_joined:
         state(lock, s_synced);
-    }
+        break;
+    default:
+        /* State */
+        state(lock, s_synced);
+    };
 }
 
 int wsrep::server_state::on_apply(
@@ -363,8 +411,8 @@ void wsrep::server_state::state(
             {  0,   1,   0,    1,    0,   0,   0,   0,   0}, /* dis */
             {  0,   0,   1,    0,    0,   0,   0,   0,   0}, /* ing */
             {  0,   0,   0,    1,    0,   1,   0,   0,   0}, /* ized */
-            {  0,   0,   0,    0,    1,   0,   0,   1,   0}, /* cted */
-            {  0,   0,   0,    0,    0,   1,   0,   1,   0}, /* jer */
+            {  0,   0,   0,    0,    1,   0,   0,   0,   0}, /* cted */
+            {  0,   0,   0,    0,    0,   1,   0,   0,   0}, /* jer */
             {  0,   0,   0,    0,    0,   0,   0,   1,   1}, /* jed */
             {  0,   0,   0,    0,    0,   1,   0,   0,   1}, /* dor */
             {  0,   0,   0,    0,    0,   1,   1,   0,   1}, /* sed */
@@ -373,8 +421,8 @@ void wsrep::server_state::state(
 
     if (allowed[state_][state])
     {
-        wsrep::log() << "server " << name_ << " state change: "
-                     << state_ << " -> " << state;
+        wsrep::log_info() << "server " << name_ << " state change: "
+                          << state_ << " -> " << state;
         state_ = state;
         cond_.notify_all();
         while (state_waiters_[state_])

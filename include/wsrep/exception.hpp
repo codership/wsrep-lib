@@ -10,13 +10,18 @@
 
 namespace wsrep
 {
+    extern bool abort_on_exception;
+
     class runtime_error : public std::runtime_error
     {
     public:
         runtime_error(const std::string& msg)
             : std::runtime_error(msg)
         {
-            // ::abort();
+            if (abort_on_exception)
+            {
+                ::abort();
+            }
         }
     };
 

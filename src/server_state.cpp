@@ -287,15 +287,20 @@ void wsrep::server_state::on_sync()
 {
     wsrep::log_info() << "Server " << name_ << " synced with group";
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+
     if (server_service_.sst_before_init())
     {
         switch (state_)
         {
         case s_connected:
             state(lock, s_joiner);
+            // fall through
         case s_joiner:
             state(lock, s_initializing);
             break;
+        case s_initialized:
+            state(lock, s_joined);
+            // fall through
         default:
             /* State */
             state(lock, s_synced);

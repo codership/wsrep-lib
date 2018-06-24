@@ -12,6 +12,8 @@
 #define WSREP_VIEW_HPP
 
 #include "id.hpp"
+#include "seqno.hpp"
+#include "gtid.hpp"
 #include <vector>
 
 namespace wsrep
@@ -45,6 +47,15 @@ namespace wsrep
             std::string incoming_;
         };
 
+        view()
+            : state_id_()
+            , view_seqno_()
+            , status_(disconnected)
+            , capabilities_()
+            , own_index_(-1)
+            , protocol_version_(0)
+            , members_()
+        { }
         view(const wsrep::gtid& state_id,
              wsrep::seqno view_seqno,
              enum wsrep::view::status status,

@@ -55,6 +55,46 @@ wsrep::server_state::~server_state()
     delete provider_;
 }
 
+
+wsrep::seqno wsrep::server_state::pause()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    if (pause_seqno_.is_undefined() == false)
+    {
+        throw wsrep::runtime_error("Trying to pause already paused provider");
+    }
+    if (state_ == s_synced)
+    {
+        if (desync(lock))
+        {
+            return wsrep::seqno::undefined();
+        }
+        desynced_on_pause_ = true;
+    }
+    pause_seqno_ = provider_->pause();
+    if (pause_seqno_.is_undefined())
+    {
+        resync();
+    }
+    return pause_seqno_;
+}
+
+void wsrep::server_state::resume()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    assert(pause_seqno_.is_undefined() == false);
+    if (desynced_on_pause_)
+    {
+        resync(lock);
+        desynced_on_pause_ = false;
+    }
+    if (provider_->resume())
+    {
+        throw wsrep::runtime_error("Failed to resume provider");
+    }
+    pause_seqno_ = wsrep::seqno::undefined();
+}
+
 std::string wsrep::server_state::prepare_for_sst()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
@@ -82,6 +122,7 @@ int wsrep::server_state::start_sst(const std::string& sst_request,
 
 void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
 {
+    wsrep::log_info() << "SST sent: " << gtid << ": " << error;
     if (provider_->sst_sent(gtid, error))
     {
         server_service_.log_message(wsrep::log::warning,
@@ -91,8 +132,24 @@ void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
     state(lock, s_joined);
 }
 
+void wsrep::server_state::sst_transferred(const wsrep::gtid& gtid)
+{
+    wsrep::log_info() << "SST transferred";
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    sst_gtid_ = gtid;
+    if (server_service_.sst_before_init())
+    {
+        state(lock, s_initializing);
+    }
+    else
+    {
+        state(lock, s_joined);
+    }
+}
+
 void wsrep::server_state::sst_received(const wsrep::gtid& gtid, int error)
 {
+    wsrep::log_info() << "SST received: " << gtid << ": " << error;
     if (provider_->sst_received(gtid, error))
     {
         throw wsrep::runtime_error("SST received failed");
@@ -101,10 +158,29 @@ void wsrep::server_state::sst_received(const wsrep::gtid& gtid, int error)
     state(lock, s_joined);
 }
 
-void wsrep::server_state::wait_until_state(
-    enum wsrep::server_state::state state) const
+void wsrep::server_state::initialized()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    wsrep::log_info() << "Server initialized";
+    init_initialized_ = true;
+    if (sst_gtid_.is_undefined() == false &&
+        server_service_.sst_before_init())
+    {
+        lock.unlock();
+        if (provider().sst_received(sst_gtid_, 0))
+        {
+            throw wsrep::runtime_error("SST received failed");
+        }
+        lock.lock();
+        sst_gtid_ = wsrep::gtid::undefined();
+    }
+    state(lock, s_initialized);
+}
+
+void wsrep::server_state::wait_until_state(
+    wsrep::unique_lock<wsrep::mutex>& lock,
+    enum wsrep::server_state::state state) const
+{
     ++state_waiters_[state];
     while (state_ != state)
     {
@@ -158,24 +234,52 @@ void wsrep::server_state::on_connect()
 
 void wsrep::server_state::on_view(const wsrep::view& view)
 {
-    wsrep::log_info() << "================================================\nView:\n"
-                 << "id: " << view.state_id() << "\n"
-                 << "status: " << view.status() << "\n"
-                 << "own_index: " << view.own_index() << "\n"
-                 << "final: " << view.final() << "\n"
-                 << "members";
+    wsrep::log_info()
+        << "================================================\nView:\n"
+        << "  id: " << view.state_id() << "\n"
+        << "  status: " << view.status() << "\n"
+        << "  own_index: " << view.own_index() << "\n"
+        << "  final: " << view.final() << "\n"
+        << "  members";
     const std::vector<wsrep::view::member>& members(view.members());
     for (std::vector<wsrep::view::member>::const_iterator i(members.begin());
          i != members.end(); ++i)
     {
-        wsrep::log_info() << "id: " << i->id() << " "
+        wsrep::log_info() << "    id: " << i->id() << " "
                           << "name: " << i->name();
     }
     wsrep::log_info() << "=================================================";
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    if (view.final())
+    if (view.status() == wsrep::view::primary)
     {
-        state(lock, s_disconnected);
+        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        if (state_ == s_connected && view.members().size() == 1)
+        {
+            state(lock, s_joiner);
+            state(lock, s_initializing);
+        }
+
+        if (init_initialized_ == false)
+        {
+            // DBMS has not been initialized yet
+            wait_until_state(lock, s_initialized);
+        }
+
+        assert(init_initialized_);
+
+        if (state_ == s_initialized)
+        {
+            state(lock, s_joined);
+            if (init_synced_)
+            {
+                state(lock, s_synced);
+            }
+        }
+
+        if (view.final())
+        {
+            state(lock, s_disconnected);
+        }
+        current_view_ = view;
     }
 }
 
@@ -183,21 +287,21 @@ void wsrep::server_state::on_sync()
 {
     wsrep::log_info() << "Server " << name_ << " synced with group";
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    /* Follow the path joiner -> joined -> synced to notify possible
-       waiters. */
-    switch (state_)
+    if (server_service_.sst_before_init())
     {
-    case s_connected:
-        state(lock, s_joiner);
-    case s_joiner:
-        state(lock, s_joined);
-    case s_joined:
-        state(lock, s_synced);
-        break;
-    default:
-        /* State */
-        state(lock, s_synced);
-    };
+        switch (state_)
+        {
+        case s_connected:
+            state(lock, s_joiner);
+        case s_joiner:
+            state(lock, s_initializing);
+            break;
+        default:
+            /* State */
+            state(lock, s_synced);
+        };
+    }
+    init_synced_ = true;
 }
 
 int wsrep::server_state::on_apply(
@@ -400,6 +504,33 @@ wsrep::client_state* wsrep::server_state::find_streaming_applier(
 
 // Private
 
+
+int wsrep::server_state::desync(wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    assert(lock.owns_lock());
+    ++desync_count_;
+    if (state_ == s_synced)
+    {
+        assert(desync_count_ == 0);
+        return provider_->desync();
+    }
+    return 0;
+}
+
+void wsrep::server_state::resync(wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    assert(lock.owns_lock());
+    --desync_count_;
+    if (desync_count_ == 0)
+    {
+        if (provider_->resync())
+        {
+            throw wsrep::runtime_error("Failed to resync");
+        }
+    }
+}
+
+
 void wsrep::server_state::state(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
     enum wsrep::server_state::state state)
@@ -412,7 +543,7 @@ void wsrep::server_state::state(
             {  0,   0,   1,    0,    0,   0,   0,   0,   0}, /* ing */
             {  0,   0,   0,    1,    0,   1,   0,   0,   0}, /* ized */
             {  0,   0,   0,    0,    1,   0,   0,   0,   0}, /* cted */
-            {  0,   0,   0,    0,    0,   1,   0,   0,   0}, /* jer */
+            {  0,   1,   0,    0,    0,   1,   0,   0,   0}, /* jer */
             {  0,   0,   0,    0,    0,   0,   0,   1,   1}, /* jed */
             {  0,   0,   0,    0,    0,   1,   0,   0,   1}, /* dor */
             {  0,   0,   0,    0,    0,   1,   1,   0,   1}, /* sed */
@@ -422,7 +553,9 @@ void wsrep::server_state::state(
     if (allowed[state_][state])
     {
         wsrep::log_info() << "server " << name_ << " state change: "
-                          << state_ << " -> " << state;
+                          << to_c_string(state_) << " -> "
+                          << to_c_string(state);
+        state_hist_.push_back(state_);
         state_ = state;
         cond_.notify_all();
         while (state_waiters_[state_])

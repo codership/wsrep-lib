@@ -339,8 +339,9 @@ namespace
         try
         {
             std::string req(server_state.prepare_for_sst());
-            *sst_req = ::strdup(req.c_str());
-            *sst_req_len = strlen(req.c_str());
+            *sst_req = ::malloc(req.size() + 1);
+            memcpy(*sst_req, req.data(), req.size() + 1);
+            *sst_req_len = req.size() + 1;
             return WSREP_CB_SUCCESS;
         }
         catch (const wsrep::runtime_error& e)

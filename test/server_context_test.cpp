@@ -122,9 +122,9 @@ BOOST_AUTO_TEST_CASE(server_state_state_strings)
     BOOST_REQUIRE(wsrep::to_string(
                       wsrep::server_state::s_disconnected) == "disconnected");
     BOOST_REQUIRE(wsrep::to_string(
-                      wsrep::server_state::s_initializing) == "initilizing");
+                      wsrep::server_state::s_initializing) == "initializing");
     BOOST_REQUIRE(wsrep::to_string(
-                      wsrep::server_state::s_initialized) == "initilized");
+                      wsrep::server_state::s_initialized) == "initialized");
     BOOST_REQUIRE(wsrep::to_string(
                       wsrep::server_state::s_connected) == "connected");
     BOOST_REQUIRE(wsrep::to_string(

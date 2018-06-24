@@ -71,6 +71,7 @@
 #include "condition_variable.hpp"
 #include "server_service.hpp"
 #include "id.hpp"
+#include "view.hpp"
 #include "transaction_id.hpp"
 #include "provider.hpp"
 
@@ -85,7 +86,6 @@ namespace wsrep
     class ws_meta;
     class client_state;
     class transaction;
-    class view;
     class const_buffer;
 
     /** @class Server Context
@@ -278,8 +278,16 @@ namespace wsrep
         /**
          * Wait until server reaches given state.
          */
-        void wait_until_state(wsrep::server_state::state) const;
+        void wait_until_state(enum state state) const
+        {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            wait_until_state(lock, state);
+        }
 
+        /**
+         *  Return current view
+         */
+        const wsrep::view& current_view() const { return current_view_; }
         /**
          * Set last committed GTID.
          */
@@ -312,6 +320,33 @@ namespace wsrep
         enum wsrep::provider::status causal_read(int timeout) const;
 
         /**
+         * Desynchronize the server.
+         *
+         * If the server state is synced, this call will desynchronize
+         * the server from the cluster.
+         */
+        int desync()
+        {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            return desync(lock);
+        }
+
+        /**
+         * Resynchronize the server.
+         */
+        void resync()
+        {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            resync(lock);
+        }
+
+        wsrep::seqno pause();
+
+        wsrep::seqno pause_seqno() const { return pause_seqno_; }
+
+        void resume();
+
+        /**
          * Prepares server state for SST.
          *
          * @return String containing a SST request
@@ -337,8 +372,17 @@ namespace wsrep
         void sst_sent(const wsrep::gtid& gtid, int error);
 
         /**
+         * This method should be called on joiner after the
+         * SST has been transferred but before DBMS has been
+         * initialized.
+         */
+        void sst_transferred(const wsrep::gtid& gtid);
+
+        /**
          * This method must be called by the joiner after the SST
-         * transfer has been received.
+         * transfer has been received and DBMS state has been completely
+         * initialized. This will signal the provider that it can
+         * start applying write sets.
          *
          * @param gtid GTID provided by the SST transfer
          */
@@ -375,6 +419,12 @@ namespace wsrep
         enum state state() const
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            return state(lock);
+        }
+
+        enum state state(wsrep::unique_lock<wsrep::mutex>& lock) const
+        {
+            assert(lock.owns_lock());
             return state_;
         }
         /**
@@ -396,6 +446,7 @@ namespace wsrep
          */
         void debug_log_filter(const std::string&);
 
+        wsrep::mutex& mutex() { return mutex_; }
     protected:
         /** Server state constructor
          *
@@ -421,7 +472,14 @@ namespace wsrep
             , cond_(cond)
             , server_service_(server_service)
             , state_(s_disconnected)
+            , state_hist_()
             , state_waiters_(n_states_)
+            , init_initialized_()
+            , init_synced_()
+            , sst_gtid_()
+            , desync_count_()
+            , pause_seqno_()
+            , desynced_on_pause_()
             , streaming_appliers_()
             , provider_()
             , name_(name)
@@ -429,6 +487,7 @@ namespace wsrep
             , address_(address)
             , working_dir_(working_dir)
             , rollback_mode_(rollback_mode)
+            , current_view_()
             , last_committed_gtid_()
             , debug_log_level_(0)
         { }
@@ -438,13 +497,23 @@ namespace wsrep
         server_state(const server_state&);
         server_state& operator=(const server_state&);
 
+        int desync(wsrep::unique_lock<wsrep::mutex>&);
+        void resync(wsrep::unique_lock<wsrep::mutex>&);
         void state(wsrep::unique_lock<wsrep::mutex>&, enum state);
+        void wait_until_state(wsrep::unique_lock<wsrep::mutex>&, enum state) const;
 
         wsrep::mutex& mutex_;
         wsrep::condition_variable& cond_;
         wsrep::server_service& server_service_;
         enum state state_;
+        std::vector<enum state> state_hist_;
         mutable std::vector<int> state_waiters_;
+        bool init_initialized_;
+        bool init_synced_;
+        wsrep::gtid sst_gtid_;
+        size_t desync_count_;
+        wsrep::seqno pause_seqno_;
+        bool desynced_on_pause_;
         typedef std::map<std::pair<wsrep::id, wsrep::transaction_id>, wsrep::client_state*> streaming_appliers_map;
         streaming_appliers_map streaming_appliers_;
         wsrep::provider* provider_;
@@ -453,6 +522,7 @@ namespace wsrep
         std::string address_;
         std::string working_dir_;
         enum rollback_mode rollback_mode_;
+        wsrep::view current_view_;
         wsrep::gtid last_committed_gtid_;
         int debug_log_level_;
     };
@@ -471,13 +541,14 @@ namespace wsrep
         wsrep::server_service& server_service_;
     };
 
-    static inline std::string to_string(enum wsrep::server_state::state state)
+    static inline const char* to_c_string(
+        enum wsrep::server_state::state state)
     {
         switch (state)
         {
         case wsrep::server_state::s_disconnected:  return "disconnected";
-        case wsrep::server_state::s_initializing:  return "initilizing";
-        case wsrep::server_state::s_initialized:   return "initilized";
+        case wsrep::server_state::s_initializing:  return "initializing";
+        case wsrep::server_state::s_initialized:   return "initialized";
         case wsrep::server_state::s_connected:     return "connected";
         case wsrep::server_state::s_joiner:        return "joiner";
         case wsrep::server_state::s_joined:        return "joined";
@@ -486,6 +557,11 @@ namespace wsrep
         case wsrep::server_state::s_disconnecting: return "disconnecting";
         }
         return "unknown";
+    }
+
+    static inline std::string to_string(enum wsrep::server_state::state state)
+    {
+        return (to_c_string(state));
     }
 
 }

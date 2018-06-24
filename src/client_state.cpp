@@ -18,27 +18,33 @@ wsrep::provider& wsrep::client_state::provider() const
 void wsrep::client_state::open(wsrep::client_id id)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    debug_log_state("open: enter");
     owning_thread_id_ = wsrep::this_thread::get_id();
     current_thread_id_ = owning_thread_id_;
     state(lock, s_idle);
     id_ = id;
+    debug_log_state("open: leave");
 }
 
 void wsrep::client_state::close()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    debug_log_state("close: enter");
     state(lock, s_quitting);
     lock.unlock();
     if (transaction_.active())
     {
         client_service_.rollback();
     }
+    debug_log_state("close: leave");
 }
 
 void wsrep::client_state::cleanup()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    debug_log_state("cleanup: enter");
     state(lock, s_none);
+    debug_log_state("cleanup: leave");
 }
 
 void wsrep::client_state::override_error(enum wsrep::client_error error)
@@ -281,6 +287,7 @@ void wsrep::client_state::debug_log_state(const char* context) const
         wsrep::log_debug() << "client_state: " << context
                            << ": server: " << server_state_.name()
                            << " client: " << id_.get()
+                           << " state: " << to_c_string(state_)
                            << " current_error: " << current_error_;
     }
 }

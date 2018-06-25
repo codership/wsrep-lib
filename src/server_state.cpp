@@ -508,6 +508,13 @@ int wsrep::server_state::on_apply(
     const wsrep::ws_meta& ws_meta,
     const wsrep::const_buffer& data)
 {
+    if (rolls_back_transaction(ws_meta.flags()))
+    {
+        provider().commit_order_enter(ws_handle, ws_meta);
+        // todo: server_service_.log_dummy_write_set();
+        provider().commit_order_leave(ws_handle, ws_meta);
+        return 0;
+    }
     if (is_toi(ws_meta.flags()))
     {
         return apply_toi(provider(), client_state, ws_handle, ws_meta, data);

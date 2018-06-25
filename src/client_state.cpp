@@ -242,12 +242,14 @@ int wsrep::client_state::enter_toi(const wsrep::key_array& keys,
                                    int flags)
 {
     assert(state_ == s_exec);
+    assert(mode_ == m_replicating);
     int ret;
     switch (provider().enter_toi(id_, keys, buffer, toi_meta_, flags))
     {
     case wsrep::provider::success:
     {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        toi_mode_ = mode_;
         mode(lock, m_toi);
         ret = 0;
         break;
@@ -260,22 +262,38 @@ int wsrep::client_state::enter_toi(const wsrep::key_array& keys,
     return ret;
 }
 
+int wsrep::client_state::enter_toi(const wsrep::ws_meta& ws_meta)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    assert(mode_ == m_high_priority);
+    toi_mode_ = mode_;
+    mode(lock, m_toi);
+    toi_meta_ = ws_meta;
+    return 0;
+}
+
 int wsrep::client_state::leave_toi()
 {
     int ret;
-    switch (provider().leave_toi(id_))
+    if (toi_mode_ == m_replicating)
     {
-    case wsrep::provider::success:
-        ret = 0;
-        break;
-    default:
-        assert(0);
-        override_error(wsrep::e_error_during_commit);
-        ret = 1;
-        break;
+        switch (provider().leave_toi(id_))
+        {
+        case wsrep::provider::success:
+            ret = 0;
+            break;
+        default:
+            assert(0);
+            override_error(wsrep::e_error_during_commit);
+            ret = 1;
+            break;
+        }
     }
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    mode(lock, m_replicating);
+    mode(lock, toi_mode_);
+    toi_mode_ = m_local;
+    toi_meta_ = wsrep::ws_meta();
+
     return ret;
 }
 // Private
@@ -326,11 +344,11 @@ void wsrep::client_state::mode(
 {
     assert(lock.owns_lock());
     static const char allowed[mode_max_][mode_max_] =
-        {
-            { 0, 0, 0, 0}, /* local */
-            { 0, 0, 1, 1}, /* repl */
-            { 0, 1, 0, 0}, /* high prio */
-            { 0, 1, 0, 0} /* toi */
+        {   /* l  r  h  t */
+            {  0, 0, 0, 0 }, /* local */
+            {  0, 0, 1, 1 }, /* repl */
+            {  0, 1, 0, 1 }, /* high prio */
+            {  0, 1, 1, 0 }  /* toi */
         };
     if (allowed[mode_][mode])
     {

@@ -357,8 +357,6 @@ namespace
                                const wsrep_trx_meta_t* meta,
                                wsrep_bool_t* exit_loop __attribute__((unused)))
     {
-        wsrep_cb_status_t ret(WSREP_CB_SUCCESS);
-
         wsrep::client_state* client_state(
             reinterpret_cast<wsrep::client_state*>(ctx));
         assert(client_state);
@@ -375,13 +373,22 @@ namespace
                         meta->stid.trx,
                         meta->stid.conn), wsrep::seqno(seqno_from_native(meta->depends_on)),
             map_flags_from_native(flags));
-        if (ret == WSREP_CB_SUCCESS &&
-            client_state->server_state().on_apply(
-                *client_state, ws_handle, ws_meta, data))
+        try
         {
-            ret = WSREP_CB_FAILURE;
+            if (client_state->server_state().on_apply(
+                    *client_state, ws_handle, ws_meta, data))
+            {
+                return WSREP_CB_FAILURE;
+            }
+            return WSREP_CB_SUCCESS;
         }
-        return ret;
+        catch (const wsrep::runtime_error& e)
+        {
+            wsrep::log_error() << "Caught runtime error while applying "
+                               << ws_meta.flags() << ": "
+                               << e.what();
+            return WSREP_CB_FAILURE;
+        }
     }
 
     wsrep_cb_status_t synced_cb(void* app_ctx)

@@ -6,13 +6,21 @@
 #include "mock_client_state.hpp"
 
 
-int wsrep::mock_client_service::apply(
+int wsrep::mock_client_service::apply_write_set(
     const wsrep::const_buffer&)
 
 {
+    assert(client_state_.toi_meta().seqno().is_undefined());
     assert(client_state_.transaction().state() == wsrep::transaction::s_executing ||
            client_state_.transaction().state() == wsrep::transaction::s_replaying);
     return (fail_next_applying_ ? 1 : 0);
+}
+
+int wsrep::mock_client_service::apply_toi(const wsrep::const_buffer&)
+{
+    assert(client_state_.transaction().active() == false);
+    assert(client_state_.toi_meta().seqno().is_undefined() == false);
+    return (fail_next_toi_ ? 1 : 0);
 }
 
 int wsrep::mock_client_service::commit(

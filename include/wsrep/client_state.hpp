@@ -399,6 +399,7 @@ namespace wsrep
 
         /**
          * Enter total order isolation critical section.
+         *
          * @param key_array Array of keys
          * @param buffer Buffer containing the action to execute inside
          *               total order isolation section
@@ -409,7 +410,30 @@ namespace wsrep
         int enter_toi(const wsrep::key_array& key_array,
                       const wsrep::const_buffer& buffer,
                       int flags);
+        /**
+         * Enter applying total order critical section.
+         *
+         * @param ws_meta Write set meta data
+         */
+        int enter_toi(const wsrep::ws_meta& ws_meta);
 
+        /**
+         * Return true if the client_state is under TOI operation.
+         */
+        bool in_toi() const
+        {
+            return (toi_meta_.seqno().is_undefined() == false);
+        }
+
+        /**
+         * Return the mode where client entered into TOI mode.
+         * The return value can be either m_replicating or
+         * m_high_priority.
+         */
+        enum mode toi_mode() const
+        {
+            return toi_mode_;
+        }
         /**
          * Leave total order isolation critical section.
          */
@@ -556,6 +580,7 @@ namespace wsrep
             , client_service_(client_service)
             , id_(id)
             , mode_(mode)
+            , toi_mode_()
             , state_(s_none)
             , transaction_(*this)
             , toi_meta_()
@@ -585,6 +610,7 @@ namespace wsrep
         wsrep::client_service& client_service_;
         wsrep::client_id id_;
         enum mode mode_;
+        enum mode toi_mode_;
         enum state state_;
         wsrep::transaction transaction_;
         wsrep::ws_meta toi_meta_;

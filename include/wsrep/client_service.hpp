@@ -81,8 +81,23 @@ namespace wsrep
 
         /**
          * Apply a write set.
+         *
+         * A write set applying happens always
+         * as a part of the transaction. The caller must start a
+         * new transaction before applying a write set and must
+         * either commit to make changes persistent or roll back.
          */
-        virtual int apply(const wsrep::const_buffer&) = 0;
+        virtual int apply_write_set(const wsrep::const_buffer&) = 0;
+
+        /**
+         * Apply a TOI operation.
+         *
+         * TOI operation is a standalone operation and should not
+         * be executed as a part of a transaction.
+         */
+        virtual int apply_toi(const wsrep::const_buffer&) = 0;
+
+
         //
         // Interface to global server state
         //

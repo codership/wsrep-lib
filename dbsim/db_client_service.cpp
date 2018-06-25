@@ -5,11 +5,16 @@
 #include "db_client_service.hpp"
 #include "db_client.hpp"
 
-int db::client_service::apply(const wsrep::const_buffer&)
+int db::client_service::apply_write_set(const wsrep::const_buffer&)
 {
     db::client* client(client_state_.client());
     client->se_trx_.start(client);
     client->se_trx_.apply(client_state_.transaction());
+    return 0;
+}
+
+int db::client_service::apply_toi(const wsrep::const_buffer&)
+{
     return 0;
 }
 

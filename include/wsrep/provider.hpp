@@ -344,7 +344,20 @@ namespace wsrep
         return (flags & wsrep::provider::flag::rollback);
     }
 
+    static inline bool is_toi(int flags)
+    {
+        return (flags & wsrep::provider::flag::isolation);
+    }
 
+    static inline bool is_commutative(int flags)
+    {
+        return (flags & wsrep::provider::flag::commutative);
+    }
+
+    static inline bool is_native(int flags)
+    {
+        return (flags & wsrep::provider::flag::native);
+    }
 }
 
 #endif // WSREP_PROVIDER_HPP

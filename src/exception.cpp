@@ -4,4 +4,4 @@
 
 #include "wsrep/exception.hpp"
 
-bool wsrep::abort_on_exception(true);
+bool wsrep::abort_on_exception(false);

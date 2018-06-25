@@ -50,6 +50,8 @@ namespace db
             return 0;
         }
 
+        void cleanup_transaction() override { }
+
         size_t bytes_generated() const override
         {
             return 0;

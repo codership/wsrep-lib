@@ -29,7 +29,7 @@ void db::server_service::release_client_state(
 
 bool db::server_service::sst_before_init() const
 {
-    return false;
+    return true;
 }
 
 std::string db::server_service::sst_request()

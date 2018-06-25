@@ -122,6 +122,7 @@ namespace wsrep
             return client_state_.append_data(data);
         }
 
+        void cleanup_transaction() WSREP_OVERRIDE { }
         size_t bytes_generated() const
         {
             return bytes_generated_;

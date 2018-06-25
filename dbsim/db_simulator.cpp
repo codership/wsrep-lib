@@ -36,7 +36,9 @@ void db::simulator::sst(db::server& server,
     {
         wsrep::log_info() << "SST " << server.server_state().id() << " -> " << id;
     }
-    i->second->server_state().sst_received(gtid, 0);
+    i->second->server_state().sst_transferred(gtid);
+    i->second->server_state().initialized();
+    // i->second->server_state().sst_received(gtid, 0);
     server.server_state().sst_sent(gtid, 0);
 }
 
@@ -116,6 +118,8 @@ void db::simulator::start()
             throw wsrep::runtime_error("Failed to connect");
         }
         server.start_applier();
+        server.server_state().wait_until_state(wsrep::server_state::s_initializing);
+        server.server_state().initialized();
         server.server_state().wait_until_state(
             wsrep::server_state::s_synced);
     }

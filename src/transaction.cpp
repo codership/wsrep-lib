@@ -959,6 +959,7 @@ void wsrep::transaction::cleanup()
     ws_meta_ = wsrep::ws_meta();
     certified_ = false;
     pa_unsafe_ = false;
+    client_service_.cleanup_transaction();
     debug_log_state("cleanup_leave");
 }
 

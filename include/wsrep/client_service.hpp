@@ -63,6 +63,11 @@ namespace wsrep
          */
         virtual int prepare_data_for_replication() = 0;
 
+        /**
+         * Clean up after transcation has been terminated.
+         */
+        virtual void cleanup_transaction() = 0;
+
         //
         // Streaming
         //

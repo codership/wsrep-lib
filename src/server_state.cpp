@@ -175,8 +175,9 @@ namespace
         return ret;
     }
 
-    int apply_toi(wsrep::server_service&,
+    int apply_toi(wsrep::provider& provider,
                   wsrep::client_state& client_state,
+                  const wsrep::ws_handle& ws_handle,
                   const wsrep::ws_meta& ws_meta,
                   const wsrep::const_buffer& data)
     {
@@ -184,9 +185,11 @@ namespace
             wsrep::commits_transaction(ws_meta.flags()))
         {
             // Regular toi
+            provider.commit_order_enter(ws_handle, ws_meta);
             client_state.enter_toi(ws_meta);
             int ret(client_state.client_service().apply_toi(data));
             client_state.leave_toi();
+            provider.commit_order_leave(ws_handle, ws_meta);
             return ret;
         }
         else if (wsrep::starts_transaction(ws_meta.flags()))
@@ -507,7 +510,7 @@ int wsrep::server_state::on_apply(
 {
     if (is_toi(ws_meta.flags()))
     {
-        return apply_toi(server_service_, client_state, ws_meta, data);
+        return apply_toi(provider(), client_state, ws_handle, ws_meta, data);
     }
     else if (is_commutative(ws_meta.flags()) || is_native(ws_meta.flags()))
     {

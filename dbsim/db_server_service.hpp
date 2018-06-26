@@ -25,7 +25,7 @@ namespace db
         void log_message(enum wsrep::log::level, const char* message);
         void log_dummy_write_set(wsrep::client_state&, const wsrep::ws_meta&)
             override;
-        void log_view(wsrep::client_state&, const wsrep::view&) override;
+        void log_view(const wsrep::view&) override;
     private:
         db::server& server_;
     };

@@ -474,6 +474,7 @@ void wsrep::server_state::on_view(const wsrep::view& view)
         }
         current_view_ = view;
     }
+    server_service_.log_view(view);
 }
 
 void wsrep::server_state::on_sync()

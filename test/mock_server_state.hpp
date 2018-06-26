@@ -61,7 +61,7 @@ namespace wsrep
             WSREP_OVERRIDE
         {
         }
-        void log_view(wsrep::client_state&, const wsrep::view&) { }
+        void log_view(const wsrep::view&) { }
 
         void on_connect() WSREP_OVERRIDE { }
         void wait_until_connected() WSREP_OVERRIDE { }

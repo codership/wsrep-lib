@@ -78,7 +78,7 @@ namespace wsrep
         /**
          * Log a cluster view change event.
          */
-        virtual void log_view(wsrep::client_state&, const wsrep::view&) = 0;
+        virtual void log_view(const wsrep::view&) = 0;
 
         /**
          * Determine if the configured SST method requires SST to be

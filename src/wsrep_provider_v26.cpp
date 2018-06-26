@@ -672,22 +672,23 @@ wsrep::wsrep_provider_v26::enter_toi(
     int flags)
 {
     mutable_ws_meta mmeta(ws_meta, flags);
-    std::vector<wsrep_buf_t> key_parts;
-    size_t key_parts_offset(0);
+    std::vector<std::vector<wsrep_buf_t> > key_parts;
     std::vector<wsrep_key_t> wsrep_keys;
     wsrep_buf_t wsrep_buf = {buffer.data(), buffer.size()};
-    for (wsrep::key_array::const_iterator i(keys.begin());
-         i != keys.end(); ++i)
+    for (size_t i(0); i < keys.size(); ++i)
     {
-        for (size_t kp(0); kp < i->size(); ++kp)
+        key_parts.push_back(std::vector<wsrep_buf_t>());
+        for (size_t kp(0); kp < keys[i].size(); ++kp)
         {
-            wsrep_buf_t buf = {i->key_parts()[kp].data(),
-                               i->key_parts()[kp].size()};
-            key_parts.push_back(buf);
+            wsrep_buf_t buf = {keys[i].key_parts()[kp].data(),
+                               keys[i].key_parts()[kp].size()};
+            key_parts[i].push_back(buf);
         }
-        wsrep_key_t key = {&key_parts[0] + key_parts_offset, i->size()};
+    }
+    for (size_t i(0); i < key_parts.size(); ++i)
+    {
+        wsrep_key_t key = {key_parts[i].data(), key_parts[i].size()};
         wsrep_keys.push_back(key);
-        key_parts_offset += i->size();
     }
     return map_return_value(wsrep_->to_execute_start(
                                 wsrep_,

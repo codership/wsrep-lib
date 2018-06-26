@@ -192,6 +192,12 @@ namespace wsrep
          * @return String containing path to working directory.
          */
         const std::string& working_dir() const { return working_dir_; }
+
+        /**
+         * Return maximum protocol version.
+         */
+        int max_protocol_version() const { return max_protocol_version_;}
+
         /**
          * Get the rollback mode which server is operating in.
          *
@@ -254,7 +260,7 @@ namespace wsrep
          * A method which will be called when the server
          * has been joined to the cluster
          */
-        void on_connect();
+        void on_connect(const wsrep::gtid& gtid);
 
         /**
          * A method which will be called when a view
@@ -283,6 +289,12 @@ namespace wsrep
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             wait_until_state(lock, state);
         }
+
+        /**
+         * Return GTID at the position when server connected to
+         * the cluster.
+         */
+        wsrep::gtid connected_gtid() const { return connected_gtid_; }
 
         /**
          *  Return current view
@@ -467,6 +479,7 @@ namespace wsrep
                      const std::string& id,
                      const std::string& address,
                      const std::string& working_dir,
+                     int max_protocol_version,
                      enum rollback_mode rollback_mode)
             : mutex_(mutex)
             , cond_(cond)
@@ -486,7 +499,9 @@ namespace wsrep
             , id_(id)
             , address_(address)
             , working_dir_(working_dir)
+            , max_protocol_version_(max_protocol_version)
             , rollback_mode_(rollback_mode)
+            , connected_gtid_()
             , current_view_()
             , last_committed_gtid_()
             , debug_log_level_(0)
@@ -521,7 +536,9 @@ namespace wsrep
         std::string id_;
         std::string address_;
         std::string working_dir_;
+        int max_protocol_version_;
         enum rollback_mode rollback_mode_;
+        wsrep::gtid connected_gtid_;
         wsrep::view current_view_;
         wsrep::gtid last_committed_gtid_;
         int debug_log_level_;

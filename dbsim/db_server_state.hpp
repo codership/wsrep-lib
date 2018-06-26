@@ -31,6 +31,7 @@ namespace db
                 server_id,
                 address,
                 working_dir,
+                1,
                 wsrep::server_state::rm_async)
             , mutex_()
             , cond_()

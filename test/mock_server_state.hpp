@@ -22,7 +22,7 @@ namespace wsrep
                             const std::string& id,
                             enum wsrep::server_state::rollback_mode rollback_mode)
             : wsrep::server_state(mutex_, cond_, *this,
-                                    name, id, "", "./", rollback_mode)
+                                  name, id, "", "./", 1, rollback_mode)
             , mutex_()
             , cond_()
             , provider_(*this)

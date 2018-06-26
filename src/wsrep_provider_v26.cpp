@@ -286,17 +286,15 @@ namespace
 
     wsrep_cb_status_t connected_cb(
         void* app_ctx,
-        const wsrep_view_info_t* view __attribute((unused)))
+        const wsrep_view_info_t* view_info)
     {
         assert(app_ctx);
+        wsrep::view view(view_from_native(*view_info));
         wsrep::server_state& server_state(
             *reinterpret_cast<wsrep::server_state*>(app_ctx));
-        //
-        // TODO: Fetch server id and group id from view infor
-        //
         try
         {
-            server_state.on_connect();
+            server_state.on_connect(view.state_id());
             return WSREP_CB_SUCCESS;
         }
         catch (const wsrep::runtime_error& e)
@@ -475,7 +473,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     init_args.node_incoming = "";
     init_args.data_dir = server_state_.working_dir().c_str();
     init_args.options = provider_options.c_str();
-    init_args.proto_ver = 1;
+    init_args.proto_ver = server_state.max_protocol_version();
     init_args.state_id = 0;
     init_args.state = 0;
     init_args.logger_cb = &logger_cb;

@@ -212,10 +212,11 @@ namespace
 }
 
 int wsrep::server_state::load_provider(const std::string& provider_spec,
-                                         const std::string& provider_options)
+                                       const std::string& provider_options)
 {
     wsrep::log_info() << "Loading provider " << provider_spec;
-    provider_ = wsrep::provider::make_provider(*this, provider_spec, provider_options);
+    provider_ = wsrep::provider::make_provider(
+        *this, provider_spec, provider_options);
     return (provider_ ? 0 : 1);
 }
 
@@ -418,10 +419,14 @@ wsrep::server_state::causal_read(int timeout) const
     return provider_->causal_read(timeout);
 }
 
-void wsrep::server_state::on_connect()
+void wsrep::server_state::on_connect(const wsrep::gtid& gtid)
 {
-    wsrep::log_info() << "Server " << name_ << " connected to cluster";
+    wsrep::log_info() << "Server "
+                      << name_
+                      << " connected to cluster at position "
+                      << gtid;
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    connected_gtid_ = gtid;
     state(lock, s_connected);
 }
 
@@ -431,6 +436,7 @@ void wsrep::server_state::on_view(const wsrep::view& view)
         << "================================================\nView:\n"
         << "  id: " << view.state_id() << "\n"
         << "  status: " << view.status() << "\n"
+        << "  prococol_version: " << view.protocol_version() << "\n"
         << "  own_index: " << view.own_index() << "\n"
         << "  final: " << view.final() << "\n"
         << "  members";
@@ -445,6 +451,7 @@ void wsrep::server_state::on_view(const wsrep::view& view)
     if (view.status() == wsrep::view::primary)
     {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        current_view_ = view;
         if (state_ == s_connected && view.members().size() == 1)
         {
             state(lock, s_joiner);
@@ -472,7 +479,6 @@ void wsrep::server_state::on_view(const wsrep::view& view)
         {
             state(lock, s_disconnected);
         }
-        current_view_ = view;
     }
     server_service_.log_view(view);
 }

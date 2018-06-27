@@ -500,25 +500,17 @@ wsrep::wsrep_provider_v26::~wsrep_provider_v26()
     wsrep_unload(wsrep_);
 }
 
-int wsrep::wsrep_provider_v26::connect(
+enum wsrep::provider::status wsrep::wsrep_provider_v26::connect(
     const std::string& cluster_name,
     const std::string& cluster_url,
     const std::string& state_donor,
     bool bootstrap)
 {
-    int ret(0);
-    wsrep_status_t wret;
-    if ((wret = wsrep_->connect(wsrep_,
-                                cluster_name.c_str(),
-                                cluster_url.c_str(),
-                                state_donor.c_str(),
-                                bootstrap)) != WSREP_OK)
-    {
-        std::cerr << "Failed to connect cluster: "
-                  << wret << "\n";
-        ret = 1;
-    }
-    return ret;
+    return map_return_value(wsrep_->connect(wsrep_,
+                                            cluster_name.c_str(),
+                                            cluster_url.c_str(),
+                                            state_donor.c_str(),
+                                            bootstrap));
 }
 
 int wsrep::wsrep_provider_v26::disconnect()

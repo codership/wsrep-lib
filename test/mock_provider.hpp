@@ -39,9 +39,10 @@ namespace wsrep
             , rollback_fragments_()
         { }
 
-        int connect(const std::string&, const std::string&, const std::string&,
-                    bool)
-        { return 0; }
+        enum wsrep::provider::status
+        connect(const std::string&, const std::string&, const std::string&,
+                bool)
+        { return wsrep::provider::success; }
         int disconnect() { return 0; }
         int capabilities() const { return 0; }
         int desync() { return 0; }

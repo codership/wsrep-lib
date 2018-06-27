@@ -223,10 +223,10 @@ namespace wsrep
         { }
         virtual ~provider() { }
         // Provider state management
-        virtual int connect(const std::string& cluster_name,
-                            const std::string& cluster_url,
-                            const std::string& state_donor,
-                            bool bootstrap) = 0;
+        virtual enum status connect(const std::string& cluster_name,
+                                    const std::string& cluster_url,
+                                    const std::string& state_donor,
+                                    bool bootstrap) = 0;
         virtual int disconnect() = 0;
 
         virtual int capabilities() const = 0;

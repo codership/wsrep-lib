@@ -967,7 +967,7 @@ void wsrep::transaction::debug_log_state(
     const char* context) const
 {
     WSREP_TC_LOG_DEBUG(
-        0, context
+        1, context
         << ": server: " << client_state_.server_state().name()
         << " client: " << client_state_.id().get()
         << " trx: " << int64_t(id_.get())

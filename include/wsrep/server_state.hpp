@@ -439,6 +439,10 @@ namespace wsrep
             assert(lock.owns_lock());
             return state_;
         }
+
+
+        std::vector<wsrep::provider::status_variable> status() const;
+
         /**
          * Set server wide wsrep debug logging level.
          *
@@ -459,6 +463,7 @@ namespace wsrep
         void debug_log_filter(const std::string&);
 
         wsrep::mutex& mutex() { return mutex_; }
+
     protected:
         /** Server state constructor
          *

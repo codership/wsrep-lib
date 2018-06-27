@@ -23,6 +23,7 @@ namespace wsrep
                             enum wsrep::server_state::rollback_mode rollback_mode)
             : wsrep::server_state(mutex_, cond_, *this,
                                   name, id, "", "./", 1, rollback_mode)
+            , sst_before_init_()
             , mutex_()
             , cond_()
             , provider_(*this)
@@ -63,11 +64,12 @@ namespace wsrep
         }
         void log_view(const wsrep::view&) { }
 
-        void on_connect() WSREP_OVERRIDE { }
-        void wait_until_connected() WSREP_OVERRIDE { }
-        void on_view(const wsrep::view&) WSREP_OVERRIDE { }
-        void on_sync() WSREP_OVERRIDE { }
-        bool sst_before_init() const WSREP_OVERRIDE { return false; }
+        // void on_connect(const wsrep::gtid& ) WSREP_OVERRIDE { }
+        // void wait_until_connected() WSREP_OVERRIDE { }
+        // void on_view(const wsrep::view&) WSREP_OVERRIDE { }
+        // void on_sync() WSREP_OVERRIDE { }
+        bool sst_before_init() const WSREP_OVERRIDE
+        { return sst_before_init_; }
         std::string sst_request() WSREP_OVERRIDE { return ""; }
         int start_sst(const std::string&,
                       const wsrep::gtid&,
@@ -78,6 +80,9 @@ namespace wsrep
             client_state.before_rollback();
             client_state.after_rollback();
         }
+
+        bool sst_before_init_;
+
     private:
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;

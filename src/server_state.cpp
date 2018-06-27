@@ -15,6 +15,52 @@
 
 namespace
 {
+    std::string cluster_status_string(enum wsrep::server_state::state state)
+    {
+        switch (state)
+        {
+        case wsrep::server_state::s_joined:
+        case wsrep::server_state::s_synced:
+            return "Primary";
+        default:
+            return "non-Primary";
+        }
+    }
+
+    std::string cluster_size_string(enum wsrep::server_state::state state,
+                                    const wsrep::view& current_view)
+    {
+        std::ostringstream oss;
+        switch (state)
+        {
+        case wsrep::server_state::s_joined:
+        case wsrep::server_state::s_synced:
+            oss << current_view.members().size();
+            break;
+        default:
+            oss << 0;
+            break;
+        }
+        return oss.str();
+    }
+
+    std::string local_index_string(enum wsrep::server_state::state state,
+                                   const wsrep::view& current_view)
+    {
+        std::ostringstream oss;
+        switch (state)
+        {
+        case wsrep::server_state::s_joined:
+        case wsrep::server_state::s_synced:
+            oss << current_view.own_index();
+            break;
+        default:
+            oss << -1;
+            break;
+        }
+        return oss.str();
+    }
+
     int apply_write_set(wsrep::server_state& server_state,
                         wsrep::client_state& client_state,
                         const wsrep::ws_handle& ws_handle,
@@ -249,6 +295,20 @@ wsrep::server_state::~server_state()
     delete provider_;
 }
 
+std::vector<wsrep::provider::status_variable>
+wsrep::server_state::status() const
+{
+    typedef wsrep::provider::status_variable sv;
+    std::vector<sv> ret(provider_->status());
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    ret.push_back(sv("cluster_status", cluster_status_string(state_)));
+    ret.push_back(sv("cluster_size",
+                     cluster_size_string(state_, current_view_)));
+    ret.push_back(sv("local_index",
+                     local_index_string(state_, current_view_)));
+    return ret;
+}
+
 
 wsrep::seqno wsrep::server_state::pause()
 {
@@ -339,12 +399,26 @@ void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
 
 void wsrep::server_state::sst_transferred(const wsrep::gtid& gtid)
 {
-    wsrep::log_info() << "SST transferred";
+    wsrep::log_info() << "SST transferred: " << gtid;
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     sst_gtid_ = gtid;
     if (server_service_.sst_before_init())
     {
         state(lock, s_initializing);
+        // Incremental state transfer was received
+        // TODO: Sanity checks for gtid continuity
+        if (init_initialized_)
+        {
+            state(lock, s_initialized);
+            state(lock, s_joined);
+            lock.unlock();
+            // TODO: This should not be here, sst_received() should be
+            // called instead
+            if (provider().sst_received(sst_gtid_, 0))
+            {
+                throw wsrep::runtime_error("SST received failed");
+            }
+        }
     }
     else
     {
@@ -462,7 +536,9 @@ void wsrep::server_state::on_view(const wsrep::view& view)
     if (view.status() == wsrep::view::primary)
     {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        assert(view.final() == false);
         current_view_ = view;
+        // Cluster was bootstrapped
         if (state_ == s_connected && view.members().size() == 1)
         {
             state(lock, s_joiner);
@@ -485,11 +561,32 @@ void wsrep::server_state::on_view(const wsrep::view& view)
                 state(lock, s_synced);
             }
         }
-
-        if (view.final())
+    }
+    else if (view.status() == wsrep::view::non_primary)
+    {
+        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        wsrep::log_info() << "Non-primary view";
+        if (state_ == s_disconnecting)
         {
-            state(lock, s_disconnected);
+            if (view.final())
+            {
+                state(lock, s_disconnected);
+            }
+            else
+            {
+                wsrep::log_debug() << "Ignoring non-prim while disconnecting";
+            }
         }
+        else if (state_ != s_connected)
+        {
+            state(lock, s_connected);
+        }
+    }
+    else
+    {
+        assert(view.final());
+        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        state(lock, s_disconnected);
     }
     server_service_.log_view(view);
 }
@@ -499,7 +596,8 @@ void wsrep::server_state::on_sync()
     wsrep::log_info() << "Server " << name_ << " synced with group";
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
 
-    if (server_service_.sst_before_init())
+    // Initial sync
+    if (server_service_.sst_before_init() && init_synced_ == false)
     {
         switch (state_)
         {
@@ -518,6 +616,10 @@ void wsrep::server_state::on_sync()
             /* State */
             state(lock, s_synced);
         };
+    }
+    else
+    {
+        state(lock, s_synced);
     }
     init_synced_ = true;
 }
@@ -634,11 +736,11 @@ void wsrep::server_state::state(
             {  0,   1,   0,    1,    0,   0,   0,   0,   0}, /* dis */
             {  0,   0,   1,    0,    0,   0,   0,   0,   0}, /* ing */
             {  0,   0,   0,    1,    0,   1,   0,   0,   0}, /* ized */
-            {  0,   0,   0,    0,    1,   0,   0,   0,   0}, /* cted */
+            {  0,   0,   0,    0,    1,   0,   0,   1,   0}, /* cted */
             {  0,   1,   0,    0,    0,   1,   0,   0,   0}, /* jer */
             {  0,   0,   0,    0,    0,   0,   0,   1,   1}, /* jed */
             {  0,   0,   0,    0,    0,   1,   0,   0,   1}, /* dor */
-            {  0,   0,   0,    0,    0,   1,   1,   0,   1}, /* sed */
+            {  0,   0,   0,    1,    0,   1,   1,   0,   1}, /* sed */
             {  1,   0,   0,    0,    0,   0,   0,   0,   0}  /* ding */
         };
 

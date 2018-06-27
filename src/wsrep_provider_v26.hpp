@@ -18,7 +18,8 @@ namespace wsrep
         wsrep_provider_v26(wsrep::server_state&, const std::string&,
                            const std::string&);
         ~wsrep_provider_v26();
-        int connect(const std::string&, const std::string&, const std::string&,
+        enum wsrep::provider::status
+        connect(const std::string&, const std::string&, const std::string&,
                     bool);
         int disconnect();
         int capabilities() const;

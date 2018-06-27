@@ -30,6 +30,15 @@ namespace
         wsrep::ws_handle ws_handle;
         wsrep::ws_meta ws_meta;
     };
+
+    struct sst_first_server_fixture : applying_server_fixture
+    {
+        sst_first_server_fixture()
+            : applying_server_fixture()
+        {
+            sc.sst_before_init_ = true;
+        }
+    };
 }
 
 // Test on_apply() method for 1pc
@@ -139,4 +148,25 @@ BOOST_AUTO_TEST_CASE(server_state_state_strings)
                       wsrep::server_state::s_disconnecting) == "disconnecting");
     BOOST_REQUIRE(wsrep::to_string(
                       static_cast<enum wsrep::server_state::state>(0xff)) == "unknown");
+}
+
+BOOST_FIXTURE_TEST_CASE(server_state_sst_first_boostrap,
+                        sst_first_server_fixture)
+{
+    wsrep::id cluster_id("1");
+    wsrep::gtid state_id(cluster_id, wsrep::seqno(0));
+    std::vector<wsrep::view::member> members;
+    members.push_back(wsrep::view::member(wsrep::id("1"), "name", ""));
+    wsrep::view bootstrap_view(state_id,
+                               wsrep::seqno(1),
+                               wsrep::view::primary,
+                               0,
+                               0,
+                               1,
+                               members);
+    BOOST_REQUIRE(sc.connect("cluster", "local", "0", false) == 0);
+    sc.on_connect(wsrep::gtid(cluster_id, wsrep::seqno(0)));
+    // @todo Blocks on state wait, need to figure out a way to avoid
+    //       that.
+    // sc.on_view(bootstrap_view);
 }

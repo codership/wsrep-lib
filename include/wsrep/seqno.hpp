@@ -14,10 +14,6 @@ namespace wsrep
     /** @class seqno
      *
      * Sequence number type.
-     *
-     * By convention, nil value is zero, negative values are not allowed.
-     * Relation operators are restricted to < and > on purpose to
-     * enforce correct use.
      */
     class seqno
     {
@@ -28,12 +24,7 @@ namespace wsrep
 
         explicit seqno(long long seqno)
             : seqno_(seqno)
-        {
-            if (seqno_ < -1)
-            {
-                throw wsrep::runtime_error("Too negative seqno given");
-            }
-        }
+        { }
 
         long long get() const
         {

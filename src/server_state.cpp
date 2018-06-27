@@ -619,7 +619,13 @@ void wsrep::server_state::on_sync()
     }
     else
     {
-        state(lock, s_synced);
+        // Calls to on_sync() in synced state are possible if
+        // server desyncs itself from the group. Provider does not
+        // inform about this through callbacks.
+        if (state_ != s_synced)
+        {
+            state(lock, s_synced);
+        }
     }
     init_synced_ = true;
 }

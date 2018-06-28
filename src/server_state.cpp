@@ -388,13 +388,14 @@ int wsrep::server_state::start_sst(const std::string& sst_request,
 void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
 {
     wsrep::log_info() << "SST sent: " << gtid << ": " << error;
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    state(lock, s_joined);
+    lock.unlock();
     if (provider_->sst_sent(gtid, error))
     {
         server_service_.log_message(wsrep::log::warning,
                                     "SST sent returned an error");
     }
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    state(lock, s_joined);
 }
 
 void wsrep::server_state::sst_transferred(const wsrep::gtid& gtid)
@@ -429,12 +430,13 @@ void wsrep::server_state::sst_transferred(const wsrep::gtid& gtid)
 void wsrep::server_state::sst_received(const wsrep::gtid& gtid, int error)
 {
     wsrep::log_info() << "SST received: " << gtid << ": " << error;
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    state(lock, s_joined);
+    lock.unlock();
     if (provider_->sst_received(gtid, error))
     {
         throw wsrep::runtime_error("SST received failed");
     }
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    state(lock, s_joined);
 }
 
 void wsrep::server_state::initialized()
@@ -442,6 +444,7 @@ void wsrep::server_state::initialized()
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     wsrep::log_info() << "Server initialized";
     init_initialized_ = true;
+    state(lock, s_initialized);
     if (sst_gtid_.is_undefined() == false &&
         server_service_.sst_before_init())
     {
@@ -453,7 +456,6 @@ void wsrep::server_state::initialized()
         lock.lock();
         sst_gtid_ = wsrep::gtid::undefined();
     }
-    state(lock, s_initialized);
 }
 
 void wsrep::server_state::wait_until_state(

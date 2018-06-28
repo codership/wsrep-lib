@@ -582,6 +582,7 @@ namespace wsrep
             , mode_(mode)
             , toi_mode_()
             , state_(s_none)
+            , state_hist_()
             , transaction_(*this)
             , toi_meta_()
             , allow_dirty_reads_()
@@ -612,6 +613,7 @@ namespace wsrep
         enum mode mode_;
         enum mode toi_mode_;
         enum state state_;
+        std::vector<enum state> state_hist_;
         wsrep::transaction transaction_;
         wsrep::ws_meta toi_meta_;
         bool allow_dirty_reads_;

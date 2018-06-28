@@ -18,6 +18,7 @@ wsrep::provider& wsrep::client_state::provider() const
 void wsrep::client_state::open(wsrep::client_id id)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    assert(state_ == s_none);
     debug_log_state("open: enter");
     owning_thread_id_ = wsrep::this_thread::get_id();
     current_thread_id_ = owning_thread_id_;
@@ -302,11 +303,12 @@ void wsrep::client_state::debug_log_state(const char* context) const
 {
     if (debug_log_level() >= 1)
     {
-        wsrep::log_debug() << "client_state: " << context
-                           << ": server: " << server_state_.name()
-                           << " client: " << id_.get()
-                           << " state: " << to_c_string(state_)
-                           << " current_error: " << current_error_;
+        wsrep::log_debug() << context
+                           << "(" << id_.get()
+                           << "," << to_c_string(state_)
+                           << "," << to_c_string(mode_)
+                           << "," << wsrep::to_string(current_error_)
+                           << ")";
     }
 }
 
@@ -327,7 +329,12 @@ void wsrep::client_state::state(
         };
     if (allowed[state_][state])
     {
+        state_hist_.push_back(state_);
         state_ = state;
+        if (state_hist_.size() > 10)
+        {
+            state_hist_.erase(state_hist_.begin());
+        }
     }
     else
     {

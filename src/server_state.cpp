@@ -31,16 +31,7 @@ namespace
                                     const wsrep::view& current_view)
     {
         std::ostringstream oss;
-        switch (state)
-        {
-        case wsrep::server_state::s_joined:
-        case wsrep::server_state::s_synced:
-            oss << current_view.members().size();
-            break;
-        default:
-            oss << 0;
-            break;
-        }
+        oss << current_view.members().size();
         return oss.str();
     }
 
@@ -48,16 +39,7 @@ namespace
                                    const wsrep::view& current_view)
     {
         std::ostringstream oss;
-        switch (state)
-        {
-        case wsrep::server_state::s_joined:
-        case wsrep::server_state::s_synced:
-            oss << current_view.own_index();
-            break;
-        default:
-            oss << -1;
-            break;
-        }
+        oss << current_view.own_index();
         return oss.str();
     }
 
@@ -535,11 +517,11 @@ void wsrep::server_state::on_view(const wsrep::view& view)
                           << "name: " << i->name();
     }
     wsrep::log_info() << "=================================================";
+    current_view_ = view;
     if (view.status() == wsrep::view::primary)
     {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
         assert(view.final() == false);
-        current_view_ = view;
         // Cluster was bootstrapped
         if (state_ == s_connected && view.members().size() == 1)
         {
@@ -568,18 +550,11 @@ void wsrep::server_state::on_view(const wsrep::view& view)
     {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
         wsrep::log_info() << "Non-primary view";
-        if (state_ == s_disconnecting)
+        if (view.final())
         {
-            if (view.final())
-            {
-                state(lock, s_disconnected);
-            }
-            else
-            {
-                wsrep::log_debug() << "Ignoring non-prim while disconnecting";
-            }
+            state(lock, s_disconnected);
         }
-        else if (state_ != s_connected)
+        else if (state_ != s_disconnecting)
         {
             state(lock, s_connected);
         }
@@ -742,13 +717,13 @@ void wsrep::server_state::state(
         {
             /* dis, ing, ized, cted, jer, jed, dor, sed, ding */
             {  0,   1,   0,    1,    0,   0,   0,   0,   0}, /* dis */
-            {  0,   0,   1,    0,    0,   0,   0,   0,   0}, /* ing */
-            {  0,   0,   0,    1,    0,   1,   0,   0,   0}, /* ized */
-            {  0,   0,   0,    0,    1,   0,   0,   1,   0}, /* cted */
-            {  0,   1,   0,    0,    0,   1,   0,   0,   0}, /* jer */
-            {  0,   0,   0,    0,    0,   0,   0,   1,   1}, /* jed */
-            {  0,   0,   0,    0,    0,   1,   0,   0,   1}, /* dor */
-            {  0,   0,   0,    1,    0,   1,   1,   0,   1}, /* sed */
+            {  1,   0,   1,    0,    0,   0,   0,   0,   0}, /* ing */
+            {  1,   0,   0,    1,    0,   1,   0,   0,   0}, /* ized */
+            {  1,   0,   0,    0,    1,   0,   0,   1,   0}, /* cted */
+            {  1,   1,   0,    0,    0,   1,   0,   0,   0}, /* jer */
+            {  1,   0,   0,    0,    0,   0,   0,   1,   1}, /* jed */
+            {  1,   0,   0,    0,    0,   1,   0,   0,   1}, /* dor */
+            {  1,   0,   0,    1,    0,   1,   1,   0,   1}, /* sed */
             {  1,   0,   0,    0,    0,   0,   0,   0,   0}  /* ding */
         };
 

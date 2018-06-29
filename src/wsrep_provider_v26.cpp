@@ -465,6 +465,11 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     : provider(server_state)
     , wsrep_()
 {
+    wsrep_gtid_t state_id;
+    std::memcpy(state_id.uuid.data,
+                server_state.initial_position().id().data(),
+                sizeof(state_id.uuid.data));
+    state_id.seqno = server_state.initial_position().seqno().get();
     struct wsrep_init_args init_args;
     memset(&init_args, 0, sizeof(init_args));
     init_args.app_ctx = &server_state;
@@ -474,7 +479,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     init_args.data_dir = server_state_.working_dir().c_str();
     init_args.options = provider_options.c_str();
     init_args.proto_ver = server_state.max_protocol_version();
-    init_args.state_id = 0;
+    init_args.state_id = &state_id;
     init_args.state = 0;
     init_args.logger_cb = &logger_cb;
     init_args.connected_cb = &connected_cb;
@@ -702,6 +707,29 @@ enum wsrep::provider::status
 wsrep::wsrep_provider_v26::causal_read(int timeout) const
 {
     return map_return_value(wsrep_->sync_wait(wsrep_, 0, timeout, 0));
+}
+
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::wait_for_gtid(const wsrep::gtid& gtid, int timeout)
+    const
+{
+    wsrep_gtid_t wsrep_gtid;
+    std::memcpy(wsrep_gtid.uuid.data, gtid.id().data(),
+                sizeof(wsrep_gtid.uuid.data));
+    wsrep_gtid.seqno = gtid.seqno().get();
+    return map_return_value(wsrep_->sync_wait(wsrep_, &wsrep_gtid, timeout, 0));
+}
+
+wsrep::gtid wsrep::wsrep_provider_v26::last_committed_gtid() const
+{
+    wsrep_gtid_t wsrep_gtid;
+    if (wsrep_->last_committed_id(wsrep_, &wsrep_gtid) != WSREP_OK)
+    {
+        throw wsrep::runtime_error("Failed to read last committed id");
+    }
+    return wsrep::gtid(
+        wsrep::id(wsrep_gtid.uuid.data, sizeof(wsrep_gtid.uuid.data)),
+        wsrep::seqno(wsrep_gtid.seqno));
 }
 
 int wsrep::wsrep_provider_v26::sst_sent(const wsrep::gtid& gtid, int err)

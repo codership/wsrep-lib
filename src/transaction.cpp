@@ -379,6 +379,8 @@ int wsrep::transaction::after_commit()
     }
     assert(ret == 0);
     state(lock, s_committed);
+
+    // client_state_.server_state().last_committed_gtid(ws_meta.gitd());
     debug_log_state("after_commit_leave");
     return ret;
 }
@@ -550,7 +552,12 @@ int wsrep::transaction::after_statement()
         if (ordered())
         {
             ret = provider().commit_order_enter(ws_handle_, ws_meta_);
-            if (ret == 0) provider().commit_order_leave(ws_handle_, ws_meta_);
+            if (ret == 0)
+            {
+                // client_state_.server_state().last_committed_gtid(
+                //   ws_meta.gtid());
+                provider().commit_order_leave(ws_handle_, ws_meta_);
+            }
         }
         provider().release(ws_handle_);
     }

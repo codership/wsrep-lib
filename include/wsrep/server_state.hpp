@@ -194,6 +194,11 @@ namespace wsrep
         const std::string& working_dir() const { return working_dir_; }
 
         /**
+         * Return initial position for server.
+         */
+        const wsrep::gtid& initial_position() const
+        { return initial_position_; }
+        /**
          * Return maximum protocol version.
          */
         int max_protocol_version() const { return max_protocol_version_;}
@@ -316,7 +321,8 @@ namespace wsrep
          *
          * @return Zero on success, non-zero on failure.
          */
-        int wait_for_gtid(const wsrep::gtid&) const;
+        enum wsrep::provider::status
+        wait_for_gtid(const wsrep::gtid&, int timeout) const;
 
         /**
          * Perform a causal read in the cluster. After the call returns,
@@ -484,6 +490,7 @@ namespace wsrep
                      const std::string& id,
                      const std::string& address,
                      const std::string& working_dir,
+                     const wsrep::gtid& initial_position,
                      int max_protocol_version,
                      enum rollback_mode rollback_mode)
             : mutex_(mutex)
@@ -492,6 +499,8 @@ namespace wsrep
             , state_(s_disconnected)
             , state_hist_()
             , state_waiters_(n_states_)
+            , bootstrap_()
+            , initial_position_(initial_position)
             , init_initialized_()
             , init_synced_()
             , sst_gtid_()
@@ -529,6 +538,8 @@ namespace wsrep
         enum state state_;
         std::vector<enum state> state_hist_;
         mutable std::vector<int> state_waiters_;
+        bool bootstrap_;
+        const wsrep::gtid initial_position_;
         bool init_initialized_;
         bool init_synced_;
         wsrep::gtid sst_gtid_;

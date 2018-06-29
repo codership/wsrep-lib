@@ -57,7 +57,8 @@ namespace wsrep
                                                int);
         enum wsrep::provider::status leave_toi(wsrep::client_id);
         enum wsrep::provider::status causal_read(int) const;
-
+        enum wsrep::provider::status wait_for_gtid(const wsrep::gtid&, int) const;
+        wsrep::gtid last_committed_gtid() const;
         int sst_sent(const wsrep::gtid&,int);
         int sst_received(const wsrep::gtid& gtid, int);
 

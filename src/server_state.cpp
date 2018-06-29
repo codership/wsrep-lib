@@ -43,6 +43,18 @@ namespace
         return oss.str();
     }
 
+    //
+    // This method is used to deal with historical burden of several
+    // ways to bootstrap the cluster. Bootstrap happens if
+    //
+    // * bootstrap option is given
+    // * cluster_address is "gcomm://" (Galera provider)
+    //
+    bool is_bootstrap(const std::string& cluster_address, bool bootstrap)
+    {
+        return (bootstrap || cluster_address == "gcomm://");
+    }
+
     int apply_write_set(wsrep::server_state& server_state,
                         wsrep::client_state& client_state,
                         const wsrep::ws_handle& ws_handle,
@@ -242,7 +254,10 @@ namespace
 int wsrep::server_state::load_provider(const std::string& provider_spec,
                                        const std::string& provider_options)
 {
-    wsrep::log_info() << "Loading provider " << provider_spec;
+    wsrep::log_info() << "Loading provider "
+                      << provider_spec
+                      << "initial position: "
+                      << initial_position_;
     provider_ = wsrep::provider::make_provider(
         *this, provider_spec, provider_options);
     return (provider_ ? 0 : 1);
@@ -259,8 +274,10 @@ int wsrep::server_state::connect(const std::string& cluster_name,
                                    const std::string& state_donor,
                                    bool bootstrap)
 {
+    bootstrap_ = is_bootstrap(cluster_address, bootstrap);
+    wsrep::log_info() << "Connecting with bootstrap option: " << bootstrap_;
     return provider().connect(cluster_name, cluster_address, state_donor,
-                              bootstrap);
+                              bootstrap_);
 }
 
 int wsrep::server_state::disconnect()
@@ -468,18 +485,11 @@ wsrep::gtid wsrep::server_state::last_committed_gtid() const
     return last_committed_gtid_;
 }
 
-int wsrep::server_state::wait_for_gtid(const wsrep::gtid& gtid) const
+enum wsrep::provider::status
+wsrep::server_state::wait_for_gtid(const wsrep::gtid& gtid, int timeout)
+    const
 {
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    if (gtid.id() != last_committed_gtid_.id())
-    {
-        return 1;
-    }
-    while (last_committed_gtid_.seqno() < gtid.seqno())
-    {
-        cond_.wait(lock);
-    }
-    return 0;
+    return provider_->wait_for_gtid(gtid, timeout);
 }
 
 enum wsrep::provider::status
@@ -522,8 +532,20 @@ void wsrep::server_state::on_view(const wsrep::view& view)
     {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
         assert(view.final() == false);
-        // Cluster was bootstrapped
-        if (state_ == s_connected && view.members().size() == 1)
+
+        //
+        // Reached primary from connected state. This may mean the following
+        //
+        // 1) Server was joined to the cluster and got SST transfer
+        // 2) Server was partitioned from the cluster and got back
+        // 3) A new cluster was bootstrapped from non-prim cluster
+        //
+        // There is no enough information here what was the cause
+        // of the primary component, so we need to walk through
+        // all states leading to joined to notify possible state
+        // waiters in other threads.
+        //
+        if (state_ == s_connected)
         {
             state(lock, s_joiner);
             state(lock, s_initializing);
@@ -531,11 +553,15 @@ void wsrep::server_state::on_view(const wsrep::view& view)
 
         if (init_initialized_ == false)
         {
-            // DBMS has not been initialized yet
             wait_until_state(lock, s_initialized);
         }
-
         assert(init_initialized_);
+
+        if (bootstrap_)
+        {
+            server_service_.bootstrap();
+            bootstrap_ = false;
+        }
 
         if (state_ == s_initialized)
         {

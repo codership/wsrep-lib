@@ -22,7 +22,7 @@ namespace wsrep
                             const std::string& id,
                             enum wsrep::server_state::rollback_mode rollback_mode)
             : wsrep::server_state(mutex_, cond_, *this,
-                                  name, id, "", "./", 1, rollback_mode)
+                                  name, id, "", "./", wsrep::gtid::undefined(), 1, rollback_mode)
             , sst_before_init_()
             , mutex_()
             , cond_()
@@ -53,6 +53,7 @@ namespace wsrep
         {
             delete client_state;
         }
+        void bootstrap() WSREP_OVERRIDE { }
         void log_message(enum wsrep::log::level level, const char* message)
         {
             wsrep::log(level, name().c_str()) << message;

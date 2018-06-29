@@ -31,6 +31,7 @@ namespace db
                 server_id,
                 address,
                 working_dir,
+                wsrep::gtid::undefined(),
                 1,
                 wsrep::server_state::rm_async)
             , mutex_()

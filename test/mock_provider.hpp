@@ -212,6 +212,10 @@ namespace wsrep
         {
             return wsrep::provider::success;
         }
+        enum wsrep::provider::status wait_for_gtid(const wsrep::gtid&,
+            int) const WSREP_OVERRIDE
+        { return wsrep::provider::success; }
+        wsrep::gtid last_committed_gtid() const { return wsrep::gtid(); }
         int sst_sent(const wsrep::gtid&, int) { return 0; }
         int sst_received(const wsrep::gtid&, int) { return 0; }
 

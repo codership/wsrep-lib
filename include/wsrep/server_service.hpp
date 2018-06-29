@@ -56,6 +56,18 @@ namespace wsrep
         virtual void background_rollback(wsrep::client_state&) = 0;
 
         /**
+         * Bootstrap a DBMS state for a new cluster.
+         *
+         * This method is called by the wsrep lib after the
+         * new cluster is bootstrapped and the server has reached
+         * initialized state. From this call the DBMS should initialize
+         * environment for the new cluster.
+         *
+         * @param gtid Gtid of the bootstrap position.
+         */
+        virtual void bootstrap() = 0;
+
+        /**
          * Log message
          *
          * @param level   Requested logging level

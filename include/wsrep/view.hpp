@@ -86,7 +86,6 @@ namespace wsrep
 
         int protocol_version() const
         { return protocol_version_; }
-
         const std::vector<member>& members() const { return members_; }
 
         /**

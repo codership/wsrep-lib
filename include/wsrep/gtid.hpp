@@ -16,8 +16,8 @@ namespace wsrep
     {
     public:
         gtid()
-            : id_()
-            , seqno_()
+            : id_(wsrep::id::undefined())
+            , seqno_(wsrep::seqno::undefined())
         { }
         gtid(const wsrep::id& id, wsrep::seqno seqno)
             : id_(id)
@@ -41,6 +41,7 @@ namespace wsrep
     };
 
     std::ostream& operator<<(std::ostream&, const wsrep::gtid&);
+    std::istream& operator>>(std::istream&, wsrep::gtid&);
 }
 
 #endif // WSREP_GTID_HPP

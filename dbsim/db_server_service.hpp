@@ -27,6 +27,7 @@ namespace db
         void log_dummy_write_set(wsrep::client_state&, const wsrep::ws_meta&)
             override;
         void log_view(const wsrep::view&) override;
+        void debug_sync(const char*) override;
     private:
         db::server& server_;
     };

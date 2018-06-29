@@ -443,17 +443,24 @@ void wsrep::server_state::initialized()
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     wsrep::log_info() << "Server initialized";
     init_initialized_ = true;
-    state(lock, s_initialized);
-    if (sst_gtid_.is_undefined() == false &&
-        server_service_.sst_before_init())
+    if (server_service_.sst_before_init())
     {
-        lock.unlock();
-        if (provider().sst_received(sst_gtid_, 0))
+        state(lock, s_initialized);
+        if (sst_gtid_.is_undefined() == false)
         {
-            throw wsrep::runtime_error("SST received failed");
+            lock.unlock();
+            if (provider().sst_received(sst_gtid_, 0))
+            {
+                throw wsrep::runtime_error("SST received failed");
+            }
+            lock.lock();
+            sst_gtid_ = wsrep::gtid::undefined();
         }
-        lock.lock();
-        sst_gtid_ = wsrep::gtid::undefined();
+    }
+    else
+    {
+        state(lock, s_initializing);
+        state(lock, s_initialized);
     }
 }
 
@@ -545,14 +552,27 @@ void wsrep::server_state::on_view(const wsrep::view& view)
         // all states leading to joined to notify possible state
         // waiters in other threads.
         //
-        if (state_ == s_connected)
+        if (server_service_.sst_before_init())
         {
-            state(lock, s_joiner);
-            state(lock, s_initializing);
+            if (state_ == s_connected)
+            {
+                state(lock, s_joiner);
+                state(lock, s_initializing);
+            }
+        }
+        else
+        {
+            if (state_ == s_connected)
+            {
+                state(lock, s_joiner);
+            }
         }
 
         if (init_initialized_ == false)
         {
+            lock.unlock();
+            server_service_.debug_sync("on_view_wait_initialized");
+            lock.lock();
             wait_until_state(lock, s_initialized);
         }
         assert(init_initialized_);
@@ -563,12 +583,26 @@ void wsrep::server_state::on_view(const wsrep::view& view)
             bootstrap_ = false;
         }
 
-        if (state_ == s_initialized)
+        if (server_service_.sst_before_init())
         {
-            state(lock, s_joined);
-            if (init_synced_)
+            if (state_ == s_initialized)
             {
-                state(lock, s_synced);
+                state(lock, s_joined);
+                if (init_synced_)
+                {
+                    state(lock, s_synced);
+                }
+            }
+        }
+        else
+        {
+            if (state_ == s_joiner)
+            {
+                state(lock, s_joined);
+                if (init_synced_)
+                {
+                    state(lock, s_synced);
+                }
             }
         }
     }

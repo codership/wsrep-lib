@@ -124,7 +124,10 @@ namespace wsrep
                               const wsrep::gtid& gtid,
                               bool bypass) = 0;
 
-
+        /**
+         * Provide a server level debug sync point for a caller.
+         */
+        virtual void debug_sync(const char* sync_point) = 0;
     };
 }
 

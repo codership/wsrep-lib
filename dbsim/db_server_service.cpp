@@ -67,3 +67,8 @@ void db::server_service::log_view(const wsrep::view&)
 {
     wsrep::log_info() << "View";
 }
+
+void db::server_service::debug_sync(const char*)
+{
+
+}

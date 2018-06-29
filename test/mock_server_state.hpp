@@ -23,6 +23,8 @@ namespace wsrep
                             enum wsrep::server_state::rollback_mode rollback_mode)
             : wsrep::server_state(mutex_, cond_, *this,
                                   name, id, "", "./", wsrep::gtid::undefined(), 1, rollback_mode)
+            , sync_point_enabled_()
+            , sync_point_action_()
             , sst_before_init_()
             , mutex_()
             , cond_()
@@ -82,6 +84,24 @@ namespace wsrep
             client_state.after_rollback();
         }
 
+        void debug_sync(const char* sync_point) WSREP_OVERRIDE
+        {
+            if (sync_point_enabled_ == sync_point)
+            {
+                switch (sync_point_action_)
+                {
+                case spa_initialize:
+                    initialized();
+                    break;
+                }
+            }
+        }
+
+        std::string sync_point_enabled_;
+        enum sync_point_action
+        {
+            spa_initialize
+        } sync_point_action_;
         bool sst_before_init_;
 
     private:

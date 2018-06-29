@@ -179,6 +179,8 @@ namespace wsrep
          */
         const std::string& id() const { return id_; }
 
+        const std::string& incoming_address() const
+        { return incoming_address_; }
         /**
          * Return server group communication address.
          *
@@ -488,6 +490,7 @@ namespace wsrep
                      wsrep::server_service& server_service,
                      const std::string& name,
                      const std::string& id,
+                     const std::string& incoming_address,
                      const std::string& address,
                      const std::string& working_dir,
                      const wsrep::gtid& initial_position,
@@ -512,6 +515,7 @@ namespace wsrep
             , provider_()
             , name_(name)
             , id_(id)
+            , incoming_address_(incoming_address)
             , address_(address)
             , working_dir_(working_dir)
             , max_protocol_version_(max_protocol_version)
@@ -552,6 +556,7 @@ namespace wsrep
         wsrep::provider* provider_;
         std::string name_;
         std::string id_;
+        std::string incoming_address_;
         std::string address_;
         std::string working_dir_;
         int max_protocol_version_;

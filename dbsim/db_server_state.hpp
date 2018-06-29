@@ -29,6 +29,7 @@ namespace db
                 server_service,
                 name,
                 server_id,
+                "",
                 address,
                 working_dir,
                 wsrep::gtid::undefined(),

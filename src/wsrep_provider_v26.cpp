@@ -475,7 +475,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     init_args.app_ctx = &server_state;
     init_args.node_name = server_state_.name().c_str();
     init_args.node_address = server_state_.address().c_str();
-    init_args.node_incoming = "";
+    init_args.node_incoming = server_state_.incoming_address().c_str();
     init_args.data_dir = server_state_.working_dir().c_str();
     init_args.options = provider_options.c_str();
     init_args.proto_ver = server_state.max_protocol_version();

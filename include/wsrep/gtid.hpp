@@ -40,6 +40,22 @@ namespace wsrep
         wsrep::seqno seqno_;
     };
 
+    /**
+     * Print a GTID into character buffer.
+     * @param buf Pointer to the beginning of the buffer
+     * @param buf_len Buffer length
+     *
+     * @return Number of characters printed or negative value for error
+     */
+    ssize_t gtid_print_to_c_str(const wsrep::gtid&, char* buf, size_t buf_len);
+    /**
+     * Return minimum number of bytes guaranteed to store GTID string
+     * representation, terminating '\0' not included (36 + 1 + 20)
+     */
+    static inline size_t gtid_c_str_len()
+    {
+        return 57;
+    }
     std::ostream& operator<<(std::ostream&, const wsrep::gtid&);
     std::istream& operator>>(std::istream&, wsrep::gtid&);
 }

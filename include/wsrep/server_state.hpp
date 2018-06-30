@@ -336,8 +336,12 @@ namespace wsrep
          * Method wait_for_gtid() should be used whenever possible.
          *
          * @param timeout Timeout in seconds
+         *
+         * @return Pair of GTID and result status from provider.
          */
-        enum wsrep::provider::status causal_read(int timeout) const;
+
+        std::pair<wsrep::gtid, enum wsrep::provider::status>
+        causal_read(int timeout) const;
 
         /**
          * Desynchronize the server.

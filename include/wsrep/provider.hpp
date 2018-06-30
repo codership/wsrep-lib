@@ -298,7 +298,8 @@ namespace wsrep
          *
          * @return Provider status indicating the result of the call.
          */
-        virtual enum status causal_read(int timeout) const = 0;
+        virtual std::pair<wsrep::gtid, enum status>
+        causal_read(int timeout) const = 0;
         virtual enum status wait_for_gtid(const wsrep::gtid&, int timeout) const = 0;
         /**
          * Return last committed GTID.

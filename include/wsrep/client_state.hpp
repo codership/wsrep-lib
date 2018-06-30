@@ -38,7 +38,9 @@ namespace wsrep
         e_deadlock_error,
         e_interrupted_error,
         e_size_exceeded_error,
-        e_append_fragment_error
+        e_append_fragment_error,
+        e_not_supported_error,
+        e_timeout_error
     };
 
     static inline const char* to_c_string(enum client_error error)
@@ -46,11 +48,13 @@ namespace wsrep
         switch (error)
         {
         case e_success:               return "success";
-        case e_error_during_commit:   return "error_during_commit";
+        case e_error_during_commit:   return "commit_error";
         case e_deadlock_error:        return "deadlock_error";
         case e_interrupted_error:     return "interrupted_error";
-        case e_size_exceeded_error:   return "size_exceeded";
+        case e_size_exceeded_error:   return "size_exceeded_error";
         case e_append_fragment_error: return "append_fragment_error";
+        case e_not_supported_error:   return "not_supported_error";
+        case e_timeout_error:         return "timeout_error";
         }
         return "unknown";
     }
@@ -516,6 +520,37 @@ namespace wsrep
         {
             return toi_meta_;
         }
+
+        /**
+         * Do sync wait operation. If the method fails, current_error()
+         * can be inspected about the reason of error.
+         *
+         * @param Sync wait timeout in seconds.
+         *
+         * @return Zero on success, non-zero on error.
+         */
+        int sync_wait(int timeout);
+
+        /**
+         * Return the current sync wait GTID.
+         *
+         * Sync wait GTID is updated on each sync_wait() call and
+         * reset to wsrep::gtid::undefined() in after_command_after_result()
+         * method. The variable can thus be used to check if a sync wait
+         * has been performend for the current client command.
+         */
+        const wsrep::gtid& sync_wait_gtid() const
+        {
+            return sync_wait_gtid_;
+        }
+        /**
+         * Return the last written GTID.
+         */
+        const wsrep::gtid& last_written_gtid() const
+        {
+            return last_written_gtid_;
+        }
+
         /**
          * Set debug logging level.
          *
@@ -586,6 +621,8 @@ namespace wsrep
             , transaction_(*this)
             , toi_meta_()
             , allow_dirty_reads_()
+            , sync_wait_gtid_()
+            , last_written_gtid_()
             , debug_log_level_(0)
             , current_error_(wsrep::e_success)
         { }
@@ -599,6 +636,7 @@ namespace wsrep
         friend class client_toi_mode;
         friend class transaction;
 
+        void update_last_written_gtid(const wsrep::gtid&);
         void debug_log_state(const char*) const;
         void state(wsrep::unique_lock<wsrep::mutex>& lock, enum state state);
         void mode(wsrep::unique_lock<wsrep::mutex>& lock, enum mode mode);
@@ -617,6 +655,8 @@ namespace wsrep
         wsrep::transaction transaction_;
         wsrep::ws_meta toi_meta_;
         bool allow_dirty_reads_;
+        wsrep::gtid sync_wait_gtid_;
+        wsrep::gtid last_written_gtid_;
         int debug_log_level_;
         wsrep::client_error current_error_;
     };

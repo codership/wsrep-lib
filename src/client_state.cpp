@@ -158,6 +158,7 @@ void wsrep::client_state::after_command_after_result()
     {
         current_error_ = wsrep::e_success;
     }
+    sync_wait_gtid_ = wsrep::gtid::undefined();
     state(lock, s_idle);
     debug_log_state("after_command_after_result: leave");
 }
@@ -293,11 +294,45 @@ int wsrep::client_state::leave_toi()
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     mode(lock, toi_mode_);
     toi_mode_ = m_local;
+    if (toi_meta_.gtid().is_undefined() == false)
+    {
+        update_last_written_gtid(toi_meta_.gtid());
+    }
     toi_meta_ = wsrep::ws_meta();
 
     return ret;
 }
+
+int wsrep::client_state::sync_wait(int timeout)
+{
+    std::pair<wsrep::gtid, enum wsrep::provider::status> result(
+        server_state_.causal_read(timeout));
+    int ret(1);
+    switch (result.second)
+    {
+    case wsrep::provider::success:
+        sync_wait_gtid_ = result.first;
+        ret = 0;
+        break;
+    case wsrep::provider::error_not_implemented:
+        override_error(wsrep::e_not_supported_error);
+        break;
+    default:
+        override_error(wsrep::e_timeout_error);
+        break;
+    }
+    return ret;
+}
+
 // Private
+
+void wsrep::client_state::update_last_written_gtid(const wsrep::gtid& gtid)
+{
+    assert(last_written_gtid_.is_undefined() ||
+           (last_written_gtid_.id() == gtid.id() &&
+            last_written_gtid_.seqno() < gtid.seqno()));
+    last_written_gtid_ = gtid;
+}
 
 void wsrep::client_state::debug_log_state(const char* context) const
 {

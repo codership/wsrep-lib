@@ -208,9 +208,11 @@ namespace wsrep
         enum wsrep::provider::status leave_toi(wsrep::client_id)
         { return wsrep::provider::success; }
 
-        enum wsrep::provider::status causal_read(int) const WSREP_OVERRIDE
+        std::pair<wsrep::gtid, enum wsrep::provider::status>
+        causal_read(int) const WSREP_OVERRIDE
         {
-            return wsrep::provider::success;
+            return std::make_pair(wsrep::gtid::undefined(),
+                                  wsrep::provider::error_not_implemented);
         }
         enum wsrep::provider::status wait_for_gtid(const wsrep::gtid&,
             int) const WSREP_OVERRIDE

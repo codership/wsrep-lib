@@ -961,8 +961,13 @@ void wsrep::transaction::cleanup()
     debug_log_state("cleanup_enter");
     id_ = wsrep::transaction_id::undefined();
     ws_handle_ = wsrep::ws_handle();
-    // Keep the state history for troubleshooting. Reset at start_transaction().
+    // Keep the state history for troubleshooting. Reset
+    // at start_transaction().
     // state_hist_.clear();
+    if (ordered())
+    {
+        client_state_.update_last_written_gtid(ws_meta_.gtid());
+    }
     ws_meta_ = wsrep::ws_meta();
     certified_ = false;
     pa_unsafe_ = false;

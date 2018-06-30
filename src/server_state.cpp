@@ -499,7 +499,7 @@ wsrep::server_state::wait_for_gtid(const wsrep::gtid& gtid, int timeout)
     return provider_->wait_for_gtid(gtid, timeout);
 }
 
-enum wsrep::provider::status
+std::pair<wsrep::gtid, enum wsrep::provider::status>
 wsrep::server_state::causal_read(int timeout) const
 {
     return provider_->causal_read(timeout);

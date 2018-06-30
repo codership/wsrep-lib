@@ -703,10 +703,17 @@ wsrep::wsrep_provider_v26::leave_toi(wsrep::client_id client_id)
                                 wsrep_, client_id.get(), 0));
 }
 
-enum wsrep::provider::status
+std::pair<wsrep::gtid, enum wsrep::provider::status>
 wsrep::wsrep_provider_v26::causal_read(int timeout) const
 {
-    return map_return_value(wsrep_->sync_wait(wsrep_, 0, timeout, 0));
+    wsrep_gtid_t wsrep_gtid;
+    wsrep_status_t ret(wsrep_->sync_wait(wsrep_, 0, timeout, &wsrep_gtid));
+    wsrep::gtid gtid(ret == WSREP_OK ?
+                     wsrep::gtid(wsrep::id(wsrep_gtid.uuid.data,
+                                           sizeof(wsrep_gtid.uuid.data)),
+                                 wsrep::seqno(wsrep_gtid.seqno)) :
+                     wsrep::gtid::undefined());
+    return std::make_pair(gtid, map_return_value(ret));
 }
 
 enum wsrep::provider::status

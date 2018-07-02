@@ -357,19 +357,13 @@ void wsrep::server_state::sst_transferred(const wsrep::gtid& gtid)
     if (server_service_.sst_before_init())
     {
         state(lock, s_initializing);
-        // Incremental state transfer was received
-        // TODO: Sanity checks for gtid continuity
-        if (init_initialized_)
+        wait_until_state(lock, s_initialized);
+        assert(init_initialized_);
+        state(lock, s_joined);
+        lock.unlock();
+        if (provider().sst_received(sst_gtid_, 0))
         {
-            state(lock, s_initialized);
-            state(lock, s_joined);
-            lock.unlock();
-            // TODO: This should not be here, sst_received() should be
-            // called instead
-            if (provider().sst_received(sst_gtid_, 0))
-            {
-                throw wsrep::runtime_error("SST received failed");
-            }
+            throw wsrep::runtime_error("SST received failed");
         }
     }
     else
@@ -380,6 +374,7 @@ void wsrep::server_state::sst_transferred(const wsrep::gtid& gtid)
 
 void wsrep::server_state::sst_received(const wsrep::gtid& gtid, int error)
 {
+    assert(0);
     wsrep::log_info() << "SST received: " << gtid << ": " << error;
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     state(lock, s_joined);
@@ -398,16 +393,6 @@ void wsrep::server_state::initialized()
     if (server_service_.sst_before_init())
     {
         state(lock, s_initialized);
-        if (sst_gtid_.is_undefined() == false)
-        {
-            lock.unlock();
-            if (provider().sst_received(sst_gtid_, 0))
-            {
-                throw wsrep::runtime_error("SST received failed");
-            }
-            lock.lock();
-            sst_gtid_ = wsrep::gtid::undefined();
-        }
     }
     else
     {

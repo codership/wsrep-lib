@@ -65,15 +65,12 @@ int wsrep::client_state::before_command()
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("before_command: enter");
     assert(state_ == s_idle);
-    if (server_state_.rollback_mode() == wsrep::server_state::rm_sync)
+    if (transaction_.active() &&
+        server_state_.rollback_mode() == wsrep::server_state::rm_sync)
     {
-        /**
-         * @todo Wait until the possible synchronous rollback
-         * has been finished.
-         */
         while (transaction_.state() == wsrep::transaction::s_aborting)
         {
-            // cond_.wait(lock);
+            cond_.wait(lock);
         }
     }
     state(lock, s_exec);

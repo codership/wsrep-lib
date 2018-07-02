@@ -20,10 +20,9 @@ namespace wsrep
                             wsrep::client_service& client_service,
                             const wsrep::client_id& id,
                             enum wsrep::client_state::mode mode)
-            : wsrep::client_state(mutex_, server_state, client_service, id, mode)
-              // Note: Mutex is initialized only after passed
-              // to client_state constructor.
+            : wsrep::client_state(mutex_, cond_, server_state, client_service, id, mode)
             , mutex_()
+            , cond_()
         { }
         ~mock_client_state()
         {
@@ -34,6 +33,7 @@ namespace wsrep
         }
     private:
         wsrep::default_mutex mutex_;
+        wsrep::default_condition_variable cond_;
     public:
     private:
     };

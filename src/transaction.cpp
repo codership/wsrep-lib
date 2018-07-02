@@ -452,6 +452,7 @@ int wsrep::transaction::after_rollback()
     if (state() == s_aborting)
     {
         state(lock, s_aborted);
+        client_state_.cond_.notify_all();
     }
 
     // Releasing the transaction from provider is postponed into
@@ -820,9 +821,8 @@ int wsrep::transaction::certify_commit(
 
     if (client_service_.prepare_data_for_replication())
     {
-        // Note: Error must be set by prepare_data_for_replication()
         lock.lock();
-        client_state_.override_error(wsrep::e_error_during_commit);
+        client_state_.override_error(wsrep::e_size_exceeded_error);
         state(lock, s_must_abort);
         return 1;
     }

@@ -15,16 +15,18 @@ namespace db
     {
     public:
         client_state(wsrep::mutex& mutex,
-                       db::client* client,
-                       db::server_state& server_state,
-                       wsrep::client_service& client_service,
-                       const wsrep::client_id& client_id,
-                       enum wsrep::client_state::mode mode)
+                     wsrep::condition_variable& cond,
+                     db::client* client,
+                     db::server_state& server_state,
+                     wsrep::client_service& client_service,
+                     const wsrep::client_id& client_id,
+                     enum wsrep::client_state::mode mode)
             : wsrep::client_state(mutex,
-                                    server_state,
-                                    client_service,
-                                    client_id,
-                                    mode)
+                                  cond,
+                                  server_state,
+                                  client_service,
+                                  client_id,
+                                  mode)
             , client_(client)
             , is_autocommit_(false)
             , do_2pc_(false)

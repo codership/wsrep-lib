@@ -52,6 +52,7 @@ namespace db
         void reset_error();
         void report_progress(size_t) const;
         wsrep::default_mutex mutex_;
+        wsrep::default_condition_variable cond_;
         const db::params& params_;
         db::server& server_;
         db::server_state& server_state_;

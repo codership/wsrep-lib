@@ -604,6 +604,7 @@ namespace wsrep
          * can be called from derived class constructors only.
          */
         client_state(wsrep::mutex& mutex,
+                     wsrep::condition_variable& cond,
                      wsrep::server_state& server_state,
                      wsrep::client_service& client_service,
                      const client_id& id,
@@ -611,6 +612,7 @@ namespace wsrep
             : owning_thread_id_(wsrep::this_thread::get_id())
             , current_thread_id_(owning_thread_id_)
             , mutex_(mutex)
+            , cond_(cond)
             , server_state_(server_state)
             , client_service_(client_service)
             , id_(id)
@@ -645,6 +647,7 @@ namespace wsrep
         wsrep::thread::id owning_thread_id_;
         wsrep::thread::id current_thread_id_;
         wsrep::mutex& mutex_;
+        wsrep::condition_variable& cond_;
         wsrep::server_state& server_state_;
         wsrep::client_service& client_service_;
         wsrep::client_id id_;

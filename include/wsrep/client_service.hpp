@@ -6,15 +6,11 @@
  *
  * This file will define a `callback` abstract interface for a
  * DBMS client session service. The interface will define methods
- * which will be called by the wsrep-lib under certain circumstances,
- * for example when a transaction rollback is required by internal
- * wsrep-lib operation or applier client needs to apply a write set.
+ * which will be called by the wsrep-lib.
  */
 
 #ifndef WSREP_CLIENT_SERVICE_HPP
 #define WSREP_CLIENT_SERVICE_HPP
-
-#include "transaction_termination_service.hpp"
 
 #include "buffer.hpp"
 #include "provider.hpp"
@@ -24,7 +20,7 @@
 namespace wsrep
 {
     class transaction;
-    class client_service : public wsrep::transaction_termination_service
+    class client_service
     {
     public:
         client_service() { }
@@ -80,28 +76,15 @@ namespace wsrep
         virtual int prepare_fragment_for_replication(wsrep::mutable_buffer&) = 0;
         virtual void remove_fragments() = 0;
 
+        virtual int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) = 0;
         //
-        // Applying interface
+        // Rollback
         //
-
         /**
-         * Apply a write set.
-         *
-         * A write set applying happens always
-         * as a part of the transaction. The caller must start a
-         * new transaction before applying a write set and must
-         * either commit to make changes persistent or roll back.
+         * Roll back all transactions which are currently active
+         * in the client session.
          */
-        virtual int apply_write_set(const wsrep::const_buffer&) = 0;
-
-        /**
-         * Apply a TOI operation.
-         *
-         * TOI operation is a standalone operation and should not
-         * be executed as a part of a transaction.
-         */
-        virtual int apply_toi(const wsrep::const_buffer&) = 0;
-
+        virtual int rollback() = 0;
 
         //
         // Interface to global server state

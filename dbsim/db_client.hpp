@@ -11,7 +11,7 @@
 #include "db_storage_engine.hpp"
 #include "db_client_state.hpp"
 #include "db_client_service.hpp"
-
+#include "db_high_priority_service.hpp"
 
 namespace db
 {
@@ -47,6 +47,7 @@ namespace db
     private:
         friend class db::server_state;
         friend class db::client_service;
+        friend class db::high_priority_service;
         template <class F> int client_command(F f);
         void run_one_transaction();
         void reset_error();

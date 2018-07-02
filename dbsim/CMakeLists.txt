@@ -5,6 +5,7 @@
 add_executable(dbsim
   db_client.cpp
   db_client_service.cpp
+  db_high_priority_service.cpp
   db_params.cpp
   db_server.cpp
   db_server_service.cpp

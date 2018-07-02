@@ -20,6 +20,7 @@
 namespace wsrep
 {
     class client_state;
+    class high_priority_service;
     class ws_meta;
     class gtid;
     class view;
@@ -36,19 +37,21 @@ namespace wsrep
          * @return Pointer to Client State.
          */
         virtual wsrep::client_state* local_client_state() = 0;
-
+        virtual void release_client_state(wsrep::client_state*) = 0;
         /**
          * Create an applier state for streaming transaction applying.
          *
          * @return Pointer to streaming applier client state.
          */
-        virtual wsrep::client_state* streaming_applier_client_state() = 0;
+        virtual wsrep::high_priority_service*
+        streaming_applier_service() = 0;
 
         /**
          * Release a client state allocated by either local_client_state()
          * or streaming_applier_client_state().
          */
-        virtual void release_client_state(wsrep::client_state*) = 0;
+        virtual void release_high_priority_service(
+            wsrep::high_priority_service*) = 0;
 
         /**
          * Perform a background rollback for a transaction.

@@ -16,6 +16,7 @@ namespace
             , cc(ss,
                  wsrep::client_id(1),
                  wsrep::client_state::m_high_priority)
+            , hps(ss, &cc, false)
             , ws_handle(1, (void*)1)
             , ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
                       wsrep::stid(wsrep::id("1"), 1, 1),
@@ -24,9 +25,11 @@ namespace
                       wsrep::provider::flag::commit)
         {
             cc.open(cc.id());
+            cc.before_command();
         }
         wsrep::mock_server_state ss;
         wsrep::mock_client cc;
+        wsrep::mock_high_priority_service hps;
         wsrep::ws_handle ws_handle;
         wsrep::ws_meta ws_meta;
     };
@@ -56,7 +59,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_applying_1pc,
                         applying_server_fixture)
 {
     char buf[1] = { 1 };
-    BOOST_REQUIRE(ss.on_apply(cc, ws_handle, ws_meta,
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer(buf, 1)) == 0);
     const wsrep::transaction& txc(cc.transaction());
     // ::abort();
@@ -70,7 +73,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_applying_2pc,
                         applying_server_fixture)
 {
     char buf[1] = { 1 };
-    BOOST_REQUIRE(ss.on_apply(cc, ws_handle, ws_meta,
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer(buf, 1)) == 0);
     const wsrep::transaction& txc(cc.transaction());
     BOOST_REQUIRE(txc.state() == wsrep::transaction::s_committed);
@@ -81,9 +84,9 @@ BOOST_FIXTURE_TEST_CASE(server_state_applying_2pc,
 BOOST_FIXTURE_TEST_CASE(server_state_applying_1pc_rollback,
                         applying_server_fixture)
 {
-    cc.fail_next_applying_ = true;
+    hps.fail_next_applying_ = true;
     char buf[1] = { 1 };
-    BOOST_REQUIRE(ss.on_apply(cc, ws_handle, ws_meta,
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer(buf, 1)) == 1);
     const wsrep::transaction& txc(cc.transaction());
     BOOST_REQUIRE(txc.state() == wsrep::transaction::s_aborted);
@@ -94,9 +97,9 @@ BOOST_FIXTURE_TEST_CASE(server_state_applying_1pc_rollback,
 BOOST_FIXTURE_TEST_CASE(server_state_applying_2pc_rollback,
                         applying_server_fixture)
 {
-    cc.fail_next_applying_ = true;
+    hps.fail_next_applying_ = true;
     char buf[1] = { 1 };
-    BOOST_REQUIRE(ss.on_apply(cc, ws_handle, ws_meta,
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer(buf, 1)) == 1);
     const wsrep::transaction& txc(cc.transaction());
     BOOST_REQUIRE(txc.state() == wsrep::transaction::s_aborted);
@@ -109,13 +112,16 @@ BOOST_AUTO_TEST_CASE(server_state_streaming)
     wsrep::mock_client cc(ss,
                           wsrep::client_id(1),
                           wsrep::client_state::m_high_priority);
+    cc.debug_log_level(1);
+    wsrep::mock_high_priority_service hps(ss, &cc, false);
     wsrep::ws_handle ws_handle(1, (void*)1);
     wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
                            wsrep::stid(wsrep::id("1"), 1, 1),
                            wsrep::seqno(0),
                            wsrep::provider::flag::start_transaction);
     cc.open(cc.id());
-    BOOST_REQUIRE(ss.on_apply(cc, ws_handle, ws_meta,
+    BOOST_REQUIRE(cc.before_command() == 0);
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer("1", 1)) == 0);
     BOOST_REQUIRE(ss.find_streaming_applier(
                       ws_meta.server_id(), ws_meta.transaction_id()));
@@ -123,13 +129,13 @@ BOOST_AUTO_TEST_CASE(server_state_streaming)
                              wsrep::stid(wsrep::id("1"), 1, 1),
                              wsrep::seqno(1),
                              0);
-    BOOST_REQUIRE(ss.on_apply(cc, ws_handle, ws_meta,
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer("1", 1)) == 0);
     ws_meta = wsrep::ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(2)),
                              wsrep::stid(wsrep::id("1"), 1, 1),
                              wsrep::seqno(1),
                              wsrep::provider::flag::commit);
-    BOOST_REQUIRE(ss.on_apply(cc, ws_handle, ws_meta,
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer("1", 1)) == 0);
     BOOST_REQUIRE(ss.find_streaming_applier(
                       ws_meta.server_id(), ws_meta.transaction_id()) == 0);

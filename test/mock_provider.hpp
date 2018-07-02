@@ -8,6 +8,7 @@
 #include "wsrep/provider.hpp"
 #include "wsrep/logger.hpp"
 #include "wsrep/buffer.hpp"
+#include "wsrep/high_priority_service.hpp"
 
 #include <cstring>
 #include <map>
@@ -159,11 +160,13 @@ namespace wsrep
             return release_result_;
         }
 
-        enum wsrep::provider::status replay(const wsrep::ws_handle&,
+        enum wsrep::provider::status replay(const wsrep::ws_handle& ws_handle,
                                             void* ctx)
         {
-            wsrep::client_state& cc(
-                *static_cast<wsrep::client_state*>(ctx));
+            wsrep::mock_high_priority_service& high_priority_service(
+                *static_cast<wsrep::mock_high_priority_service*>(ctx));
+            wsrep::mock_client_state& cc(
+                *high_priority_service.client_state());
             wsrep::high_priority_context high_priority_context(cc);
             const wsrep::transaction& tc(cc.transaction());
             wsrep::ws_meta ws_meta;
@@ -191,8 +194,8 @@ namespace wsrep
                 return replay_result_;
             }
 
-            if (server_state_.on_apply(cc, tc.ws_handle(), ws_meta,
-                                         wsrep::const_buffer()))
+            if (high_priority_service.apply(ws_handle, ws_meta,
+                                            wsrep::const_buffer()))
             {
                 return wsrep::provider::error_fatal;
             }

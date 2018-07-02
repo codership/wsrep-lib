@@ -7,6 +7,7 @@
 
 #include "wsrep/server_state.hpp"
 #include "mock_client_state.hpp"
+#include "mock_high_priority_service.hpp"
 #include "mock_provider.hpp"
 
 #include "wsrep/compiler.hpp"
@@ -41,19 +42,36 @@ namespace wsrep
             ret->open(ret->id());
             return ret;
         }
-        wsrep::client_state* streaming_applier_client_state()
-        {
-            wsrep::client_state* ret(
-                new wsrep::mock_client(
-                    *this, ++last_client_id_,
-                    wsrep::client_state::m_high_priority));
-            ret->open(ret->id());
-            return ret;
-        }
-
         void release_client_state(wsrep::client_state* client_state)
         {
             delete client_state;
+        }
+
+        wsrep::high_priority_service* streaming_applier_service()
+        {
+            wsrep::mock_client* cs(new wsrep::mock_client(
+                                       *this, ++last_client_id_,
+                                       wsrep::client_state::m_high_priority));
+            wsrep::mock_high_priority_service* ret(
+                new wsrep::mock_high_priority_service(*this, cs, false));
+            cs->open(cs->id());
+            cs->before_command();
+            return ret;
+        }
+
+        void release_high_priority_service(
+            wsrep::high_priority_service *high_priority_service)
+            WSREP_OVERRIDE
+        {
+            mock_high_priority_service* mhps(
+                dynamic_cast<mock_high_priority_service*>(high_priority_service));
+            wsrep::client_state* cs(mhps->client_state());
+            cs->after_command_before_result();
+            cs->after_command_after_result();
+            cs->close();
+            cs->cleanup();
+            delete cs;
+            delete mhps;
         }
         void bootstrap() WSREP_OVERRIDE { }
         void log_message(enum wsrep::log::level level, const char* message)

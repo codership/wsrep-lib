@@ -5,6 +5,7 @@
 #include "wsrep/transaction.hpp"
 #include "wsrep/client_state.hpp"
 #include "wsrep/server_state.hpp"
+#include "wsrep/high_priority_service.hpp"
 #include "wsrep/key.hpp"
 #include "wsrep/logger.hpp"
 #include "wsrep/compiler.hpp"
@@ -70,15 +71,22 @@ int wsrep::transaction::start_transaction(
     const wsrep::ws_handle& ws_handle,
     const wsrep::ws_meta& ws_meta)
 {
-    assert(ws_meta.flags());
-    assert(active() == false);
-    id_ = ws_meta.transaction_id();
-    assert(client_state_.mode() == wsrep::client_state::m_high_priority);
-    state_ = s_executing;
-    state_hist_.clear();
-    ws_handle_ = ws_handle;
-    ws_meta_ = ws_meta;
-    certified_ = true;
+    if (state() != s_replaying)
+    {
+        assert(ws_meta.flags());
+        assert(active() == false);
+        id_ = ws_meta.transaction_id();
+        assert(client_state_.mode() == wsrep::client_state::m_high_priority);
+        state_ = s_executing;
+        state_hist_.clear();
+        ws_handle_ = ws_handle;
+        ws_meta_ = ws_meta;
+        certified_ = true;
+    }
+    else
+    {
+        start_replaying(ws_meta);
+    }
     return 0;
 }
 
@@ -341,7 +349,14 @@ int wsrep::transaction::ordered_commit()
     assert(state() == s_committing);
     assert(ordered());
     int ret(provider().commit_order_leave(ws_handle_, ws_meta_));
-    // Should always succeed
+    // Should always succeed:
+    // 1) If before commit before succeeds, the transaction handle
+    //    in the provider is guaranteed to exist and the commit
+    //    has been ordered
+    // 2) The transaction which has been ordered for commit cannot be BF
+    //    aborted anymore
+    // 3) The provider should always guarantee that the transactions which
+    //    have been ordered for commit can finish committing.
     assert(ret == 0);
     state(lock, s_ordered_commit);
     debug_log_state("ordered_commit_leave");
@@ -939,11 +954,11 @@ int wsrep::transaction::certify_commit(
 void wsrep::transaction::streaming_rollback()
 {
     assert(streaming_context_.rolled_back() == false);
-    wsrep::client_state* sac(
-        server_service_.streaming_applier_client_state());
+    wsrep::high_priority_service* sa(
+        server_service_.streaming_applier_service());
     client_state_.server_state().start_streaming_applier(
-        client_state_.server_state().id(), id(), sac);
-    sac->adopt_transaction(*this);
+        client_state_.server_state().id(), id(), sa);
+    sa->adopt_transaction(*this);
     streaming_context_.cleanup();
     // Replicate rollback fragment
     provider().rollback(id_.get());

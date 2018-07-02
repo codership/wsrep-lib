@@ -3,6 +3,7 @@
 #
 
 add_executable(wsrep-lib_test
+  mock_high_priority_service.cpp
   mock_client_state.cpp
   test_utils.cpp
   id_test.cpp

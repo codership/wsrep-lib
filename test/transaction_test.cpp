@@ -250,7 +250,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_abort);
-    BOOST_REQUIRE(cc.current_error() == wsrep::e_error_during_commit);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_size_exceeded_error);
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(tc.ordered() == false);
 

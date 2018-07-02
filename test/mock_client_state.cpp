@@ -4,24 +4,7 @@
 
 #include "wsrep/transaction.hpp"
 #include "mock_client_state.hpp"
-
-
-int wsrep::mock_client_service::apply_write_set(
-    const wsrep::const_buffer&)
-
-{
-    assert(client_state_.toi_meta().seqno().is_undefined());
-    assert(client_state_.transaction().state() == wsrep::transaction::s_executing ||
-           client_state_.transaction().state() == wsrep::transaction::s_replaying);
-    return (fail_next_applying_ ? 1 : 0);
-}
-
-int wsrep::mock_client_service::apply_toi(const wsrep::const_buffer&)
-{
-    assert(client_state_.transaction().active() == false);
-    assert(client_state_.toi_meta().seqno().is_undefined() == false);
-    return (fail_next_toi_ ? 1 : 0);
-}
+#include "mock_high_priority_service.hpp"
 
 int wsrep::mock_client_service::commit(
     const wsrep::ws_handle&, const wsrep::ws_meta&)
@@ -59,5 +42,18 @@ int wsrep::mock_client_service::rollback()
     {
         ret = 1;
     }
+    return ret;
+}
+
+enum wsrep::provider::status
+wsrep::mock_client_service::replay() WSREP_OVERRIDE
+{
+    wsrep::mock_high_priority_service hps(client_state_.server_state(),
+                                          &client_state_, true);
+    enum wsrep::provider::status ret(
+        client_state_.provider().replay(
+            client_state_.transaction().ws_handle(),
+            &hps));
+    ++replays_;
     return ret;
 }

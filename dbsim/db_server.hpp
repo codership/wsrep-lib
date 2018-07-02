@@ -42,9 +42,8 @@ namespace db
         }
         void donate_sst(const std::string&, const  wsrep::gtid&, bool);
         wsrep::client_state* local_client_state();
-        wsrep::client_state* streaming_applier_client_state();
         void release_client_state(wsrep::client_state*);
-
+        wsrep::high_priority_service* streaming_applier_service();
     private:
         void start_client(size_t id);
 

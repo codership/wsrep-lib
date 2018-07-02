@@ -215,15 +215,16 @@ namespace wsrep
         void start_streaming_applier(
             const wsrep::id&,
             const wsrep::transaction_id&,
-            wsrep::client_state* client_state);
+            wsrep::high_priority_service*);
 
         void stop_streaming_applier(
             const wsrep::id&, const wsrep::transaction_id&);
         /**
          * Return reference to streaming applier.
          */
-        client_state* find_streaming_applier(const wsrep::id&,
-                                             const wsrep::transaction_id&) const;
+        wsrep::high_priority_service* find_streaming_applier(
+            const wsrep::id&,
+            const wsrep::transaction_id&) const;
         /**
          * Load WSRep provider.
          *
@@ -429,13 +430,13 @@ namespace wsrep
          *
          * @todo Make this private, allow calls for provider implementations
          *       only.
-         * @param client_state Applier client context.
+         * @param high_priority_service High priority applier service.
          * @param transaction Transaction context.
          * @param data Write set data
          *
          * @return Zero on success, non-zero on failure.
          */
-        int on_apply(wsrep::client_state& client_state,
+        int on_apply(wsrep::high_priority_service& high_priority_service,
                      const wsrep::ws_handle& ws_handle,
                      const wsrep::ws_meta& ws_meta,
                      const wsrep::const_buffer& data);
@@ -555,7 +556,7 @@ namespace wsrep
         size_t pause_count_;
         wsrep::seqno pause_seqno_;
         bool desynced_on_pause_;
-        typedef std::map<std::pair<wsrep::id, wsrep::transaction_id>, wsrep::client_state*> streaming_appliers_map;
+        typedef std::map<std::pair<wsrep::id, wsrep::transaction_id>, wsrep::high_priority_service*> streaming_appliers_map;
         streaming_appliers_map streaming_appliers_;
         wsrep::provider* provider_;
         std::string name_;

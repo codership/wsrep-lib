@@ -46,8 +46,8 @@ namespace wsrep
             : wsrep::client_service()
             , is_autocommit_()
             , do_2pc_()
-            , fail_next_applying_()
-            , fail_next_toi_()
+              // , fail_next_applying_()
+              // , fail_next_toi_()
             , bf_abort_during_wait_()
             , error_during_prepare_data_()
             , killed_before_certify_()
@@ -89,16 +89,7 @@ namespace wsrep
         void will_replay() WSREP_OVERRIDE { }
 
         enum wsrep::provider::status
-        replay() WSREP_OVERRIDE
-        {
-            enum wsrep::provider::status ret(
-                client_state_.provider().replay(
-                    client_state_.transaction().ws_handle(),
-                    &client_state_));
-            ++replays_;
-            return ret;
-        }
-
+        replay() WSREP_OVERRIDE;
         void wait_for_replayers(
             wsrep::unique_lock<wsrep::mutex>& lock)
             WSREP_OVERRIDE
@@ -172,8 +163,8 @@ namespace wsrep
         //
         bool is_autocommit_;
         bool do_2pc_;
-        bool fail_next_applying_;
-        bool fail_next_toi_;
+        // bool fail_next_applying_;
+        // bool fail_next_toi_;
         bool bf_abort_during_wait_;
         bool error_during_prepare_data_;
         bool killed_before_certify_;

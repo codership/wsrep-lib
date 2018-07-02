@@ -5,7 +5,7 @@
 #include "wsrep_provider_v26.hpp"
 
 #include "wsrep/server_state.hpp"
-#include "wsrep/client_state.hpp"
+#include "wsrep/high_priority_service.hpp"
 #include "wsrep/view.hpp"
 #include "wsrep/exception.hpp"
 #include "wsrep/logger.hpp"
@@ -355,10 +355,9 @@ namespace
                                const wsrep_trx_meta_t* meta,
                                wsrep_bool_t* exit_loop __attribute__((unused)))
     {
-        wsrep::client_state* client_state(
-            reinterpret_cast<wsrep::client_state*>(ctx));
-        assert(client_state);
-        assert(client_state->mode() == wsrep::client_state::m_high_priority);
+        wsrep::high_priority_service* high_priority_service(
+            reinterpret_cast<wsrep::high_priority_service*>(ctx));
+        assert(high_priority_service);
 
         wsrep::const_buffer data(buf->ptr, buf->len);
         wsrep::ws_handle ws_handle(wsh->trx_id, wsh->opaque);
@@ -373,8 +372,7 @@ namespace
             map_flags_from_native(flags));
         try
         {
-            if (client_state->server_state().on_apply(
-                    *client_state, ws_handle, ws_meta, data))
+            if (high_priority_service->apply(ws_handle, ws_meta, data))
             {
                 return WSREP_CB_FAILURE;
             }

@@ -16,8 +16,10 @@ namespace db
     public:
         server_service(db::server& server);
         wsrep::client_state* local_client_state() override;
-        wsrep::client_state* streaming_applier_client_state() override;
         void release_client_state(wsrep::client_state*) override;
+        wsrep::high_priority_service* streaming_applier_service() override;
+        void release_high_priority_service(wsrep::high_priority_service*) override;
+
         bool sst_before_init() const override;
         int start_sst(const std::string&, const wsrep::gtid&, bool) override;
         std::string sst_request() override;

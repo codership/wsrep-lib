@@ -4,6 +4,7 @@
 
 #include "db_server.hpp"
 #include "db_server_service.hpp"
+#include "db_high_priority_service.hpp"
 #include "db_client.hpp"
 #include "db_simulator.hpp"
 
@@ -34,11 +35,17 @@ void db::server::applier_thread()
                        wsrep::client_state::m_high_priority,
                        simulator_.params());
     wsrep::client_state* cc(static_cast<wsrep::client_state*>(
-                                  &applier.client_state()));
+                                &applier.client_state()));
+    db::high_priority_service hps(*this, &applier);
     cc->open(cc->id());
+    cc->before_command();
     enum wsrep::provider::status ret(
-        server_state_.provider().run_applier(cc));
+        server_state_.provider().run_applier(&hps));
     wsrep::log_info() << "Applier thread exited with error code " << ret;
+    cc->after_command_before_result();
+    cc->after_command_after_result();
+    cc->close();
+    cc->cleanup();
 }
 
 void db::server::start_applier()
@@ -112,15 +119,15 @@ wsrep::client_state* db::server::local_client_state()
                                       simulator_.params()));
     return &client->client_state();
 }
-
-wsrep::client_state* db::server::streaming_applier_client_state()
-{
-    throw wsrep::not_implemented_error();
-}
-
 void db::server::release_client_state(wsrep::client_state* client_state)
 {
     db::client_state* db_client_state(
         dynamic_cast<db::client_state*>(client_state));
     delete db_client_state->client();
 }
+
+wsrep::high_priority_service* db::server::streaming_applier_service()
+{
+    throw wsrep::not_implemented_error();
+}
+

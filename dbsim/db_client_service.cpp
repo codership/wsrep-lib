@@ -3,20 +3,9 @@
 //
 
 #include "db_client_service.hpp"
+#include "db_high_priority_service.hpp"
 #include "db_client.hpp"
 
-int db::client_service::apply_write_set(const wsrep::const_buffer&)
-{
-    db::client* client(client_state_.client());
-    client->se_trx_.start(client);
-    client->se_trx_.apply(client_state_.transaction());
-    return 0;
-}
-
-int db::client_service::apply_toi(const wsrep::const_buffer&)
-{
-    return 0;
-}
 
 int db::client_service::commit(const wsrep::ws_handle&,
                                const wsrep::ws_meta&)
@@ -44,9 +33,11 @@ enum wsrep::provider::status
 db::client_service::replay()
 {
     wsrep::high_priority_context high_priority_context(client_state_);
+    db::high_priority_service high_priority_service(
+        client_state_.client()->server_, client_state_.client());
     auto ret(client_state_.provider().replay(
                  client_state_.transaction().ws_handle(),
-                 &client_state_));
+                 &high_priority_service));
     if (ret == wsrep::provider::success)
     {
         ++client_state_.client()->stats_.replays;

@@ -391,7 +391,7 @@ namespace wsrep
             return transaction_.start_replaying(ws_meta);
         }
 
-        void adopt_transaction(wsrep::transaction& transaction)
+        void adopt_transaction(const wsrep::transaction& transaction)
         {
             assert(mode_ == m_high_priority);
             transaction_.start_transaction(transaction.id());

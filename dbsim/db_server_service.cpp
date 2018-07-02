@@ -6,6 +6,7 @@
 #include "db_server.hpp"
 
 #include "wsrep/logger.hpp"
+#include "wsrep/high_priority_service.hpp"
 
 db::server_service::server_service(db::server& server)
     : server_(server)
@@ -16,15 +17,21 @@ wsrep::client_state* db::server_service::local_client_state()
     return server_.local_client_state();
 }
 
-wsrep::client_state* db::server_service::streaming_applier_client_state()
-{
-    return server_.streaming_applier_client_state();
-}
-
 void db::server_service::release_client_state(
     wsrep::client_state* client_state)
 {
     server_.release_client_state(client_state);
+}
+
+wsrep::high_priority_service* db::server_service::streaming_applier_service()
+{
+    return server_.streaming_applier_service();
+}
+
+void db::server_service::release_high_priority_service(
+    wsrep::high_priority_service *high_priority_service)
+{
+    delete high_priority_service;
 }
 
 bool db::server_service::sst_before_init() const

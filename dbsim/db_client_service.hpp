@@ -69,9 +69,9 @@ namespace db
         void remove_fragments() override
         { }
 
-        int apply_write_set(const wsrep::const_buffer&) override;
+        // int apply_write_set(const wsrep::const_buffer&) override;
 
-        int apply_toi(const wsrep::const_buffer&) override;
+        // int apply_toi(const wsrep::const_buffer&) override;
 
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
 

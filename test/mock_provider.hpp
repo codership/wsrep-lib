@@ -231,7 +231,8 @@ namespace wsrep
         }
         void reset_status() { }
         std::string options() const { return ""; }
-        void options(const std::string&) { }
+        enum wsrep::provider::status options(const std::string&)
+        { return wsrep::provider::success; }
         void* native() const { return 0; }
 
         //

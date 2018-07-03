@@ -825,12 +825,10 @@ std::string wsrep::wsrep_provider_v26::options() const
     return ret;
 }
 
-void wsrep::wsrep_provider_v26::options(const std::string& opts)
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::options(const std::string& opts)
 {
-    if (wsrep_->options_set(wsrep_, opts.c_str()) != WSREP_OK)
-    {
-        throw wsrep::runtime_error("Failed to set provider options");
-    }
+    return map_return_value(wsrep_->options_set(wsrep_, opts.c_str()));
 }
 
 void* wsrep::wsrep_provider_v26::native() const

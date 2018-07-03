@@ -67,7 +67,7 @@ namespace wsrep
         std::vector<status_variable> status() const;
         void reset_status();
         std::string options() const;
-        void options(const std::string&);
+        enum wsrep::provider::status options(const std::string&);
         void* native() const;
     private:
         wsrep_provider_v26(const wsrep_provider_v26&);

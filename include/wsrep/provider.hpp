@@ -314,7 +314,7 @@ namespace wsrep
         virtual void reset_status() = 0;
 
         virtual std::string options() const = 0;
-        virtual void options(const std::string&) = 0;
+        virtual enum status options(const std::string&) = 0;
 
         /**
          * Return pointer to native provider handle.

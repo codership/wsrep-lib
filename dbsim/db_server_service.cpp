@@ -75,6 +75,11 @@ void db::server_service::log_view(const wsrep::view&)
     wsrep::log_info() << "View";
 }
 
+int db::server_service::wait_committing_transactions(int)
+{
+    throw wsrep::not_implemented_error();
+}
+
 void db::server_service::debug_sync(const char*)
 {
 

@@ -300,6 +300,51 @@ int wsrep::client_state::leave_toi()
     return ret;
 }
 
+int wsrep::client_state::begin_rsu(int timeout)
+{
+    if (server_state_.desync())
+    {
+        wsrep::log_warning() << "Failed to desync server";
+        return 1;
+    }
+    if (server_state_.server_service().wait_committing_transactions(timeout))
+    {
+        wsrep::log_warning() << "RSU failed due to pending transactions";
+        server_state_.resync();
+        return 1;
+    }
+    wsrep::seqno pause_seqno(server_state_.pause());
+    if (pause_seqno.is_undefined())
+    {
+        wsrep::log_warning() << "Failed to pause provider";
+        server_state_.resync();
+        return 1;
+    }
+    wsrep::log_info() << "Provider paused at: " << pause_seqno;
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    toi_mode_ = mode_;
+    mode(lock, m_rsu);
+    return 0;
+}
+
+int wsrep::client_state::end_rsu()
+{
+    int ret(0);
+    try
+    {
+        server_state_.resume();
+        server_state_.resync();
+    }
+    catch (const wsrep::runtime_error& e)
+    {
+        wsrep::log_warning() << "End RSU failed: " << e.what();
+        ret = 1;
+    }
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    mode(lock, toi_mode_);
+    return ret;
+}
+
 int wsrep::client_state::sync_wait(int timeout)
 {
     std::pair<wsrep::gtid, enum wsrep::provider::status> result(
@@ -382,12 +427,13 @@ void wsrep::client_state::mode(
     enum mode mode)
 {
     assert(lock.owns_lock());
-    static const char allowed[mode_max_][mode_max_] =
-        {   /* l  r  h  t */
-            {  0, 0, 0, 0 }, /* local */
-            {  0, 0, 1, 1 }, /* repl */
-            {  0, 1, 0, 1 }, /* high prio */
-            {  0, 1, 1, 0 }  /* toi */
+    static const char allowed[n_modes_][n_modes_] =
+        {   /* l  r  h  t  r */
+            {  0, 0, 0, 0, 0 }, /* local */
+            {  0, 0, 1, 1, 1 }, /* repl */
+            {  0, 1, 0, 1, 0 }, /* high prio */
+            {  0, 1, 1, 0, 0 }, /* toi */
+            {  0, 1, 0, 0, 0 }  /* rsu */
         };
     if (allowed[mode_][mode])
     {

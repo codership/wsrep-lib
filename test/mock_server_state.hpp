@@ -85,10 +85,6 @@ namespace wsrep
         }
         void log_view(const wsrep::view&) { }
 
-        // void on_connect(const wsrep::gtid& ) WSREP_OVERRIDE { }
-        // void wait_until_connected() WSREP_OVERRIDE { }
-        // void on_view(const wsrep::view&) WSREP_OVERRIDE { }
-        // void on_sync() WSREP_OVERRIDE { }
         bool sst_before_init() const WSREP_OVERRIDE
         { return sst_before_init_; }
         std::string sst_request() WSREP_OVERRIDE { return ""; }
@@ -101,6 +97,8 @@ namespace wsrep
             client_state.before_rollback();
             client_state.after_rollback();
         }
+
+        int wait_committing_transactions(int) WSREP_OVERRIDE { return 0; }
 
         void debug_sync(const char* sync_point) WSREP_OVERRIDE
         {

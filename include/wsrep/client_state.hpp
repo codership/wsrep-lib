@@ -81,10 +81,12 @@ namespace wsrep
             /** High priority mode */
             m_high_priority,
             /** Client is in total order isolation mode */
-            m_toi
+            m_toi,
+            /** Client is executing rolling schema upgrade */
+            m_rsu
         };
 
-        static const int mode_max_ = m_toi + 1;
+        static const int n_modes_ = m_rsu + 1;
         /**
          * Client state enumeration.
          *
@@ -444,6 +446,19 @@ namespace wsrep
         int leave_toi();
 
         /**
+         * Begin rolling schema upgrade operation.
+         *
+         * @param timeout Timeout in seconds to wait for committing
+         *        connections to finish.
+         */
+        int begin_rsu(int timeout);
+
+        /**
+         * End rolling schema upgrade operation.
+         */
+        int end_rsu();
+
+        /**
          * Begin non-blocking operation.
          */
         int begin_nbo(const wsrep::key_array&);
@@ -691,6 +706,7 @@ namespace wsrep
         case wsrep::client_state::m_replicating: return "replicating";
         case wsrep::client_state::m_high_priority: return "high priority";
         case wsrep::client_state::m_toi: return "toi";
+        case wsrep::client_state::m_rsu: return "rsu";
         }
         return "unknown";
     }

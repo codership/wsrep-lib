@@ -125,6 +125,15 @@ namespace wsrep
                               const wsrep::gtid& gtid,
                               bool bypass) = 0;
 
+
+        /**
+         * Wait until committing transactions have completed.
+         * Prior calling this method the server should have been
+         * desynced from the group to disallow further transactions
+         * to start committing.
+         */
+        virtual int wait_committing_transactions(int timeout) = 0;
+
         /**
          * Provide a server level debug sync point for a caller.
          */

@@ -50,7 +50,7 @@ namespace wsrep
         int resync() { return 0; }
         wsrep::seqno pause() { return wsrep::seqno(0); }
         int resume() { return 0; }
-        enum wsrep::provider::status run_applier(void*)
+        enum wsrep::provider::status run_applier(wsrep::high_priority_service*)
         {
             return wsrep::provider::success;
         }
@@ -160,11 +160,12 @@ namespace wsrep
             return release_result_;
         }
 
-        enum wsrep::provider::status replay(const wsrep::ws_handle& ws_handle,
-                                            void* ctx)
+        enum wsrep::provider::status replay(
+            const wsrep::ws_handle& ws_handle,
+            wsrep::high_priority_service* hps)
         {
             wsrep::mock_high_priority_service& high_priority_service(
-                *static_cast<wsrep::mock_high_priority_service*>(ctx));
+                *static_cast<wsrep::mock_high_priority_service*>(hps));
             wsrep::mock_client_state& cc(
                 *high_priority_service.client_state());
             wsrep::high_priority_context high_priority_context(cc);

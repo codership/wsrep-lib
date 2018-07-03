@@ -11,16 +11,10 @@ namespace db
 {
     class server;
     class client;
-    class high_priority_service : wsrep::high_priority_service
+    class high_priority_service : public wsrep::high_priority_service
     {
     public:
-        high_priority_service(db::server& server, db::client* client)
-            : server_(server)
-            , client_(client)
-        { }
-
-        int apply(const wsrep::ws_handle&, const wsrep::ws_meta&,
-                  const wsrep::const_buffer&) override;
+        high_priority_service(db::server& server, db::client* client);
         int start_transaction(const wsrep::ws_handle&,
                               const wsrep::ws_meta&) override;
         void adopt_transaction(const wsrep::transaction&) override;

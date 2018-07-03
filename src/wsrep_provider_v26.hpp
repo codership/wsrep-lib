@@ -29,7 +29,7 @@ namespace wsrep
         wsrep::seqno pause();
         int resume();
 
-        enum wsrep::provider::status run_applier(void*);
+        enum wsrep::provider::status run_applier(wsrep::high_priority_service*);
         int start_transaction(wsrep::ws_handle&) { return 0; }
         int append_key(wsrep::ws_handle&, const wsrep::key&);
         enum wsrep::provider::status
@@ -49,7 +49,8 @@ namespace wsrep
         int commit_order_leave(const wsrep::ws_handle&,
                                const wsrep::ws_meta&);
         int release(wsrep::ws_handle&);
-        enum wsrep::provider::status replay(const wsrep::ws_handle&, void*);
+        enum wsrep::provider::status replay(const wsrep::ws_handle&,
+                                            wsrep::high_priority_service*);
         enum wsrep::provider::status enter_toi(wsrep::client_id,
                                                const wsrep::key_array&,
                                                const wsrep::const_buffer&,

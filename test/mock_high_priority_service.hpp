@@ -17,10 +17,9 @@ namespace wsrep
             wsrep::server_state& server_state,
             wsrep::mock_client_state* client_state,
             bool replaying)
-            : wsrep::high_priority_service()
+            : wsrep::high_priority_service(server_state)
             , fail_next_applying_()
             , fail_next_toi_()
-            , server_state_(server_state)
             , client_state_(client_state)
             , replaying_(replaying)
         { }
@@ -53,7 +52,6 @@ namespace wsrep
     private:
         mock_high_priority_service(const mock_high_priority_service&);
         mock_high_priority_service& operator=(const mock_high_priority_service&);
-        wsrep::server_state& server_state_;
         wsrep::mock_client_state* client_state_;
         bool replaying_;
     };

@@ -9,6 +9,8 @@
 #ifndef WSREP_HIGH_PRIORITY_SERVICE_HPP
 #define WSREP_HIGH_PRIORITY_SERVICE_HPP
 
+#include "server_state.hpp"
+
 namespace wsrep
 {
     class ws_handle;
@@ -18,10 +20,15 @@ namespace wsrep
     class high_priority_service
     {
     public:
+        high_priority_service(wsrep::server_state& server_state)
+            : server_state_(server_state) { }
         virtual ~high_priority_service() { }
 
-        virtual int apply(const ws_handle&, const ws_meta&,
-                          const const_buffer&) = 0;
+        int apply(const ws_handle& ws_handle, const ws_meta& ws_meta,
+                          const const_buffer& data)
+        {
+            return server_state_.on_apply(*this, ws_handle, ws_meta, data);
+        }
         /**
          * Start a new transaction
          */
@@ -71,7 +78,8 @@ namespace wsrep
         virtual int log_dummy_write_set(const ws_handle&, const ws_meta&) = 0;
 
         virtual bool is_replaying() const = 0;
-    private:
+    protected:
+        wsrep::server_state& server_state_;
     };
 
     class high_priority_switch

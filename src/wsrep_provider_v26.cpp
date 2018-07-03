@@ -554,7 +554,8 @@ int wsrep::wsrep_provider_v26::resume()
 }
 
 enum wsrep::provider::status
-wsrep::wsrep_provider_v26::run_applier(void *applier_ctx)
+wsrep::wsrep_provider_v26::run_applier(
+    wsrep::high_priority_service *applier_ctx)
 {
     return map_return_value(wsrep_->recv(wsrep_, applier_ctx));
 }
@@ -649,11 +650,11 @@ int wsrep::wsrep_provider_v26::release(wsrep::ws_handle& ws_handle)
 
 enum wsrep::provider::status
 wsrep::wsrep_provider_v26::replay(const wsrep::ws_handle& ws_handle,
-                                  void* applier_ctx)
+                                  wsrep::high_priority_service* reply_service)
 {
     const_ws_handle mwsh(ws_handle);
     return map_return_value(
-        wsrep_->replay_trx(wsrep_, mwsh.native(), applier_ctx));
+        wsrep_->replay_trx(wsrep_, mwsh.native(), reply_service));
 }
 
 enum wsrep::provider::status

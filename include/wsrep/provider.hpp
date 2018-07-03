@@ -20,7 +20,7 @@
 namespace wsrep
 {
     class server_state;
-
+    class high_priority_service;
     class stid
     {
     public:
@@ -237,7 +237,8 @@ namespace wsrep
         virtual int resume() = 0;
 
         // Applier interface
-        virtual enum status run_applier(void* applier_ctx) = 0;
+        virtual enum status run_applier(wsrep::high_priority_service*
+                                        applier_ctx) = 0;
         // Write set replication
         // TODO: Rename to assing_read_view()
         virtual int start_transaction(wsrep::ws_handle&) = 0;
@@ -276,7 +277,8 @@ namespace wsrep
          * @return Zero in case of success, non-zero on failure.
          */
         virtual enum status replay(
-            const wsrep::ws_handle& ws_handle, void* applier_ctx) = 0;
+            const wsrep::ws_handle& ws_handle,
+            wsrep::high_priority_service* applier_ctx) = 0;
 
         /**
          * Enter total order isolation critical section

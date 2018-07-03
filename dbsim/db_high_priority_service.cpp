@@ -6,12 +6,12 @@
 #include "db_server.hpp"
 #include "db_client.hpp"
 
-int db::high_priority_service::apply(const wsrep::ws_handle& ws_handle,
-                                     const wsrep::ws_meta& ws_meta,
-                                     const wsrep::const_buffer& data)
-{
-    return server_.server_state().on_apply(*this, ws_handle, ws_meta, data);
-}
+db::high_priority_service::high_priority_service(
+    db::server& server, db::client* client)
+    : wsrep::high_priority_service(server_.server_state())
+    , server_(server)
+    , client_(client)
+{ }
 
 int db::high_priority_service::start_transaction(
     const wsrep::ws_handle& ws_handle,

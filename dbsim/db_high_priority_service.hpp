@@ -21,7 +21,7 @@ namespace db
         int apply_write_set(const wsrep::const_buffer&) override;
         int commit() override;
         int rollback() override;
-        int apply_toi(const wsrep::const_buffer&) override;
+        int apply_toi(const wsrep::ws_meta&, const wsrep::const_buffer&) override;
         void after_apply() override;
         void store_globals() override { }
         void reset_globals() override { }

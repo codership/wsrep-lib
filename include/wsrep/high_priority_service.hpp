@@ -65,7 +65,8 @@ namespace wsrep
          * TOI operation is a standalone operation and should not
          * be executed as a part of a transaction.
          */
-        virtual int apply_toi(const wsrep::const_buffer&) = 0;
+        virtual int apply_toi(const wsrep::ws_meta&,
+                              const wsrep::const_buffer&) = 0;
 
         /**
          * Actions to take after applying a write set was completed.

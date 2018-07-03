@@ -54,7 +54,8 @@ int wsrep::mock_high_priority_service::rollback()
             client_state_->after_rollback());
 }
 
-int wsrep::mock_high_priority_service::apply_toi(const wsrep::const_buffer&)
+int wsrep::mock_high_priority_service::apply_toi(const wsrep::ws_meta&,
+                                                 const wsrep::const_buffer&)
 {
     assert(client_state_->transaction().active() == false);
     assert(client_state_->toi_meta().seqno().is_undefined() == false);

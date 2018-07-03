@@ -35,7 +35,8 @@ namespace wsrep
         int apply_write_set(const wsrep::const_buffer&) WSREP_OVERRIDE;
         int commit() WSREP_OVERRIDE;
         int rollback() WSREP_OVERRIDE;
-        int apply_toi(const wsrep::const_buffer&) WSREP_OVERRIDE;
+        int apply_toi(const wsrep::ws_meta&,
+                      const wsrep::const_buffer&) WSREP_OVERRIDE;
         void after_apply() WSREP_OVERRIDE;
         void store_globals() WSREP_OVERRIDE { }
         void reset_globals() WSREP_OVERRIDE { }

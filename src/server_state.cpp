@@ -180,7 +180,7 @@ namespace
         {
             // Regular toi
             provider.commit_order_enter(ws_handle, ws_meta);
-            int ret(high_priority_service.apply_toi(data));
+            int ret(high_priority_service.apply_toi(ws_meta, data));
             provider.commit_order_leave(ws_handle, ws_meta);
             return ret;
         }

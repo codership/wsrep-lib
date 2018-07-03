@@ -32,7 +32,9 @@ int db::high_priority_service::apply_write_set(const wsrep::const_buffer&)
     return 0;
 }
 
-int db::high_priority_service::apply_toi(const wsrep::const_buffer&)
+int db::high_priority_service::apply_toi(
+    const wsrep::ws_meta&,
+    const wsrep::const_buffer&)
 {
     throw wsrep::not_implemented_error();
 }

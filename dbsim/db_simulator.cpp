@@ -36,9 +36,7 @@ void db::simulator::sst(db::server& server,
     {
         wsrep::log_info() << "SST " << server.server_state().id() << " -> " << id;
     }
-    i->second->server_state().sst_transferred(gtid);
-    // i->second->server_state().initialized();
-    // i->second->server_state().sst_received(gtid, 0);
+    i->second->server_state().sst_received(gtid, 0);
     server.server_state().sst_sent(gtid, 0);
 }
 

@@ -349,19 +349,22 @@ void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
     }
 }
 
-void wsrep::server_state::sst_transferred(const wsrep::gtid& gtid)
+void wsrep::server_state::sst_received(const wsrep::gtid& gtid, int error)
 {
-    wsrep::log_info() << "SST transferred: " << gtid;
+    wsrep::log_info() << "SST received: " << gtid;
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    sst_gtid_ = gtid;
+    assert(state_ == s_joiner || state_ == s_initialized);
     if (server_service_.sst_before_init())
     {
-        state(lock, s_initializing);
-        wait_until_state(lock, s_initialized);
-        assert(init_initialized_);
+        if (init_initialized_ == false)
+        {
+            state(lock, s_initializing);
+            wait_until_state(lock, s_initialized);
+            assert(init_initialized_);
+        }
         state(lock, s_joined);
         lock.unlock();
-        if (provider().sst_received(sst_gtid_, 0))
+        if (provider().sst_received(gtid, error))
         {
             throw wsrep::runtime_error("SST received failed");
         }
@@ -369,19 +372,10 @@ void wsrep::server_state::sst_transferred(const wsrep::gtid& gtid)
     else
     {
         state(lock, s_joined);
-    }
-}
-
-void wsrep::server_state::sst_received(const wsrep::gtid& gtid, int error)
-{
-    assert(0);
-    wsrep::log_info() << "SST received: " << gtid << ": " << error;
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    state(lock, s_joined);
-    lock.unlock();
-    if (provider_->sst_received(gtid, error))
-    {
-        throw wsrep::runtime_error("SST received failed");
+        if (provider().sst_received(gtid, error))
+        {
+            throw wsrep::runtime_error("SST received failed");
+        }
     }
 }
 

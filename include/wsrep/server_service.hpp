@@ -65,8 +65,6 @@ namespace wsrep
          * new cluster is bootstrapped and the server has reached
          * initialized state. From this call the DBMS should initialize
          * environment for the new cluster.
-         *
-         * @param gtid Gtid of the bootstrap position.
          */
         virtual void bootstrap() = 0;
 

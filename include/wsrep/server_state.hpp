@@ -397,17 +397,10 @@ namespace wsrep
         void sst_sent(const wsrep::gtid& gtid, int error);
 
         /**
-         * This method should be called on joiner after the
-         * SST has been transferred but before DBMS has been
-         * initialized.
-         */
-        void sst_transferred(const wsrep::gtid& gtid);
-
-        /**
          * This method must be called by the joiner after the SST
-         * transfer has been received and DBMS state has been completely
-         * initialized. This will signal the provider that it can
-         * start applying write sets.
+         * transfer has been received. If the DBMS state has not been
+         * initialized, the call will shift the state to initializing
+         * and will wait until the initialization is complete.
          *
          * @param gtid GTID provided by the SST transfer
          */

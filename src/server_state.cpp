@@ -178,11 +178,17 @@ namespace
         if (wsrep::starts_transaction(ws_meta.flags()) &&
             wsrep::commits_transaction(ws_meta.flags()))
         {
-            // Regular toi
+            //
+            // Regular TOI.
+            //
+            // Note that we ignore error returned by apply_toi
+            // call here. This must be revised after the error
+            // voting is added.
+            //
             provider.commit_order_enter(ws_handle, ws_meta);
-            int ret(high_priority_service.apply_toi(ws_meta, data));
+            (void)high_priority_service.apply_toi(ws_meta, data);
             provider.commit_order_leave(ws_handle, ws_meta);
-            return ret;
+            return 0;
         }
         else if (wsrep::starts_transaction(ws_meta.flags()))
         {

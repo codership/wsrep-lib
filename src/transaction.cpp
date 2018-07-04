@@ -939,6 +939,7 @@ int wsrep::transaction::certify_commit(
         else
         {
             client_state_.override_error(wsrep::e_error_during_commit);
+            state(lock, s_must_abort);
         }
         break;
     case wsrep::provider::error_provider_failed:

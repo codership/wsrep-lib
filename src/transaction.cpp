@@ -599,12 +599,6 @@ bool wsrep::transaction::bf_abort(
     {
         WSREP_TC_LOG_DEBUG(1, "Transaction not active, skipping bf abort");
     }
-    else if (ordered() && seqno() < bf_seqno)
-    {
-        WSREP_TC_LOG_DEBUG(1,
-                           "Not allowed to BF abort transaction ordered before "
-                           << "aborter: " << seqno() << " < " << bf_seqno);
-    }
     else
     {
         switch (state())
@@ -838,7 +832,10 @@ int wsrep::transaction::certify_commit(
     {
         lock.lock();
         client_state_.override_error(wsrep::e_size_exceeded_error);
-        state(lock, s_must_abort);
+        if (state_ != s_must_abort)
+        {
+            state(lock, s_must_abort);
+        }
         return 1;
     }
 
@@ -846,7 +843,10 @@ int wsrep::transaction::certify_commit(
     {
         lock.lock();
         client_state_.override_error(wsrep::e_interrupted_error);
-        state(lock, s_must_abort);
+        if (state_ != s_must_abort)
+        {
+            state(lock, s_must_abort);
+        }
         return 1;
     }
 

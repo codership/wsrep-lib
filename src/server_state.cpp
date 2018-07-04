@@ -272,28 +272,19 @@ wsrep::seqno wsrep::server_state::pause()
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     // Disallow concurrent calls to pause to in order to have non-concurrent
     // access to desynced_on_pause_ which is checked in resume() call.
+    wsrep::log_info() << "pause";
     while (pause_count_ > 0)
     {
         cond_.wait(lock);
     }
     ++pause_count_;
     assert(pause_seqno_.is_undefined());
-    if (state_ == s_synced)
-    {
-        if (desync(lock))
-        {
-            return wsrep::seqno::undefined();
-        }
-        desynced_on_pause_ = true;
-    }
     lock.unlock();
     pause_seqno_ = provider_->pause();
     lock.lock();
     if (pause_seqno_.is_undefined())
     {
         --pause_count_;
-        resync();
-        desynced_on_pause_ = false;
     }
     return pause_seqno_;
 }
@@ -301,13 +292,9 @@ wsrep::seqno wsrep::server_state::pause()
 void wsrep::server_state::resume()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    wsrep::log_info() << "resume";
     assert(pause_seqno_.is_undefined() == false);
     assert(pause_count_ == 1);
-    if (desynced_on_pause_)
-    {
-        resync(lock);
-        desynced_on_pause_ = false;
-    }
     if (provider_->resume())
     {
         throw wsrep::runtime_error("Failed to resume provider");
@@ -315,6 +302,40 @@ void wsrep::server_state::resume()
     pause_seqno_ = wsrep::seqno::undefined();
     --pause_count_;
     cond_.notify_all();
+}
+
+wsrep::seqno wsrep::server_state::desync_and_pause()
+{
+    wsrep::log_info() << "desync_and_pause";
+    if (desync())
+    {
+        wsrep::log_warning() << "Failed to desync server";
+        return wsrep::seqno::undefined();
+    }
+    wsrep::seqno ret(pause());
+    if (ret.is_undefined())
+    {
+        wsrep::log_warning() << "Failed to pause provider";
+        resync();
+        return wsrep::seqno::undefined();
+    }
+    wsrep::log_info() << "Provider paused at: " << ret;
+    return ret;
+}
+
+void wsrep::server_state::resume_and_resync()
+{
+    wsrep::log_info() << "resume_and_resync";
+    try
+    {
+        resume();
+        resync();
+    }
+    catch (const wsrep::runtime_error& e)
+    {
+        wsrep::log_warning()
+            << "Resume and resync failed, server may have to be restarted";
+    }
 }
 
 std::string wsrep::server_state::prepare_for_sst()

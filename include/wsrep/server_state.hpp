@@ -372,6 +372,21 @@ namespace wsrep
         void resume();
 
         /**
+         * Desync and pause the provider on one go. Will return
+         * pause seqno if successful. In case of failure,
+         * undefined seqno will be returned.
+         */
+        wsrep::seqno desync_and_pause();
+
+        /**
+         * Resume and resync the provider on one go. Prior this
+         * call the provider must have been both desynced and paused,
+         * by either desync_and_pause() or separate calls to desync()
+         * and pause().
+         */
+        void resume_and_resync();
+
+        /**
          * Prepares server state for SST.
          *
          * @return String containing a SST request
@@ -508,7 +523,6 @@ namespace wsrep
             , desync_count_()
             , pause_count_()
             , pause_seqno_()
-            , desynced_on_pause_()
             , streaming_appliers_()
             , provider_()
             , name_(name)
@@ -548,7 +562,6 @@ namespace wsrep
         size_t desync_count_;
         size_t pause_count_;
         wsrep::seqno pause_seqno_;
-        bool desynced_on_pause_;
         typedef std::map<std::pair<wsrep::id, wsrep::transaction_id>, wsrep::high_priority_service*> streaming_appliers_map;
         streaming_appliers_map streaming_appliers_;
         wsrep::provider* provider_;

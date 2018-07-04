@@ -113,8 +113,14 @@ namespace wsrep
 
         int after_statement();
 
+        void after_applying();
+
         bool bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
                       wsrep::seqno bf_seqno);
+        bool bf_aborted() const
+        {
+            return (bf_abort_client_state_ != 0);
+        }
 
         int flags() const
         {
@@ -145,6 +151,7 @@ namespace wsrep
         enum state state_;
         std::vector<enum state> state_hist_;
         enum state bf_abort_state_;
+        enum wsrep::provider::status bf_abort_provider_status_;
         int bf_abort_client_state_;
         wsrep::ws_handle ws_handle_;
         wsrep::ws_meta ws_meta_;

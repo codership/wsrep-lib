@@ -246,6 +246,15 @@ namespace wsrep
         enum after_statement_result after_statement();
         /** @} */
 
+        /**
+         * Perform cleanup after applying a transaction.
+         */
+        void after_applying()
+        {
+            assert(mode_ == m_high_priority);
+            transaction_.after_applying();
+        }
+
         /** @name Replication interface */
         /** @{ */
         /**

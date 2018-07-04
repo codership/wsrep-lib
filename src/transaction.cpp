@@ -31,6 +31,7 @@ wsrep::transaction::transaction(
     , state_(s_executing)
     , state_hist_()
     , bf_abort_state_(s_executing)
+    , bf_abort_provider_status_()
     , bf_abort_client_state_()
     , ws_handle_()
     , ws_meta_()
@@ -588,6 +589,13 @@ int wsrep::transaction::after_statement()
     return ret;
 }
 
+void wsrep::transaction::after_applying()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex_);
+    assert(state_ == s_committed || state_ == s_aborted);
+    cleanup();
+}
+
 bool wsrep::transaction::bf_abort(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
     wsrep::seqno bf_seqno)
@@ -920,9 +928,20 @@ int wsrep::transaction::certify_commit(
         client_state_.override_error(wsrep::e_error_during_commit);
         break;
     case wsrep::provider::error_connection_failed:
-    case wsrep::provider::error_provider_failed:
         // Galera provider may return CONN_FAIL if the trx is
-        // BF aborted O_o
+        // BF aborted O_o. If we see here that the trx was BF aborted,
+        // return deadlock error instead of error during commit
+        // to reduce number of error state combinations elsewhere.
+        if (state() == s_must_abort)
+        {
+            client_state_.override_error(wsrep::e_deadlock_error);
+        }
+        else
+        {
+            client_state_.override_error(wsrep::e_error_during_commit);
+        }
+        break;
+    case wsrep::provider::error_provider_failed:
         if (state() != s_must_abort)
         {
             state(lock, s_must_abort);
@@ -983,6 +1002,9 @@ void wsrep::transaction::cleanup()
     {
         client_state_.update_last_written_gtid(ws_meta_.gtid());
     }
+    bf_abort_state_ = s_executing;
+    bf_abort_provider_status_ = wsrep::provider::success;
+    bf_abort_client_state_ = 0;
     ws_meta_ = wsrep::ws_meta();
     certified_ = false;
     pa_unsafe_ = false;
@@ -999,7 +1021,7 @@ void wsrep::transaction::debug_log_state(
         << "," << int64_t(id_.get())
         << "," << ws_meta_.seqno().get()
         << "," << wsrep::to_string(state_)
-        << ","
-        << wsrep::to_string(client_state_.current_error())
+        << "," << wsrep::to_string(bf_abort_state_)
+        << "," << wsrep::to_string(client_state_.current_error())
         << ")");
 }

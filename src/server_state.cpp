@@ -342,6 +342,7 @@ std::string wsrep::server_state::prepare_for_sst()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     state(lock, s_joiner);
+    lock.unlock();
     return server_service_.sst_request();
 }
 
@@ -516,6 +517,12 @@ void wsrep::server_state::on_view(const wsrep::view& view)
             {
                 state(lock, s_joiner);
                 state(lock, s_initializing);
+            }
+            else if (state_ == s_joiner)
+            {
+                // Got partiioned from the cluster, got IST and
+                // started applying actions.
+                state(lock, s_joined);
             }
         }
         else
@@ -739,7 +746,7 @@ void wsrep::server_state::state(
             {  1,   0,   0,    1,    0,   1,   0,   0,   0}, /* ized */
             {  1,   0,   0,    1,    1,   0,   0,   1,   0}, /* cted */
             {  1,   1,   0,    0,    0,   1,   0,   0,   0}, /* jer */
-            {  1,   0,   0,    0,    0,   0,   0,   1,   1}, /* jed */
+            {  1,   0,   0,    1,    0,   0,   0,   1,   1}, /* jed */
             {  1,   0,   0,    0,    0,   1,   0,   0,   1}, /* dor */
             {  1,   0,   0,    1,    0,   1,   1,   0,   1}, /* sed */
             {  1,   0,   0,    0,    0,   0,   0,   0,   0}  /* ding */

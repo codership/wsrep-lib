@@ -429,6 +429,14 @@ namespace wsrep
         void initialized();
 
         /**
+         * Return true if the server has been initialized.
+         */
+        bool is_initialized() const
+        {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            return init_initialized_;
+        }
+        /**
          *
          */
         /**

@@ -622,6 +622,10 @@ namespace wsrep
             return current_error_;
         }
 
+        enum wsrep::provider::status current_error_status() const
+        {
+            return current_error_status_;
+        }
     protected:
         /**
          * Client context constuctor. This is protected so that it
@@ -651,6 +655,7 @@ namespace wsrep
             , last_written_gtid_()
             , debug_log_level_(0)
             , current_error_(wsrep::e_success)
+            , current_error_status_(wsrep::provider::success)
         { }
 
     private:
@@ -666,7 +671,13 @@ namespace wsrep
         void debug_log_state(const char*) const;
         void state(wsrep::unique_lock<wsrep::mutex>& lock, enum state state);
         void mode(wsrep::unique_lock<wsrep::mutex>& lock, enum mode mode);
-        void override_error(enum wsrep::client_error error);
+
+        // Override current client error status. Optionally provide
+        // an error status from the provider if the error was caused
+        // by the provider call.
+        void override_error(enum wsrep::client_error error,
+                            enum wsrep::provider::status status =
+                            wsrep::provider::success);
 
         wsrep::thread::id owning_thread_id_;
         wsrep::thread::id current_thread_id_;
@@ -685,7 +696,8 @@ namespace wsrep
         wsrep::gtid sync_wait_gtid_;
         wsrep::gtid last_written_gtid_;
         int debug_log_level_;
-        wsrep::client_error current_error_;
+        enum wsrep::client_error current_error_;
+        enum wsrep::provider::status current_error_status_;
     };
 
     static inline const char* to_c_string(

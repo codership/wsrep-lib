@@ -175,7 +175,9 @@ int wsrep::transaction::before_prepare(
             lock.unlock();
             if (client_service_.statement_allowed_for_streaming() == false)
             {
-                client_state_.override_error(wsrep::e_error_during_commit);
+                client_state_.override_error(
+                    wsrep::e_error_during_commit,
+                    wsrep::provider::error_not_allowed);
                 ret = 1;
             }
             else
@@ -897,14 +899,14 @@ int wsrep::transaction::certify_commit(
     case wsrep::provider::error_warning:
         assert(ordered() == false);
         state(lock, s_must_abort);
-        client_state_.override_error(wsrep::e_error_during_commit);
+        client_state_.override_error(wsrep::e_error_during_commit, cert_ret);
         break;
     case wsrep::provider::error_transaction_missing:
         state(lock, s_must_abort);
         // The execution should never reach this point if the
         // transaction has not generated any keys or data.
         wsrep::log_warning() << "Transaction was missing in provider";
-        client_state_.override_error(wsrep::e_error_during_commit);
+        client_state_.override_error(wsrep::e_error_during_commit, cert_ret);
         break;
     case wsrep::provider::error_bf_abort:
         // Transaction was replicated succesfully and it was either
@@ -925,7 +927,7 @@ int wsrep::transaction::certify_commit(
         break;
     case wsrep::provider::error_size_exceeded:
         state(lock, s_must_abort);
-        client_state_.override_error(wsrep::e_error_during_commit);
+        client_state_.override_error(wsrep::e_error_during_commit, cert_ret);
         break;
     case wsrep::provider::error_connection_failed:
         // Galera provider may return CONN_FAIL if the trx is
@@ -938,7 +940,8 @@ int wsrep::transaction::certify_commit(
         }
         else
         {
-            client_state_.override_error(wsrep::e_error_during_commit);
+            client_state_.override_error(wsrep::e_error_during_commit,
+                                         cert_ret);
             state(lock, s_must_abort);
         }
         break;
@@ -947,16 +950,16 @@ int wsrep::transaction::certify_commit(
         {
             state(lock, s_must_abort);
         }
-        client_state_.override_error(wsrep::e_error_during_commit);
+        client_state_.override_error(wsrep::e_error_during_commit, cert_ret);
         break;
     case wsrep::provider::error_fatal:
-        client_state_.override_error(wsrep::e_error_during_commit);
+        client_state_.override_error(wsrep::e_error_during_commit, cert_ret);
         state(lock, s_must_abort);
         client_service_.emergency_shutdown();
         break;
     case wsrep::provider::error_not_implemented:
     case wsrep::provider::error_not_allowed:
-        client_state_.override_error(wsrep::e_error_during_commit);
+        client_state_.override_error(wsrep::e_error_during_commit, cert_ret);
         state(lock, s_must_abort);
         wsrep::log_warning() << "Certification operation was not allowed: "
                              << "id: " << id().get()
@@ -964,7 +967,7 @@ int wsrep::transaction::certify_commit(
         break;
     default:
         state(lock, s_must_abort);
-        client_state_.override_error(wsrep::e_error_during_commit);
+        client_state_.override_error(wsrep::e_error_during_commit, cert_ret);
         break;
     }
 

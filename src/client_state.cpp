@@ -48,7 +48,8 @@ void wsrep::client_state::cleanup()
     debug_log_state("cleanup: leave");
 }
 
-void wsrep::client_state::override_error(enum wsrep::client_error error)
+void wsrep::client_state::override_error(enum wsrep::client_error error,
+                                         enum wsrep::provider::status status)
 {
     assert(wsrep::this_thread::get_id() == owning_thread_id_);
     if (current_error_ != wsrep::e_success &&
@@ -57,6 +58,7 @@ void wsrep::client_state::override_error(enum wsrep::client_error error)
         throw wsrep::runtime_error("Overriding error with success");
     }
     current_error_ = error;
+    current_error_status_ = status;
 }
 
 
@@ -254,7 +256,8 @@ int wsrep::client_state::enter_toi(const wsrep::key_array& keys,
         break;
     }
     default:
-        override_error(wsrep::e_error_during_commit);
+        override_error(wsrep::e_error_during_commit,
+                       wsrep::provider::error_certification_failed);
         ret = 1;
         break;
     }
@@ -283,7 +286,8 @@ int wsrep::client_state::leave_toi()
             break;
         default:
             assert(0);
-            override_error(wsrep::e_error_during_commit);
+            override_error(wsrep::e_error_during_commit,
+                           wsrep::provider::error_unknown);
             ret = 1;
             break;
         }

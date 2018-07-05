@@ -382,6 +382,18 @@ namespace wsrep
                    state_ == s_quitting);
             return transaction_.after_rollback();
         }
+
+        /**
+         * This method should be called by the background rollbacker
+         * thread after the rollback is complete. This will allow
+         * the client to proceed with command execution.
+         */
+        void sync_rollback_complete()
+        {
+            assert(state_ == s_idle && mode_ == m_replicating &&
+                   transaction_.state() == wsrep::transaction::s_aborted);
+            cond_.notify_all();
+        }
         /** @} */
 
         //

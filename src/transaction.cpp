@@ -470,7 +470,6 @@ int wsrep::transaction::after_rollback()
     if (state() == s_aborting)
     {
         state(lock, s_aborted);
-        client_state_.cond_.notify_all();
     }
 
     // Releasing the transaction from provider is postponed into

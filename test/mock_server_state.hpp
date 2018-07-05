@@ -6,6 +6,7 @@
 #define WSREP_MOCK_SERVER_CONTEXT_HPP
 
 #include "wsrep/server_state.hpp"
+#include "wsrep/server_service.hpp"
 #include "mock_client_state.hpp"
 #include "mock_high_priority_service.hpp"
 #include "mock_provider.hpp"
@@ -84,7 +85,9 @@ namespace wsrep
         {
         }
         void log_view(const wsrep::view&) { }
-
+        void log_state_change(enum wsrep::server_state::state,
+                              enum wsrep::server_state::state)
+        { }
         bool sst_before_init() const WSREP_OVERRIDE
         { return sst_before_init_; }
         std::string sst_request() WSREP_OVERRIDE { return ""; }

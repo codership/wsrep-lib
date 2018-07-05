@@ -69,7 +69,6 @@
 
 #include "mutex.hpp"
 #include "condition_variable.hpp"
-#include "server_service.hpp"
 #include "id.hpp"
 #include "view.hpp"
 #include "transaction_id.hpp"
@@ -87,7 +86,7 @@ namespace wsrep
     class client_state;
     class transaction;
     class const_buffer;
-
+    class server_service;
     /** @class Server Context
      *
      *
@@ -469,7 +468,9 @@ namespace wsrep
             return state_;
         }
 
-
+        /**
+         * Get provider status variables.
+         */
         std::vector<wsrep::provider::status_variable> status() const;
 
         /**
@@ -586,19 +587,6 @@ namespace wsrep
         int debug_log_level_;
     };
 
-    class client_deleter
-    {
-    public:
-        client_deleter(wsrep::server_service& server_service)
-            : server_service_(server_service)
-        { }
-        void operator()(wsrep::client_state* client_state)
-        {
-            server_service_.release_client_state(client_state);
-        }
-    private:
-        wsrep::server_service& server_service_;
-    };
 
     static inline const char* to_c_string(
         enum wsrep::server_state::state state)

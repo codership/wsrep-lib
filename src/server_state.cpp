@@ -3,6 +3,7 @@
 //
 
 #include "wsrep/server_state.hpp"
+#include "wsrep/server_service.hpp"
 #include "wsrep/high_priority_service.hpp"
 #include "wsrep/transaction.hpp"
 #include "wsrep/view.hpp"
@@ -15,34 +16,6 @@
 
 namespace
 {
-    std::string cluster_status_string(enum wsrep::server_state::state state)
-    {
-        switch (state)
-        {
-        case wsrep::server_state::s_joined:
-        case wsrep::server_state::s_synced:
-            return "Primary";
-        default:
-            return "non-Primary";
-        }
-    }
-
-    std::string cluster_size_string(enum wsrep::server_state::state state,
-                                    const wsrep::view& current_view)
-    {
-        std::ostringstream oss;
-        oss << current_view.members().size();
-        return oss.str();
-    }
-
-    std::string local_index_string(enum wsrep::server_state::state state,
-                                   const wsrep::view& current_view)
-    {
-        std::ostringstream oss;
-        oss << current_view.own_index();
-        return oss.str();
-    }
-
     //
     // This method is used to deal with historical burden of several
     // ways to bootstrap the cluster. Bootstrap happens if
@@ -255,15 +228,7 @@ wsrep::server_state::~server_state()
 std::vector<wsrep::provider::status_variable>
 wsrep::server_state::status() const
 {
-    typedef wsrep::provider::status_variable sv;
-    std::vector<sv> ret(provider_->status());
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    ret.push_back(sv("cluster_status", cluster_status_string(state_)));
-    ret.push_back(sv("cluster_size",
-                     cluster_size_string(state_, current_view_)));
-    ret.push_back(sv("local_index",
-                     local_index_string(state_, current_view_)));
-    return ret;
+    return provider_->status();
 }
 
 
@@ -493,6 +458,7 @@ void wsrep::server_state::on_view(const wsrep::view& view)
                           << "name: " << i->name();
     }
     wsrep::log_info() << "=================================================";
+    server_service_.log_view(view);
     current_view_ = view;
     if (view.status() == wsrep::view::primary)
     {
@@ -590,7 +556,6 @@ void wsrep::server_state::on_view(const wsrep::view& view)
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
         state(lock, s_disconnected);
     }
-    server_service_.log_view(view);
 }
 
 void wsrep::server_state::on_sync()
@@ -754,10 +719,11 @@ void wsrep::server_state::state(
 
     if (allowed[state_][state])
     {
-        wsrep::log_info() << "server " << name_ << " state change: "
-                          << to_c_string(state_) << " -> "
-                          << to_c_string(state);
+        wsrep::log_debug() << "server " << name_ << " state change: "
+                           << to_c_string(state_) << " -> "
+                           << to_c_string(state);
         state_hist_.push_back(state_);
+        server_service_.log_state_change(state_, state);
         state_ = state;
         cond_.notify_all();
         while (state_waiters_[state_])

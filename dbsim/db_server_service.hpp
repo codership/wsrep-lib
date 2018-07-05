@@ -29,6 +29,8 @@ namespace db
         void log_dummy_write_set(wsrep::client_state&, const wsrep::ws_meta&)
             override;
         void log_view(const wsrep::view&) override;
+        void log_state_change(enum wsrep::server_state::state,
+                              enum wsrep::server_state::state) override;
         int wait_committing_transactions(int) override;
         void debug_sync(const char*) override;
     private:

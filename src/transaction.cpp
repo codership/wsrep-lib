@@ -841,7 +841,12 @@ int wsrep::transaction::certify_commit(
     if (client_service_.prepare_data_for_replication())
     {
         lock.lock();
-        client_state_.override_error(wsrep::e_size_exceeded_error);
+        // Here we fake that the size exceeded error came from provider,
+        // even though it came from the client service. This requires
+        // some consideration how to get meaningful error codes from
+        // the client service.
+        client_state_.override_error(wsrep::e_size_exceeded_error,
+                                     wsrep::provider::error_size_exceeded);
         if (state_ != s_must_abort)
         {
             state(lock, s_must_abort);

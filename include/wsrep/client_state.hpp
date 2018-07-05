@@ -17,6 +17,7 @@
 #define WSREP_CLIENT_STATE_HPP
 
 #include "server_state.hpp"
+#include "server_service.hpp"
 #include "provider.hpp"
 #include "transaction.hpp"
 #include "client_id.hpp"
@@ -805,6 +806,20 @@ namespace wsrep
     private:
         wsrep::client_state& client_;
         enum wsrep::client_state::mode orig_mode_;
+    };
+
+    class client_deleter
+    {
+    public:
+        client_deleter(wsrep::server_service& server_service)
+            : server_service_(server_service)
+        { }
+        void operator()(wsrep::client_state* client_state)
+        {
+            server_service_.release_client_state(client_state);
+        }
+    private:
+        wsrep::server_service& server_service_;
     };
 
     template <class D>

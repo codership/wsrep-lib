@@ -14,6 +14,7 @@
 #define WSREP_SERVER_SERVICE_HPP
 
 #include "logger.hpp"
+#include "server_state.hpp"
 
 #include <string>
 
@@ -92,6 +93,20 @@ namespace wsrep
          * Log a cluster view change event.
          */
         virtual void log_view(const wsrep::view&) = 0;
+
+        /**
+         * Log a state change event.
+         *
+         * Note that this method may be called with server_state
+         * mutex locked, so calling server_state public methods
+         * should be avoided from within this call.
+         *
+         * @param prev_state Previous state server was in
+         * @param current_state Current state
+         */
+        virtual void log_state_change(
+            enum wsrep::server_state::state prev_state,
+            enum wsrep::server_state::state current_state) = 0;
 
         /**
          * Determine if the configured SST method requires SST to be

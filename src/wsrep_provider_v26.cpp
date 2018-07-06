@@ -361,7 +361,7 @@ namespace
                                uint32_t flags,
                                const wsrep_buf_t* buf,
                                const wsrep_trx_meta_t* meta,
-                               wsrep_bool_t* exit_loop __attribute__((unused)))
+                               wsrep_bool_t* exit_loop)
     {
         wsrep::high_priority_service* high_priority_service(
             reinterpret_cast<wsrep::high_priority_service*>(ctx));
@@ -384,6 +384,7 @@ namespace
             {
                 return WSREP_CB_FAILURE;
             }
+            *exit_loop = high_priority_service->must_exit();
             return WSREP_CB_SUCCESS;
         }
         catch (const wsrep::runtime_error& e)

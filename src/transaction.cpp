@@ -558,6 +558,8 @@ int wsrep::transaction::after_statement()
         break;
     }
     case s_aborted:
+        // Raise a deadlock error if the transaction was BF aborted and
+        // rolled back by client outside of transaction hooks.
         if (bf_aborted() && client_state_.current_error() == wsrep::e_success)
         {
             client_state_.override_error(wsrep::e_deadlock_error);

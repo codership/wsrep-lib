@@ -21,7 +21,8 @@ namespace wsrep
     {
     public:
         high_priority_service(wsrep::server_state& server_state)
-            : server_state_(server_state) { }
+            : server_state_(server_state)
+            , must_exit_() { }
         virtual ~high_priority_service() { }
 
         int apply(const ws_handle& ws_handle, const ws_meta& ws_meta,
@@ -79,8 +80,11 @@ namespace wsrep
         virtual int log_dummy_write_set(const ws_handle&, const ws_meta&) = 0;
 
         virtual bool is_replaying() const = 0;
+
+        bool must_exit() const { return must_exit_; }
     protected:
         wsrep::server_state& server_state_;
+        bool must_exit_;
     };
 
     class high_priority_switch

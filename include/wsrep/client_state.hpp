@@ -267,6 +267,7 @@ namespace wsrep
          */
         int start_transaction(const wsrep::transaction_id& id)
         {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(state_ == s_exec);
             return transaction_.start_transaction(id);
         }
@@ -327,6 +328,7 @@ namespace wsrep
         int start_transaction(const wsrep::ws_handle& wsh,
                               const wsrep::ws_meta& meta)
         {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(mode_ == m_high_priority);
             return transaction_.start_transaction(wsh, meta);
         }

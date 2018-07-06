@@ -49,6 +49,7 @@ wsrep::transaction::~transaction()
 int wsrep::transaction::start_transaction(
     const wsrep::transaction_id& id)
 {
+    debug_log_state("start_transaction enter");
     assert(active() == false);
     id_ = id;
     state_ = s_executing;
@@ -59,10 +60,13 @@ int wsrep::transaction::start_transaction(
     {
     case wsrep::client_state::m_local:
     case wsrep::client_state::m_high_priority:
+        debug_log_state("start_transaction success");
         return 0;
     case wsrep::client_state::m_replicating:
+        debug_log_state("start_transaction success");
         return provider().start_transaction(ws_handle_);
     default:
+        debug_log_state("start_transaction error");
         assert(0);
         return 1;
     }
@@ -518,7 +522,7 @@ int wsrep::transaction::after_statement()
     case s_cert_failed:
         client_state_.override_error(wsrep::e_deadlock_error);
         lock.unlock();
-        ret = client_service_.rollback();
+        ret = client_service_.bf_rollback();
         lock.lock();
         if (state() != s_must_replay)
         {
@@ -554,6 +558,10 @@ int wsrep::transaction::after_statement()
         break;
     }
     case s_aborted:
+        if (bf_aborted() && client_state_.current_error() == wsrep::e_success)
+        {
+            client_state_.override_error(wsrep::e_deadlock_error);
+        }
         break;
     default:
         assert(0);
@@ -799,7 +807,7 @@ int wsrep::transaction::certify_fragment(
         sr_lock.lock();
         sr_transaction.state(sr_lock, s_must_abort);
         sr_lock.unlock();
-        sr_client_state.client_service().rollback();
+        sr_client_state.client_service().bf_rollback();
         ret = 1;
         break;
     }

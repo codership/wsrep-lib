@@ -31,7 +31,7 @@ int wsrep::mock_client_service::commit(
     return ret;
 }
 
-int wsrep::mock_client_service::rollback()
+int wsrep::mock_client_service::bf_rollback()
 {
     int ret(0);
     if (client_state_.before_rollback())

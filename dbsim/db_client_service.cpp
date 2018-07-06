@@ -18,7 +18,7 @@ int db::client_service::commit(const wsrep::ws_handle&,
     return ret;
 }
 
-int db::client_service::rollback()
+int db::client_service::bf_rollback()
 {
     db::client* client(client_state_.client());
     int ret(client_state_.before_rollback());

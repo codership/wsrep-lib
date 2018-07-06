@@ -81,10 +81,16 @@ namespace wsrep
         // Rollback
         //
         /**
-         * Roll back all transactions which are currently active
-         * in the client session.
+         * Perform brute force rollback.
+         *
+         * This method may be called from two contexts, either from
+         * client state methods when the BF abort condition is detected,
+         * or from the background rollbacker thread. The task for this
+         * method is to release all reasources held by the client
+         * after BF abort so that the high priority thread can continue
+         * applying.
          */
-        virtual int rollback() = 0;
+        virtual int bf_rollback() = 0;
 
         //
         // Interface to global server state

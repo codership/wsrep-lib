@@ -35,7 +35,7 @@ void wsrep::client_state::close()
     lock.unlock();
     if (transaction_.active())
     {
-        client_service_.rollback();
+        client_service_.bf_rollback();
     }
     debug_log_state("close: leave");
 }
@@ -90,7 +90,7 @@ int wsrep::client_state::before_command()
                    wsrep::server_state::rm_async);
             override_error(wsrep::e_deadlock_error);
             lock.unlock();
-            client_service_.rollback();
+            client_service_.bf_rollback();
             (void)transaction_.after_statement();
             lock.lock();
             assert(transaction_.state() ==
@@ -128,7 +128,7 @@ void wsrep::client_state::after_command_before_result()
     {
         override_error(wsrep::e_deadlock_error);
         lock.unlock();
-        client_service_.rollback();
+        client_service_.bf_rollback();
         (void)transaction_.after_statement();
         lock.lock();
         assert(transaction_.state() == wsrep::transaction::s_aborted);
@@ -148,7 +148,7 @@ void wsrep::client_state::after_command_after_result()
         transaction_.state() == wsrep::transaction::s_must_abort)
     {
         lock.unlock();
-        client_service_.rollback();
+        client_service_.bf_rollback();
         lock.lock();
         assert(transaction_.state() == wsrep::transaction::s_aborted);
         override_error(wsrep::e_deadlock_error);
@@ -203,7 +203,7 @@ wsrep::client_state::after_statement()
     (void)transaction_.after_statement();
     if (current_error() == wsrep::e_deadlock_error)
     {
-        if (mode_ == m_replicating && client_service_.is_autocommit())
+        if (mode_ == m_replicating)
         {
             debug_log_state("after_statement: may_retry");
             return asr_may_retry;

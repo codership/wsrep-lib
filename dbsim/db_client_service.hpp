@@ -75,7 +75,7 @@ namespace db
 
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
 
-        int rollback() override;
+        int bf_rollback() override;
 
         void will_replay() override
         { }

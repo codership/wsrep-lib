@@ -28,7 +28,7 @@ namespace wsrep
         {
             if (transaction().active())
             {
-                (void)client_service().rollback();
+                (void)client_service().bf_rollback();
             }
         }
     private:
@@ -66,7 +66,7 @@ namespace wsrep
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&)
             WSREP_OVERRIDE;
 
-        int rollback() WSREP_OVERRIDE;
+        int bf_rollback() WSREP_OVERRIDE;
 
         bool is_autocommit() const WSREP_OVERRIDE
         { return is_autocommit_; }

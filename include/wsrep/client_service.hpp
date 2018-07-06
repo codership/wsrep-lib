@@ -26,11 +26,6 @@ namespace wsrep
         client_service() { }
 
         /**
-         *
-         */
-        virtual bool is_autocommit() const = 0;
-
-        /**
          * Return true if two pahase commit is required for transaction
          * to commit.
          */

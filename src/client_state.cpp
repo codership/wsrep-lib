@@ -189,8 +189,7 @@ int wsrep::client_state::before_statement()
     return 0;
 }
 
-enum wsrep::client_state::after_statement_result
-wsrep::client_state::after_statement()
+int wsrep::client_state::after_statement()
 {
     // wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("after_statement: enter");
@@ -206,16 +205,16 @@ wsrep::client_state::after_statement()
         if (mode_ == m_replicating)
         {
             debug_log_state("after_statement: may_retry");
-            return asr_may_retry;
+            return 1;
         }
         else
         {
             debug_log_state("after_statement: error");
-            return asr_error;
+            return 1;
         }
     }
     debug_log_state("after_statement: success");
-    return asr_success;
+    return 0;
 }
 
 int wsrep::client_state::enable_streaming(

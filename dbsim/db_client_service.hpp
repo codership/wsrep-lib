@@ -20,11 +20,6 @@ namespace db
             , client_state_(client_state)
         { }
 
-        bool is_autocommit() const override
-        {
-            return client_state_.is_autocommit();
-        }
-
         bool do_2pc() const override
         {
             return client_state_.do_2pc();

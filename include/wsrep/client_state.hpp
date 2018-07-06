@@ -224,27 +224,12 @@ namespace wsrep
         int before_statement();
 
         /**
-         * Return values for after_statement() method.
-         */
-        enum after_statement_result
-        {
-            /** Statement was executed succesfully */
-            asr_success,
-            /** Statement execution encountered an error, the transaction
-             * was rolled back */
-            asr_error,
-            /** Statement execution encountered an error, the transaction
-              was rolled back. However the statement was self contained
-              (e.g. autocommit statement) so it can be retried. */
-            asr_may_retry
-        };
-        /**
          * After statement execution operations.
          *
          * * Check for must_replay state
          * * Do rollback if requested
          */
-        enum after_statement_result after_statement();
+        int after_statement();
         /** @} */
 
         /**

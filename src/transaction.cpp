@@ -195,6 +195,7 @@ int wsrep::transaction::append_data(const wsrep::const_buffer& data)
 int wsrep::transaction::after_row()
 {
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
+    debug_log_state("after_row_enter");
     if (streaming_context_.fragment_size() > 0)
     {
         switch (streaming_context_.fragment_unit())
@@ -843,7 +844,7 @@ int wsrep::transaction::certify_fragment(
 
     if (storage_service.append_fragment(
             client_state_.server_state().id(),
-            client_state_.id(),
+            id(),
             flags_,
             wsrep::const_buffer(data.data(), data.size())))
     {

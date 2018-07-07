@@ -14,7 +14,8 @@ namespace db
     {
         int start_transaction() override
         { throw wsrep::not_implemented_error(); }
-        int append_fragment(const wsrep::id&, wsrep::client_id,
+        int append_fragment(const wsrep::id&,
+                            wsrep::transaction_id,
                             int,
                             const wsrep::const_buffer&) override
         { throw wsrep::not_implemented_error(); }

@@ -194,6 +194,7 @@ int wsrep::client_state::after_statement()
     // wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("after_statement: enter");
     assert(state() == s_exec);
+    assert(mode() == m_local);
 #if 0
     /**
      * @todo Check for replay state, do rollback if requested.

@@ -14,7 +14,7 @@
 #ifndef WSREP_STORAGE_SERVICE_HPP
 #define WSREP_STORAGE_SERVICE_HPP
 
-#include "client_id.hpp"
+#include "transaction_id.hpp"
 #include "id.hpp"
 #include "buffer.hpp"
 
@@ -46,7 +46,7 @@ namespace wsrep
          * Append fragment into stable storage.
          */
         virtual int append_fragment(const wsrep::id& server_id,
-                                    wsrep::client_id client_id,
+                                    wsrep::transaction_id client_id,
                                     int flags,
                                     const wsrep::const_buffer& data) = 0;
 

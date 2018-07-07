@@ -21,7 +21,7 @@ class mock_server_state;
         int start_transaction() WSREP_OVERRIDE;
 
         int append_fragment(const wsrep::id&,
-                            wsrep::client_id,
+                            wsrep::transaction_id,
                             int,
                             const wsrep::const_buffer&)
             WSREP_OVERRIDE

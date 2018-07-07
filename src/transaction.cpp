@@ -58,11 +58,10 @@ int wsrep::transaction::start_transaction(
     flags_ |= wsrep::provider::flag::start_transaction;
     switch (client_state_.mode())
     {
-    case wsrep::client_state::m_local:
     case wsrep::client_state::m_high_priority:
         debug_log_state("start_transaction success");
         return 0;
-    case wsrep::client_state::m_replicating:
+    case wsrep::client_state::m_local:
         debug_log_state("start_transaction success");
         return provider().start_transaction(ws_handle_);
     default:
@@ -162,7 +161,7 @@ int wsrep::transaction::before_prepare(
 
     if (state() == s_must_abort)
     {
-        assert(client_state_.mode() == wsrep::client_state::m_replicating);
+        assert(client_state_.mode() == wsrep::client_state::m_local);
         client_state_.override_error(wsrep::e_deadlock_error);
         return 1;
     }
@@ -171,7 +170,7 @@ int wsrep::transaction::before_prepare(
 
     switch (client_state_.mode())
     {
-    case wsrep::client_state::m_replicating:
+    case wsrep::client_state::m_local:
         if (is_streaming())
         {
             client_service_.debug_crash(
@@ -193,7 +192,6 @@ int wsrep::transaction::before_prepare(
                 "crash_last_fragment_commit_after_fragment_removal");
         }
         break;
-    case wsrep::client_state::m_local:
     case wsrep::client_state::m_high_priority:
         if (is_streaming())
         {
@@ -219,21 +217,20 @@ int wsrep::transaction::after_prepare(
     assert(state() == s_preparing || state() == s_must_abort);
     if (state() == s_must_abort)
     {
-        assert(client_state_.mode() == wsrep::client_state::m_replicating);
+        assert(client_state_.mode() == wsrep::client_state::m_local);
         client_state_.override_error(wsrep::e_deadlock_error);
         return 1;
     }
 
     switch (client_state_.mode())
     {
-    case wsrep::client_state::m_replicating:
+    case wsrep::client_state::m_local:
         ret = certify_commit(lock);
         assert((ret == 0 && state() == s_committing) ||
                (state() == s_must_abort ||
                 state() == s_must_replay ||
                 state() == s_cert_failed));
         break;
-    case wsrep::client_state::m_local:
     case wsrep::client_state::m_high_priority:
         state(lock, s_certifying);
         state(lock, s_committing);
@@ -264,12 +261,6 @@ int wsrep::transaction::before_commit()
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_local:
-        if (ordered())
-        {
-            ret = provider().commit_order_enter(ws_handle_, ws_meta_);
-        }
-        break;
-    case wsrep::client_state::m_replicating:
         if (state() == s_executing)
         {
             assert(client_service_.do_2pc() == false);
@@ -380,7 +371,7 @@ int wsrep::transaction::after_commit()
 
     if (is_streaming())
     {
-        assert(client_state_.mode() == wsrep::client_state::m_replicating ||
+        assert(client_state_.mode() == wsrep::client_state::m_local ||
                client_state_.mode() == wsrep::client_state::m_high_priority);
         clear_fragments();
     }
@@ -388,9 +379,6 @@ int wsrep::transaction::after_commit()
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_local:
-        // Nothing to do
-        break;
-    case wsrep::client_state::m_replicating:
         ret = provider().release(ws_handle_);
         break;
     case wsrep::client_state::m_high_priority:
@@ -735,7 +723,7 @@ int wsrep::transaction::certify_fragment(
 {
     assert(lock.owns_lock());
 
-    assert(client_state_.mode() == wsrep::client_state::m_replicating);
+    assert(client_state_.mode() == wsrep::client_state::m_local);
     assert(streaming_context_.rolled_back() == false);
 
     client_service_.wait_for_replayers(lock);

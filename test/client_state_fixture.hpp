@@ -18,7 +18,7 @@ namespace
         replicating_client_fixture_sync_rm()
             : sc("s1", "s1", wsrep::server_state::rm_sync)
             , cc(sc, wsrep::client_id(1),
-                 wsrep::client_state::m_replicating)
+                 wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
             cc.open(cc.id());
@@ -38,7 +38,7 @@ namespace
         replicating_client_fixture_async_rm()
             : sc("s1", "s1", wsrep::server_state::rm_async)
             , cc(sc, wsrep::client_id(1),
-                 wsrep::client_state::m_replicating)
+                 wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
             cc.open(cc.id());
@@ -58,7 +58,7 @@ namespace
         replicating_client_fixture_2pc()
             : sc("s1", "s1", wsrep::server_state::rm_sync)
             , cc(sc,  wsrep::client_id(1),
-                 wsrep::client_state::m_replicating)
+                 wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
             cc.open(cc.id());
@@ -79,7 +79,7 @@ namespace
         replicating_client_fixture_autocommit()
             : sc("s1", "s1", wsrep::server_state::rm_sync)
             , cc(sc, wsrep::client_id(1),
-                 wsrep::client_state::m_replicating)
+                 wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
             cc.open(cc.id());
@@ -160,7 +160,7 @@ namespace
             : sc("s1", "s1", wsrep::server_state::rm_sync)
             , cc(sc,
                  wsrep::client_id(1),
-                 wsrep::client_state::m_replicating)
+                 wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
             cc.open(cc.id());
@@ -182,7 +182,7 @@ namespace
             : sc("s1", "s1", wsrep::server_state::rm_sync)
             , cc(sc,
                  wsrep::client_id(1),
-                 wsrep::client_state::m_replicating)
+                 wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
             cc.open(cc.id());
@@ -204,7 +204,7 @@ namespace
             : sc("s1", "s1", wsrep::server_state::rm_sync)
             , cc(sc,
                  wsrep::client_id(1),
-                 wsrep::client_state::m_replicating)
+                 wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
             cc.open(cc.id());

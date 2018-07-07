@@ -202,7 +202,7 @@ int wsrep::client_state::after_statement()
     (void)transaction_.after_statement();
     if (current_error() == wsrep::e_deadlock_error)
     {
-        if (mode_ == m_replicating)
+        if (mode_ == m_local)
         {
             debug_log_state("after_statement: may_retry");
             return 1;
@@ -222,7 +222,7 @@ int wsrep::client_state::enable_streaming(
     fragment_unit,
     size_t fragment_size)
 {
-    assert(mode_ == m_replicating);
+    assert(mode_ == m_local);
     if (transaction_.active() &&
         transaction_.streaming_context_.fragment_unit() !=
         fragment_unit)
@@ -242,7 +242,7 @@ int wsrep::client_state::enter_toi(const wsrep::key_array& keys,
                                    int flags)
 {
     assert(state_ == s_exec);
-    assert(mode_ == m_replicating);
+    assert(mode_ == m_local);
     int ret;
     switch (provider().enter_toi(id_, keys, buffer, toi_meta_, flags))
     {
@@ -276,7 +276,7 @@ int wsrep::client_state::enter_toi(const wsrep::ws_meta& ws_meta)
 int wsrep::client_state::leave_toi()
 {
     int ret;
-    if (toi_mode_ == m_replicating)
+    if (toi_mode_ == m_local)
     {
         switch (provider().leave_toi(id_))
         {
@@ -431,12 +431,11 @@ void wsrep::client_state::mode(
 {
     assert(lock.owns_lock());
     static const char allowed[n_modes_][n_modes_] =
-        {   /* l  r  h  t  r */
-            {  0, 0, 0, 0, 0 }, /* local */
-            {  0, 0, 1, 1, 1 }, /* repl */
-            {  0, 1, 0, 1, 0 }, /* high prio */
-            {  0, 1, 1, 0, 0 }, /* toi */
-            {  0, 1, 0, 0, 0 }  /* rsu */
+        {   /* l  h  t  r */
+            {  0, 1, 1, 1 }, /* local */
+            {  1, 0, 1, 0 }, /* high prio */
+            {  1, 1, 0, 0 }, /* toi */
+            {  1, 0, 0, 0 }  /* rsu */
         };
     if (allowed[mode_][mode])
     {

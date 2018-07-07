@@ -96,7 +96,7 @@ void db::server::start_client(size_t id)
 {
     auto client(std::make_shared<db::client>(
                     *this, id,
-                    wsrep::client_state::m_replicating,
+                    wsrep::client_state::m_local,
                     simulator_.params()));
     clients_.push_back(client);
     client_threads_.push_back(
@@ -115,7 +115,7 @@ wsrep::client_state* db::server::local_client_state()
     std::ostringstream id_os;
     size_t client_id(++last_client_id_);
     db::client* client(new db::client(*this, client_id,
-                                      wsrep::client_state::m_replicating,
+                                      wsrep::client_state::m_local,
                                       simulator_.params()));
     return &client->client_state();
 }

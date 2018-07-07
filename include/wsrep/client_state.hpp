@@ -75,10 +75,8 @@ namespace wsrep
          */
         enum mode
         {
-            /** Operates in local only mode, no replication. */
+            /** Locally operating client session. */
             m_local,
-            /** Generates write sets for replication by the provider. */
-            m_replicating,
             /** High priority mode */
             m_high_priority,
             /** Client is in total order isolation mode */
@@ -262,7 +260,7 @@ namespace wsrep
          */
         int append_key(const wsrep::key& key)
         {
-            assert(mode_ == m_replicating);
+            assert(mode_ == m_local);
             assert(state_ == s_exec);
             return transaction_.append_key(key);
         }
@@ -272,7 +270,7 @@ namespace wsrep
          */
         int append_data(const wsrep::const_buffer& data)
         {
-            assert(mode_ == m_replicating);
+            assert(mode_ == m_local);
             assert(state_ == s_exec);
             return transaction_.append_data(data);
         }
@@ -286,7 +284,7 @@ namespace wsrep
          */
         int after_row()
         {
-            assert(mode_ == m_replicating);
+            assert(mode_ == m_local);
             assert(state_ == s_exec);
             return (transaction_.streaming_context_.fragment_size() ?
                     transaction_.after_row() : 0);
@@ -377,7 +375,7 @@ namespace wsrep
          */
         void sync_rollback_complete()
         {
-            assert(state_ == s_idle && mode_ == m_replicating &&
+            assert(state_ == s_idle && mode_ == m_local &&
                    transaction_.state() == wsrep::transaction::s_aborted);
             cond_.notify_all();
         }
@@ -389,7 +387,7 @@ namespace wsrep
         int bf_abort(wsrep::seqno bf_seqno)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            assert(mode_ == m_replicating);
+            assert(mode_ == m_local);
             return transaction_.bf_abort(lock, bf_seqno);
         }
 
@@ -442,7 +440,7 @@ namespace wsrep
 
         /**
          * Return the mode where client entered into TOI mode.
-         * The return value can be either m_replicating or
+         * The return value can be either m_local or
          * m_high_priority.
          */
         enum mode toi_mode() const
@@ -724,7 +722,6 @@ namespace wsrep
         switch (mode)
         {
         case wsrep::client_state::m_local: return "local";
-        case wsrep::client_state::m_replicating: return "replicating";
         case wsrep::client_state::m_high_priority: return "high priority";
         case wsrep::client_state::m_toi: return "toi";
         case wsrep::client_state::m_rsu: return "rsu";

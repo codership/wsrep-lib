@@ -63,13 +63,7 @@ namespace wsrep
 
         int apply_toi(const wsrep::const_buffer&) WSREP_OVERRIDE;
 
-        int commit(const wsrep::ws_handle&, const wsrep::ws_meta&)
-            WSREP_OVERRIDE;
-
         int bf_rollback() WSREP_OVERRIDE;
-
-        bool is_autocommit() const WSREP_OVERRIDE
-        { return is_autocommit_; }
 
         bool do_2pc() const WSREP_OVERRIDE
         { return do_2pc_; }
@@ -77,7 +71,7 @@ namespace wsrep
         bool interrupted() const WSREP_OVERRIDE
         { return killed_before_certify_; }
 
-        void reset_globals() WSREP_OVERRIDE { }
+
         void emergency_shutdown() WSREP_OVERRIDE { ++aborts_; }
 
         int append_fragment(const wsrep::transaction&,
@@ -135,6 +129,7 @@ namespace wsrep
         }
 
         void store_globals() WSREP_OVERRIDE { }
+        void reset_globals() WSREP_OVERRIDE { }
 
         void debug_sync(const char* sync_point) WSREP_OVERRIDE
         {
@@ -181,7 +176,6 @@ namespace wsrep
         //
         size_t replays() const { return replays_; }
         size_t aborts() const { return aborts_; }
-
     private:
         wsrep::mock_client_state& client_state_;
         size_t replays_;

@@ -40,6 +40,7 @@ namespace wsrep
          * Adopt a transaction.
          */
         virtual void adopt_transaction(const wsrep::transaction&) = 0;
+
         /**
          * Apply a write set.
          *
@@ -50,6 +51,11 @@ namespace wsrep
          */
         virtual int apply_write_set(const wsrep::const_buffer&) = 0;
 
+        /**
+         *
+         */
+        virtual int append_fragment(const wsrep::ws_meta&,
+                                    const wsrep::const_buffer& data) = 0;
         /**
          * Commit a transaction.
          */

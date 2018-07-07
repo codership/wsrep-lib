@@ -5,6 +5,7 @@
 #include "wsrep/transaction.hpp"
 #include "wsrep/client_state.hpp"
 #include "wsrep/server_state.hpp"
+#include "wsrep/storage_service.hpp"
 #include "wsrep/high_priority_service.hpp"
 #include "wsrep/key.hpp"
 #include "wsrep/logger.hpp"
@@ -19,6 +20,65 @@
         { }                                             \
         else wsrep::log_debug() << msg;                 \
     } while (0)
+
+
+namespace
+{
+    class storage_service_deleter
+    {
+    public:
+        storage_service_deleter(wsrep::server_service& server_service)
+            : server_service_(server_service)
+        { }
+        void operator()(wsrep::storage_service* storage_service)
+        {
+            server_service_.release_storage_service(storage_service);
+        }
+    private:
+        wsrep::server_service& server_service_;
+    };
+
+    template <class D>
+    class scoped_storage_service
+    {
+    public:
+        scoped_storage_service(wsrep::client_service& client_service,
+                               wsrep::storage_service* storage_service,
+                               D deleter)
+            : client_service_(client_service)
+            , storage_service_(storage_service)
+            , deleter_(deleter)
+        {
+            if (storage_service_ == 0)
+            {
+                throw wsrep::runtime_error("Null client_state provided");
+            }
+            client_service_.reset_globals();
+            storage_service_->store_globals();
+        }
+
+        wsrep::storage_service& storage_service()
+        {
+            return *storage_service_;
+        }
+
+        ~scoped_storage_service()
+        {
+            storage_service_->reset_globals();
+            client_service_.store_globals();
+            deleter_(storage_service_);
+        }
+    private:
+        scoped_storage_service(const scoped_storage_service&);
+        scoped_storage_service& operator=(const scoped_storage_service&);
+        wsrep::client_service& client_service_;
+        wsrep::storage_service* storage_service_;
+        D deleter_;
+    };
+
+
+
+}
 
 // Public
 
@@ -91,6 +151,20 @@ int wsrep::transaction::start_transaction(
     {
         start_replaying(ws_meta);
     }
+    return 0;
+}
+
+int wsrep::transaction::prepare_for_fragment_ordering(
+    const wsrep::ws_handle& ws_handle,
+    const wsrep::ws_meta& ws_meta,
+    bool is_commit)
+{
+    assert(active());
+
+    ws_handle_ = ws_handle;
+    ws_meta_ = ws_meta;
+    certified_ = is_commit;
+
     return 0;
 }
 
@@ -745,25 +819,32 @@ int wsrep::transaction::certify_fragment(
         return 1;
     }
 
-    // Client context to store fragment in separate transaction
-    // Switch temporarily to sr_transaction, switch back
-    // to original when this goes out of scope
-    wsrep::scoped_client_state<wsrep::client_deleter> sr_client_state_scope(
-        server_service_.local_client_state(),
-        wsrep::client_deleter(server_service_));
-    wsrep::client_state& sr_client_state(
-        sr_client_state_scope.client_state());
-    wsrep::client_state_switch client_state_switch(
-        client_state_,
-        sr_client_state);
+    // The rest of this method will be executed in storage service
+    // scope.
+    scoped_storage_service<storage_service_deleter>
+        sr_scope(
+            client_service_,
+            server_service_.storage_service(client_service_),
+            storage_service_deleter(server_service_));
+    wsrep::storage_service& storage_service(
+        sr_scope.storage_service());
 
-    wsrep::unique_lock<wsrep::mutex> sr_lock(sr_client_state.mutex());
-    wsrep::transaction& sr_transaction(
-        sr_client_state.transaction_);
-    sr_transaction.state(sr_lock, s_certifying);
-    sr_lock.unlock();
-    if (sr_client_state.client_service().append_fragment(
-            sr_transaction, flags_,
+    // First the fragment is appended to the stable storage.
+    // This is done to ensure that there is enough capacity
+    // available to store the fragment. The fragment meta data
+    // is updated after certification.
+    if (storage_service.start_transaction())
+    {
+        lock.lock();
+        state(lock, s_must_abort);
+        client_state_.override_error(wsrep::e_append_fragment_error);
+        return 1;
+    }
+
+    if (storage_service.append_fragment(
+            client_state_.server_state().id(),
+            client_state_.id(),
+            flags_,
             wsrep::const_buffer(data.data(), data.size())))
     {
         lock.lock();
@@ -774,30 +855,22 @@ int wsrep::transaction::certify_fragment(
 
     enum wsrep::provider::status
         cert_ret(provider().certify(client_state_.id().get(),
-                                   sr_transaction.ws_handle_,
-                                   flags_,
-                                   sr_transaction.ws_meta_));
+                                    ws_handle_,
+                                    flags_,
+                                    ws_meta_));
 
     int ret(0);
     switch (cert_ret)
     {
     case wsrep::provider::success:
-        streaming_context_.certified(sr_transaction.ws_meta().seqno());
-        sr_lock.lock();
-        sr_transaction.certified_ = true;
-        sr_transaction.state(sr_lock, s_committing);
-        sr_lock.unlock();
-        if (sr_client_state.client_service().commit(
-                sr_transaction.ws_handle(), sr_transaction.ws_meta()))
+        streaming_context_.certified(ws_meta_.seqno());
+        if (storage_service.commit(ws_handle_, ws_meta_))
         {
             ret = 1;
         }
         break;
     default:
-        sr_lock.lock();
-        sr_transaction.state(sr_lock, s_must_abort);
-        sr_lock.unlock();
-        sr_client_state.client_service().bf_rollback();
+        storage_service.rollback(ws_handle_, ws_meta_);
         ret = 1;
         break;
     }

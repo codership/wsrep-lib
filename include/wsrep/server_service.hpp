@@ -20,7 +20,8 @@
 
 namespace wsrep
 {
-    class client_state;
+    class client_service;
+    class storage_service;
     class high_priority_service;
     class ws_meta;
     class gtid;
@@ -28,17 +29,11 @@ namespace wsrep
     class server_service
     {
     public:
-        /**
-         * Create client state instance which acts only locally, i.e. does
-         * not participate in replication. However, local client
-         * state may execute transactions which require ordering,
-         * as when modifying local SR fragment storage requires
-         * strict commit ordering.
-         *
-         * @return Pointer to Client State.
-         */
-        virtual wsrep::client_state* local_client_state() = 0;
-        virtual void release_client_state(wsrep::client_state*) = 0;
+
+        virtual wsrep::storage_service* storage_service(
+            wsrep::client_service&) = 0;
+
+        virtual void release_storage_service(wsrep::storage_service*) = 0;
         /**
          * Create an applier state for streaming transaction applying.
          *

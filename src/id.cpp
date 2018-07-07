@@ -52,3 +52,11 @@ std::ostream& wsrep::operator<<(std::ostream& os, const wsrep::id& id)
         return (os << uuid_str);
     }
 }
+
+std::istream& wsrep::operator>>(std::istream& is, wsrep::id& id)
+{
+    std::string id_str;
+    std::getline(is, id_str);
+    id = wsrep::id(id_str);
+    return is;
+}

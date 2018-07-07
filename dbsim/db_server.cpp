@@ -36,7 +36,7 @@ void db::server::applier_thread()
                        simulator_.params());
     wsrep::client_state* cc(static_cast<wsrep::client_state*>(
                                 &applier.client_state()));
-    db::high_priority_service hps(*this, &applier);
+    db::high_priority_service hps(*this, applier);
     cc->open(cc->id());
     cc->before_command();
     enum wsrep::provider::status ret(
@@ -110,21 +110,6 @@ void db::server::donate_sst(const std::string& req,
     simulator_.sst(*this, req, gtid, bypass);
 }
 
-wsrep::client_state* db::server::local_client_state()
-{
-    std::ostringstream id_os;
-    size_t client_id(++last_client_id_);
-    db::client* client(new db::client(*this, client_id,
-                                      wsrep::client_state::m_local,
-                                      simulator_.params()));
-    return &client->client_state();
-}
-void db::server::release_client_state(wsrep::client_state* client_state)
-{
-    db::client_state* db_client_state(
-        dynamic_cast<db::client_state*>(client_state));
-    delete db_client_state->client();
-}
 
 wsrep::high_priority_service* db::server::streaming_applier_service()
 {

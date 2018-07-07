@@ -576,6 +576,10 @@ void wsrep::server_state::on_sync()
         case s_joiner:
             state(lock, s_initializing);
             break;
+        case s_donor:
+            state(lock, s_joined);
+            state(lock, s_synced);
+            break;
         case s_initialized:
             state(lock, s_joined);
             // fall through

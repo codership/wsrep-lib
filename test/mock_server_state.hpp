@@ -9,6 +9,7 @@
 #include "wsrep/server_service.hpp"
 #include "mock_client_state.hpp"
 #include "mock_high_priority_service.hpp"
+#include "mock_storage_service.hpp"
 #include "mock_provider.hpp"
 
 #include "wsrep/compiler.hpp"
@@ -32,9 +33,22 @@ namespace wsrep
             , cond_()
             , provider_(*this)
             , last_client_id_(0)
+            , last_transaction_id_(0)
         { }
+
         wsrep::mock_provider& provider() const
         { return provider_; }
+
+        wsrep::storage_service* storage_service(wsrep::client_service&)
+        {
+            return new wsrep::mock_storage_service(*this, ++last_client_id_);
+        }
+
+        void release_storage_service(wsrep::storage_service* storage_service)
+        {
+            delete storage_service;
+        }
+
         wsrep::client_state* local_client_state()
         {
             wsrep::client_state* ret(new wsrep::mock_client(
@@ -43,6 +57,7 @@ namespace wsrep
             ret->open(ret->id());
             return ret;
         }
+
         void release_client_state(wsrep::client_state* client_state)
         {
             delete client_state;
@@ -103,6 +118,11 @@ namespace wsrep
 
         int wait_committing_transactions(int) WSREP_OVERRIDE { return 0; }
 
+        wsrep::transaction_id next_transaction_id()
+        {
+            return wsrep::transaction_id(++last_transaction_id_);
+        }
+
         void debug_sync(const char* sync_point) WSREP_OVERRIDE
         {
             if (sync_point_enabled_ == sync_point)
@@ -128,6 +148,7 @@ namespace wsrep
         wsrep::default_condition_variable cond_;
         mutable wsrep::mock_provider provider_;
         unsigned long long last_client_id_;
+        unsigned long long last_transaction_id_;
     };
 }
 

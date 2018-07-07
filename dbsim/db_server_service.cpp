@@ -4,6 +4,7 @@
 
 #include "db_server_service.hpp"
 #include "db_server.hpp"
+#include "db_storage_service.hpp"
 
 #include "wsrep/logger.hpp"
 #include "wsrep/high_priority_service.hpp"
@@ -12,15 +13,16 @@ db::server_service::server_service(db::server& server)
     : server_(server)
 { }
 
-wsrep::client_state* db::server_service::local_client_state()
+wsrep::storage_service* db::server_service::storage_service(
+    wsrep::client_service&)
 {
-    return server_.local_client_state();
+    return new db::storage_service();
 }
 
-void db::server_service::release_client_state(
-    wsrep::client_state* client_state)
+void db::server_service::release_storage_service(
+    wsrep::storage_service* storage_service)
 {
-    server_.release_client_state(client_state);
+    delete storage_service;
 }
 
 wsrep::high_priority_service* db::server_service::streaming_applier_service()
@@ -41,7 +43,12 @@ bool db::server_service::sst_before_init() const
 
 std::string db::server_service::sst_request()
 {
-    return server_.server_state().id();
+    std::ostringstream os;
+    os << server_.server_state().id();
+    wsrep::log_info() << "SST request: "
+                      << server_.server_state().id();
+
+    return os.str();
 }
 
 int db::server_service::start_sst(

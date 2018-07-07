@@ -33,6 +33,9 @@ namespace wsrep
 
         void adopt_transaction(const wsrep::transaction&) WSREP_OVERRIDE;
         int apply_write_set(const wsrep::const_buffer&) WSREP_OVERRIDE;
+        int append_fragment(const wsrep::ws_meta&,
+                            const wsrep::const_buffer& data) WSREP_OVERRIDE
+        { return 0; }
         int commit() WSREP_OVERRIDE;
         int rollback() WSREP_OVERRIDE;
         int apply_toi(const wsrep::ws_meta&,

@@ -23,11 +23,12 @@ void db::simulator::sst(db::server& server,
                         const wsrep::gtid& gtid,
                         bool bypass)
 {
-    size_t id;
+    wsrep::id id;
     std::istringstream is(request);
     is >> id;
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     auto i(servers_.find(id));
+    wsrep::log_info() << "SST request";
     if (i == servers_.end())
     {
         throw wsrep::runtime_error("Server " + request + " not found");
@@ -86,9 +87,10 @@ void db::simulator::start()
         id_os << (i + 1);
         std::ostringstream address_os;
         address_os << "127.0.0.1:" << server_port(i);
+        wsrep::id server_id(id_os.str());
         auto it(servers_.insert(
                     std::make_pair(
-                        (i + 1),
+                        server_id,
                         std::make_unique<db::server>(
                             *this,
                             name_os.str(),

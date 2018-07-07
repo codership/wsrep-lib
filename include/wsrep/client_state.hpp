@@ -306,6 +306,23 @@ namespace wsrep
             enum wsrep::streaming_context::fragment_unit
             fragment_unit,
             size_t fragment_size);
+
+        /**
+         * Prepare write set meta data for fragment storage ordering.
+         * This method should be called from storage service commit
+         * or rollback before performing the operation.
+         */
+        int prepare_for_fragment_ordering(const wsrep::ws_handle& ws_handle,
+                                          const wsrep::ws_meta& ws_meta,
+                                          bool is_commit)
+        {
+            assert(mode_ == m_high_priority);
+            assert(state_ == s_exec);
+            return transaction_.prepare_for_fragment_ordering(
+                ws_handle, ws_meta, is_commit);
+        }
+        /** @} */
+
         /** @name Applying interface */
         /** @{ */
         int start_transaction(const wsrep::ws_handle& wsh,
@@ -734,26 +751,6 @@ namespace wsrep
         return to_c_string(mode);
     }
 
-    class client_state_switch
-    {
-    public:
-        client_state_switch(wsrep::client_state& orig_context,
-                              wsrep::client_state& current_context)
-            : orig_context_(orig_context)
-            , current_context_(current_context)
-        {
-            current_context_.client_service_.store_globals();
-        }
-        ~client_state_switch()
-        {
-            orig_context_.client_service_.store_globals();
-        }
-    private:
-        client_state& orig_context_;
-        client_state& current_context_;
-    };
-
-
     /**
      * Utility class to switch the client state to high priority
      * mode. The client is switched back to the original mode
@@ -804,44 +801,6 @@ namespace wsrep
         enum wsrep::client_state::mode orig_mode_;
     };
 
-    class client_deleter
-    {
-    public:
-        client_deleter(wsrep::server_service& server_service)
-            : server_service_(server_service)
-        { }
-        void operator()(wsrep::client_state* client_state)
-        {
-            server_service_.release_client_state(client_state);
-        }
-    private:
-        wsrep::server_service& server_service_;
-    };
-
-    template <class D>
-    class scoped_client_state
-    {
-    public:
-        scoped_client_state(wsrep::client_state* client_state, D deleter)
-            : client_state_(client_state)
-            , deleter_(deleter)
-        {
-            if (client_state_ == 0)
-            {
-                throw wsrep::runtime_error("Null client_state provided");
-            }
-        }
-        wsrep::client_state& client_state() { return *client_state_; }
-        ~scoped_client_state()
-        {
-            deleter_(client_state_);
-        }
-    private:
-        scoped_client_state(const scoped_client_state&);
-        scoped_client_state& operator=(const scoped_client_state&);
-        wsrep::client_state* client_state_;
-        D deleter_;
-    };
 }
 
 #endif // WSREP_CLIENT_STATE_HPP

@@ -14,11 +14,14 @@ namespace db
     class high_priority_service : public wsrep::high_priority_service
     {
     public:
-        high_priority_service(db::server& server, db::client* client);
+        high_priority_service(db::server& server, db::client& client);
         int start_transaction(const wsrep::ws_handle&,
                               const wsrep::ws_meta&) override;
         void adopt_transaction(const wsrep::transaction&) override;
         int apply_write_set(const wsrep::const_buffer&) override;
+        int append_fragment(const wsrep::ws_meta&, const wsrep::const_buffer&)
+            override
+        { return 0; }
         int commit() override;
         int rollback() override;
         int apply_toi(const wsrep::ws_meta&, const wsrep::const_buffer&) override;
@@ -33,7 +36,7 @@ namespace db
         high_priority_service(const high_priority_service&);
         high_priority_service& operator=(const high_priority_service&);
         db::server& server_;
-        db::client* client_;
+        db::client& client_;
     };
 }
 

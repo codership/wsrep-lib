@@ -8,37 +8,26 @@
 #include "wsrep/client_service.hpp"
 #include "wsrep/transaction.hpp"
 
-#include "db_client_state.hpp"
-
 namespace db
 {
+    class client;
+    class client_state;
+
     class client_service : public wsrep::client_service
     {
     public:
-        client_service(db::client_state& client_state)
-            : wsrep::client_service()
-            , client_state_(client_state)
-        { }
+        client_service(db::client& client);
 
-        bool do_2pc() const override
-        {
-            return client_state_.do_2pc();
-        }
+        bool do_2pc() const override;
 
         bool interrupted() const override
         {
             return false;
         }
 
-        void reset_globals() override
-        {
-            client_state_.reset_globals();
-        }
+        void reset_globals() override { }
 
-        void store_globals() override
-        {
-            client_state_.store_globals();
-        }
+        void store_globals() override { }
 
         int prepare_data_for_replication() override
         {
@@ -56,6 +45,7 @@ namespace db
         {
             return true;
         }
+
         int prepare_fragment_for_replication(wsrep::mutable_buffer&) override
         {
             return 0;
@@ -63,12 +53,6 @@ namespace db
 
         void remove_fragments() override
         { }
-
-        // int apply_write_set(const wsrep::const_buffer&) override;
-
-        // int apply_toi(const wsrep::const_buffer&) override;
-
-        int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
 
         int bf_rollback() override;
 
@@ -79,17 +63,12 @@ namespace db
         enum wsrep::provider::status replay()
             override;
 
-        int append_fragment(const wsrep::transaction&, int,
-                            const wsrep::const_buffer&) override
-        {
-            return 0;
-        }
-
         void emergency_shutdown() { ::abort(); }
         void debug_sync(const char*) override { }
         void debug_crash(const char*) override { }
     private:
-        db::client_state& client_state_;
+        db::client& client_;
+        wsrep::client_state& client_state_;
     };
 }
 

@@ -83,6 +83,7 @@ namespace wsrep
     };
 
     std::ostream& operator<<(std::ostream&, const wsrep::id& id);
+    std::istream& operator>>(std::istream&, wsrep::id& id);
 }
 
 #endif // WSREP_ID_HPP

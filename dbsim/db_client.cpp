@@ -16,8 +16,8 @@ db::client::client(db::server& server,
     , params_(params)
     , server_(server)
     , server_state_(server.server_state())
-    , client_state_(mutex_, cond_, this, server_state_, client_service_, client_id, mode)
-    , client_service_(client_state_)
+    , client_state_(mutex_, cond_, server_state_, client_service_, client_id, mode)
+    , client_service_(*this)
     , se_trx_(server.storage_engine())
     , stats_()
 { }
@@ -114,7 +114,7 @@ void db::client::run_one_transaction()
         {
             // wsrep::log_debug() << "Commit";
             assert(err == 0);
-            if (client_state_.do_2pc())
+            if (do_2pc())
             {
                 err = err || client_state_.before_prepare();
                 err = err || client_state_.after_prepare();

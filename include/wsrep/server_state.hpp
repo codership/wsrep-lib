@@ -87,6 +87,7 @@ namespace wsrep
     class transaction;
     class const_buffer;
     class server_service;
+
     /** @class Server Context
      *
      *
@@ -172,11 +173,11 @@ namespace wsrep
         const std::string& name() const { return name_; }
 
         /**
-         * Return Server identifier string.
+         * Return Server identifier.
          *
-         * @return Server indetifier string.
+         * @return Server identifier.
          */
-        const std::string& id() const { return id_; }
+        const wsrep::id& id() const { return id_; }
 
         const std::string& incoming_address() const
         { return incoming_address_; }
@@ -575,7 +576,7 @@ namespace wsrep
         streaming_appliers_map streaming_appliers_;
         wsrep::provider* provider_;
         std::string name_;
-        std::string id_;
+        wsrep::id id_;
         std::string incoming_address_;
         std::string address_;
         std::string working_dir_;

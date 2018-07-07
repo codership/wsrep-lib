@@ -69,9 +69,13 @@ namespace wsrep
         virtual bool statement_allowed_for_streaming() const = 0;
         virtual size_t bytes_generated() const = 0;
         virtual int prepare_fragment_for_replication(wsrep::mutable_buffer&) = 0;
+        /**
+         * Remove fragments from the storage within current transaction.
+         * Fragment removal will be committed once the current transaction
+         * commits.
+         */
         virtual void remove_fragments() = 0;
 
-        virtual int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) = 0;
         //
         // Rollback
         //
@@ -127,12 +131,6 @@ namespace wsrep
          * handled internally by wsrep-lib.
          */
         virtual void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) = 0;
-
-        // Streaming replication
-        /**
-         * Append a write set fragment into fragment storage.
-         */
-        virtual int append_fragment(const wsrep::transaction&, int flag, const wsrep::const_buffer&) = 0;
 
         //
         // Debug interface

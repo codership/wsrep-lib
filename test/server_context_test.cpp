@@ -172,7 +172,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_sst_first_boostrap,
     wsrep::id cluster_id("1");
     wsrep::gtid state_id(cluster_id, wsrep::seqno(0));
     std::vector<wsrep::view::member> members;
-    members.push_back(wsrep::view::member(wsrep::id("1"), "name", ""));
+    members.push_back(wsrep::view::member(wsrep::id("s1"), "name", ""));
     wsrep::view bootstrap_view(state_id,
                                wsrep::seqno(1),
                                wsrep::view::primary,
@@ -198,7 +198,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_init_first_boostrap,
     wsrep::id cluster_id("1");
     wsrep::gtid state_id(cluster_id, wsrep::seqno(0));
     std::vector<wsrep::view::member> members;
-    members.push_back(wsrep::view::member(wsrep::id("1"), "name", ""));
+    members.push_back(wsrep::view::member(wsrep::id("s1"), "name", ""));
     wsrep::view bootstrap_view(state_id,
                                wsrep::seqno(1),
                                wsrep::view::primary,

@@ -239,7 +239,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_2pc_applying,
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_ordered_commit);
     BOOST_REQUIRE(cc.after_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committed);
-    BOOST_REQUIRE(cc.after_statement() == 0);
+    cc.after_applying();
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committed);
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);

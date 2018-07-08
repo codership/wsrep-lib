@@ -950,7 +950,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_1pc_applying,
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_ordered_commit);
     BOOST_REQUIRE(cc.after_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committed);
-    cc.after_statement();
+    cc.after_applying();
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committed);
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
@@ -964,7 +964,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_applying_rollback,
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborting);
     BOOST_REQUIRE(cc.after_rollback() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
-    cc.after_statement();
+    cc.after_applying();
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);

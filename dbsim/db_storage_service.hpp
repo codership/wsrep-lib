@@ -12,7 +12,7 @@ namespace db
 {
     class storage_service : public wsrep::storage_service
     {
-        int start_transaction() override
+        int start_transaction(const wsrep::ws_handle&) override
         { throw wsrep::not_implemented_error(); }
         int append_fragment(const wsrep::id&,
                             wsrep::transaction_id,

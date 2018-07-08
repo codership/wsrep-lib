@@ -64,5 +64,5 @@ int wsrep::mock_high_priority_service::apply_toi(const wsrep::ws_meta&,
 
 void wsrep::mock_high_priority_service::after_apply()
 {
-    client_state_->after_statement();
+    client_state_->after_applying();
 }

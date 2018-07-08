@@ -28,29 +28,30 @@ wsrep::mock_storage_service::~mock_storage_service()
     client_state_.cleanup();
 }
 
-int wsrep::mock_storage_service::start_transaction()
+int wsrep::mock_storage_service::start_transaction(const wsrep::ws_handle& ws_handle)
 {
-    return client_state_.start_transaction(
-        server_state_.next_transaction_id());
+    return client_state_.start_transaction(ws_handle.transaction_id());
 }
 
 int wsrep::mock_storage_service::commit(const wsrep::ws_handle& ws_handle,
                                         const wsrep::ws_meta& ws_meta)
 {
-    return client_state_.prepare_for_fragment_ordering(
-        ws_handle, ws_meta, true) ||
-        client_state_.before_commit() ||
-        client_state_.ordered_commit() ||
-        client_state_.after_commit() ||
-        client_state_.after_statement();
+    int ret(client_state_.prepare_for_fragment_ordering(
+                ws_handle, ws_meta, true) ||
+            client_state_.before_commit() ||
+            client_state_.ordered_commit() ||
+            client_state_.after_commit());
+    client_state_.after_applying();
+    return ret;
 }
 
 int wsrep::mock_storage_service::rollback(const wsrep::ws_handle& ws_handle,
                                           const wsrep::ws_meta& ws_meta)
 {
-    return client_state_.prepare_for_fragment_ordering(
-        ws_handle, ws_meta, false) ||
-        client_state_.before_rollback() ||
-        client_state_.after_rollback() ||
-        client_state_.after_statement();
+    int ret(client_state_.prepare_for_fragment_ordering(
+                ws_handle, ws_meta, false) ||
+            client_state_.before_rollback() ||
+            client_state_.after_rollback());
+    client_state_.after_applying();
+    return ret;
 }

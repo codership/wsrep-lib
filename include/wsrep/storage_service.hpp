@@ -35,12 +35,11 @@ namespace wsrep
         /**
          * Start a new transaction for storage access.
          *
-         * @param ws_hande Write set handle
-         * @param ws_meta Write set meta data
+         * @param[out] ws_handle Write set handle for a new transaction
          *
          * @return Zero in case of success, non-zero on error.
          */
-        virtual int start_transaction() = 0;
+        virtual int start_transaction(const wsrep::ws_handle&) = 0;
 
         /**
          * Append fragment into stable storage.

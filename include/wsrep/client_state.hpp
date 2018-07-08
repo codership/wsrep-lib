@@ -307,6 +307,12 @@ namespace wsrep
             fragment_unit,
             size_t fragment_size);
 
+        void disable_streaming()
+        {
+            assert(state_ == s_exec && mode_ == m_local);
+            transaction_.streaming_context_.disable();
+        }
+
         /**
          * Prepare write set meta data for fragment storage ordering.
          * This method should be called from storage service commit
@@ -316,7 +322,6 @@ namespace wsrep
                                           const wsrep::ws_meta& ws_meta,
                                           bool is_commit)
         {
-            assert(mode_ == m_high_priority);
             assert(state_ == s_exec);
             return transaction_.prepare_for_fragment_ordering(
                 ws_handle, ws_meta, is_commit);

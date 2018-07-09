@@ -189,7 +189,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_streaming_2pc_commit,
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_prepare() == 0);
     BOOST_REQUIRE(cc.after_prepare() == 0);
     BOOST_REQUIRE(cc.before_commit() == 0);
@@ -206,11 +206,11 @@ BOOST_FIXTURE_TEST_CASE(transaction_streaming_2pc_commit_two_statements,
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.after_statement() == 0);
     BOOST_REQUIRE(cc.before_statement() == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 2);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 2);
     BOOST_REQUIRE(cc.before_prepare() == 0);
     BOOST_REQUIRE(cc.after_prepare() == 0);
     BOOST_REQUIRE(cc.before_commit() == 0);

@@ -218,25 +218,39 @@ int wsrep::client_state::after_statement()
     return 0;
 }
 
+//////////////////////////////////////////////////////////////////////////////
+//                             Streaming                                    //
+//////////////////////////////////////////////////////////////////////////////
+
 int wsrep::client_state::enable_streaming(
     enum wsrep::streaming_context::fragment_unit
     fragment_unit,
     size_t fragment_size)
 {
     assert(mode_ == m_local);
-    if (transaction_.active() &&
-        transaction_.streaming_context_.fragment_unit() !=
+    if (transaction_.streaming_context().fragments_certified() &&
+        transaction_.streaming_context().fragment_unit() !=
         fragment_unit)
     {
         wsrep::log_error()
-            << "Changing fragment unit for active transaction "
+            << "Changing fragment unit for active streaming transaction "
             << "not allowed";
         return 1;
     }
-    transaction_.streaming_context_.enable(
-        fragment_unit, fragment_size);
+    transaction_.streaming_context().enable(fragment_unit, fragment_size);
     return 0;
 }
+
+void wsrep::client_state::disable_streaming()
+{
+    assert(state_ == s_exec && mode_ == m_local);
+    transaction_.streaming_context().disable();
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//                                 TOI                                      //
+//////////////////////////////////////////////////////////////////////////////
+
 
 int wsrep::client_state::enter_toi(const wsrep::key_array& keys,
                                    const wsrep::const_buffer& buffer,
@@ -304,6 +318,10 @@ int wsrep::client_state::leave_toi()
     return ret;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//                                 RSU                                       //
+///////////////////////////////////////////////////////////////////////////////
+
 int wsrep::client_state::begin_rsu(int timeout)
 {
     if (server_state_.desync())
@@ -349,6 +367,10 @@ int wsrep::client_state::end_rsu()
     return ret;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//                                 TOI                                       //
+///////////////////////////////////////////////////////////////////////////////
+
 int wsrep::client_state::sync_wait(int timeout)
 {
     std::pair<wsrep::gtid, enum wsrep::provider::status> result(
@@ -370,7 +392,9 @@ int wsrep::client_state::sync_wait(int timeout)
     return ret;
 }
 
-// Private
+///////////////////////////////////////////////////////////////////////////////
+//                               Private                                     //
+///////////////////////////////////////////////////////////////////////////////
 
 void wsrep::client_state::update_last_written_gtid(const wsrep::gtid& gtid)
 {

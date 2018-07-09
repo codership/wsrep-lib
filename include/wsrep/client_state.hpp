@@ -286,7 +286,7 @@ namespace wsrep
         {
             assert(mode_ == m_local);
             assert(state_ == s_exec);
-            return (transaction_.streaming_context_.fragment_size() ?
+            return (transaction_.streaming_context().fragment_size() ?
                     transaction_.after_row() : 0);
         }
 
@@ -307,11 +307,10 @@ namespace wsrep
             fragment_unit,
             size_t fragment_size);
 
-        void disable_streaming()
-        {
-            assert(state_ == s_exec && mode_ == m_local);
-            transaction_.streaming_context_.disable();
-        }
+        /**
+         * Disable streaming for context.
+         */
+        void disable_streaming();
 
         /**
          * Prepare write set meta data for fragment storage ordering.
@@ -426,7 +425,7 @@ namespace wsrep
         {
             assert(mode_ == m_high_priority);
             transaction_.start_transaction(transaction.id());
-            transaction_.streaming_context_ = transaction.streaming_context_;
+            transaction_.streaming_context() = transaction.streaming_context();
         }
 
         /** @name Non-transactional operations */

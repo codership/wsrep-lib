@@ -135,6 +135,10 @@ namespace wsrep
         wsrep::ws_handle& ws_handle() { return ws_handle_; }
         const wsrep::ws_handle& ws_handle() const { return ws_handle_; }
         const wsrep::ws_meta& ws_meta() const { return ws_meta_; }
+        const wsrep::streaming_context& streaming_context() const
+        { return streaming_context_; }
+        wsrep::streaming_context& streaming_context()
+        { return streaming_context_; }
     private:
         transaction(const transaction&);
         transaction operator=(const transaction&);
@@ -162,7 +166,6 @@ namespace wsrep
         int flags_;
         bool pa_unsafe_;
         bool certified_;
-    public:
         wsrep::streaming_context streaming_context_;
     };
 

@@ -982,7 +982,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_1pc_commit,
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(cc.ordered_commit() == 0);
     BOOST_REQUIRE(cc.after_commit() == 0);
@@ -1002,9 +1002,9 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_batch_streaming_1pc_commit,
                       wsrep::streaming_context::row, 2) == 0);
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(cc.ordered_commit() == 0);
     BOOST_REQUIRE(cc.after_commit() == 0);
@@ -1023,11 +1023,11 @@ BOOST_FIXTURE_TEST_CASE(
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.after_statement() == 0);
     BOOST_REQUIRE(cc.before_statement() == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 2);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 2);
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(cc.ordered_commit() == 0);
     BOOST_REQUIRE(cc.after_commit() == 0);
@@ -1045,7 +1045,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_rollback,
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(cc.after_rollback() == 0);
     BOOST_REQUIRE(cc.after_statement() == 0);
@@ -1062,7 +1062,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_cert_fail_non_commit,
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
     BOOST_REQUIRE(cc.after_row() == 1);
     sc.provider().certify_result_ = wsrep::provider::success;
@@ -1082,7 +1082,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_cert_fail_commit,
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
     BOOST_REQUIRE(cc.before_commit() == 1);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_cert_failed);
@@ -1104,7 +1104,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_bf_abort_committing,
 {
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committing);
     wsrep_test::bf_abort_ordered(cc);
@@ -1127,7 +1127,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_byte_streaming_1pc_commit,
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     cc.bytes_generated_ = 1;
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(cc.ordered_commit() == 0);
     BOOST_REQUIRE(cc.after_commit() == 0);
@@ -1146,10 +1146,10 @@ BOOST_FIXTURE_TEST_CASE(transaction_byte_batch_streaming_1pc_commit,
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     cc.bytes_generated_ = 1;
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     cc.bytes_generated_ = 2;
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(cc.ordered_commit() == 0);
     BOOST_REQUIRE(cc.after_commit() == 0);
@@ -1168,9 +1168,9 @@ BOOST_FIXTURE_TEST_CASE(transaction_statement_streaming_1pc_commit,
             wsrep::streaming_context::statement, 1) == 0);
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     BOOST_REQUIRE(cc.after_statement() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_statement() == 0);
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(cc.ordered_commit() == 0);
@@ -1189,14 +1189,14 @@ BOOST_FIXTURE_TEST_CASE(transaction_statement_batch_streaming_1pc_commit,
             wsrep::streaming_context::statement, 2) == 0);
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     BOOST_REQUIRE(cc.after_statement() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     BOOST_REQUIRE(cc.before_statement() == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     BOOST_REQUIRE(cc.after_statement() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_statement() == 0);
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(cc.ordered_commit() == 0);
@@ -1215,7 +1215,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_statement_streaming_cert_fail,
             wsrep::streaming_context::statement, 1) == 0);
     BOOST_REQUIRE(cc.start_transaction(1) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
-    BOOST_REQUIRE(tc.streaming_context_.fragments_certified() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
     BOOST_REQUIRE(cc.after_statement());
     BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);

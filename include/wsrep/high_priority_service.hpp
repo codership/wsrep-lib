@@ -48,19 +48,43 @@ namespace wsrep
          * as a part of the transaction. The caller must start a
          * new transaction before applying a write set and must
          * either commit to make changes persistent or roll back.
-         */
-        virtual int apply_write_set(const wsrep::const_buffer&) = 0;
-
-        /**
          *
          */
-        virtual int append_fragment(const wsrep::ws_meta&,
-                                    const wsrep::const_buffer& data) = 0;
+        virtual int apply_write_set(const wsrep::ws_meta&,
+                                    const wsrep::const_buffer&) = 0;
+
+        /**
+         * Append a fragment into fragment storage. This will be
+         * called after a non-committing fragment belonging to
+         * streaming transaction has been applied. The call will
+         * not be done within an open transaction, the implementation
+         * must start a new transaction and commit.
+         *
+         * Note that the call is not done from streaming transaction
+         * context, but from applier context.
+         */
+        virtual int append_fragment_and_commit(
+            const wsrep::ws_handle& ws_handle,
+            const wsrep::ws_meta& ws_meta,
+            const wsrep::const_buffer& data) = 0;
+
+        /**
+         * Remove fragments belonging to streaming transaction.
+         * This method will be called within the streaming transaction
+         * before commit. The implementation must not commit the
+         * whole transaction. The call will be done from streaming
+         * transaction context.
+         *
+         * @param ws_meta Write set meta data for commit fragment.
+         *
+         * @return Zero on success, non-zero on failure.
+         */
+        virtual int remove_fragments(const wsrep::ws_meta& ws_meta) = 0;
+
         /**
          * Commit a transaction.
          */
         virtual int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) = 0;
-
         /**
          * Roll back a transaction
          */

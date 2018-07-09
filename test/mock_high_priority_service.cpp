@@ -26,6 +26,7 @@ void wsrep::mock_high_priority_service::adopt_transaction(
 }
 
 int wsrep::mock_high_priority_service::apply_write_set(
+    const wsrep::ws_meta&,
     const wsrep::const_buffer&)
 {
     assert(client_state_->toi_meta().seqno().is_undefined());

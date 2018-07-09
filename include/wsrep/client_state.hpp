@@ -312,6 +312,12 @@ namespace wsrep
          */
         void disable_streaming();
 
+        void fragment_applied(wsrep::seqno seqno)
+        {
+            assert(mode_ == m_high_priority);
+            transaction_.fragment_applied(seqno);
+        }
+
         /**
          * Prepare write set meta data for ordering.
          * This method should be called before ordered commit or

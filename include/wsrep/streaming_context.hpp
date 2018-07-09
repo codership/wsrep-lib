@@ -52,6 +52,11 @@ namespace wsrep
             bytes_certified_ += bytes;
         }
 
+        void applied(wsrep::seqno seqno)
+        {
+            fragments_.push_back(seqno);
+        }
+
         size_t fragments_certified() const
         {
             return fragments_.size();

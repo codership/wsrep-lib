@@ -42,7 +42,7 @@ namespace
             {
                 ret = 1;
             }
-            else if (high_priority_service.apply_write_set(data))
+            else if (high_priority_service.apply_write_set(ws_meta, data))
             {
                 ret = 1;
             }
@@ -68,10 +68,11 @@ namespace
             sa->start_transaction(ws_handle, ws_meta);
             {
                 wsrep::high_priority_switch sw(high_priority_service, *sa);
-                sa->apply_write_set(data);
+                sa->apply_write_set(ws_meta, data);
                 sa->after_apply();
             }
-            high_priority_service.log_dummy_write_set(ws_handle, ws_meta);
+            high_priority_service.append_fragment_and_commit(ws_handle, ws_meta, data);
+            high_priority_service.after_apply();
         }
         else if (ws_meta.flags() == 0)
         {
@@ -92,17 +93,22 @@ namespace
             else
             {
                 wsrep::high_priority_switch sw(high_priority_service, *sa);
-                ret = sa->apply_write_set(data);
+                ret = sa->apply_write_set(ws_meta, data);
                 sa->after_apply();
             }
-            high_priority_service.log_dummy_write_set(
-                ws_handle, ws_meta);
+            ret = ret || high_priority_service.append_fragment_and_commit(
+                ws_handle, ws_meta, data);
+            if (ret)
+            {
+                high_priority_service.rollback();
+            }
+            high_priority_service.after_apply();
         }
         else if (wsrep::commits_transaction(ws_meta.flags()))
         {
             if (high_priority_service.is_replaying())
             {
-                ret = high_priority_service.apply_write_set(data) ||
+                ret = high_priority_service.apply_write_set(ws_meta, data) ||
                     high_priority_service.commit(ws_handle, ws_meta);
             }
             else
@@ -129,6 +135,7 @@ namespace
                     {
                         wsrep::high_priority_switch sw(
                             high_priority_service, *sa);
+                        sa->remove_fragments(ws_meta);
                         ret = sa->commit(ws_handle, ws_meta);
                         sa->after_apply();
                     }

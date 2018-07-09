@@ -32,9 +32,14 @@ namespace wsrep
             WSREP_OVERRIDE;
 
         void adopt_transaction(const wsrep::transaction&) WSREP_OVERRIDE;
-        int apply_write_set(const wsrep::const_buffer&) WSREP_OVERRIDE;
-        int append_fragment(const wsrep::ws_meta&,
-                            const wsrep::const_buffer&) WSREP_OVERRIDE
+        int apply_write_set(const wsrep::ws_meta&,
+                            const wsrep::const_buffer&) WSREP_OVERRIDE;
+        int append_fragment_and_commit(
+            const wsrep::ws_handle&,
+            const wsrep::ws_meta&,
+            const wsrep::const_buffer&) WSREP_OVERRIDE
+        { return 0; }
+        int remove_fragments(const wsrep::ws_meta&) WSREP_OVERRIDE
         { return 0; }
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&)
             WSREP_OVERRIDE;

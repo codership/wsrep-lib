@@ -18,9 +18,14 @@ namespace db
         int start_transaction(const wsrep::ws_handle&,
                               const wsrep::ws_meta&) override;
         void adopt_transaction(const wsrep::transaction&) override;
-        int apply_write_set(const wsrep::const_buffer&) override;
-        int append_fragment(const wsrep::ws_meta&, const wsrep::const_buffer&)
+        int apply_write_set(const wsrep::ws_meta&,
+                            const wsrep::const_buffer&) override;
+        int append_fragment_and_commit(
+            const wsrep::ws_handle&,
+            const wsrep::ws_meta&, const wsrep::const_buffer&)
             override
+        { return 0; }
+        int remove_fragments(const wsrep::ws_meta&) override
         { return 0; }
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
         int rollback() override;

@@ -87,6 +87,8 @@ namespace wsrep
         int start_transaction(const wsrep::ws_handle& ws_handle,
                               const wsrep::ws_meta& ws_meta);
 
+        void fragment_applied(wsrep::seqno seqno);
+
         int prepare_for_ordering(const wsrep::ws_handle& ws_handle,
                                  const wsrep::ws_meta& ws_meta,
                                  bool is_commit);

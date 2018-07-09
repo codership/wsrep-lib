@@ -25,7 +25,9 @@ void db::high_priority_service::adopt_transaction(const wsrep::transaction&)
     throw wsrep::not_implemented_error();
 }
 
-int db::high_priority_service::apply_write_set(const wsrep::const_buffer&)
+int db::high_priority_service::apply_write_set(
+    const wsrep::ws_meta&,
+    const wsrep::const_buffer&)
 {
     client_.se_trx_.start(&client_);
     client_.se_trx_.apply(client_.client_state().transaction());

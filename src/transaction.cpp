@@ -155,6 +155,12 @@ int wsrep::transaction::start_transaction(
     return 0;
 }
 
+void wsrep::transaction::fragment_applied(wsrep::seqno seqno)
+{
+    assert(active());
+    streaming_context_.applied(seqno);
+}
+
 int wsrep::transaction::prepare_for_ordering(
     const wsrep::ws_handle& ws_handle,
     const wsrep::ws_meta& ws_meta,
@@ -271,10 +277,8 @@ int wsrep::transaction::before_prepare(
         }
         break;
     case wsrep::client_state::m_high_priority:
-        if (is_streaming())
-        {
-            client_service_.remove_fragments();
-        }
+        // Note: fragment removal is done from applying
+        // context for high priority mode.
         break;
     default:
         assert(0);
@@ -909,8 +913,6 @@ int wsrep::transaction::certify_fragment(
                 ret = 1;
                 break;
             }
-            wsrep::log_info() << "Committing "
-                              << sr_ws_meta.transaction_id().get();
             if (storage_service.commit(ws_handle_, sr_ws_meta))
             {
                 ret = 1;

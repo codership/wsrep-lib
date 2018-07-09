@@ -61,7 +61,8 @@ namespace
             assert(server_state.find_streaming_applier(
                        ws_meta.server_id(), ws_meta.transaction_id()) == 0);
             wsrep::high_priority_service* sa(
-                server_state.server_service().streaming_applier_service());
+                server_state.server_service().streaming_applier_service(
+                    high_priority_service));
             server_state.start_streaming_applier(
                 ws_meta.server_id(), ws_meta.transaction_id(), sa);
             sa->start_transaction(ws_handle, ws_meta);
@@ -84,14 +85,13 @@ namespace
                 // commit fragment comes in. Although this is a valid
                 // situation, log a warning if a sac cannot be found as
                 // it may be an indication of  a bug too.
-                assert(0);
                 wsrep::log_warning() << "Could not find applier context for "
                                      << ws_meta.server_id()
                                      << ": " << ws_meta.transaction_id();
             }
             else
             {
-                wsrep::high_priority_switch(high_priority_service, *sa);
+                wsrep::high_priority_switch sw(high_priority_service, *sa);
                 ret = sa->apply_write_set(data);
                 sa->after_apply();
             }
@@ -117,7 +117,6 @@ namespace
                     // commit fragment comes in. Although this is a valid
                     // situation, log a warning if a sac cannot be found as
                     // it may be an indication of  a bug too.
-                    assert(0);
                     wsrep::log_warning()
                         << "Could not find applier context for "
                         << ws_meta.server_id()
@@ -125,9 +124,14 @@ namespace
                 }
                 else
                 {
-                    wsrep::high_priority_switch(high_priority_service, *sa);
-                    ret = sa->commit();
-                    sa->after_apply();
+                    // Make high priority switch to go out of scope
+                    // before the streaming applier is released.
+                    {
+                        wsrep::high_priority_switch sw(
+                            high_priority_service, *sa);
+                        ret = sa->commit();
+                        sa->after_apply();
+                    }
                     server_state.stop_streaming_applier(
                         ws_meta.server_id(), ws_meta.transaction_id());
                     server_state.server_service().release_high_priority_service(sa);

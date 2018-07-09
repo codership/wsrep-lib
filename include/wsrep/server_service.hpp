@@ -34,13 +34,30 @@ namespace wsrep
             wsrep::client_service&) = 0;
 
         virtual void release_storage_service(wsrep::storage_service*) = 0;
+
         /**
          * Create an applier state for streaming transaction applying.
+         *
+         * @param orig_cs  Reference to client service which is
+         *                 requesting a new streaming applier service
+         *                 instance.
          *
          * @return Pointer to streaming applier client state.
          */
         virtual wsrep::high_priority_service*
-        streaming_applier_service() = 0;
+        streaming_applier_service(wsrep::client_service& orig_cs) = 0;
+
+        /**
+         * Create an applier state for streaming transaction applying.
+         *
+         * @param orig_hps Reference to high priority service which is
+         *                 requesting a new streaming applier service
+         *                 instance.
+         *
+         * @return Pointer to streaming applier client state.
+         */
+        virtual wsrep::high_priority_service*
+        streaming_applier_service(wsrep::high_priority_service& orig_hps) = 0;
 
         /**
          * Release a client state allocated by either local_client_state()

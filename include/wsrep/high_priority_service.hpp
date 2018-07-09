@@ -80,8 +80,23 @@ namespace wsrep
          */
         virtual void after_apply() = 0;
 
+        /**
+         * Store global execution context for high priority service.
+         */
         virtual void store_globals() = 0;
+
+        /**
+         * Reset global execution context for high priority service.
+         */
         virtual void reset_globals() = 0;
+
+        /**
+         * Switch exection context to context of orig_hps.
+         *
+         * @param orig_hps Original high priority service.
+         */
+        virtual void switch_execution_context(
+            wsrep::high_priority_service& orig_hps) = 0;
 
         virtual int log_dummy_write_set(const ws_handle&, const ws_meta&) = 0;
 
@@ -102,6 +117,7 @@ namespace wsrep
             , current_service_(current_service)
         {
             orig_service_.reset_globals();
+            current_service_.switch_execution_context(orig_service_);
             current_service_.store_globals();
         }
         ~high_priority_switch()

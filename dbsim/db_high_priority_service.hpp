@@ -28,6 +28,8 @@ namespace db
         void after_apply() override;
         void store_globals() override { }
         void reset_globals() override { }
+        void switch_execution_context(wsrep::high_priority_service&) override
+        { }
         int log_dummy_write_set(const wsrep::ws_handle&,
                                 const wsrep::ws_meta&)
         { return 0; }

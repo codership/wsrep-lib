@@ -1080,7 +1080,8 @@ void wsrep::transaction::streaming_rollback()
 {
     assert(streaming_context_.rolled_back() == false);
     wsrep::high_priority_service* sa(
-        server_service_.streaming_applier_service());
+        server_service_.streaming_applier_service(
+            client_state_.client_service()));
     client_state_.server_state().start_streaming_applier(
         client_state_.server_state().id(), id(), sa);
     sa->adopt_transaction(*this);

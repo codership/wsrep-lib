@@ -43,6 +43,8 @@ namespace wsrep
         void after_apply() WSREP_OVERRIDE;
         void store_globals() WSREP_OVERRIDE { }
         void reset_globals() WSREP_OVERRIDE { }
+        void switch_execution_context(wsrep::high_priority_service&)
+            WSREP_OVERRIDE { }
         int log_dummy_write_set(const wsrep::ws_handle&,
                                 const wsrep::ws_meta&)
             WSREP_OVERRIDE { return 0; }

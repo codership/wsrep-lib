@@ -63,7 +63,21 @@ namespace wsrep
             delete client_state;
         }
 
-        wsrep::high_priority_service* streaming_applier_service()
+        wsrep::high_priority_service* streaming_applier_service(
+            wsrep::client_service&)
+        {
+            wsrep::mock_client* cs(new wsrep::mock_client(
+                                       *this, ++last_client_id_,
+                                       wsrep::client_state::m_high_priority));
+            wsrep::mock_high_priority_service* ret(
+                new wsrep::mock_high_priority_service(*this, cs, false));
+            cs->open(cs->id());
+            cs->before_command();
+            return ret;
+        }
+
+        wsrep::high_priority_service* streaming_applier_service(
+            wsrep::high_priority_service&)
         {
             wsrep::mock_client* cs(new wsrep::mock_client(
                                        *this, ++last_client_id_,

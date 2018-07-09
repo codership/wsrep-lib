@@ -25,7 +25,14 @@ void db::server_service::release_storage_service(
     delete storage_service;
 }
 
-wsrep::high_priority_service* db::server_service::streaming_applier_service()
+wsrep::high_priority_service* db::server_service::streaming_applier_service(
+    wsrep::client_service&)
+{
+    return server_.streaming_applier_service();
+}
+
+wsrep::high_priority_service* db::server_service::streaming_applier_service(
+    wsrep::high_priority_service&)
 {
     return server_.streaming_applier_service();
 }

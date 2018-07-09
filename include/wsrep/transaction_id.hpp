@@ -25,6 +25,7 @@ namespace wsrep
         { }
         type get() const { return id_; }
         static unsigned long long undefined() { return type(-1); }
+        bool is_undefined() const { return (id_ == type(-1)); }
         bool operator<(const transaction_id& other) const
         {
             return (id_ < other.id_);

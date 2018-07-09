@@ -17,7 +17,8 @@ namespace db
         server_service(db::server& server);
         wsrep::storage_service* storage_service(wsrep::client_service&) override;
         void release_storage_service(wsrep::storage_service*) override;
-        wsrep::high_priority_service* streaming_applier_service() override;
+        wsrep::high_priority_service* streaming_applier_service(wsrep::client_service&) override;
+        wsrep::high_priority_service* streaming_applier_service(wsrep::high_priority_service&) override;
         void release_high_priority_service(wsrep::high_priority_service*) override;
 
         bool sst_before_init() const override;

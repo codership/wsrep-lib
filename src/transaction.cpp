@@ -98,6 +98,7 @@ wsrep::transaction::transaction(
     , pa_unsafe_(false)
     , certified_(false)
     , streaming_context_()
+    , sr_keys_()
 { }
 
 
@@ -192,7 +193,16 @@ int wsrep::transaction::start_replaying(const wsrep::ws_meta& ws_meta)
 int wsrep::transaction::append_key(const wsrep::key& key)
 {
     /** @todo Collect table level keys for SR commit */
-    return provider().append_key(ws_handle_, key);
+    try
+    {
+        sr_keys_.insert(key);
+        return provider().append_key(ws_handle_, key);
+    }
+    catch (...)
+    {
+        wsrep::log_error() << "Failed to append key";
+        return 1;
+    }
 }
 
 int wsrep::transaction::append_data(const wsrep::const_buffer& data)
@@ -954,10 +964,16 @@ int wsrep::transaction::certify_commit(
     }
 
     state(lock, s_certifying);
+    lock.unlock();
+
+    if (is_streaming())
+    {
+        append_sr_keys_for_commit();
+        flags(flags() | wsrep::provider::flag::pa_unsafe);
+    }
+    sr_keys_.clear();
 
     flags(flags() | wsrep::provider::flag::commit);
-
-    lock.unlock();
 
     if (client_service_.prepare_data_for_replication())
     {
@@ -1097,6 +1113,27 @@ int wsrep::transaction::certify_commit(
         break;
     }
 
+    return ret;
+}
+
+int wsrep::transaction::append_sr_keys_for_commit()
+{
+    int ret(0);
+    assert(client_state_.mode() == wsrep::client_state::m_local);
+    for (wsrep::sr_key_set::branch_type::const_iterator
+             i(sr_keys_.root().begin());
+         ret == 0 && i != sr_keys_.root().end(); ++i)
+    {
+        for (wsrep::sr_key_set::leaf_type::const_iterator
+                 j(i->second.begin());
+             ret == 0 && j != i->second.end(); ++j)
+        {
+            wsrep::key key(wsrep::key::shared);
+            key.append_key_part(i->first.data(), i->first.size());
+            key.append_key_part(j->data(), j->size());
+            ret = provider().append_key(ws_handle_, key);
+        }
+    }
     return ret;
 }
 

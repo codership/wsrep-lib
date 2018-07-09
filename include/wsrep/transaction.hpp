@@ -11,6 +11,7 @@
 #include "transaction_id.hpp"
 #include "streaming_context.hpp"
 #include "lock.hpp"
+#include "sr_key_set.hpp"
 
 #include <cassert>
 #include <vector>
@@ -149,6 +150,7 @@ namespace wsrep
         void flags(int flags) { flags_ = flags; }
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
+        int append_sr_keys_for_commit();
         void streaming_rollback();
         void clear_fragments();
         void cleanup();
@@ -169,6 +171,7 @@ namespace wsrep
         bool pa_unsafe_;
         bool certified_;
         wsrep::streaming_context streaming_context_;
+        wsrep::sr_key_set sr_keys_;
     };
 
     static inline const char* to_c_string(enum wsrep::transaction::state state)

@@ -24,7 +24,7 @@ namespace wsrep
     {
     public:
         client_service() { }
-
+        virtual ~client_service() { }
         /**
          * Return true if two pahase commit is required for transaction
          * to commit.

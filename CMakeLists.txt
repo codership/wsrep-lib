@@ -13,7 +13,7 @@ option(WITH_ASAN "Enable address sanitizer" OFF)
 option(WITH_TSAN "Enable thread sanitizer" OFF)
 
 # CXX flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Weffc++ -Woverloaded-virtual -Wno-non-virtual-dtor -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Weffc++ -Woverloaded-virtual -g")
 
 check_include_file("${CMAKE_CURRENT_SOURCE_DIR}/wsrep/wsrep_api.h" HAVE_WSREP_API_HPP)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")

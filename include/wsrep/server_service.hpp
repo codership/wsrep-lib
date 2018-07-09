@@ -30,6 +30,7 @@ namespace wsrep
     {
     public:
 
+        virtual ~server_service() { }
         virtual wsrep::storage_service* storage_service(
             wsrep::client_service&) = 0;
 

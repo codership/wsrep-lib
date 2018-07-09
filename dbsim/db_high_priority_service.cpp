@@ -39,7 +39,8 @@ int db::high_priority_service::apply_toi(
     throw wsrep::not_implemented_error();
 }
 
-int db::high_priority_service::commit()
+int db::high_priority_service::commit(const wsrep::ws_handle&,
+                                      const wsrep::ws_meta&)
 {
     int ret(client_.client_state_.before_commit());
     if (ret == 0) client_.se_trx_.commit();

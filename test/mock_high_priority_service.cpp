@@ -34,7 +34,8 @@ int wsrep::mock_high_priority_service::apply_write_set(
     return (fail_next_applying_ ? 1 : 0);
 }
 
-int wsrep::mock_high_priority_service::commit()
+int wsrep::mock_high_priority_service::commit(const wsrep::ws_handle&,
+                                              const wsrep::ws_meta&)
 {
 
     int ret(0);

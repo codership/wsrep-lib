@@ -22,7 +22,7 @@ namespace db
         int append_fragment(const wsrep::ws_meta&, const wsrep::const_buffer&)
             override
         { return 0; }
-        int commit() override;
+        int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
         int rollback() override;
         int apply_toi(const wsrep::ws_meta&, const wsrep::const_buffer&) override;
         void after_apply() override;

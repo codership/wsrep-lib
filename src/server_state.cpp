@@ -46,7 +46,7 @@ namespace
             {
                 ret = 1;
             }
-            else if (high_priority_service.commit())
+            else if (high_priority_service.commit(ws_handle, ws_meta))
             {
                 ret = 1;
             }
@@ -103,7 +103,7 @@ namespace
             if (high_priority_service.is_replaying())
             {
                 ret = high_priority_service.apply_write_set(data) ||
-                    high_priority_service.commit();
+                    high_priority_service.commit(ws_handle, ws_meta);
             }
             else
             {
@@ -129,7 +129,7 @@ namespace
                     {
                         wsrep::high_priority_switch sw(
                             high_priority_service, *sa);
-                        ret = sa->commit();
+                        ret = sa->commit(ws_handle, ws_meta);
                         sa->after_apply();
                     }
                     server_state.stop_streaming_applier(

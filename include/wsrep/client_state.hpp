@@ -313,13 +313,20 @@ namespace wsrep
         void disable_streaming();
 
         /**
-         * Prepare write set meta data for fragment storage ordering.
-         * This method should be called from storage service commit
-         * or rollback before performing the operation.
+         * Prepare write set meta data for ordering.
+         * This method should be called before ordered commit or
+         * rollback if the commit time meta data was not known
+         * at the time of the start of the transaction.
+         * This mostly applies to streaming replication.
+         *
+         * @param ws_handle Write set handle
+         * @param ws_meta Write set meta data
+         * @param is_commit Boolean to denote whether the operation
+         *                  is commit or rollback.
          */
-        int prepare_for_fragment_ordering(const wsrep::ws_handle& ws_handle,
-                                          const wsrep::ws_meta& ws_meta,
-                                          bool is_commit)
+        int prepare_for_ordering(const wsrep::ws_handle& ws_handle,
+                                 const wsrep::ws_meta& ws_meta,
+                                 bool is_commit)
         {
             assert(state_ == s_exec);
             return transaction_.prepare_for_fragment_ordering(

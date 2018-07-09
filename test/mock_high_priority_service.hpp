@@ -36,7 +36,8 @@ namespace wsrep
         int append_fragment(const wsrep::ws_meta&,
                             const wsrep::const_buffer&) WSREP_OVERRIDE
         { return 0; }
-        int commit() WSREP_OVERRIDE;
+        int commit(const wsrep::ws_handle&, const wsrep::ws_meta&)
+            WSREP_OVERRIDE;
         int rollback() WSREP_OVERRIDE;
         int apply_toi(const wsrep::ws_meta&,
                       const wsrep::const_buffer&) WSREP_OVERRIDE;

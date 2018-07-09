@@ -134,9 +134,10 @@ int wsrep::transaction::start_transaction(
     const wsrep::ws_handle& ws_handle,
     const wsrep::ws_meta& ws_meta)
 {
+    debug_log_state("start_transaction enter");
     if (state() != s_replaying)
     {
-        assert(ws_meta.flags());
+        // assert(ws_meta.flags());
         assert(active() == false);
         id_ = ws_meta.transaction_id();
         assert(client_state_.mode() == wsrep::client_state::m_high_priority);
@@ -150,6 +151,7 @@ int wsrep::transaction::start_transaction(
     {
         start_replaying(ws_meta);
     }
+    debug_log_state("start_transaction leave");
     return 0;
 }
 
@@ -553,6 +555,7 @@ int wsrep::transaction::after_statement()
     int ret(0);
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("after_statement_enter");
+    assert(client_state_.mode() == wsrep::client_state::m_local);
     assert(state() == s_executing ||
            state() == s_committed ||
            state() == s_aborted ||
@@ -669,6 +672,23 @@ void wsrep::transaction::after_applying()
     assert(state_ == s_executing ||
            state_ == s_committed ||
            state_ == s_aborted);
+
+    // We may enter here from either high priority applier or
+    // from fragment storage service. High priority applier
+    // should always have set up meta data for ordering, but
+    // fragment storage service operation may be rolled back
+    // before the fragment is ordered and certified.
+    // Therefore we need to check separately if the ordering has
+    // been done.
+    if (state_ == s_aborted && ordered())
+    {
+        int ret(provider().commit_order_enter(ws_handle_, ws_meta_));
+        if (ret == 0)
+        {
+            provider().commit_order_leave(ws_handle_, ws_meta_);
+        }
+    }
+
     if (state_ != s_executing)
     {
         cleanup();

@@ -59,7 +59,7 @@ namespace wsrep
         /**
          * Commit a transaction.
          */
-        virtual int commit() = 0;
+        virtual int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) = 0;
 
         /**
          * Roll back a transaction
@@ -98,7 +98,18 @@ namespace wsrep
         virtual void switch_execution_context(
             wsrep::high_priority_service& orig_hps) = 0;
 
-        virtual int log_dummy_write_set(const ws_handle&, const ws_meta&) = 0;
+        /**
+         * Log a dummy write set which is either SR transaction fragment
+         * or roll back fragment. The implementation must release
+         * commit order inside the call.
+         *
+         * @params ws_handle Write set handle
+         * @params ws_meta Write set meta data
+         *
+         * @return Zero in case of success, non-zero on failure
+         */
+        virtual int log_dummy_write_set(const ws_handle& ws_handle,
+                                        const ws_meta& ws_meta) = 0;
 
         virtual bool is_replaying() const = 0;
 

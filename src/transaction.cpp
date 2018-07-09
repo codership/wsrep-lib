@@ -155,17 +155,19 @@ int wsrep::transaction::start_transaction(
     return 0;
 }
 
-int wsrep::transaction::prepare_for_fragment_ordering(
+int wsrep::transaction::prepare_for_ordering(
     const wsrep::ws_handle& ws_handle,
     const wsrep::ws_meta& ws_meta,
     bool is_commit)
 {
     assert(active());
 
-    ws_handle_ = ws_handle;
-    ws_meta_ = ws_meta;
-    certified_ = is_commit;
-
+    if (state_ != s_replaying)
+    {
+        ws_handle_ = ws_handle;
+        ws_meta_ = ws_meta;
+        certified_ = is_commit;
+    }
     return 0;
 }
 

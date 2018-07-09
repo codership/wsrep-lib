@@ -329,7 +329,7 @@ namespace wsrep
                                  bool is_commit)
         {
             assert(state_ == s_exec);
-            return transaction_.prepare_for_fragment_ordering(
+            return transaction_.prepare_for_ordering(
                 ws_handle, ws_meta, is_commit);
         }
         /** @} */

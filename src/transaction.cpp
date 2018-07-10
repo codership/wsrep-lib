@@ -1266,6 +1266,9 @@ void wsrep::transaction::debug_log_state(
         << "\n"
         << "    is_sr: " << is_streaming()
         << ", frags: " << streaming_context_.fragments_certified()
+        << ", unit: " << streaming_context_.fragment_unit()
+        << ", size: " << streaming_context_.fragment_size()
+        << ", counter: " << streaming_context_.unit_counter()
         << ", bytes: " << streaming_context_.bytes_certified()
         << ", sr_rb: " << streaming_context_.rolled_back()
         << "\n    own: " << (client_state_.owning_thread_id_ == wsrep::this_thread::get_id())

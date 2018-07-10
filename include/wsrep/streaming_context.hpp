@@ -14,8 +14,8 @@ namespace wsrep
     public:
         enum fragment_unit
         {
-            row,
             bytes,
+            row,
             statement
         };
 

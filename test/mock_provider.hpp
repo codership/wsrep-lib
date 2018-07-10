@@ -131,11 +131,11 @@ namespace wsrep
         enum wsrep::provider::status
         append_data(wsrep::ws_handle&, const wsrep::const_buffer&)
         { return wsrep::provider::success; }
-        int rollback(const wsrep::transaction_id)
+        enum wsrep::provider::status rollback(const wsrep::transaction_id)
         {
             ++fragments_;
             ++rollback_fragments_;
-            return 0;
+            return wsrep::provider::success;
         }
         enum wsrep::provider::status
         commit_order_enter(const wsrep::ws_handle& ws_handle,

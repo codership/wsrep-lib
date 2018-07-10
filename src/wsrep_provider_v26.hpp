@@ -42,7 +42,7 @@ namespace wsrep
         bf_abort(wsrep::seqno,
                  wsrep::transaction_id,
                  wsrep::seqno&);
-        int rollback(const wsrep::transaction_id) { ::abort(); return 0; }
+        enum wsrep::provider::status rollback(const wsrep::transaction_id);
         enum wsrep::provider::status
         commit_order_enter(const wsrep::ws_handle&,
                            const wsrep::ws_meta&);

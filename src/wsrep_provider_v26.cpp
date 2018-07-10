@@ -632,6 +632,12 @@ wsrep::wsrep_provider_v26::bf_abort(
 }
 
 enum wsrep::provider::status
+wsrep::wsrep_provider_v26::rollback(wsrep::transaction_id id)
+{
+    return map_return_value(wsrep_->rollback(wsrep_, id.get(), 0));
+}
+
+enum wsrep::provider::status
 wsrep::wsrep_provider_v26::commit_order_enter(
     const wsrep::ws_handle& ws_handle,
     const wsrep::ws_meta& ws_meta)

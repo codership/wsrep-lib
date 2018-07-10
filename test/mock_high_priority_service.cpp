@@ -35,11 +35,12 @@ int wsrep::mock_high_priority_service::apply_write_set(
     return (fail_next_applying_ ? 1 : 0);
 }
 
-int wsrep::mock_high_priority_service::commit(const wsrep::ws_handle&,
-                                              const wsrep::ws_meta&)
+int wsrep::mock_high_priority_service::commit(
+    const wsrep::ws_handle& ws_handle,
+    const wsrep::ws_meta& ws_meta)
 {
-
     int ret(0);
+    client_state_->prepare_for_ordering(ws_handle, ws_meta, true);
     if (client_state_->client_service().do_2pc())
     {
         ret = client_state_->before_prepare() ||

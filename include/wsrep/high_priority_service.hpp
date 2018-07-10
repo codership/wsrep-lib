@@ -37,6 +37,12 @@ namespace wsrep
                                       const wsrep::ws_meta&) = 0;
 
         /**
+         * Return transaction object associated to high priority
+         * service state.
+         */
+        virtual const wsrep::transaction& transaction() const = 0;
+
+        /**
          * Adopt a transaction.
          */
         virtual void adopt_transaction(const wsrep::transaction&) = 0;
@@ -83,8 +89,18 @@ namespace wsrep
 
         /**
          * Commit a transaction.
+         * An implementation must call
+         * wsrep::client_state::prepare_for_ordering() to set
+         * the ws_handle and ws_meta before the commit if the
+         * commit process will go through client state commit
+         * processing. Otherwise the implementation must release
+         * commit order explicitly via provider.
+         *
+         * @param ws_handle Write set handle
+         * @param ws_meta Write set meta
          */
-        virtual int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) = 0;
+        virtual int commit(const wsrep::ws_handle& ws_handle,
+                           const wsrep::ws_meta& ws_meta) = 0;
         /**
          * Roll back a transaction
          */

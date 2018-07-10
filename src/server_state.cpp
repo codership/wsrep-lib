@@ -28,6 +28,79 @@ namespace
         return (bootstrap || cluster_address == "gcomm://");
     }
 
+    int apply_fragment(wsrep::server_state& server_state,
+                       wsrep::high_priority_service& high_priority_service,
+                       wsrep::high_priority_service& streaming_applier,
+                       const wsrep::ws_handle& ws_handle,
+                       const wsrep::ws_meta& ws_meta,
+                       const wsrep::const_buffer& data)
+    {
+        int ret;
+        {
+            wsrep::high_priority_switch sw(high_priority_service,
+                                           streaming_applier);
+            ret = streaming_applier.apply_write_set(ws_meta, data);
+            streaming_applier.after_apply();
+        }
+        ret = ret || high_priority_service.append_fragment_and_commit(
+            ws_handle, ws_meta, data);
+        high_priority_service.after_apply();
+        return ret;
+    }
+
+
+    int commit_fragment(wsrep::server_state& server_state,
+                        wsrep::high_priority_service& high_priority_service,
+                        wsrep::high_priority_service* streaming_applier,
+                        const wsrep::ws_handle& ws_handle,
+                        const wsrep::ws_meta& ws_meta,
+                        const wsrep::const_buffer& data)
+    {
+        int ret;
+        // Make high priority switch to go out of scope
+        // before the streaming applier is released.
+        {
+            wsrep::high_priority_switch sw(
+                high_priority_service, *streaming_applier);
+            streaming_applier->remove_fragments(ws_meta);
+            ret = streaming_applier->commit(ws_handle, ws_meta);
+            streaming_applier->after_apply();
+        }
+        server_state.stop_streaming_applier(
+            ws_meta.server_id(), ws_meta.transaction_id());
+        server_state.server_service().release_high_priority_service(
+            streaming_applier);
+        return ret;
+    }
+
+    int rollback_fragment(wsrep::server_state& server_state,
+                          wsrep::high_priority_service& high_priority_service,
+                          wsrep::high_priority_service* streaming_applier,
+                          const wsrep::ws_handle& ws_handle,
+                          const wsrep::ws_meta& ws_meta,
+                          const wsrep::const_buffer& data)
+    {
+        int ret= 0;
+        // Adopts transaction state and starts a transaction for
+        // high priority service
+        high_priority_service.adopt_transaction(
+            streaming_applier->transaction());
+        {
+            wsrep::high_priority_switch ws(
+                high_priority_service, *streaming_applier);
+            streaming_applier->rollback();
+            streaming_applier->after_apply();
+        }
+        server_state.stop_streaming_applier(
+            ws_meta.server_id(), ws_meta.transaction_id());
+        server_state.server_service().release_high_priority_service(
+            streaming_applier);
+
+        high_priority_service.remove_fragments(ws_meta);
+        high_priority_service.commit(ws_handle, ws_meta);
+        return ret;
+    }
+
     int apply_write_set(wsrep::server_state& server_state,
                         wsrep::high_priority_service& high_priority_service,
                         const wsrep::ws_handle& ws_handle,
@@ -36,6 +109,14 @@ namespace
     {
         int ret(0);
         if (wsrep::starts_transaction(ws_meta.flags()) &&
+                 wsrep::commits_transaction(ws_meta.flags()) &&
+                 wsrep::rolls_back_transaction(ws_meta.flags()))
+        {
+            // Non streaming rollback (certification failed)
+            ret = high_priority_service.log_dummy_write_set(
+                ws_handle, ws_meta);
+        }
+        else if (wsrep::starts_transaction(ws_meta.flags()) &&
             wsrep::commits_transaction(ws_meta.flags()))
         {
             if (high_priority_service.start_transaction(ws_handle, ws_meta))
@@ -66,13 +147,12 @@ namespace
             server_state.start_streaming_applier(
                 ws_meta.server_id(), ws_meta.transaction_id(), sa);
             sa->start_transaction(ws_handle, ws_meta);
-            {
-                wsrep::high_priority_switch sw(high_priority_service, *sa);
-                sa->apply_write_set(ws_meta, data);
-                sa->after_apply();
-            }
-            high_priority_service.append_fragment_and_commit(ws_handle, ws_meta, data);
-            high_priority_service.after_apply();
+            ret = apply_fragment(server_state,
+                                 high_priority_service,
+                                 *sa,
+                                 ws_handle,
+                                 ws_meta,
+                                 data);
         }
         else if (ws_meta.flags() == 0)
         {
@@ -92,17 +172,13 @@ namespace
             }
             else
             {
-                wsrep::high_priority_switch sw(high_priority_service, *sa);
-                ret = sa->apply_write_set(ws_meta, data);
-                sa->after_apply();
+                ret = apply_fragment(server_state,
+                                     high_priority_service,
+                                     *sa,
+                                     ws_handle,
+                                     ws_meta,
+                                     data);
             }
-            ret = ret || high_priority_service.append_fragment_and_commit(
-                ws_handle, ws_meta, data);
-            if (ret)
-            {
-                high_priority_service.rollback();
-            }
-            high_priority_service.after_apply();
         }
         else if (wsrep::commits_transaction(ws_meta.flags()))
         {
@@ -130,24 +206,48 @@ namespace
                 }
                 else
                 {
-                    // Make high priority switch to go out of scope
-                    // before the streaming applier is released.
-                    {
-                        wsrep::high_priority_switch sw(
-                            high_priority_service, *sa);
-                        sa->remove_fragments(ws_meta);
-                        ret = sa->commit(ws_handle, ws_meta);
-                        sa->after_apply();
-                    }
-                    server_state.stop_streaming_applier(
-                        ws_meta.server_id(), ws_meta.transaction_id());
-                    server_state.server_service().release_high_priority_service(sa);
+                    // Commit fragment consumes sa
+                    ret = commit_fragment(server_state,
+                                          high_priority_service,
+                                          sa,
+                                          ws_handle,
+                                          ws_meta,
+                                          data);
                 }
+            }
+        }
+        else if (wsrep::rolls_back_transaction(ws_meta.flags()))
+        {
+            wsrep::high_priority_service* sa(
+                server_state.find_streaming_applier(
+                    ws_meta.server_id(), ws_meta.transaction_id()));
+            if (sa == 0)
+            {
+                // It is possible that rapid group membership changes
+                // may cause streaming transaction be rolled back before
+                // commit fragment comes in. Although this is a valid
+                // situation, log a warning if a sac cannot be found as
+                // it may be an indication of  a bug too.
+                wsrep::log_warning()
+                    << "Could not find applier context for "
+                    << ws_meta.server_id()
+                    << ": " << ws_meta.transaction_id();
+                ret = high_priority_service.log_dummy_write_set(
+                    ws_handle, ws_meta);
+            }
+            else
+            {
+                // Rollback fragment consumes sa
+                ret = rollback_fragment(server_state,
+                                        high_priority_service,
+                                        sa,
+                                        ws_handle,
+                                        ws_meta,
+                                        data);
             }
         }
         else
         {
-            // SR fragment applying not implemented yet
             assert(0);
         }
         return ret;
@@ -633,13 +733,6 @@ int wsrep::server_state::on_apply(
     const wsrep::ws_meta& ws_meta,
     const wsrep::const_buffer& data)
 {
-    if (rolls_back_transaction(ws_meta.flags()))
-    {
-        provider().commit_order_enter(ws_handle, ws_meta);
-        // todo: server_service_.log_dummy_write_set();
-        provider().commit_order_leave(ws_handle, ws_meta);
-        return 0;
-    }
     if (is_toi(ws_meta.flags()))
     {
         return apply_toi(provider(), high_priority_service,

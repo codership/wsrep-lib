@@ -20,6 +20,11 @@ int db::high_priority_service::start_transaction(
     return client_.client_state().start_transaction(ws_handle, ws_meta);
 }
 
+const wsrep::transaction& db::high_priority_service::transaction() const
+{
+    return client_.client_state().transaction();
+}
+
 void db::high_priority_service::adopt_transaction(const wsrep::transaction&)
 {
     throw wsrep::not_implemented_error();

@@ -262,7 +262,7 @@ namespace wsrep
         virtual enum status bf_abort(wsrep::seqno bf_seqno,
                                      wsrep::transaction_id victim_trx,
                                      wsrep::seqno& victim_seqno) = 0;
-        virtual int rollback(wsrep::transaction_id) = 0;
+        virtual enum status rollback(wsrep::transaction_id) = 0;
         virtual enum status commit_order_enter(const wsrep::ws_handle&,
                                                const wsrep::ws_meta&) = 0;
         virtual int commit_order_leave(const wsrep::ws_handle&,

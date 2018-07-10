@@ -434,11 +434,17 @@ namespace wsrep
             return transaction_.start_replaying(ws_meta);
         }
 
+        /**
+         * Adopt a streaming transaction state. This is must be
+         * called from high_priority_service::adopt_transaction()
+         * during streaming transaction rollback. The call will
+         * set up enough context for handling the rollback
+         * fragment.
+         */
         void adopt_transaction(const wsrep::transaction& transaction)
         {
             assert(mode_ == m_high_priority);
-            transaction_.start_transaction(transaction.id());
-            transaction_.streaming_context() = transaction.streaming_context();
+            transaction_.adopt(transaction);
         }
 
         /** @name Non-transactional operations */

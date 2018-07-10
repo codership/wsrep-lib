@@ -7,6 +7,7 @@ add_library(wsrep-lib
   exception.cpp
   gtid.cpp
   id.cpp
+  key.cpp
   logger.cpp
   provider.cpp
   seqno.cpp

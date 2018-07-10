@@ -88,6 +88,7 @@ namespace wsrep
         int start_transaction(const wsrep::ws_handle& ws_handle,
                               const wsrep::ws_meta& ws_meta);
 
+        void adopt(const transaction& transaction);
         void fragment_applied(wsrep::seqno seqno);
 
         int prepare_for_ordering(const wsrep::ws_handle& ws_handle,
@@ -155,6 +156,7 @@ namespace wsrep
         void clear_fragments();
         void cleanup();
         void debug_log_state(const char*) const;
+        void debug_log_key_append(const wsrep::key& key);
 
         wsrep::server_service& server_service_;
         wsrep::client_service& client_service_;

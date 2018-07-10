@@ -111,11 +111,12 @@ int wsrep::transaction::start_transaction(
 {
     debug_log_state("start_transaction enter");
     assert(active() == false);
+    assert(flags() == 0);
     id_ = id;
     state_ = s_executing;
     state_hist_.clear();
     ws_handle_ = wsrep::ws_handle(id);
-    flags_ |= wsrep::provider::flag::start_transaction;
+    flags(wsrep::provider::flag::start_transaction);
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_high_priority:
@@ -140,12 +141,14 @@ int wsrep::transaction::start_transaction(
     {
         // assert(ws_meta.flags());
         assert(active() == false);
+        assert(flags() == 0);
         id_ = ws_meta.transaction_id();
         assert(client_state_.mode() == wsrep::client_state::m_high_priority);
         state_ = s_executing;
         state_hist_.clear();
         ws_handle_ = ws_handle;
         ws_meta_ = ws_meta;
+        flags(wsrep::provider::flag::start_transaction);
         certified_ = true;
     }
     else
@@ -154,6 +157,16 @@ int wsrep::transaction::start_transaction(
     }
     debug_log_state("start_transaction leave");
     return 0;
+}
+
+void wsrep::transaction::adopt(const wsrep::transaction& transaction)
+{
+    debug_log_state("adopt enter");
+    assert(transaction.is_streaming());
+    start_transaction(transaction.id());
+    flags_  = transaction.flags();
+    streaming_context_ = transaction.streaming_context();
+    debug_log_state("adopt leave");
 }
 
 void wsrep::transaction::fragment_applied(wsrep::seqno seqno)
@@ -195,6 +208,7 @@ int wsrep::transaction::append_key(const wsrep::key& key)
     /** @todo Collect table level keys for SR commit */
     try
     {
+        debug_log_key_append(key);
         sr_keys_.insert(key);
         return provider().append_key(ws_handle_, key);
     }
@@ -493,48 +507,61 @@ int wsrep::transaction::before_rollback()
     debug_log_state("before_rollback_enter");
     assert(state() == s_executing ||
            state() == s_must_abort ||
-           state() == s_aborting || // Background rollbacker
+           // Background rollbacker or rollback initiated from SE
+           state() == s_aborting ||
            state() == s_cert_failed ||
            state() == s_must_replay);
 
-    switch (state())
+    switch (client_state_.mode())
     {
-    case s_executing:
-        // Voluntary rollback
-        if (is_streaming())
+    case wsrep::client_state::m_local:
+        switch (state())
         {
-            streaming_rollback();
-        }
-        state(lock, s_aborting);
-        break;
-    case s_must_abort:
-        if (certified())
-        {
-            state(lock, s_must_replay);
-        }
-        else
-        {
+        case s_executing:
+            // Voluntary rollback
             if (is_streaming())
             {
                 streaming_rollback();
             }
             state(lock, s_aborting);
+            break;
+        case s_must_abort:
+            if (certified())
+            {
+                state(lock, s_must_replay);
+            }
+            else
+            {
+                if (is_streaming())
+                {
+                    streaming_rollback();
+                }
+                state(lock, s_aborting);
+            }
+            break;
+        case s_cert_failed:
+            if (is_streaming())
+            {
+                streaming_rollback();
+            }
+            state(lock, s_aborting);
+            break;
+        case s_aborting:
+            if (is_streaming())
+            {
+                provider().rollback(id_.get());
+            }
+            break;
+        case s_must_replay:
+            break;
+        default:
+            assert(0);
+            break;
         }
         break;
-    case s_cert_failed:
-        if (is_streaming())
-        {
-            streaming_rollback();
-        }
+    case wsrep::client_state::m_high_priority:
+        assert(state_ == s_executing);
         state(lock, s_aborting);
-        break;
-    case s_aborting:
-        if (is_streaming())
-        {
-            provider().rollback(id_.get());
-        }
-        break;
-    case s_must_replay:
         break;
     default:
         assert(0);
@@ -550,6 +577,11 @@ int wsrep::transaction::after_rollback()
     debug_log_state("after_rollback_enter");
     assert(state() == s_aborting ||
            state() == s_must_replay);
+
+    if (is_streaming())
+    {
+        clear_fragments();
+    }
 
     if (state() == s_aborting)
     {
@@ -709,6 +741,16 @@ void wsrep::transaction::after_applying()
     {
         cleanup();
     }
+    else
+    {
+        // State remains executing, so this is a streaming applier.
+        // Reset the meta data to avoid releasing commit order
+        // critical section above if the next fragment is rollback
+        // fragment. Rollback fragment ordering will be handled by
+        // another instance while removing the fragments from
+        // storage.
+        ws_meta_ = wsrep::ws_meta();
+    }
     debug_log_state("after_applying leave");
 }
 
@@ -804,6 +846,13 @@ void wsrep::transaction::state(
                     << " -> " << to_string(next_state);
     }
     assert(lock.owns_lock());
+    // BF aborter is allowed to change the state to must abort and
+    // further to aborting and aborted if the background rollbacker
+    // is launched.
+    assert(client_state_.owning_thread_id_ == wsrep::this_thread::get_id() ||
+           next_state == s_must_abort ||
+           next_state == s_aborting ||
+           next_state == s_aborted);
     static const char allowed[n_states][n_states] =
         { /*  ex pr ce co oc ct cf ma ab ad mr re */
             { 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0}, /* ex */
@@ -898,7 +947,7 @@ int wsrep::transaction::certify_fragment(
         if (storage_service.append_fragment(
                 server_id,
                 id(),
-                flags_,
+                flags(),
                 wsrep::const_buffer(data.data(), data.size())))
         {
             lock.lock();
@@ -911,7 +960,7 @@ int wsrep::transaction::certify_fragment(
         enum wsrep::provider::status
             cert_ret(provider().certify(client_state_.id().get(),
                                         ws_handle_,
-                                        flags_,
+                                        flags(),
                                         sr_ws_meta));
         switch (cert_ret)
         {
@@ -933,8 +982,12 @@ int wsrep::transaction::certify_fragment(
             ret = 1;
             break;
         }
-        provider().release(ws_handle_);
     }
+    // Note: This does not release the handle in the provider
+    // since streaming is still on. However it is needed to
+    // make provider internal state to transition for the
+    // next fragment.
+    provider().release(ws_handle_);
     lock.lock();
     if (ret)
     {
@@ -943,7 +996,7 @@ int wsrep::transaction::certify_fragment(
     else
     {
         state(lock, s_executing);
-        flags_ &= ~wsrep::provider::flag::start_transaction;
+        flags(flags() & ~wsrep::provider::flag::start_transaction);
     }
     return ret;
 }
@@ -1139,7 +1192,13 @@ int wsrep::transaction::append_sr_keys_for_commit()
 
 void wsrep::transaction::streaming_rollback()
 {
+    debug_log_state("streaming_rollback enter");
     assert(streaming_context_.rolled_back() == false);
+    // Create a high priority applier which will handle the
+    // rollback fragment or clean up on configuration change.
+    // Adopt transaction will copy fragment set and appropriate
+    // meta data. Mark current transaction streaming context
+    // rolled back.
     wsrep::high_priority_service* sa(
         server_service_.streaming_applier_service(
             client_state_.client_service()));
@@ -1147,8 +1206,14 @@ void wsrep::transaction::streaming_rollback()
         client_state_.server_state().id(), id(), sa);
     sa->adopt_transaction(*this);
     streaming_context_.cleanup();
-    // Replicate rollback fragment
-    provider().rollback(id_.get());
+    streaming_context_.rolled_back(id_);
+    enum wsrep::provider::status ret;
+    if ((ret = provider().rollback(id_.get())))
+    {
+        wsrep::log_warning() << "Failed to replicate rollback fragment for "
+                             << id_.get() << ": " << ret;
+    }
+    debug_log_state("streaming_rollback leave");
 }
 
 void wsrep::transaction::clear_fragments()
@@ -1174,8 +1239,10 @@ void wsrep::transaction::cleanup()
     bf_abort_provider_status_ = wsrep::provider::success;
     bf_abort_client_state_ = 0;
     ws_meta_ = wsrep::ws_meta();
+    flags_ = 0;
     certified_ = false;
     pa_unsafe_ = false;
+    streaming_context_.cleanup();
     client_service_.cleanup_transaction();
     debug_log_state("cleanup_leave");
 }
@@ -1185,11 +1252,30 @@ void wsrep::transaction::debug_log_state(
 {
     WSREP_TC_LOG_DEBUG(
         1, context
-        << "(" << client_state_.id().get()
-        << "," << int64_t(id_.get())
-        << "," << ws_meta_.seqno().get()
-        << "," << wsrep::to_string(state_)
-        << "," << wsrep::to_string(bf_abort_state_)
-        << "," << wsrep::to_string(client_state_.current_error())
-        << ")");
+        << "\n    server: " << client_state_.server_state().id()
+        << ", client: " << client_state_.id().get()
+        << ", state: " << wsrep::to_c_string(client_state_.state())
+        << ", mode: " << wsrep::to_c_string(client_state_.mode())
+        << "\n    trx_id: " << int64_t(id_.get())
+        << ", seqno: " << ws_meta_.seqno().get()
+        << ", flags: " << flags()
+        << "\n"
+        << "    state: " << wsrep::to_c_string(state_)
+        << ", bfa_state: " << wsrep::to_c_string(bf_abort_state_)
+        << ", error: " << wsrep::to_c_string(client_state_.current_error())
+        << "\n"
+        << "    is_sr: " << is_streaming()
+        << ", frags: " << streaming_context_.fragments_certified()
+        << ", bytes: " << streaming_context_.bytes_certified()
+        << ", sr_rb: " << streaming_context_.rolled_back()
+        << "\n    own: " << (client_state_.owning_thread_id_ == wsrep::this_thread::get_id())
+        << "");
+}
+
+void wsrep::transaction::debug_log_key_append(const wsrep::key& key)
+{
+    WSREP_TC_LOG_DEBUG(2, "key_append"
+                       << "trx_id: "
+                       << int64_t(id().get())
+                       << " append key: " << key);
 }

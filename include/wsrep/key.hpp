@@ -8,6 +8,8 @@
 #include "exception.hpp"
 #include "buffer.hpp"
 
+#include <iosfwd>
+
 namespace wsrep
 {
     class key
@@ -60,6 +62,7 @@ namespace wsrep
 
     typedef std::vector<wsrep::key> key_array;
 
+    std::ostream& operator<<(std::ostream&, const wsrep::key&);
 }
 
 #endif // WSREP_KEY_HPP

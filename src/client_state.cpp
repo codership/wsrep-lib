@@ -36,6 +36,7 @@ void wsrep::client_state::close()
     if (transaction_.active())
     {
         client_service_.bf_rollback();
+        transaction_.after_statement();
     }
     debug_log_state("close: leave");
 }
@@ -421,7 +422,19 @@ void wsrep::client_state::state(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
     enum wsrep::client_state::state state)
 {
-    assert(wsrep::this_thread::get_id() == owning_thread_id_);
+    // For locally processing client states (local, toi, rsu)
+    // changing the state is allowed only from the owning thread.
+    // In high priority mode the processing thread however may
+    // change and we check only that store_globals() has been
+    // called by the current thread to gain ownership.
+    //
+    // Note that this check assumes that there is always a single
+    // thread per local client connection. This may not always
+    // hold and the sanity check mechanism may need to be revised.
+    assert((mode_ != m_high_priority &&
+            wsrep::this_thread::get_id() == owning_thread_id_) ||
+           (mode_ == m_high_priority &&
+            wsrep::this_thread::get_id() == current_thread_id_));
     assert(lock.owns_lock());
     static const char allowed[state_max_][state_max_] =
         {

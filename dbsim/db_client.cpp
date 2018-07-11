@@ -79,7 +79,7 @@ void db::client::run_one_transaction()
         {
             // wsrep::log_debug() << "Start transaction";
             err = client_state_.start_transaction(
-                server_.next_transaction_id());
+                wsrep::transaction_id(server_.next_transaction_id()));
             assert(err == 0);
             se_trx_.start(this);
             return err;

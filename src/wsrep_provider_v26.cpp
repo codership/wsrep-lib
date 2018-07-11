@@ -135,7 +135,8 @@ namespace
 
         ~mutable_ws_handle()
         {
-            ws_handle_ = wsrep::ws_handle(native_.trx_id, native_.opaque);
+            ws_handle_ = wsrep::ws_handle(
+                wsrep::transaction_id(native_.trx_id), native_.opaque);
         }
 
         wsrep_ws_handle_t* native()
@@ -192,8 +193,8 @@ namespace
                     seqno_from_native(trx_meta_.gtid.seqno)),
                 wsrep::stid(wsrep::id(trx_meta_.stid.node.data,
                                       sizeof(trx_meta_.stid.node.data)),
-                            trx_meta_.stid.trx,
-                            trx_meta_.stid.conn),
+                            wsrep::transaction_id(trx_meta_.stid.trx),
+                            wsrep::client_id(trx_meta_.stid.conn)),
                 seqno_from_native(trx_meta_.depends_on), flags_);
         }
 
@@ -368,15 +369,17 @@ namespace
         assert(high_priority_service);
 
         wsrep::const_buffer data(buf->ptr, buf->len);
-        wsrep::ws_handle ws_handle(wsh->trx_id, wsh->opaque);
+        wsrep::ws_handle ws_handle(wsrep::transaction_id(wsh->trx_id),
+                                   wsh->opaque);
         wsrep::ws_meta ws_meta(
             wsrep::gtid(wsrep::id(meta->gtid.uuid.data,
                                   sizeof(meta->gtid.uuid.data)),
                         wsrep::seqno(meta->gtid.seqno)),
             wsrep::stid(wsrep::id(meta->stid.node.data,
                                   sizeof(meta->stid.node.data)),
-                        meta->stid.trx,
-                        meta->stid.conn), wsrep::seqno(seqno_from_native(meta->depends_on)),
+                        wsrep::transaction_id(meta->stid.trx),
+                        wsrep::client_id(meta->stid.conn)),
+            wsrep::seqno(seqno_from_native(meta->depends_on)),
             map_flags_from_native(flags));
         try
         {

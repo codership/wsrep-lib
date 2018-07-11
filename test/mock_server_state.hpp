@@ -41,7 +41,8 @@ namespace wsrep
 
         wsrep::storage_service* storage_service(wsrep::client_service&)
         {
-            return new wsrep::mock_storage_service(*this, ++last_client_id_);
+            return new wsrep::mock_storage_service(*this,
+                                                   wsrep::client_id(++last_client_id_));
         }
 
         void release_storage_service(wsrep::storage_service* storage_service)
@@ -52,7 +53,8 @@ namespace wsrep
         wsrep::client_state* local_client_state()
         {
             wsrep::client_state* ret(new wsrep::mock_client(
-                                         *this, ++last_client_id_,
+                                         *this,
+                                         wsrep::client_id(++last_client_id_),
                                          wsrep::client_state::m_local));
             ret->open(ret->id());
             return ret;
@@ -67,7 +69,8 @@ namespace wsrep
             wsrep::client_service&)
         {
             wsrep::mock_client* cs(new wsrep::mock_client(
-                                       *this, ++last_client_id_,
+                                       *this,
+                                       wsrep::client_id(++last_client_id_),
                                        wsrep::client_state::m_high_priority));
             wsrep::mock_high_priority_service* ret(
                 new wsrep::mock_high_priority_service(*this, cs, false));
@@ -80,7 +83,8 @@ namespace wsrep
             wsrep::high_priority_service&)
         {
             wsrep::mock_client* cs(new wsrep::mock_client(
-                                       *this, ++last_client_id_,
+                                       *this,
+                                       wsrep::client_id(++last_client_id_),
                                        wsrep::client_state::m_high_priority));
             wsrep::mock_high_priority_service* ret(
                 new wsrep::mock_high_priority_service(*this, cs, false));

@@ -5,7 +5,7 @@
 #ifndef WSREP_TRANSACTION_ID_HPP
 #define WSREP_TRANSACTION_ID_HPP
 
-#include <iosfwd>
+#include <iostream>
 
 namespace wsrep
 {
@@ -20,11 +20,11 @@ namespace wsrep
         { }
 
         template <typename I>
-        transaction_id(I id)
+        explicit transaction_id(I id)
             : id_(static_cast<type>(id))
         { }
         type get() const { return id_; }
-        static unsigned long long undefined() { return type(-1); }
+        static transaction_id undefined() { return transaction_id(-1); }
         bool is_undefined() const { return (id_ == type(-1)); }
         bool operator<(const transaction_id& other) const
         {

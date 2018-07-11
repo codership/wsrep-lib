@@ -554,7 +554,7 @@ int wsrep::transaction::before_rollback()
         case s_aborting:
             if (is_streaming())
             {
-                provider().rollback(id_.get());
+                provider().rollback(id_);
             }
             break;
         case s_must_replay:
@@ -782,12 +782,12 @@ bool wsrep::transaction::bf_abort(
             wsrep::seqno victim_seqno;
             enum wsrep::provider::status
                 status(client_state_.provider().bf_abort(
-                           bf_seqno, id_.get(), victim_seqno));
+                           bf_seqno, id_, victim_seqno));
             switch (status)
             {
             case wsrep::provider::success:
                 WSREP_TC_LOG_DEBUG(1, "Seqno " << bf_seqno
-                                   << " succesfully BF aborted " << id_.get()
+                                   << " succesfully BF aborted " << id_
                                    << " victim_seqno " << victim_seqno);
                 bf_abort_state_ = state();
                 state(lock, s_must_abort);
@@ -796,7 +796,7 @@ bool wsrep::transaction::bf_abort(
             default:
                 WSREP_TC_LOG_DEBUG(1,
                                    "Seqno " << bf_seqno
-                                   << " failed to BF abort " << id_.get()
+                                   << " failed to BF abort " << id_
                                    << " with status " << status
                                    << " victim_seqno " << victim_seqno);
                 break;
@@ -882,7 +882,7 @@ void wsrep::transaction::state(
     {
         std::ostringstream os;
         os << "unallowed state transition for transaction "
-           << id_.get() << ": " << wsrep::to_string(state_)
+           << id_ << ": " << wsrep::to_string(state_)
            << " -> " << wsrep::to_string(next_state);
         wsrep::log_error() << os.str();
         throw wsrep::runtime_error(os.str());
@@ -963,7 +963,7 @@ int wsrep::transaction::certify_fragment(
 
         wsrep::ws_meta sr_ws_meta;
         enum wsrep::provider::status
-            cert_ret(provider().certify(client_state_.id().get(),
+            cert_ret(provider().certify(client_state_.id(),
                                         ws_handle_,
                                         flags(),
                                         sr_ws_meta));
@@ -1062,7 +1062,7 @@ int wsrep::transaction::certify_commit(
 
     client_service_.debug_sync("wsrep_before_certification");
     enum wsrep::provider::status
-        cert_ret(provider().certify(client_state_.id().get(),
+        cert_ret(provider().certify(client_state_.id(),
                                    ws_handle_,
                                    flags(),
                                    ws_meta_));
@@ -1213,10 +1213,10 @@ void wsrep::transaction::streaming_rollback()
     streaming_context_.cleanup();
     streaming_context_.rolled_back(id_);
     enum wsrep::provider::status ret;
-    if ((ret = provider().rollback(id_.get())))
+    if ((ret = provider().rollback(id_)))
     {
         wsrep::log_warning() << "Failed to replicate rollback fragment for "
-                             << id_.get() << ": " << ret;
+                             << id_ << ": " << ret;
     }
     debug_log_state("streaming_rollback leave");
 }

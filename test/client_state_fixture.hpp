@@ -108,9 +108,11 @@ namespace
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
-            wsrep::ws_handle ws_handle(1, (void*)1);
+            wsrep::ws_handle ws_handle(wsrep::transaction_id(1), (void*)1);
             wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
-                                   wsrep::stid(sc.id(), 1, cc.id()),
+                                   wsrep::stid(sc.id(),
+                                               wsrep::transaction_id(1),
+                                               cc.id()),
                                    wsrep::seqno(0),
                                    wsrep::provider::flag::start_transaction |
                                    wsrep::provider::flag::commit);
@@ -138,9 +140,11 @@ namespace
             cc.do_2pc_ = true;
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
-            wsrep::ws_handle ws_handle(1, (void*)1);
+            wsrep::ws_handle ws_handle(wsrep::transaction_id(1), (void*)1);
             wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
-                                   wsrep::stid(sc.id(), 1, cc.id()),
+                                   wsrep::stid(sc.id(),
+                                               wsrep::transaction_id(1),
+                                               cc.id()),
                                    wsrep::seqno(0),
                                    wsrep::provider::flag::start_transaction |
                                    wsrep::provider::flag::commit);

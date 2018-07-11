@@ -17,9 +17,10 @@ namespace
                  wsrep::client_id(1),
                  wsrep::client_state::m_high_priority)
             , hps(ss, &cc, false)
-            , ws_handle(1, (void*)1)
+            , ws_handle(wsrep::transaction_id(1), (void*)1)
             , ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
-                      wsrep::stid(wsrep::id("1"), 1, 1),
+                      wsrep::stid(wsrep::id("1"), wsrep::transaction_id(1),
+                                  wsrep::client_id(1)),
                       wsrep::seqno(0),
                       wsrep::provider::flag::start_transaction |
                       wsrep::provider::flag::commit)
@@ -114,9 +115,11 @@ BOOST_AUTO_TEST_CASE(server_state_streaming)
                           wsrep::client_state::m_high_priority);
     cc.debug_log_level(1);
     wsrep::mock_high_priority_service hps(ss, &cc, false);
-    wsrep::ws_handle ws_handle(1, (void*)1);
+    wsrep::ws_handle ws_handle(wsrep::transaction_id(1), (void*)1);
     wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
-                           wsrep::stid(wsrep::id("1"), 1, 1),
+                           wsrep::stid(wsrep::id("1"),
+                                       wsrep::transaction_id(1),
+                                       wsrep::client_id(1)),
                            wsrep::seqno(0),
                            wsrep::provider::flag::start_transaction);
     cc.open(cc.id());
@@ -126,13 +129,17 @@ BOOST_AUTO_TEST_CASE(server_state_streaming)
     BOOST_REQUIRE(ss.find_streaming_applier(
                       ws_meta.server_id(), ws_meta.transaction_id()));
     ws_meta = wsrep::ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(2)),
-                             wsrep::stid(wsrep::id("1"), 1, 1),
+                             wsrep::stid(wsrep::id("1"),
+                                         wsrep::transaction_id(1),
+                                         wsrep::client_id(1)),
                              wsrep::seqno(1),
                              0);
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer("1", 1)) == 0);
     ws_meta = wsrep::ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(2)),
-                             wsrep::stid(wsrep::id("1"), 1, 1),
+                             wsrep::stid(wsrep::id("1"),
+                                         wsrep::transaction_id(1),
+                                         wsrep::client_id(1)),
                              wsrep::seqno(1),
                              wsrep::provider::flag::commit);
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,

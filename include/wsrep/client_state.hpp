@@ -421,7 +421,7 @@ namespace wsrep
         int bf_abort(wsrep::seqno bf_seqno)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            assert(mode_ == m_local);
+            assert(mode_ == m_local || transaction_.is_streaming());
             return transaction_.bf_abort(lock, bf_seqno);
         }
 

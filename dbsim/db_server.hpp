@@ -38,7 +38,7 @@ namespace db
         db::server_state& server_state() { return server_state_; }
         wsrep::transaction_id next_transaction_id()
         {
-            return (last_transaction_id_.fetch_add(1) + 1);
+            return wsrep::transaction_id(last_transaction_id_.fetch_add(1) + 1);
         }
         void donate_sst(const std::string&, const  wsrep::gtid&, bool);
         wsrep::client_state* local_client_state();

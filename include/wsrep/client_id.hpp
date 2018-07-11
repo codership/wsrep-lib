@@ -15,7 +15,7 @@ namespace wsrep
             : id_(-1)
         { }
         template <typename I>
-        client_id(I id)
+        explicit client_id(I id)
             : id_(static_cast<type>(id))
         { }
         type get() const { return id_; }

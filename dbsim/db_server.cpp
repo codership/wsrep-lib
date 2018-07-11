@@ -95,7 +95,7 @@ void db::server::client_thread(const std::shared_ptr<db::client>& client)
 void db::server::start_client(size_t id)
 {
     auto client(std::make_shared<db::client>(
-                    *this, id,
+                    *this, wsrep::client_id(id),
                     wsrep::client_state::m_local,
                     simulator_.params()));
     clients_.push_back(client);

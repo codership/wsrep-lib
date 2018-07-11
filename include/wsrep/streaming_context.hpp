@@ -6,6 +6,10 @@
 #define WSREP_STREAMING_CONTEXT_HPP
 
 #include "logger.hpp"
+#include "seqno.hpp"
+#include "transaction_id.hpp"
+
+#include <vector>
 
 namespace wsrep
 {

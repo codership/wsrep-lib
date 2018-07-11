@@ -506,6 +506,7 @@ int wsrep::transaction::before_rollback()
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("before_rollback_enter");
     assert(state() == s_executing ||
+           state() == s_preparing ||
            state() == s_must_abort ||
            // Background rollbacker or rollback initiated from SE
            state() == s_aborting ||
@@ -517,6 +518,10 @@ int wsrep::transaction::before_rollback()
     case wsrep::client_state::m_local:
         switch (state())
         {
+        case s_preparing:
+            // Error detected during prepare phase
+            state(lock, s_must_abort);
+            // fall through
         case s_executing:
             // Voluntary rollback
             if (is_streaming())

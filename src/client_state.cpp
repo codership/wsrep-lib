@@ -192,15 +192,22 @@ int wsrep::client_state::before_statement()
 
 int wsrep::client_state::after_statement()
 {
-    // wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("after_statement: enter");
     assert(state() == s_exec);
     assert(mode() == m_local);
-#if 0
-    /**
-     * @todo Check for replay state, do rollback if requested.
-     */
-#endif // 0
+
+    if (transaction_.active() &&
+        transaction_.state() == wsrep::transaction::s_must_abort)
+    {
+        lock.unlock();
+        client_service_.bf_rollback();
+        lock.lock();
+        assert(transaction_.state() == wsrep::transaction::s_aborted);
+        override_error(wsrep::e_deadlock_error);
+    }
+    lock.unlock();
+
     (void)transaction_.after_statement();
     if (current_error() == wsrep::e_deadlock_error)
     {
@@ -368,8 +375,10 @@ int wsrep::client_state::end_rsu()
     return ret;
 }
 
+
+
 ///////////////////////////////////////////////////////////////////////////////
-//                                 TOI                                       //
+//                                 Misc                                      //
 ///////////////////////////////////////////////////////////////////////////////
 
 int wsrep::client_state::sync_wait(int timeout)

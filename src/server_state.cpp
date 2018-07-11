@@ -98,6 +98,7 @@ namespace
 
         high_priority_service.remove_fragments(ws_meta);
         high_priority_service.commit(ws_handle, ws_meta);
+        high_priority_service.after_apply();
         return ret;
     }
 

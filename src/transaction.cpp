@@ -86,6 +86,7 @@ wsrep::transaction::transaction(
     : server_service_(client_state.server_state().server_service())
     , client_service_(client_state.client_service())
     , client_state_(client_state)
+    , server_id_()
     , id_(transaction_id::undefined())
     , state_(s_executing)
     , state_hist_()
@@ -112,6 +113,7 @@ int wsrep::transaction::start_transaction(
     debug_log_state("start_transaction enter");
     assert(active() == false);
     assert(flags() == 0);
+    server_id_ = client_state_.server_state().id();
     id_ = id;
     state_ = s_executing;
     state_hist_.clear();
@@ -142,6 +144,7 @@ int wsrep::transaction::start_transaction(
         // assert(ws_meta.flags());
         assert(active() == false);
         assert(flags() == 0);
+        server_id_ = ws_meta.server_id();
         id_ = ws_meta.transaction_id();
         assert(client_state_.mode() == wsrep::client_state::m_high_priority);
         state_ = s_executing;
@@ -153,7 +156,13 @@ int wsrep::transaction::start_transaction(
     }
     else
     {
-        start_replaying(ws_meta);
+        ws_meta_ = ws_meta;
+        assert(ws_meta_.flags() & wsrep::provider::flag::commit);
+        assert(active());
+        assert(client_state_.mode() == wsrep::client_state::m_high_priority);
+        assert(state() == s_replaying);
+        assert(ws_meta_.seqno().is_undefined() == false);
+        certified_ = true;
     }
     debug_log_state("start_transaction leave");
     return 0;
@@ -191,21 +200,8 @@ int wsrep::transaction::prepare_for_ordering(
     return 0;
 }
 
-int wsrep::transaction::start_replaying(const wsrep::ws_meta& ws_meta)
-{
-    ws_meta_ = ws_meta;
-    assert(ws_meta_.flags() & wsrep::provider::flag::commit);
-    assert(active());
-    assert(client_state_.mode() == wsrep::client_state::m_high_priority);
-    assert(state() == s_replaying);
-    assert(ws_meta_.seqno().is_undefined() == false);
-    certified_ = true;
-    return 0;
-}
-
 int wsrep::transaction::append_key(const wsrep::key& key)
 {
-    /** @todo Collect table level keys for SR commit */
     try
     {
         debug_log_key_append(key);
@@ -583,7 +579,7 @@ int wsrep::transaction::after_rollback()
     assert(state() == s_aborting ||
            state() == s_must_replay);
 
-    if (is_streaming())
+    if (is_streaming() && state() != s_must_replay)
     {
         clear_fragments();
     }
@@ -823,6 +819,12 @@ bool wsrep::transaction::bf_abort(
             // between releasing the lock and before background
             // rollbacker gets control.
             state(lock, wsrep::transaction::s_aborting);
+            if (client_state_.mode() == wsrep::client_state::m_high_priority)
+            {
+                assert(is_streaming());
+                client_state_.server_state().stop_streaming_applier(
+                    server_id_, id_);
+            }
             lock.unlock();
             server_service_.background_rollback(client_state_);
         }
@@ -913,6 +915,7 @@ int wsrep::transaction::certify_fragment(
     {
         lock.lock();
         state(lock, s_must_abort);
+        client_state_.override_error(wsrep::e_error_during_commit);
         return 1;
     }
 
@@ -921,6 +924,7 @@ int wsrep::transaction::certify_fragment(
     {
         lock.lock();
         state(lock, s_must_abort);
+        client_state_.override_error(wsrep::e_error_during_commit);
         return 1;
     }
 
@@ -996,7 +1000,11 @@ int wsrep::transaction::certify_fragment(
     lock.lock();
     if (ret)
     {
-        state(lock, s_must_abort);
+        if (state_ != s_must_abort)
+        {
+            state(lock, s_must_abort);
+        }
+        client_state_.override_error(wsrep::e_deadlock_error);
     }
     else
     {
@@ -1198,6 +1206,7 @@ int wsrep::transaction::append_sr_keys_for_commit()
 void wsrep::transaction::streaming_rollback()
 {
     debug_log_state("streaming_rollback enter");
+    assert(state_ != s_must_replay);
     assert(streaming_context_.rolled_back() == false);
     // Create a high priority applier which will handle the
     // rollback fragment or clean up on configuration change.

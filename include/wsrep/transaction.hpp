@@ -52,6 +52,9 @@ namespace wsrep
         wsrep::transaction_id id() const
         { return id_; }
 
+        const wsrep::id& server_id() const
+        { return server_id_; }
+
         bool active() const
         { return (id_ != wsrep::transaction_id::undefined()); }
 
@@ -94,8 +97,6 @@ namespace wsrep
         int prepare_for_ordering(const wsrep::ws_handle& ws_handle,
                                  const wsrep::ws_meta& ws_meta,
                                  bool is_commit);
-
-        int start_replaying(const wsrep::ws_meta&);
 
         int append_key(const wsrep::key&);
 
@@ -161,6 +162,7 @@ namespace wsrep
         wsrep::server_service& server_service_;
         wsrep::client_service& client_service_;
         wsrep::client_state& client_state_;
+        wsrep::id server_id_;
         wsrep::transaction_id id_;
         enum state state_;
         std::vector<enum state> state_hist_;

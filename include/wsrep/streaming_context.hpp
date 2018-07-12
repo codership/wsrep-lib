@@ -47,6 +47,7 @@ namespace wsrep
 
         void disable()
         {
+            wsrep::log_info() << "Disabling streaming";
             fragment_size_ = 0;
         }
 

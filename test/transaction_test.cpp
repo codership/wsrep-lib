@@ -1068,7 +1068,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_cert_fail_non_commit,
     sc.provider().certify_result_ = wsrep::provider::success;
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(cc.after_rollback() == 0);
-    BOOST_REQUIRE(cc.after_statement() == 0);
+    BOOST_REQUIRE(cc.after_statement() == 1);
     BOOST_REQUIRE(sc.provider().fragments() == 2);
     BOOST_REQUIRE(sc.provider().start_fragments() == 1);
     BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);

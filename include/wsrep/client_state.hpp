@@ -425,15 +425,6 @@ namespace wsrep
             return transaction_.bf_abort(lock, bf_seqno);
         }
 
-        //
-        // Replaying
-        //
-        int start_replaying(const wsrep::ws_meta& ws_meta)
-        {
-            assert(mode_ == m_high_priority);
-            return transaction_.start_replaying(ws_meta);
-        }
-
         /**
          * Adopt a streaming transaction state. This is must be
          * called from high_priority_service::adopt_transaction()

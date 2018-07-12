@@ -98,13 +98,28 @@ namespace wsrep
          *
          * @param ws_handle Write set handle
          * @param ws_meta Write set meta
+         *
+         * @return Zero in case of success, non-zero in case of failure
          */
         virtual int commit(const wsrep::ws_handle& ws_handle,
                            const wsrep::ws_meta& ws_meta) = 0;
         /**
          * Roll back a transaction
+         *
+         * An implementation must call
+         * wsrep::client_state::prepare_for_ordering() to set
+         * the ws_handle and ws_meta before the rollback if
+         * the rollback process will go through client state
+         * rollback processing. Otherwise the implementation
+         * must release commit order explicitly via provider.
+         *
+         * @param ws_handle Write set handle
+         * @param ws_meta Write set meta
+         *
+         * @return Zero in case of success, non-zero in case of failure
          */
-        virtual int rollback() = 0;
+        virtual int rollback(const wsrep::ws_handle& ws_handle,
+                             const wsrep::ws_meta& ws_meta) = 0;
 
         /**
          * Apply a TOI operation.

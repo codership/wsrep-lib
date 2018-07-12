@@ -29,7 +29,7 @@ namespace db
         int remove_fragments(const wsrep::ws_meta&) override
         { return 0; }
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
-        int rollback() override;
+        int rollback(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
         int apply_toi(const wsrep::ws_meta&, const wsrep::const_buffer&) override;
         void after_apply() override;
         void store_globals() override { }

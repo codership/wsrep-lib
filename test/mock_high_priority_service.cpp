@@ -51,8 +51,11 @@ int wsrep::mock_high_priority_service::commit(
             client_state_->after_commit());
 }
 
-int wsrep::mock_high_priority_service::rollback()
+int wsrep::mock_high_priority_service::rollback(
+    const wsrep::ws_handle& ws_handle,
+    const wsrep::ws_meta& ws_meta)
 {
+    client_state_->prepare_for_ordering(ws_handle, ws_meta, false);
     return (client_state_->before_rollback() ||
             client_state_->after_rollback());
 }

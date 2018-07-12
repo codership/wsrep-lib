@@ -561,8 +561,12 @@ int wsrep::transaction::before_rollback()
         }
         break;
     case wsrep::client_state::m_high_priority:
-        assert(state_ == s_executing);
-        state(lock, s_aborting);
+        // Rollback by rollback write set or BF abort
+        assert(state_ == s_executing || state_ == s_aborting);
+        if (state_ != s_aborting)
+        {
+            state(lock, s_aborting);
+        }
         break;
     default:
         assert(0);
@@ -809,9 +813,13 @@ bool wsrep::transaction::bf_abort(
     if (ret)
     {
         bf_abort_client_state_ = client_state_.state();
-        if (client_state_.state() == wsrep::client_state::s_idle &&
-            client_state_.server_state().rollback_mode() ==
-            wsrep::server_state::rm_sync)
+        if ((client_state_.state() == wsrep::client_state::s_idle &&
+             client_state_.server_state().rollback_mode() ==
+             wsrep::server_state::rm_sync) // locally processing idle
+            ||
+            // high priority streaming
+            (client_state_.mode() == wsrep::client_state::m_high_priority &&
+             is_streaming()))
         {
             // We need to change the state to aborting under the
             // lock protection to avoid a race between client thread,
@@ -821,7 +829,6 @@ bool wsrep::transaction::bf_abort(
             state(lock, wsrep::transaction::s_aborting);
             if (client_state_.mode() == wsrep::client_state::m_high_priority)
             {
-                assert(is_streaming());
                 client_state_.server_state().stop_streaming_applier(
                     server_id_, id_);
             }
@@ -878,6 +885,10 @@ void wsrep::transaction::state(
     if (allowed[state_][next_state])
     {
         state_hist_.push_back(state_);
+        if (state_hist_.size() == 12)
+        {
+            state_hist_.erase(state_hist_.begin());
+        }
         state_ = next_state;
     }
     else
@@ -1006,8 +1017,13 @@ int wsrep::transaction::certify_fragment(
         }
         client_state_.override_error(wsrep::e_deadlock_error);
     }
+    else if (state_ == s_must_abort)
+    {
+        client_state_.override_error(wsrep::e_deadlock_error);
+    }
     else
     {
+        assert(state_ == s_certifying);
         state(lock, s_executing);
         flags(flags() & ~wsrep::provider::flag::start_transaction);
     }
@@ -1221,6 +1237,7 @@ void wsrep::transaction::streaming_rollback()
     sa->adopt_transaction(*this);
     streaming_context_.cleanup();
     streaming_context_.rolled_back(id_);
+    client_service_.debug_sync("wsrep_before_SR_rollback");
     enum wsrep::provider::status ret;
     if ((ret = provider().rollback(id_)))
     {

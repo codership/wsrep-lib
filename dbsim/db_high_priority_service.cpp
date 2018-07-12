@@ -46,9 +46,10 @@ int db::high_priority_service::apply_toi(
     throw wsrep::not_implemented_error();
 }
 
-int db::high_priority_service::commit(const wsrep::ws_handle&,
-                                      const wsrep::ws_meta&)
+int db::high_priority_service::commit(const wsrep::ws_handle& ws_handle,
+                                      const wsrep::ws_meta& ws_meta)
 {
+    client_.client_state_.prepare_for_ordering(ws_handle, ws_meta, true);
     int ret(client_.client_state_.before_commit());
     if (ret == 0) client_.se_trx_.commit();
     ret = ret || client_.client_state_.ordered_commit();
@@ -56,8 +57,10 @@ int db::high_priority_service::commit(const wsrep::ws_handle&,
     return ret;
 }
 
-int db::high_priority_service::rollback()
+int db::high_priority_service::rollback(const wsrep::ws_handle& ws_handle,
+                                        const wsrep::ws_meta& ws_meta)
 {
+    client_.client_state_.prepare_for_ordering(ws_handle, ws_meta, false);
     int ret(client_.client_state_.before_rollback());
     assert(ret == 0);
     client_.se_trx_.rollback();

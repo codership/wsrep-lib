@@ -95,7 +95,9 @@ static int rollback_fragment(wsrep::server_state& server_state,
     {
         wsrep::high_priority_switch ws(
             high_priority_service, *streaming_applier);
-        streaming_applier->rollback();
+        // Streaming applier rolls back out of order. Fragment
+        // removal grabs commit order below.
+        streaming_applier->rollback(wsrep::ws_handle(), wsrep::ws_meta());
         streaming_applier->after_apply();
     }
     server_state.stop_streaming_applier(
@@ -132,7 +134,7 @@ static int apply_write_set(wsrep::server_state& server_state,
             high_priority_service.commit(ws_handle, ws_meta);
         if (ret)
         {
-            high_priority_service.rollback();
+            high_priority_service.rollback(ws_handle, ws_meta);
         }
         high_priority_service.after_apply();
     }

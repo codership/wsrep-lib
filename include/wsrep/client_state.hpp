@@ -418,13 +418,28 @@ namespace wsrep
         //
         // BF aborting
         //
+        /**
+         * Brute force abort a transaction. This method should be
+         * called by a transaction which needs to BF abort a conflicting
+         * locally processing transaction.
+         */
         int bf_abort(wsrep::seqno bf_seqno)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(mode_ == m_local || transaction_.is_streaming());
             return transaction_.bf_abort(lock, bf_seqno);
         }
-
+        /**
+         * Brute force abort a transaction in total order. This method
+         * should be called by the TOI operation which needs to
+         * BF abort a transaction.
+         */
+        int total_order_bf_abort(wsrep::seqno bf_seqno)
+        {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            assert(mode_ == m_local || transaction_.is_streaming());
+            return transaction_.total_order_bf_abort(lock, bf_seqno);
+        }
         /**
          * Adopt a streaming transaction state. This is must be
          * called from high_priority_service::adopt_transaction()

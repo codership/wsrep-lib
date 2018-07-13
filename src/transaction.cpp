@@ -93,6 +93,7 @@ wsrep::transaction::transaction(
     , bf_abort_state_(s_executing)
     , bf_abort_provider_status_()
     , bf_abort_client_state_()
+    , bf_aborted_in_total_order_()
     , ws_handle_()
     , ws_meta_()
     , flags_()
@@ -521,7 +522,7 @@ int wsrep::transaction::before_rollback()
             // fall through
         case s_executing:
             // Voluntary rollback
-            if (is_streaming())
+            if (is_streaming() && bf_aborted_in_total_order_ == false)
             {
                 streaming_rollback();
             }
@@ -534,7 +535,7 @@ int wsrep::transaction::before_rollback()
             }
             else
             {
-                if (is_streaming())
+                if (is_streaming() && bf_aborted_in_total_order_ == false)
                 {
                     streaming_rollback();
                 }
@@ -542,16 +543,16 @@ int wsrep::transaction::before_rollback()
             }
             break;
         case s_cert_failed:
-            if (is_streaming())
+            if (is_streaming() && bf_aborted_in_total_order_ == false)
             {
                 streaming_rollback();
             }
             state(lock, s_aborting);
             break;
         case s_aborting:
-            if (is_streaming())
+            if (is_streaming() && bf_aborted_in_total_order_ == false)
             {
-                provider().rollback(id_);
+                streaming_rollback();
             }
             break;
         case s_must_replay:
@@ -836,6 +837,18 @@ bool wsrep::transaction::bf_abort(
             lock.unlock();
             server_service_.background_rollback(client_state_);
         }
+    }
+    return ret;
+}
+
+bool wsrep::transaction::total_order_bf_abort(
+    wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
+    wsrep::seqno bf_seqno)
+{
+    bool ret(bf_abort(lock, bf_seqno));
+    if (ret)
+    {
+        bf_aborted_in_total_order_ = true;
     }
     return ret;
 }
@@ -1278,6 +1291,7 @@ void wsrep::transaction::cleanup()
     bf_abort_state_ = s_executing;
     bf_abort_provider_status_ = wsrep::provider::success;
     bf_abort_client_state_ = 0;
+    bf_aborted_in_total_order_ = false;
     ws_meta_ = wsrep::ws_meta();
     flags_ = 0;
     certified_ = false;

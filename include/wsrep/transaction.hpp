@@ -126,9 +126,16 @@ namespace wsrep
 
         bool bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
                       wsrep::seqno bf_seqno);
+        bool total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>&,
+                                  wsrep::seqno bf_seqno);
         bool bf_aborted() const
         {
             return (bf_abort_client_state_ != 0);
+        }
+
+        bool bf_aborted_in_total_order() const
+        {
+            return bf_aborted_in_total_order_;
         }
 
         int flags() const
@@ -169,6 +176,7 @@ namespace wsrep
         enum state bf_abort_state_;
         enum wsrep::provider::status bf_abort_provider_status_;
         int bf_abort_client_state_;
+        bool bf_aborted_in_total_order_;
         wsrep::ws_handle ws_handle_;
         wsrep::ws_meta ws_meta_;
         int flags_;

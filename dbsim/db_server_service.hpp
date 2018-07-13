@@ -16,6 +16,8 @@ namespace db
     public:
         server_service(db::server& server);
         wsrep::storage_service* storage_service(wsrep::client_service&) override;
+        wsrep::storage_service* storage_service(wsrep::high_priority_service&) override;
+
         void release_storage_service(wsrep::storage_service*) override;
         wsrep::high_priority_service* streaming_applier_service(wsrep::client_service&) override;
         wsrep::high_priority_service* streaming_applier_service(wsrep::high_priority_service&) override;

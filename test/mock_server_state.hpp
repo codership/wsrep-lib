@@ -45,6 +45,12 @@ namespace wsrep
                                                    wsrep::client_id(++last_client_id_));
         }
 
+        wsrep::storage_service* storage_service(wsrep::high_priority_service&)
+        {
+            return new wsrep::mock_storage_service(*this,
+                                                   wsrep::client_id(++last_client_id_));
+        }
+
         void release_storage_service(wsrep::storage_service* storage_service)
         {
             delete storage_service;

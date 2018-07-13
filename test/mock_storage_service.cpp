@@ -28,9 +28,16 @@ wsrep::mock_storage_service::~mock_storage_service()
     client_state_.cleanup();
 }
 
-int wsrep::mock_storage_service::start_transaction(const wsrep::ws_handle& ws_handle)
+int wsrep::mock_storage_service::start_transaction(
+    const wsrep::ws_handle& ws_handle)
 {
     return client_state_.start_transaction(ws_handle.transaction_id());
+}
+
+void wsrep::mock_storage_service::adopt_transaction(
+    const wsrep::transaction& transaction)
+{
+    client_state_.adopt_transaction(transaction);
 }
 
 int wsrep::mock_storage_service::commit(const wsrep::ws_handle& ws_handle,

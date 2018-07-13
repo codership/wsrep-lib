@@ -20,6 +20,8 @@ class mock_server_state;
 
         int start_transaction(const wsrep::ws_handle&) WSREP_OVERRIDE;
 
+        void adopt_transaction(const wsrep::transaction&) WSREP_OVERRIDE;
+
         int append_fragment(const wsrep::id&,
                             wsrep::transaction_id,
                             int,

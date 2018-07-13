@@ -19,6 +19,12 @@ wsrep::storage_service* db::server_service::storage_service(
     return new db::storage_service();
 }
 
+wsrep::storage_service* db::server_service::storage_service(
+    wsrep::high_priority_service&)
+{
+    return new db::storage_service();
+}
+
 void db::server_service::release_storage_service(
     wsrep::storage_service* storage_service)
 {

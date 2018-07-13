@@ -33,7 +33,8 @@ namespace wsrep
         virtual ~server_service() { }
         virtual wsrep::storage_service* storage_service(
             wsrep::client_service&) = 0;
-
+        virtual wsrep::storage_service* storage_service(
+            wsrep::high_priority_service&) = 0;
         virtual void release_storage_service(wsrep::storage_service*) = 0;
 
         /**

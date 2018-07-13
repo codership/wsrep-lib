@@ -23,7 +23,7 @@ namespace wsrep
     // Forward declarations
     class ws_handle;
     class ws_meta;
-
+    class transaction;
 
     /**
      * Storage service abstract interface.
@@ -41,6 +41,7 @@ namespace wsrep
          */
         virtual int start_transaction(const wsrep::ws_handle&) = 0;
 
+        virtual void adopt_transaction(const wsrep::transaction&) = 0;
         /**
          * Append fragment into stable storage.
          */

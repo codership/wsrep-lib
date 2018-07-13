@@ -173,6 +173,7 @@ void wsrep::transaction::adopt(const wsrep::transaction& transaction)
     debug_log_state("adopt enter");
     assert(transaction.is_streaming());
     start_transaction(transaction.id());
+    server_id_ = transaction.server_id_;
     flags_  = transaction.flags();
     streaming_context_ = transaction.streaming_context();
     debug_log_state("adopt leave");
@@ -863,10 +864,18 @@ void wsrep::transaction::state(
     // BF aborter is allowed to change the state to must abort and
     // further to aborting and aborted if the background rollbacker
     // is launched.
-    assert(client_state_.owning_thread_id_ == wsrep::this_thread::get_id() ||
-           next_state == s_must_abort ||
-           next_state == s_aborting ||
-           next_state == s_aborted);
+    //
+    // For high priority streaming applier threads the assertion must
+    // be relaxed to check only current thread id which indicates that
+    // the store_globals() has been called before processing of write set
+    // starts.
+    assert((client_state_.owning_thread_id_ == wsrep::this_thread::get_id() ||
+            next_state == s_must_abort ||
+            next_state == s_aborting ||
+            next_state == s_aborted)
+           ||
+           (client_state_.mode() == wsrep::client_state::m_high_priority &&
+            wsrep::this_thread::get_id() == client_state_.current_thread_id_));
     static const char allowed[n_states][n_states] =
         { /*  ex pr ce co oc ct cf ma ab ad mr re */
             { 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0}, /* ex */

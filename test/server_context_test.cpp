@@ -192,7 +192,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_sst_first_boostrap,
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
     ss.sync_point_enabled_ = "on_view_wait_initialized";
     ss.sync_point_action_  = ss.spa_initialize;
-    ss.on_view(bootstrap_view);
+    ss.on_view(bootstrap_view, &hps);
     ss.sync_point_enabled_ = "";
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_sync();
@@ -218,7 +218,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_init_first_boostrap,
     BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);
     ss.on_connect(wsrep::gtid(cluster_id, wsrep::seqno(0)));
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
-    ss.on_view(bootstrap_view);
+    ss.on_view(bootstrap_view, &hps);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_sync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);

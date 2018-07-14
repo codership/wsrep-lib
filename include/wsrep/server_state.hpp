@@ -212,6 +212,15 @@ namespace wsrep
          */
         enum rollback_mode rollback_mode() const { return rollback_mode_; }
 
+        /**
+         * Registers a streaming client.
+         */
+        void start_streaming_client(wsrep::client_state* client_state);
+
+        void convert_streaming_client_to_applier(
+            wsrep::client_state* client_state);
+        void stop_streaming_client(wsrep::client_state* client_state);
+
         void start_streaming_applier(
             const wsrep::id&,
             const wsrep::transaction_id&,
@@ -278,7 +287,8 @@ namespace wsrep
          * @params view wsrep::view object which holds the new view
          *         information.
          */
-        void on_view(const wsrep::view& view);
+        void on_view(const wsrep::view& view,
+                     wsrep::high_priority_service*);
 
         /**
          * A method which will be called when the server
@@ -533,6 +543,7 @@ namespace wsrep
             , desync_count_()
             , pause_count_()
             , pause_seqno_()
+            , streaming_clients_()
             , streaming_appliers_()
             , provider_()
             , name_(name)
@@ -557,6 +568,11 @@ namespace wsrep
         void resync(wsrep::unique_lock<wsrep::mutex>&);
         void state(wsrep::unique_lock<wsrep::mutex>&, enum state);
         void wait_until_state(wsrep::unique_lock<wsrep::mutex>&, enum state) const;
+        // Close SR transcations whose origin is outside of current
+        // cluster view.
+        void close_foreign_sr_transactions(
+            wsrep::unique_lock<wsrep::mutex>&,
+            wsrep::high_priority_service&);
 
         wsrep::mutex& mutex_;
         wsrep::condition_variable& cond_;
@@ -572,7 +588,25 @@ namespace wsrep
         size_t desync_count_;
         size_t pause_count_;
         wsrep::seqno pause_seqno_;
-        typedef std::map<std::pair<wsrep::id, wsrep::transaction_id>, wsrep::high_priority_service*> streaming_appliers_map;
+        typedef std::map<wsrep::client_id, wsrep::client_state*>
+        streaming_clients_map;
+        streaming_clients_map streaming_clients_;
+        typedef std::map<std::pair<wsrep::id, wsrep::transaction_id>,
+                         wsrep::high_priority_service*> streaming_appliers_map;
+        class server_id_cmp
+        {
+        public:
+            server_id_cmp(const wsrep::id& server_id)
+                : server_id_(server_id)
+            { }
+            bool operator()(const std::vector<wsrep::view::member>::value_type& vt) const
+            {
+                return (vt.id() == server_id_);
+            }
+        private:
+            wsrep::id server_id_;
+        };
+
         streaming_appliers_map streaming_appliers_;
         wsrep::provider* provider_;
         std::string name_;

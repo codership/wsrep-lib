@@ -3,6 +3,7 @@
 //
 
 #include "wsrep/server_state.hpp"
+#include "wsrep/client_state.hpp"
 #include "wsrep/server_service.hpp"
 #include "wsrep/high_priority_service.hpp"
 #include "wsrep/transaction.hpp"
@@ -13,6 +14,7 @@
 
 #include <cassert>
 #include <sstream>
+#include <algorithm>
 
 //////////////////////////////////////////////////////////////////////////////
 //                               Helpers                                    //
@@ -504,19 +506,6 @@ void wsrep::server_state::initialized()
     }
 }
 
-void wsrep::server_state::wait_until_state(
-    wsrep::unique_lock<wsrep::mutex>& lock,
-    enum wsrep::server_state::state state) const
-{
-    ++state_waiters_[state];
-    while (state_ != state)
-    {
-        cond_.wait(lock);
-    }
-    --state_waiters_[state];
-    cond_.notify_all();
-}
-
 void wsrep::server_state::last_committed_gtid(const wsrep::gtid& gtid)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
@@ -556,7 +545,8 @@ void wsrep::server_state::on_connect(const wsrep::gtid& gtid)
     state(lock, s_connected);
 }
 
-void wsrep::server_state::on_view(const wsrep::view& view)
+void wsrep::server_state::on_view(const wsrep::view& view,
+                                  wsrep::high_priority_service* high_priority_service)
 {
     wsrep::log_info()
         << "================================================\nView:\n"
@@ -644,6 +634,11 @@ void wsrep::server_state::on_view(const wsrep::view& view)
             bootstrap_ = false;
         }
 
+        assert(high_priority_service);
+        if (high_priority_service)
+        {
+            close_foreign_sr_transactions(lock, *high_priority_service);
+        }
         if (server_service_.sst_before_init())
         {
             if (state_ == s_initialized)
@@ -756,11 +751,85 @@ int wsrep::server_state::on_apply(
     }
 }
 
+void wsrep::server_state::start_streaming_client(
+    wsrep::client_state* client_state)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    wsrep::log_debug() << "Start streaming client: " << client_state->id();
+    if (streaming_clients_.insert(
+            std::make_pair(client_state->id(), client_state)).second == false)
+    {
+        wsrep::log_warning() << "Failed to insert streaming client "
+                             << client_state->id();
+        assert(0);
+    }
+}
+
+void wsrep::server_state::convert_streaming_client_to_applier(
+    wsrep::client_state* client_state)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    wsrep::log_debug() << "Convert streaming client to applier "
+                       << client_state->id();
+    streaming_clients_map::iterator i(
+        streaming_clients_.find(client_state->id()));
+    assert(i != streaming_clients_.end());
+    if (i == streaming_clients_.end())
+    {
+        wsrep::log_warning() << "Unable to find streaming client "
+                             << client_state->id();
+        assert(0);
+    }
+    else
+    {
+        streaming_clients_.erase(i);
+    }
+    wsrep::high_priority_service* streaming_applier(
+        server_service_.streaming_applier_service(
+            client_state->client_service()));
+    streaming_applier->adopt_transaction(client_state->transaction());
+    if (streaming_appliers_.insert(
+            std::make_pair(
+                std::make_pair(id_, client_state->transaction().id()),
+                streaming_applier)).second == false)
+    {
+        wsrep::log_warning() << "Could not insert streaming applier "
+                             << id_
+                             << ", "
+                             << client_state->transaction().id();
+        assert(0);
+    }
+}
+
+
+void wsrep::server_state::stop_streaming_client(
+    wsrep::client_state* client_state)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    wsrep::log_debug() << "Stop streaming client: " << client_state->id();
+    streaming_clients_map::iterator i(
+        streaming_clients_.find(client_state->id()));
+    assert(i != streaming_clients_.end());
+    if (i == streaming_clients_.end())
+    {
+        wsrep::log_warning() << "Unable to find streaming client "
+                             << client_state->id();
+        assert(0);
+        return;
+    }
+    else
+    {
+        streaming_clients_.erase(i);
+        cond_.notify_all();
+    }
+}
+
 void wsrep::server_state::start_streaming_applier(
     const wsrep::id& server_id,
     const wsrep::transaction_id& transaction_id,
     wsrep::high_priority_service* sa)
 {
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     if (streaming_appliers_.insert(
             std::make_pair(std::make_pair(server_id, transaction_id),
                            sa)).second == false)
@@ -774,6 +843,7 @@ void wsrep::server_state::stop_streaming_applier(
     const wsrep::id& server_id,
     const wsrep::transaction_id& transaction_id)
 {
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     streaming_appliers_map::iterator i(
         streaming_appliers_.find(std::make_pair(server_id, transaction_id)));
     assert(i != streaming_appliers_.end());
@@ -785,6 +855,7 @@ void wsrep::server_state::stop_streaming_applier(
     else
     {
         streaming_appliers_.erase(i);
+        cond_.notify_all();
     }
 }
 
@@ -792,13 +863,15 @@ wsrep::high_priority_service* wsrep::server_state::find_streaming_applier(
     const wsrep::id& server_id,
     const wsrep::transaction_id& transaction_id) const
 {
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     streaming_appliers_map::const_iterator i(
         streaming_appliers_.find(std::make_pair(server_id, transaction_id)));
     return (i == streaming_appliers_.end() ? 0 : i->second);
 }
 
-// Private
-
+//////////////////////////////////////////////////////////////////////////////
+//                              Private                                     //
+//////////////////////////////////////////////////////////////////////////////
 
 int wsrep::server_state::desync(wsrep::unique_lock<wsrep::mutex>& lock)
 {
@@ -867,5 +940,81 @@ void wsrep::server_state::state(
         wsrep::log_error() << os.str() << "\n";
         ::abort();
         // throw wsrep::runtime_error(os.str());
+    }
+}
+
+void wsrep::server_state::wait_until_state(
+    wsrep::unique_lock<wsrep::mutex>& lock,
+    enum wsrep::server_state::state state) const
+{
+    ++state_waiters_[state];
+    while (state_ != state)
+    {
+        cond_.wait(lock);
+    }
+    --state_waiters_[state];
+    cond_.notify_all();
+}
+
+void wsrep::server_state::close_foreign_sr_transactions(
+    wsrep::unique_lock<wsrep::mutex>& lock,
+    wsrep::high_priority_service& high_priority_service)
+{
+    assert(lock.owns_lock());
+    if (current_view_.own_index() == -1)
+    {
+        while (streaming_clients_.empty() == false)
+        {
+            streaming_clients_map::iterator i(streaming_clients_.begin());
+            wsrep::client_id client_id(i->first);
+            wsrep::transaction_id transaction_id(i->second->transaction().id());
+            i->second->total_order_bf_abort(current_view_.view_seqno());
+            streaming_clients_map::const_iterator found_i;
+            while ((found_i = streaming_clients_.find(client_id)) !=
+                   streaming_clients_.end() &&
+                   found_i->second->transaction().id() == transaction_id)
+            {
+                cond_.wait(lock);
+            }
+        }
+    }
+
+
+    streaming_appliers_map::iterator i(streaming_appliers_.begin());
+    while (i != streaming_appliers_.end())
+    {
+        if (std::find_if(current_view_.members().begin(),
+                         current_view_.members().end(),
+                         server_id_cmp(i->first.first)) !=
+            current_view_.members().end())
+        {
+            wsrep::id server_id(i->first.first);
+            wsrep::transaction_id transaction_id(i->first.second);
+            wsrep::high_priority_service* streaming_applier(i->second);
+            high_priority_service.adopt_transaction(
+                streaming_applier->transaction());
+            {
+                wsrep::high_priority_switch sw(high_priority_service,
+                                               *streaming_applier);
+                streaming_applier->rollback(
+                    wsrep::ws_handle(), wsrep::ws_meta());
+                streaming_applier->after_apply();
+            }
+
+            streaming_appliers_.erase(i++);
+            server_service_.release_high_priority_service(streaming_applier);
+            wsrep::ws_meta ws_meta(
+                wsrep::gtid(),
+                wsrep::stid(server_id, transaction_id, wsrep::client_id()),
+                wsrep::seqno::undefined(), 0);
+            high_priority_service.remove_fragments(ws_meta);
+            high_priority_service.commit(wsrep::ws_handle(transaction_id, 0),
+                                         ws_meta);
+            high_priority_service.after_apply();
+        }
+        else
+        {
+            ++i;
+        }
     }
 }

@@ -477,6 +477,10 @@ int wsrep::transaction::after_commit()
     {
         assert(client_state_.mode() == wsrep::client_state::m_local ||
                client_state_.mode() == wsrep::client_state::m_high_priority);
+        if (client_state_.mode() == wsrep::client_state::m_local)
+        {
+            client_state_.server_state_.stop_streaming_client(&client_state_);
+        }
         clear_fragments();
     }
 
@@ -522,7 +526,7 @@ int wsrep::transaction::before_rollback()
             // fall through
         case s_executing:
             // Voluntary rollback
-            if (is_streaming() && bf_aborted_in_total_order_ == false)
+            if (is_streaming())
             {
                 streaming_rollback();
             }
@@ -535,7 +539,7 @@ int wsrep::transaction::before_rollback()
             }
             else
             {
-                if (is_streaming() && bf_aborted_in_total_order_ == false)
+                if (is_streaming())
                 {
                     streaming_rollback();
                 }
@@ -543,14 +547,14 @@ int wsrep::transaction::before_rollback()
             }
             break;
         case s_cert_failed:
-            if (is_streaming() && bf_aborted_in_total_order_ == false)
+            if (is_streaming())
             {
                 streaming_rollback();
             }
             state(lock, s_aborting);
             break;
         case s_aborting:
-            if (is_streaming() && bf_aborted_in_total_order_ == false)
+            if (is_streaming())
             {
                 streaming_rollback();
             }
@@ -653,8 +657,16 @@ int wsrep::transaction::after_statement()
     case s_must_replay:
     {
         state(lock, s_replaying);
+        // Need to remember streaming state before replay, entering
+        // after_commit() after succesful replay will clear
+        // fragments.
+        const bool was_streaming(is_streaming());
         lock.unlock();
         enum wsrep::provider::status replay_ret(client_service_.replay());
+        if (was_streaming)
+        {
+            client_state_.server_state_.stop_streaming_client(&client_state_);
+        }
         switch (replay_ret)
         {
         case wsrep::provider::success:
@@ -961,6 +973,10 @@ int wsrep::transaction::certify_fragment(
         return 1;
     }
 
+    if (is_streaming() == false)
+    {
+        client_state_.server_state_.start_streaming_client(&client_state_);
+    }
     int ret(0);
     // Storage service scope
     {
@@ -1033,6 +1049,10 @@ int wsrep::transaction::certify_fragment(
     lock.lock();
     if (ret)
     {
+        if (is_streaming() == false)
+        {
+            client_state_.server_state_.stop_streaming_client(&client_state_);
+        }
         if (state_ != s_must_abort)
         {
             state(lock, s_must_abort);
@@ -1246,25 +1266,29 @@ void wsrep::transaction::streaming_rollback()
     debug_log_state("streaming_rollback enter");
     assert(state_ != s_must_replay);
     assert(streaming_context_.rolled_back() == false);
-    // Create a high priority applier which will handle the
-    // rollback fragment or clean up on configuration change.
-    // Adopt transaction will copy fragment set and appropriate
-    // meta data. Mark current transaction streaming context
-    // rolled back.
-    wsrep::high_priority_service* sa(
-        server_service_.streaming_applier_service(
-            client_state_.client_service()));
-    client_state_.server_state().start_streaming_applier(
-        client_state_.server_state().id(), id(), sa);
-    sa->adopt_transaction(*this);
-    streaming_context_.cleanup();
-    streaming_context_.rolled_back(id_);
-    client_service_.debug_sync("wsrep_before_SR_rollback");
-    enum wsrep::provider::status ret;
-    if ((ret = provider().rollback(id_)))
+
+    if (bf_aborted_in_total_order_)
     {
-        wsrep::log_warning() << "Failed to replicate rollback fragment for "
-                             << id_ << ": " << ret;
+        client_state_.server_state_.stop_streaming_client(&client_state_);
+    }
+    else
+    {
+        // Create a high priority applier which will handle the
+        // rollback fragment or clean up on configuration change.
+        // Adopt transaction will copy fragment set and appropriate
+        // meta data. Mark current transaction streaming context
+        // rolled back.
+        client_state_.server_state_.convert_streaming_client_to_applier(
+            &client_state_);
+        streaming_context_.cleanup();
+        streaming_context_.rolled_back(id_);
+        client_service_.debug_sync("wsrep_before_SR_rollback");
+        enum wsrep::provider::status ret;
+        if ((ret = provider().rollback(id_)))
+        {
+            wsrep::log_warning() << "Failed to replicate rollback fragment for "
+                                 << id_ << ": " << ret;
+        }
     }
     debug_log_state("streaming_rollback leave");
 }

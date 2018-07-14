@@ -306,7 +306,7 @@ namespace
     }
 
     wsrep_cb_status_t view_cb(void* app_ctx,
-                              void* recv_ctx __attribute__((unused)),
+                              void* recv_ctx,
                               const wsrep_view_info_t* view_info,
                               const char*,
                               size_t)
@@ -315,10 +315,12 @@ namespace
         assert(view_info);
         wsrep::server_state& server_state(
             *reinterpret_cast<wsrep::server_state*>(app_ctx));
+        wsrep::high_priority_service* high_priority_service(
+            reinterpret_cast<wsrep::high_priority_service*>(recv_ctx));
         try
         {
             wsrep::view view(view_from_native(*view_info));
-            server_state.on_view(view);
+            server_state.on_view(view, high_priority_service);
             return WSREP_CB_SUCCESS;
         }
         catch (const wsrep::runtime_error& e)

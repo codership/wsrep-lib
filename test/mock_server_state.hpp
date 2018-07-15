@@ -123,7 +123,7 @@ namespace wsrep
             WSREP_OVERRIDE
         {
         }
-        void log_view(const wsrep::view&) { }
+        void log_view(wsrep::high_priority_service*, const wsrep::view&) { }
         void log_state_change(enum wsrep::server_state::state,
                               enum wsrep::server_state::state)
         { }

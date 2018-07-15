@@ -172,6 +172,8 @@ static int apply_write_set(wsrep::server_state& server_state,
             wsrep::log_warning() << "Could not find applier context for "
                                  << ws_meta.server_id()
                                  << ": " << ws_meta.transaction_id();
+            ret = high_priority_service.log_dummy_write_set(
+                ws_handle, ws_meta);
         }
         else
         {
@@ -208,6 +210,8 @@ static int apply_write_set(wsrep::server_state& server_state,
                     << "Could not find applier context for "
                     << ws_meta.server_id()
                     << ": " << ws_meta.transaction_id();
+                ret = high_priority_service.log_dummy_write_set(
+                    ws_handle, ws_meta);
             }
             else
             {
@@ -564,7 +568,6 @@ void wsrep::server_state::on_view(const wsrep::view& view,
                           << "name: " << i->name();
     }
     wsrep::log_info() << "=================================================";
-    server_service_.log_view(view);
     current_view_ = view;
     if (view.status() == wsrep::view::primary)
     {
@@ -682,6 +685,8 @@ void wsrep::server_state::on_view(const wsrep::view& view,
         state(lock, s_disconnected);
         id_ = wsrep::id::undefined();
     }
+
+    server_service_.log_view(high_priority_service, view);
 }
 
 void wsrep::server_state::on_sync()

@@ -104,9 +104,16 @@ namespace wsrep
                                          const wsrep::ws_meta& ws_meta) = 0;
 
         /**
-         * Log a cluster view change event.
+         * Log a cluster view change event. The method takes
+         * as an argument a pointer to high priority service associated
+         * to an applier thread if one is available.
+         *
+         * @param high_priority_service Pointer to high priority service
+         * @param view Reference to view object
          */
-        virtual void log_view(const wsrep::view&) = 0;
+        virtual void log_view(
+            wsrep::high_priority_service* high_priority_service,
+            const wsrep::view& view) = 0;
 
         /**
          * Log a state change event.

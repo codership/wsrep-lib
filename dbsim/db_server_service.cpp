@@ -90,7 +90,8 @@ void db::server_service::log_dummy_write_set(
     wsrep::log_info() << "Dummy write set: " << meta.seqno();
 }
 
-void db::server_service::log_view(const wsrep::view&)
+void db::server_service::log_view(wsrep::high_priority_service*,
+                                  const wsrep::view&)
 {
     wsrep::log_info() << "View";
 }

@@ -992,9 +992,12 @@ void wsrep::server_state::close_foreign_sr_transactions(
     {
         if (std::find_if(current_view_.members().begin(),
                          current_view_.members().end(),
-                         server_id_cmp(i->first.first)) !=
+                         server_id_cmp(i->first.first)) ==
             current_view_.members().end())
         {
+            wsrep::log_debug() << "Removing SR fragments for "
+                               << i->first.first
+                               << ", " << i->first.second;
             wsrep::id server_id(i->first.first);
             wsrep::transaction_id transaction_id(i->first.second);
             wsrep::high_priority_service* streaming_applier(i->second);

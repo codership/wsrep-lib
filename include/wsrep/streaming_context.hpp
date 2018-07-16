@@ -65,6 +65,7 @@ namespace wsrep
 
         void stored(wsrep::seqno seqno)
         {
+            assert(seqno.is_undefined() == false);
             fragments_.push_back(seqno);
         }
 
@@ -75,6 +76,7 @@ namespace wsrep
 
         void applied(wsrep::seqno seqno)
         {
+            assert(seqno.is_undefined() == false);
             ++fragments_certified_;
             fragments_.push_back(seqno);
         }

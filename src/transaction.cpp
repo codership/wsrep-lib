@@ -1029,12 +1029,16 @@ int wsrep::transaction::certify_fragment(
             return 1;
         }
 
+        client_service_.debug_crash(
+            "crash_replicate_fragment_before_certify");
         wsrep::ws_meta sr_ws_meta;
         enum wsrep::provider::status
             cert_ret(provider().certify(client_state_.id(),
                                         ws_handle_,
                                         flags(),
                                         sr_ws_meta));
+        client_service_.debug_crash(
+            "crash_replicate_fragment_after_certify");
         switch (cert_ret)
         {
         case wsrep::provider::success:
@@ -1055,6 +1059,8 @@ int wsrep::transaction::certify_fragment(
             {
                 streaming_context_.stored(sr_ws_meta.seqno());
             }
+            client_service_.debug_crash(
+                "crash_replicate_fragment_success");
             break;
         default:
             // Storage service rollback must be done out of order,

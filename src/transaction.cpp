@@ -434,6 +434,7 @@ int wsrep::transaction::before_commit()
         if (ret)
         {
             state(lock, s_must_abort);
+            state(lock, s_aborting);
         }
         break;
     default:
@@ -459,8 +460,22 @@ int wsrep::transaction::ordered_commit()
     //    aborted anymore
     // 3) The provider should always guarantee that the transactions which
     //    have been ordered for commit can finish committing.
-    assert(ret == 0);
-    state(lock, s_ordered_commit);
+    //
+    // The exception here is a storage service transaction which is running
+    // in high priority mode. The fragment storage commit may get BF
+    // aborted in the provider after commit ordering has been
+    // established since the transaction is operating in streaming
+    // mode.
+    if (ret)
+    {
+        assert(client_state_.mode() == wsrep::client_state::m_high_priority);
+        state(lock, s_must_abort);
+        state(lock, s_aborting);
+    }
+    else
+    {
+        state(lock, s_ordered_commit);
+    }
     debug_log_state("ordered_commit_leave");
     return ret;
 }
@@ -1024,9 +1039,11 @@ int wsrep::transaction::certify_fragment(
         {
         case wsrep::provider::success:
             assert(sr_ws_meta.seqno().is_undefined() == false);
-            streaming_context_.certified(sr_ws_meta.seqno(), data.size());
+            streaming_context_.certified(data.size());
             if (storage_service.update_fragment_meta(sr_ws_meta))
             {
+                storage_service.rollback(wsrep::ws_handle(),
+                                         wsrep::ws_meta());
                 ret = 1;
                 break;
             }
@@ -1034,9 +1051,16 @@ int wsrep::transaction::certify_fragment(
             {
                 ret = 1;
             }
+            else
+            {
+                streaming_context_.stored(sr_ws_meta.seqno());
+            }
             break;
         default:
-            storage_service.rollback(ws_handle_, sr_ws_meta);
+            // Storage service rollback must be done out of order,
+            // otherwise there may be a deadlock between BF aborter
+            // and the rollback process.
+            storage_service.rollback(wsrep::ws_handle(), wsrep::ws_meta());
             ret = 1;
             break;
         }
@@ -1044,8 +1068,13 @@ int wsrep::transaction::certify_fragment(
     // Note: This does not release the handle in the provider
     // since streaming is still on. However it is needed to
     // make provider internal state to transition for the
-    // next fragment.
-    provider().release(ws_handle_);
+    // next fragment. If any of the operations above failed,
+    // the handle needs to be left unreleased for the following
+    // rollback process.
+    if (ret == 0)
+    {
+        provider().release(ws_handle_);
+    }
     lock.lock();
     if (ret)
     {
@@ -1152,8 +1181,8 @@ int wsrep::transaction::certify_commit(
             break;
         case s_must_abort:
             // We got BF aborted after succesful certification
-            // and before acquiring client context lock. This means that
-            // the trasaction must be replayed.
+            // and before acquiring client state lock. The trasaction
+            // must be replayed.
             client_service_.will_replay();
             state(lock, s_must_replay);
             break;
@@ -1266,6 +1295,7 @@ void wsrep::transaction::streaming_rollback()
     debug_log_state("streaming_rollback enter");
     assert(state_ != s_must_replay);
     assert(streaming_context_.rolled_back() == false);
+    assert(is_streaming());
 
     if (bf_aborted_in_total_order_)
     {

@@ -236,7 +236,7 @@ int wsrep::client_state::enable_streaming(
     size_t fragment_size)
 {
     assert(mode_ == m_local);
-    if (transaction_.streaming_context().fragments_certified() &&
+    if (transaction_.is_streaming() &&
         transaction_.streaming_context().fragment_unit() !=
         fragment_unit)
     {

@@ -120,13 +120,45 @@ static int apply_write_set(wsrep::server_state& server_state,
                            const wsrep::const_buffer& data)
 {
     int ret(0);
-    if (wsrep::starts_transaction(ws_meta.flags()) &&
-        wsrep::commits_transaction(ws_meta.flags()) &&
-        wsrep::rolls_back_transaction(ws_meta.flags()))
+    // wsrep::log_info() << "apply_write_set: " << ws_meta;
+    if (wsrep::rolls_back_transaction(ws_meta.flags()))
     {
-        // Non streaming rollback (certification failed)
-        ret = high_priority_service.log_dummy_write_set(
-            ws_handle, ws_meta);
+        if (wsrep::starts_transaction(ws_meta.flags()))
+        {
+            // No transaction existed before, log a dummy write set
+            ret = high_priority_service.log_dummy_write_set(
+                ws_handle, ws_meta);
+        }
+        else
+        {
+            wsrep::high_priority_service* sa(
+                server_state.find_streaming_applier(
+                    ws_meta.server_id(), ws_meta.transaction_id()));
+            if (sa == 0)
+            {
+                // It is possible that rapid group membership changes
+                // may cause streaming transaction be rolled back before
+                // commit fragment comes in. Although this is a valid
+                // situation, log a warning if a sac cannot be found as
+                // it may be an indication of  a bug too.
+                wsrep::log_warning()
+                    << "Could not find applier context for "
+                    << ws_meta.server_id()
+                    << ": " << ws_meta.transaction_id();
+                ret = high_priority_service.log_dummy_write_set(
+                    ws_handle, ws_meta);
+            }
+            else
+            {
+                // rollback_fragment() consumes sa
+                ret = rollback_fragment(server_state,
+                                        high_priority_service,
+                                        sa,
+                                        ws_handle,
+                                        ws_meta,
+                                        data);
+            }
+        }
     }
     else if (wsrep::starts_transaction(ws_meta.flags()) &&
              wsrep::commits_transaction(ws_meta.flags()))
@@ -223,36 +255,6 @@ static int apply_write_set(wsrep::server_state& server_state,
                                       ws_meta,
                                       data);
             }
-        }
-    }
-    else if (wsrep::rolls_back_transaction(ws_meta.flags()))
-    {
-        wsrep::high_priority_service* sa(
-            server_state.find_streaming_applier(
-                ws_meta.server_id(), ws_meta.transaction_id()));
-        if (sa == 0)
-        {
-            // It is possible that rapid group membership changes
-            // may cause streaming transaction be rolled back before
-            // commit fragment comes in. Although this is a valid
-            // situation, log a warning if a sac cannot be found as
-            // it may be an indication of  a bug too.
-            wsrep::log_warning()
-                << "Could not find applier context for "
-                << ws_meta.server_id()
-                << ": " << ws_meta.transaction_id();
-            ret = high_priority_service.log_dummy_write_set(
-                ws_handle, ws_meta);
-        }
-        else
-        {
-            // Rollback fragment consumes sa
-            ret = rollback_fragment(server_state,
-                                    high_priority_service,
-                                    sa,
-                                    ws_handle,
-                                    ws_meta,
-                                    data);
         }
     }
     else

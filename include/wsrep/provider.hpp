@@ -16,6 +16,7 @@
 
 #include <string>
 #include <vector>
+#include <ostream>
 
 namespace wsrep
 {
@@ -128,6 +129,16 @@ namespace wsrep
         int flags_;
     };
 
+    static inline
+    std::ostream& operator<<(std::ostream& os, const wsrep::ws_meta& ws_meta)
+    {
+        os << "gtid: " << ws_meta.gtid()
+           << " server_id: " << ws_meta.server_id()
+           << " client_id: " << ws_meta.client_id()
+           << " trx_id: " << ws_meta.transaction_id()
+           << " flags: " << ws_meta.flags();
+        return os;
+    }
 
     // Abstract interface for provider implementations
     class provider

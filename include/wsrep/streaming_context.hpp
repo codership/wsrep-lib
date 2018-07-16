@@ -24,7 +24,8 @@ namespace wsrep
         };
 
         streaming_context()
-            : fragments_()
+            : fragments_certified_()
+            , fragments_()
             , rollback_replicated_for_()
             , fragment_unit_()
             , fragment_size_()
@@ -51,20 +52,31 @@ namespace wsrep
             fragment_size_ = 0;
         }
 
-        void certified(wsrep::seqno seqno, size_t bytes)
+        void certified(size_t bytes)
         {
-            fragments_.push_back(seqno);
+            ++fragments_certified_;
             bytes_certified_ += bytes;
-        }
-
-        void applied(wsrep::seqno seqno)
-        {
-            fragments_.push_back(seqno);
         }
 
         size_t fragments_certified() const
         {
+            return fragments_certified_;
+        }
+
+        void stored(wsrep::seqno seqno)
+        {
+            fragments_.push_back(seqno);
+        }
+
+        size_t fragments_stored() const
+        {
             return fragments_.size();
+        }
+
+        void applied(wsrep::seqno seqno)
+        {
+            ++fragments_certified_;
+            fragments_.push_back(seqno);
         }
 
         size_t bytes_certified() const
@@ -84,22 +96,36 @@ namespace wsrep
                     wsrep::transaction_id::undefined());
         }
 
-        size_t unit_counter() const { return unit_counter_; }
+        size_t unit_counter() const
+        {
+            return unit_counter_;
+        }
+
         void increment_unit_counter(size_t inc)
-        { unit_counter_ += inc; }
-        void reset_unit_counter() { unit_counter_ = 0; }
+        {
+            unit_counter_ += inc;
+        }
+
+        void reset_unit_counter()
+        {
+            unit_counter_ = 0;
+        }
+
         const std::vector<wsrep::seqno>& fragments() const
         {
             return fragments_;
         }
+
         void cleanup()
         {
+            fragments_certified_ = 0;
             fragments_.clear();
             rollback_replicated_for_ = wsrep::transaction_id::undefined();
             bytes_certified_ = 0;
             unit_counter_ = 0;
         }
     private:
+        size_t fragments_certified_;
         std::vector<wsrep::seqno> fragments_;
         wsrep::transaction_id rollback_replicated_for_;
         enum fragment_unit fragment_unit_;

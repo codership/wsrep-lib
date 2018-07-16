@@ -169,6 +169,11 @@ namespace wsrep
         virtual bool is_replaying() const = 0;
 
         bool must_exit() const { return must_exit_; }
+
+        /**
+         * Debug facility to crash the server at given point.
+         */
+        virtual void debug_crash(const char* crash_point) = 0;
     protected:
         wsrep::server_state& server_state_;
         bool must_exit_;

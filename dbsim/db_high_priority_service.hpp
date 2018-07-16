@@ -37,9 +37,10 @@ namespace db
         void switch_execution_context(wsrep::high_priority_service&) override
         { }
         int log_dummy_write_set(const wsrep::ws_handle&,
-                                const wsrep::ws_meta&)
+                                const wsrep::ws_meta&) override
         { return 0; }
-        bool is_replaying() const;
+        bool is_replaying() const override;
+        void debug_crash(const char*) override { }
     private:
         high_priority_service(const high_priority_service&);
         high_priority_service& operator=(const high_priority_service&);

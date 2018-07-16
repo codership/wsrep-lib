@@ -44,11 +44,14 @@ static int apply_fragment(wsrep::server_state& server_state,
     {
         wsrep::high_priority_switch sw(high_priority_service,
                                        streaming_applier);
+
         ret = streaming_applier.apply_write_set(ws_meta, data);
         streaming_applier.after_apply();
     }
+    high_priority_service.debug_crash("crash_apply_cb_before_append_frag");
     ret = ret || high_priority_service.append_fragment_and_commit(
         ws_handle, ws_meta, data);
+    high_priority_service.debug_crash("crash_apply_cb_after_append_frag");
     high_priority_service.after_apply();
     return ret;
 }
@@ -67,9 +70,17 @@ static int commit_fragment(wsrep::server_state& server_state,
     {
         wsrep::high_priority_switch sw(
             high_priority_service, *streaming_applier);
-        ret = streaming_applier->apply_write_set(ws_meta, data) ||
-            streaming_applier->remove_fragments(ws_meta) ||
-            streaming_applier->commit(ws_handle, ws_meta);
+        ret = streaming_applier->apply_write_set(ws_meta, data);
+        streaming_applier->debug_crash(
+            "crash_apply_cb_before_fragment_removal");
+        ret = ret || streaming_applier->remove_fragments(ws_meta);
+        streaming_applier->debug_crash(
+            "crash_apply_cb_after_fragment_removal");
+        streaming_applier->debug_crash(
+            "crash_commit_cb_before_last_fragment_commit");
+        ret = ret || streaming_applier->commit(ws_handle, ws_meta);
+        streaming_applier->debug_crash(
+            "crash_commit_cb_last_fragment_commit_success");
         streaming_applier->after_apply();
     }
     if (ret == 0)

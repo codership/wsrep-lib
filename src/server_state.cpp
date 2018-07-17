@@ -990,7 +990,18 @@ void wsrep::server_state::close_foreign_sr_transactions(
             streaming_clients_map::iterator i(streaming_clients_.begin());
             wsrep::client_id client_id(i->first);
             wsrep::transaction_id transaction_id(i->second->transaction().id());
+            // It is safe to unlock the server state temporarily here.
+            // The processing happens inside view handler which is
+            // protected by the provider commit ordering critical
+            // section. The lock must be unlocked temporarily to
+            // allow converting the current client to streaming
+            // applier in transaction::streaming_rollback().
+            // The iterator i may be invalidated when the server state
+            // remains unlocked, so it should not be accessed after
+            // the bf abort call.
+            lock.unlock();
             i->second->total_order_bf_abort(current_view_.view_seqno());
+            lock.lock();
             streaming_clients_map::const_iterator found_i;
             while ((found_i = streaming_clients_.find(client_id)) !=
                    streaming_clients_.end() &&

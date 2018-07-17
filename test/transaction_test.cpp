@@ -1219,9 +1219,15 @@ BOOST_FIXTURE_TEST_CASE(transaction_statement_streaming_cert_fail,
     sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
     BOOST_REQUIRE(cc.after_statement());
     BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
-    BOOST_REQUIRE(sc.provider().fragments() == 0);
+    // Note: Due to possible limitation in wsrep-API error codes
+    // or a bug in current Galera provider, rollback fragment may be
+    // replicated even in case of certification failure.
+    // If the limitation is lifted later on or the provider is fixed,
+    // the above check should be change for fragments == 0,
+    // rollback_fragments == 0.
+    BOOST_REQUIRE(sc.provider().fragments() == 1);
     BOOST_REQUIRE(sc.provider().start_fragments() == 0);
-    BOOST_REQUIRE(sc.provider().rollback_fragments() == 0);
+    BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

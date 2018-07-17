@@ -73,8 +73,10 @@ namespace wsrep
          * Remove fragments from the storage within current transaction.
          * Fragment removal will be committed once the current transaction
          * commits.
+         *
+         * @return Zero in case of success, non-zero on failure.
          */
-        virtual void remove_fragments() = 0;
+        virtual int remove_fragments() = 0;
 
         //
         // Rollback

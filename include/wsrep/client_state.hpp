@@ -346,6 +346,7 @@ namespace wsrep
                               const wsrep::ws_meta& meta)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(mode_ == m_high_priority);
             return transaction_.start_transaction(wsh, meta);
         }
@@ -355,6 +356,7 @@ namespace wsrep
         int before_prepare()
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_exec);
             return transaction_.before_prepare(lock);
         }
@@ -362,30 +364,35 @@ namespace wsrep
         int after_prepare()
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_exec);
             return transaction_.after_prepare(lock);
         }
 
         int before_commit()
         {
+            assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_exec || mode_ == m_local);
             return transaction_.before_commit();
         }
 
         int ordered_commit()
         {
+            assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_exec || mode_ == m_local);
             return transaction_.ordered_commit();
         }
 
         int after_commit()
         {
+            assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_exec || mode_ == m_local);
             return transaction_.after_commit();
         }
         /** @} */
         int before_rollback()
         {
+            assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_idle ||
                    state_ == s_exec ||
                    state_ == s_result ||
@@ -395,6 +402,7 @@ namespace wsrep
 
         int after_rollback()
         {
+            assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_idle ||
                    state_ == s_exec ||
                    state_ == s_result ||
@@ -440,6 +448,7 @@ namespace wsrep
             assert(mode_ == m_local || transaction_.is_streaming());
             return transaction_.total_order_bf_abort(lock, bf_seqno);
         }
+
         /**
          * Adopt a streaming transaction state. This is must be
          * called from high_priority_service::adopt_transaction()

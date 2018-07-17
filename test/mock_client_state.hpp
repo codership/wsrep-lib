@@ -78,8 +78,7 @@ namespace wsrep
                             int,
                             const wsrep::const_buffer&) WSREP_OVERRIDE
         { return 0; }
-        void remove_fragments()
-            WSREP_OVERRIDE { }
+        int remove_fragments() WSREP_OVERRIDE { return 0; }
         void will_replay() WSREP_OVERRIDE { }
 
         enum wsrep::provider::status

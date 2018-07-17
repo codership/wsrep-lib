@@ -253,6 +253,7 @@ int wsrep::transaction::after_row()
             break;
         }
     }
+    debug_log_state("after_row_leave");
     return 0;
 }
 
@@ -291,7 +292,11 @@ int wsrep::transaction::before_prepare(
             }
             else
             {
-                client_service_.remove_fragments();
+                ret = client_service_.remove_fragments();
+                if (ret)
+                {
+                    client_state_.override_error(wsrep::e_deadlock_error);
+                }
             }
             lock.lock();
             client_service_.debug_crash(
@@ -307,7 +312,7 @@ int wsrep::transaction::before_prepare(
         break;
     }
 
-    assert(state() == s_preparing);
+    assert(state() == s_preparing || (ret && state() == s_must_abort));
     debug_log_state("before_prepare_leave");
     return ret;
 }
@@ -861,6 +866,18 @@ bool wsrep::transaction::bf_abort(
                 client_state_.server_state().stop_streaming_applier(
                     server_id_, id_);
             }
+            else if (client_state_.mode() == wsrep::client_state::m_local &&
+                     is_streaming())
+            {
+                streaming_context_.rolled_back(id_);
+                enum wsrep::provider::status ret;
+                if ((ret = provider().rollback(id_)))
+                {
+                    wsrep::log_warning()
+                        << "Failed to replicate rollback fragment for "
+                        << id_ << ": " << ret;
+                }
+            }
             lock.unlock();
             server_service_.background_rollback(client_state_);
         }
@@ -994,6 +1011,7 @@ int wsrep::transaction::certify_fragment(
     }
     int ret(0);
     // Storage service scope
+    enum wsrep::provider::status cert_ret(wsrep::provider::success);
     {
         scoped_storage_service<storage_service_deleter>
             sr_scope(
@@ -1032,11 +1050,10 @@ int wsrep::transaction::certify_fragment(
         client_service_.debug_crash(
             "crash_replicate_fragment_before_certify");
         wsrep::ws_meta sr_ws_meta;
-        enum wsrep::provider::status
-            cert_ret(provider().certify(client_state_.id(),
-                                        ws_handle_,
-                                        flags(),
-                                        sr_ws_meta));
+        cert_ret = provider().certify(client_state_.id(),
+                                      ws_handle_,
+                                      flags(),
+                                      sr_ws_meta);
         client_service_.debug_crash(
             "crash_replicate_fragment_after_certify");
         switch (cert_ret)
@@ -1061,6 +1078,28 @@ int wsrep::transaction::certify_fragment(
             }
             client_service_.debug_crash(
                 "crash_replicate_fragment_success");
+            break;
+        case wsrep::provider::error_bf_abort:
+        case wsrep::provider::error_certification_failed:
+            // Streaming transcation got BF aborted, so it must roll
+            // back. Roll back the fragment storage operation out of
+            // order as the commit order will be grabbed later on
+            // during rollback process. Mark the fragment as certified
+            // though in streaming context in order to enter streaming
+            // rollback codepath.
+            //
+            // Note that despite we handle error_certification_failed
+            // here, we mark the transaction as streaming. Apparently
+            // the provider may return status corresponding to certification
+            // failure even if the fragment has passed certification.
+            // This may be a bug in provider implementation or a limitation
+            // of error codes defined in wsrep-API. In order to make
+            // sure that the transaction will be cleaned on other servers,
+            // we take a risk of sending one rollback fragment for nothing.
+            storage_service.rollback(wsrep::ws_handle(),
+                                     wsrep::ws_meta());
+            streaming_context_.certified(data.size());
+            ret = 1;
             break;
         default:
             // Storage service rollback must be done out of order,
@@ -1092,11 +1131,11 @@ int wsrep::transaction::certify_fragment(
         {
             state(lock, s_must_abort);
         }
-        client_state_.override_error(wsrep::e_deadlock_error);
+        client_state_.override_error(wsrep::e_deadlock_error, cert_ret);
     }
     else if (state_ == s_must_abort)
     {
-        client_state_.override_error(wsrep::e_deadlock_error);
+        client_state_.override_error(wsrep::e_deadlock_error, cert_ret);
     }
     else
     {
@@ -1300,7 +1339,7 @@ void wsrep::transaction::streaming_rollback()
 {
     debug_log_state("streaming_rollback enter");
     assert(state_ != s_must_replay);
-    assert(streaming_context_.rolled_back() == false);
+    // assert(streaming_context_.rolled_back() == false);
     assert(is_streaming());
 
     if (bf_aborted_in_total_order_)
@@ -1316,14 +1355,21 @@ void wsrep::transaction::streaming_rollback()
         // rolled back.
         client_state_.server_state_.convert_streaming_client_to_applier(
             &client_state_);
+        const bool was_rolled_back_for(streaming_context_.rolled_back());
         streaming_context_.cleanup();
-        streaming_context_.rolled_back(id_);
         client_service_.debug_sync("wsrep_before_SR_rollback");
-        enum wsrep::provider::status ret;
-        if ((ret = provider().rollback(id_)))
+        // Send a rollback fragment only if it was not sent before
+        // for this transaction.
+        if (was_rolled_back_for == false)
         {
-            wsrep::log_warning() << "Failed to replicate rollback fragment for "
-                                 << id_ << ": " << ret;
+            streaming_context_.rolled_back(id_);
+            enum wsrep::provider::status ret;
+            if ((ret = provider().rollback(id_)))
+            {
+                wsrep::log_warning()
+                    << "Failed to replicate rollback fragment for "
+                    << id_ << ": " << ret;
+            }
         }
     }
     debug_log_state("streaming_rollback leave");
@@ -1366,8 +1412,8 @@ void wsrep::transaction::debug_log_state(
 {
     WSREP_TC_LOG_DEBUG(
         1, context
-        << "\n    server: " << client_state_.server_state().id()
-        << ", client: " << client_state_.id().get()
+        << "\n    server: " << server_id_
+        << ", client: " << int64_t(client_state_.id().get())
         << ", state: " << wsrep::to_c_string(client_state_.state())
         << ", mode: " << wsrep::to_c_string(client_state_.mode())
         << "\n    trx_id: " << int64_t(id_.get())
@@ -1377,9 +1423,11 @@ void wsrep::transaction::debug_log_state(
         << "    state: " << wsrep::to_c_string(state_)
         << ", bfa_state: " << wsrep::to_c_string(bf_abort_state_)
         << ", error: " << wsrep::to_c_string(client_state_.current_error())
+        << ", status: " << client_state_.current_error_status()
         << "\n"
         << "    is_sr: " << is_streaming()
         << ", frags: " << streaming_context_.fragments_certified()
+        << ", frags size: " << streaming_context_.fragments().size()
         << ", unit: " << streaming_context_.fragment_unit()
         << ", size: " << streaming_context_.fragment_size()
         << ", counter: " << streaming_context_.unit_counter()

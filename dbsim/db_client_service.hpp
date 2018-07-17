@@ -19,46 +19,29 @@ namespace db
         client_service(db::client& client);
 
         bool do_2pc() const override;
-
-        bool interrupted() const override
-        {
-            return false;
-        }
-
+        bool interrupted() const override { return false; }
         void reset_globals() override { }
-
         void store_globals() override { }
-
         int prepare_data_for_replication() override
         {
             return 0;
         }
-
         void cleanup_transaction() override { }
-
         size_t bytes_generated() const override
         {
             return 0;
         }
-
         bool statement_allowed_for_streaming() const override
         {
             return true;
         }
-
         int prepare_fragment_for_replication(wsrep::mutable_buffer&) override
         {
             return 0;
         }
-
-        void remove_fragments() override
-        { }
-
+        int remove_fragments() override { return 0; }
         int bf_rollback() override;
-
-        void will_replay() override
-        { }
-
+        void will_replay() override { }
         void wait_for_replayers(wsrep::unique_lock<wsrep::mutex>&) override { }
         enum wsrep::provider::status replay()
             override;

@@ -67,6 +67,7 @@ int wsrep::client_state::before_command()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("before_command: enter");
+    store_globals(); // Marks the control for this thread
     assert(state_ == s_idle);
     if (transaction_.active() &&
         server_state_.rollback_mode() == wsrep::server_state::rm_sync)

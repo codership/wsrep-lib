@@ -272,6 +272,10 @@ static int apply_write_set(wsrep::server_state& server_state,
     {
         assert(0);
     }
+    if (ret)
+    {
+        wsrep::log_info() << "Failed to apply write set: " << ws_meta;
+    }
     return ret;
 }
 

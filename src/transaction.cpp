@@ -609,6 +609,17 @@ int wsrep::transaction::before_rollback()
         break;
     }
 
+    debug_log_state("before_rollback_leave");
+    return 0;
+}
+
+int wsrep::transaction::after_rollback()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
+    debug_log_state("after_rollback_enter");
+    assert(state() == s_aborting ||
+           state() == s_must_replay);
+
     if (is_streaming() && bf_aborted_in_total_order_)
     {
         lock.unlock();
@@ -625,17 +636,6 @@ int wsrep::transaction::before_rollback()
         lock.lock();
         streaming_context_.cleanup();
     }
-
-    debug_log_state("before_rollback_leave");
-    return 0;
-}
-
-int wsrep::transaction::after_rollback()
-{
-    wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
-    debug_log_state("after_rollback_enter");
-    assert(state() == s_aborting ||
-           state() == s_must_replay);
 
     if (is_streaming() && state() != s_must_replay)
     {

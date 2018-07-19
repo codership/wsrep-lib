@@ -688,6 +688,11 @@ void wsrep::server_state::on_view(const wsrep::view& view,
         wsrep::log_info() << "Non-primary view";
         if (view.final())
         {
+            assert(high_priority_service);
+            if (high_priority_service)
+            {
+                close_transactions_at_disconnect(*high_priority_service);
+            }
             state(lock, s_disconnected);
         }
         else if (state_ != s_disconnecting)
@@ -698,6 +703,11 @@ void wsrep::server_state::on_view(const wsrep::view& view,
     else
     {
         assert(view.final());
+        assert(high_priority_service);
+        if (high_priority_service)
+        {
+            close_transactions_at_disconnect(*high_priority_service);
+        }
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
         state(lock, s_disconnected);
         id_ = wsrep::id::undefined();
@@ -1052,5 +1062,27 @@ void wsrep::server_state::close_foreign_sr_transactions(
         {
             ++i;
         }
+    }
+}
+
+void wsrep::server_state::close_transactions_at_disconnect(
+    wsrep::high_priority_service& high_priority_service)
+{
+    // Close streaming applier without removing fragments
+    // from fragment storage. When the server is started again,
+    // it must be able to recover ongoing streaming transactions.
+    streaming_appliers_map::iterator i(streaming_appliers_.begin());
+    while (i != streaming_appliers_.end())
+    {
+        wsrep::high_priority_service* streaming_applier(i->second);
+        {
+            wsrep::high_priority_switch sw(high_priority_service,
+                                           *streaming_applier);
+            streaming_applier->rollback(
+                wsrep::ws_handle(), wsrep::ws_meta());
+            streaming_applier->after_apply();
+        }
+        streaming_appliers_.erase(i++);
+        server_service_.release_high_priority_service(streaming_applier);
     }
 }

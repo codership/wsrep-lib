@@ -574,6 +574,9 @@ namespace wsrep
             wsrep::unique_lock<wsrep::mutex>&,
             wsrep::high_priority_service&);
 
+        // Close transactions when handling disconnect from the group.
+        void close_transactions_at_disconnect(wsrep::high_priority_service&);
+
         wsrep::mutex& mutex_;
         wsrep::condition_variable& cond_;
         wsrep::server_service& server_service_;

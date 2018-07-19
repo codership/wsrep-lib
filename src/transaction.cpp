@@ -608,6 +608,24 @@ int wsrep::transaction::before_rollback()
         assert(0);
         break;
     }
+
+    if (is_streaming() && bf_aborted_in_total_order_)
+    {
+        lock.unlock();
+        scoped_storage_service<storage_service_deleter>
+            sr_scope(
+                client_service_,
+                server_service_.storage_service(client_service_),
+                storage_service_deleter(server_service_));
+        wsrep::storage_service& storage_service(
+            sr_scope.storage_service());
+        storage_service.adopt_transaction(*this);
+        storage_service.remove_fragments();
+        storage_service.commit(wsrep::ws_handle(), wsrep::ws_meta());
+        lock.lock();
+        streaming_context_.cleanup();
+    }
+
     debug_log_state("before_rollback_leave");
     return 0;
 }
@@ -1156,6 +1174,7 @@ int wsrep::transaction::certify_fragment(
             streaming_rollback();
         }
         client_state_.override_error(wsrep::e_deadlock_error, cert_ret);
+        ret = 1;
     }
     else
     {
@@ -1366,6 +1385,7 @@ void wsrep::transaction::streaming_rollback()
         if (bf_aborted_in_total_order_)
         {
             client_state_.server_state_.stop_streaming_client(&client_state_);
+            streaming_context_.rolled_back(id_);
         }
         else
         {
@@ -1378,8 +1398,6 @@ void wsrep::transaction::streaming_rollback()
                 &client_state_);
 
             streaming_context_.cleanup();
-            // Send a rollback fragment only if it was not sent before
-            // for this transaction.
             streaming_context_.rolled_back(id_);
             enum wsrep::provider::status ret;
             if ((ret = provider().rollback(id_)))

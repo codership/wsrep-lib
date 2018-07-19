@@ -23,6 +23,8 @@ namespace db
         { throw wsrep::not_implemented_error(); }
         int update_fragment_meta(const wsrep::ws_meta&) override
         { throw wsrep::not_implemented_error(); }
+        int remove_fragments() override
+        { throw wsrep::not_implemented_error(); }
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) override
         { throw wsrep::not_implemented_error(); }
         int rollback(const wsrep::ws_handle&, const wsrep::ws_meta&)

@@ -31,7 +31,7 @@ class mock_server_state;
 
         int update_fragment_meta(const wsrep::ws_meta&) WSREP_OVERRIDE
         { return 0; }
-
+        int remove_fragments() WSREP_OVERRIDE { return 0; }
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&)
             WSREP_OVERRIDE;
 

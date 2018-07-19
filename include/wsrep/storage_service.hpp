@@ -56,6 +56,12 @@ namespace wsrep
         virtual int update_fragment_meta(const wsrep::ws_meta&) = 0;
 
         /**
+         * Remove fragments from storage. The storage service must have
+         * adopted a transaction prior this call.
+         */
+        virtual int remove_fragments() = 0;
+
+        /**
          * Commit the transaction.
          */
         virtual int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) = 0;

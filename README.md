@@ -201,7 +201,7 @@ Methods:
 
 # Example usage
 
-```
+```c++
 class dbms_server : public wsrep::server_context
 {
   public:

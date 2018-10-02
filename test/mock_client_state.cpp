@@ -21,7 +21,7 @@ int wsrep::mock_client_service::bf_rollback()
 }
 
 enum wsrep::provider::status
-wsrep::mock_client_service::replay() WSREP_OVERRIDE
+wsrep::mock_client_service::replay()
 {
     wsrep::mock_high_priority_service hps(client_state_.server_state(),
                                           &client_state_, true);

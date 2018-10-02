@@ -33,8 +33,7 @@ static bool is_bootstrap(const std::string& cluster_address, bool bootstrap)
     return (bootstrap || cluster_address == "gcomm://");
 }
 
-static int apply_fragment(wsrep::server_state& server_state,
-                          wsrep::high_priority_service& high_priority_service,
+static int apply_fragment(wsrep::high_priority_service& high_priority_service,
                           wsrep::high_priority_service& streaming_applier,
                           const wsrep::ws_handle& ws_handle,
                           const wsrep::ws_meta& ws_meta,
@@ -97,8 +96,7 @@ static int rollback_fragment(wsrep::server_state& server_state,
                              wsrep::high_priority_service& high_priority_service,
                              wsrep::high_priority_service* streaming_applier,
                              const wsrep::ws_handle& ws_handle,
-                             const wsrep::ws_meta& ws_meta,
-                             const wsrep::const_buffer& data)
+                             const wsrep::ws_meta& ws_meta)
 {
     int ret= 0;
     // Adopts transaction state and starts a transaction for
@@ -166,8 +164,7 @@ static int apply_write_set(wsrep::server_state& server_state,
                                         high_priority_service,
                                         sa,
                                         ws_handle,
-                                        ws_meta,
-                                        data);
+                                        ws_meta);
             }
         }
     }
@@ -193,8 +190,7 @@ static int apply_write_set(wsrep::server_state& server_state,
         server_state.start_streaming_applier(
             ws_meta.server_id(), ws_meta.transaction_id(), sa);
         sa->start_transaction(ws_handle, ws_meta);
-        ret = apply_fragment(server_state,
-                             high_priority_service,
+        ret = apply_fragment(high_priority_service,
                              *sa,
                              ws_handle,
                              ws_meta,
@@ -220,8 +216,7 @@ static int apply_write_set(wsrep::server_state& server_state,
         }
         else
         {
-            ret = apply_fragment(server_state,
-                                 high_priority_service,
+            ret = apply_fragment(high_priority_service,
                                  *sa,
                                  ws_handle,
                                  ws_meta,

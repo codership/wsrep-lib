@@ -20,7 +20,8 @@ namespace wsrep
                             wsrep::client_service& client_service,
                             const wsrep::client_id& id,
                             enum wsrep::client_state::mode mode)
-            : wsrep::client_state(mutex_, cond_, server_state, client_service, id, mode)
+            : wsrep::client_state(mutex_, cond_, server_state, client_service,
+                                  id, mode)
             , mutex_()
             , cond_()
         { }
@@ -59,9 +60,9 @@ namespace wsrep
             , aborts_()
         { }
 
-        int apply_write_set(const wsrep::const_buffer&) WSREP_OVERRIDE;
+        int apply_write_set(const wsrep::const_buffer&);
 
-        int apply_toi(const wsrep::const_buffer&) WSREP_OVERRIDE;
+        int apply_toi(const wsrep::const_buffer&);
 
         int bf_rollback() WSREP_OVERRIDE;
 
@@ -76,7 +77,7 @@ namespace wsrep
 
         int append_fragment(const wsrep::transaction&,
                             int,
-                            const wsrep::const_buffer&) WSREP_OVERRIDE
+                            const wsrep::const_buffer&)
         { return 0; }
         int remove_fragments() WSREP_OVERRIDE { return 0; }
         void will_replay() WSREP_OVERRIDE { }

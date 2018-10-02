@@ -104,7 +104,7 @@ namespace wsrep
             WSREP_OVERRIDE
         {
             mock_high_priority_service* mhps(
-                dynamic_cast<mock_high_priority_service*>(high_priority_service));
+                reinterpret_cast<mock_high_priority_service*>(high_priority_service));
             wsrep::client_state* cs(mhps->client_state());
             cs->after_command_before_result();
             cs->after_command_after_result();

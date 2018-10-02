@@ -8,7 +8,7 @@
  * ==========================
  *
  * This file defines an interface for WSREP Server State.
- * The Server State t will encapsulate server identification,
+ * The Server State will encapsulate server identification,
  * server state and server capabilities. The class also
  * defines an interface for manipulating server state, applying
  * of remote transaction write sets, processing SST requests,

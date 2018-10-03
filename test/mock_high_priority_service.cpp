@@ -5,14 +5,6 @@
 #include "mock_high_priority_service.hpp"
 #include "mock_server_state.hpp"
 
-int wsrep::mock_high_priority_service::apply(
-    const wsrep::ws_handle& ws_handle,
-    const wsrep::ws_meta& ws_meta,
-    const wsrep::const_buffer& data)
-{
-    return server_state_.on_apply(*this, ws_handle, ws_meta, data);
-}
-
 int wsrep::mock_high_priority_service::start_transaction(
     const wsrep::ws_handle& ws_handle, const wsrep::ws_meta& ws_meta)
 {

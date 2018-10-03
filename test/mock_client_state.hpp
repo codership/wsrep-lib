@@ -60,10 +60,6 @@ namespace wsrep
             , aborts_()
         { }
 
-        int apply_write_set(const wsrep::const_buffer&);
-
-        int apply_toi(const wsrep::const_buffer&);
-
         int bf_rollback() WSREP_OVERRIDE;
 
         bool do_2pc() const WSREP_OVERRIDE
@@ -75,10 +71,6 @@ namespace wsrep
 
         void emergency_shutdown() WSREP_OVERRIDE { ++aborts_; }
 
-        int append_fragment(const wsrep::transaction&,
-                            int,
-                            const wsrep::const_buffer&)
-        { return 0; }
         int remove_fragments() WSREP_OVERRIDE { return 0; }
         void will_replay() WSREP_OVERRIDE { }
 

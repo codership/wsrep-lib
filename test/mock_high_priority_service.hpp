@@ -24,10 +24,6 @@ namespace wsrep
             , replaying_(replaying)
         { }
 
-        int apply(const wsrep::ws_handle&,
-                  const wsrep::ws_meta&,
-                  const wsrep::const_buffer&);
-
         int start_transaction(const wsrep::ws_handle&, const wsrep::ws_meta&)
             WSREP_OVERRIDE;
 

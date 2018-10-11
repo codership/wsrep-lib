@@ -358,6 +358,15 @@ namespace
             return WSREP_CB_FAILURE;
         }
     }
+    
+    int encrypt_cb(wsrep_enc_ctx_t*      /*ctx*/,
+                   const wsrep_buf_t*    /*input*/,
+                   void*                 /*output*/,
+                   wsrep_enc_direction_t /*direction*/,
+                   bool                  /*final*/)
+    {
+        return WSREP_CB_SUCCESS;
+    }
 
     wsrep_cb_status_t apply_cb(void* ctx,
                                const wsrep_ws_handle_t* wsh,
@@ -497,6 +506,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     init_args.connected_cb = &connected_cb;
     init_args.view_cb = &view_cb;
     init_args.sst_request_cb = &sst_request_cb;
+    init_args.encrypt_cb = &encrypt_cb;
     init_args.apply_cb = &apply_cb;
     init_args.unordered_cb = 0;
     init_args.sst_donate_cb = &sst_donate_cb;

@@ -1,7 +1,4 @@
-[submodule "wsrep"]
-	path = wsrep
-	url = git@github.com:codership/wsrep-API.git
 [submodule "wsrep-API/v26"]
 	path = wsrep-API/v26
 	url = https://github.com/codership/wsrep-API.git
-	branch = "wsrep-API#20"
+	branch = master 

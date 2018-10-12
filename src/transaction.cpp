@@ -433,7 +433,7 @@ int wsrep::transaction::before_commit()
     case wsrep::client_state::m_high_priority:
         assert(certified());
         assert(ordered());
-        if (client_service_.do_2pc() == false)
+        if (state() == s_executing || state() == s_replaying)
         {
             ret = before_prepare(lock) || after_prepare(lock);
         }

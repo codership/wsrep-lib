@@ -19,7 +19,7 @@ add_test(NAME wsrep-lib_test
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/wsrep-lib_test
   )
 
-if (WITH_AUTO_TEST)
+if (WSREP_LIB_WITH_AUTO_TEST)
   set(UNIT_TEST wsrep-lib_test)
   add_custom_command(
     TARGET ${UNIT_TEST}

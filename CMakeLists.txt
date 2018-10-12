@@ -8,9 +8,22 @@ include(CheckIncludeFile)
 include(CTest)
 
 # Options
-option(WITH_AUTO_TEST "Run unit tests automatically after build" ON)
-option(WITH_ASAN "Enable address sanitizer" OFF)
-option(WITH_TSAN "Enable thread sanitizer" OFF)
+
+# Compile unit tests
+option(WSREP_LIB_WITH_UNIT_TESTS "Compile unit tests" ON)
+if (WSREP_LIB_WITH_UNIT_TESTS)
+  # Run tests automatically by default if compiled
+  option(WSREP_LIB_WITH_AUTO_TEST "Run unit tests automatically after build" ON)
+endif()
+
+# Build a sample program
+option(WSREP_LIB_WITH_DBSIM "Compile sample dbsim program" ON)
+
+option(WSREP_LIB_WITH_ASAN "Enable address sanitizer" OFF)
+option(WSREP_LIB_WITH_TSAN "Enable thread sanitizer" OFF)
+
+option(WSREP_LIB_WITH_DOCUMENTATION "Generate documentation" OFF)
+option(WSREP_LIB_WITH_COVERAGE "Compile with coverage instrumentation" OFF)
 
 # CXX flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Weffc++ -Woverloaded-virtual -g")
@@ -20,13 +33,14 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep-API/v26")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep")
 
-
-find_package(Boost 1.54.0 REQUIRED
-  unit_test_framework
-  program_options
-  filesystem
-  thread
-  )
+if (WSREP_LIB_WITH_UNIT_TESTS OR WSREP_LIB_WITH_DBSIM)
+  find_package(Boost 1.54.0 REQUIRED
+    unit_test_framework
+    program_options
+    filesystem
+    thread
+    )
+endif()
 
 # Coverage
 # To produce a coverage report, call cmake with -DWITH_COVERAGE=ON,
@@ -39,14 +53,14 @@ find_package(Boost 1.54.0 REQUIRED
 #
 # The coverage report output will be in directory root index.html
 #
-if (WITH_COVERAGE)
+if (WSREP_LIB_WITH_COVERAGE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage")
 endif()
-if (WITH_ASAN)
+if (WSREP_LIB_WITH_ASAN)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 endif()
-if (WITH_TSAN)
+if (WSREP_LIB_WITH_TSAN)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
 endif()
 
@@ -55,7 +69,7 @@ add_custom_target(coverage_report
   COMMAND genhtml --output-directory coverage_report lcov.info)
 
 
-if (WITH_DOCUMENTATION)
+if (WSREP_LIB_WITH_DOCUMENTATION)
   find_package(Doxygen REQUIRED)
   add_custom_target(doc ALL
     COMMAND doxygen ${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile
@@ -66,6 +80,10 @@ endif()
 
 add_subdirectory(src)
 add_subdirectory(wsrep-API)
-add_subdirectory(test)
-add_subdirectory(dbsim)
+if (WSREP_LIB_WITH_UNIT_TESTS)
+  add_subdirectory(test)
+endif()
+if (WSREP_LIB_WITH_DBSIM)
+  add_subdirectory(dbsim)
+endif()
 

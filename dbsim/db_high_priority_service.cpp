@@ -8,7 +8,7 @@
 
 db::high_priority_service::high_priority_service(
     db::server& server, db::client& client)
-    : wsrep::high_priority_service(server_.server_state())
+    : wsrep::high_priority_service(server.server_state())
     , server_(server)
     , client_(client)
 { }

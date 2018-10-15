@@ -520,7 +520,9 @@ int wsrep::transaction::after_commit()
                client_state_.mode() == wsrep::client_state::m_high_priority);
         if (client_state_.mode() == wsrep::client_state::m_local)
         {
+            lock.unlock();
             client_state_.server_state_.stop_streaming_client(&client_state_);
+            lock.lock();
         }
         clear_fragments();
     }
@@ -573,7 +575,7 @@ int wsrep::transaction::before_rollback()
             // Voluntary rollback
             if (is_streaming())
             {
-                streaming_rollback();
+                streaming_rollback(lock);
             }
             state(lock, s_aborting);
             break;
@@ -586,7 +588,7 @@ int wsrep::transaction::before_rollback()
             {
                 if (is_streaming())
                 {
-                    streaming_rollback();
+                    streaming_rollback(lock);
                 }
                 state(lock, s_aborting);
             }
@@ -594,14 +596,14 @@ int wsrep::transaction::before_rollback()
         case s_cert_failed:
             if (is_streaming())
             {
-                streaming_rollback();
+                streaming_rollback(lock);
             }
             state(lock, s_aborting);
             break;
         case s_aborting:
             if (is_streaming())
             {
-                streaming_rollback();
+                streaming_rollback(lock);
             }
             break;
         case s_must_replay:
@@ -899,7 +901,7 @@ bool wsrep::transaction::bf_abort(
         if (client_state_.mode() == wsrep::client_state::m_local &&
             is_streaming() && state() == s_executing)
         {
-            streaming_rollback();
+            streaming_rollback(lock);
         }
 
         if ((client_state_.state() == wsrep::client_state::s_idle &&
@@ -918,8 +920,10 @@ bool wsrep::transaction::bf_abort(
             state(lock, wsrep::transaction::s_aborting);
             if (client_state_.mode() == wsrep::client_state::m_high_priority)
             {
+                lock.unlock();
                 client_state_.server_state().stop_streaming_applier(
                     server_id_, id_);
+                lock.lock();
             }
 
             lock.unlock();
@@ -1170,11 +1174,13 @@ int wsrep::transaction::certify_fragment(
     {
         if (is_streaming() == false)
         {
+            lock.unlock();
             client_state_.server_state_.stop_streaming_client(&client_state_);
+            lock.lock();
         }
         else
         {
-            streaming_rollback();
+            streaming_rollback(lock);
         }
         if (state_ != s_must_abort)
         {
@@ -1186,7 +1192,7 @@ int wsrep::transaction::certify_fragment(
     {
         if (is_streaming())
         {
-            streaming_rollback();
+            streaming_rollback(lock);
         }
         client_state_.override_error(wsrep::e_deadlock_error, cert_ret);
         ret = 1;
@@ -1389,7 +1395,7 @@ int wsrep::transaction::append_sr_keys_for_commit()
     return ret;
 }
 
-void wsrep::transaction::streaming_rollback()
+void wsrep::transaction::streaming_rollback(wsrep::unique_lock<wsrep::mutex>& lock)
 {
     debug_log_state("streaming_rollback enter");
     assert(state_ != s_must_replay);
@@ -1399,7 +1405,9 @@ void wsrep::transaction::streaming_rollback()
     {
         if (bf_aborted_in_total_order_)
         {
+            lock.unlock();
             client_state_.server_state_.stop_streaming_client(&client_state_);
+            lock.lock();
             streaming_context_.rolled_back(id_);
         }
         else
@@ -1409,9 +1417,10 @@ void wsrep::transaction::streaming_rollback()
             // Adopt transaction will copy fragment set and appropriate
             // meta data. Mark current transaction streaming context
             // rolled back.
+            lock.unlock();
             client_state_.server_state_.convert_streaming_client_to_applier(
                 &client_state_);
-
+            lock.lock();
             streaming_context_.cleanup();
             streaming_context_.rolled_back(id_);
             enum wsrep::provider::status ret;

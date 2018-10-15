@@ -929,7 +929,8 @@ int wsrep::server_state::desync(wsrep::unique_lock<wsrep::mutex>& lock)
     return ret;
 }
 
-void wsrep::server_state::resync(wsrep::unique_lock<wsrep::mutex>& lock)
+void wsrep::server_state::resync(wsrep::unique_lock<wsrep::mutex>&
+                                 lock WSREP_UNUSED)
 {
     assert(lock.owns_lock());
     assert(desync_count_ > 0);

@@ -314,13 +314,12 @@ int wsrep::client_state::enter_toi(const wsrep::ws_meta& ws_meta)
 
 int wsrep::client_state::leave_toi()
 {
-    int ret;
+    int ret(0);
     if (toi_mode_ == m_local)
     {
         switch (provider().leave_toi(id_))
         {
         case wsrep::provider::success:
-            ret = 0;
             break;
         default:
             assert(0);

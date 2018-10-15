@@ -18,8 +18,8 @@
  */
 
 /** @file transaction.hpp */
-#ifndef WSREP_TRANSACTION_CONTEXT_HPP
-#define WSREP_TRANSACTION_CONTEXT_HPP
+#ifndef WSREP_TRANSACTION_HPP
+#define WSREP_TRANSACTION_HPP
 
 #include "provider.hpp"
 #include "server_state.hpp"
@@ -175,7 +175,7 @@ namespace wsrep
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
         int append_sr_keys_for_commit();
-        void streaming_rollback();
+        void streaming_rollback(wsrep::unique_lock<wsrep::mutex>&);
         void clear_fragments();
         void cleanup();
         void debug_log_state(const char*) const;
@@ -227,4 +227,4 @@ namespace wsrep
 
 }
 
-#endif // WSREP_TRANSACTION_CONTEXT_HPP
+#endif // WSREP_TRANSACTION_HPP

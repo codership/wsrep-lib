@@ -88,6 +88,7 @@
 #include "view.hpp"
 #include "transaction_id.hpp"
 #include "provider.hpp"
+#include "compiler.hpp"
 
 #include <vector>
 #include <string>
@@ -488,7 +489,8 @@ namespace wsrep
             return state(lock);
         }
 
-        enum state state(wsrep::unique_lock<wsrep::mutex>& lock) const
+        enum state state(wsrep::unique_lock<wsrep::mutex>&
+                         lock WSREP_UNUSED) const
         {
             assert(lock.owns_lock());
             return state_;

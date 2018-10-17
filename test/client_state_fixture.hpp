@@ -203,6 +203,7 @@ namespace
             BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
             cc.enable_streaming(wsrep::streaming_context::row, 1);
         }
+
         wsrep::mock_server_service server_service;
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;

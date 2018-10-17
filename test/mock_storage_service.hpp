@@ -29,8 +29,7 @@ class mock_server_state;
     class mock_storage_service : public wsrep::storage_service
     {
     public:
-        mock_storage_service(wsrep::mock_server_state&,
-                                 wsrep::client_id);
+        mock_storage_service(wsrep::server_state&, wsrep::client_id);
         ~mock_storage_service();
 
         int start_transaction(const wsrep::ws_handle&) WSREP_OVERRIDE;
@@ -56,7 +55,7 @@ class mock_server_state;
         void store_globals() WSREP_OVERRIDE { }
         void reset_globals() WSREP_OVERRIDE { }
     private:
-        wsrep::mock_server_state& server_state_;
+        wsrep::server_state& server_state_;
         wsrep::mock_client_service client_service_;
         wsrep::mock_client_state client_state_;
     };

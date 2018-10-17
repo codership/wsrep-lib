@@ -26,8 +26,9 @@ namespace
     struct applying_server_fixture
     {
         applying_server_fixture()
-            : ss("s1", "s1",
-                 wsrep::server_state::rm_sync)
+            : server_service(ss)
+            , ss("s1", "s1",
+                 wsrep::server_state::rm_sync, server_service)
             , cc(ss,
                  wsrep::client_id(1),
                  wsrep::client_state::m_high_priority)
@@ -41,8 +42,9 @@ namespace
                       wsrep::provider::flag::commit)
         {
             cc.open(cc.id());
-            cc.before_command();
+            BOOST_REQUIRE(cc.before_command() == 0);
         }
+        wsrep::mock_server_service server_service;
         wsrep::mock_server_state ss;
         wsrep::mock_client cc;
         wsrep::mock_high_priority_service hps;
@@ -55,7 +57,7 @@ namespace
         sst_first_server_fixture()
             : applying_server_fixture()
         {
-            ss.sst_before_init_ = true;
+            server_service.sst_before_init_ = true;
         }
     };
 
@@ -64,10 +66,9 @@ namespace
         init_first_server_fixture()
             : applying_server_fixture()
         {
-            ss.sst_before_init_ = false;
+            server_service.sst_before_init_ = false;
         }
     };
-
 }
 
 // Test on_apply() method for 1pc
@@ -121,24 +122,14 @@ BOOST_FIXTURE_TEST_CASE(server_state_applying_2pc_rollback,
     BOOST_REQUIRE(txc.state() == wsrep::transaction::s_aborted);
 }
 
-BOOST_AUTO_TEST_CASE(server_state_streaming)
+BOOST_FIXTURE_TEST_CASE(server_state_streaming, applying_server_fixture)
 {
-    wsrep::mock_server_state ss("s1", "s1",
-                                  wsrep::server_state::rm_sync);
-    wsrep::mock_client cc(ss,
-                          wsrep::client_id(1),
-                          wsrep::client_state::m_high_priority);
-    cc.debug_log_level(1);
-    wsrep::mock_high_priority_service hps(ss, &cc, false);
-    wsrep::ws_handle ws_handle(wsrep::transaction_id(1), (void*)1);
-    wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
-                           wsrep::stid(wsrep::id("1"),
-                                       wsrep::transaction_id(1),
-                                       wsrep::client_id(1)),
-                           wsrep::seqno(0),
-                           wsrep::provider::flag::start_transaction);
-    cc.open(cc.id());
-    BOOST_REQUIRE(cc.before_command() == 0);
+    ws_meta = wsrep::ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
+                             wsrep::stid(wsrep::id("1"),
+                                         wsrep::transaction_id(1),
+                                         wsrep::client_id(1)),
+                             wsrep::seqno(0),
+                             wsrep::provider::flag::start_transaction);
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer("1", 1)) == 0);
     BOOST_REQUIRE(ss.find_streaming_applier(
@@ -205,10 +196,10 @@ BOOST_FIXTURE_TEST_CASE(server_state_sst_first_boostrap,
     BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);
     ss.on_connect(wsrep::gtid(cluster_id, wsrep::seqno(0)));
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
-    ss.sync_point_enabled_ = "on_view_wait_initialized";
-    ss.sync_point_action_  = ss.spa_initialize;
+    server_service.sync_point_enabled_ = "on_view_wait_initialized";
+    server_service.sync_point_action_  = server_service.spa_initialize;
     ss.on_view(bootstrap_view, &hps);
-    ss.sync_point_enabled_ = "";
+    server_service.sync_point_enabled_ = "";
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_sync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);

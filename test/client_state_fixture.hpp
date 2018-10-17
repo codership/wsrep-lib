@@ -31,7 +31,8 @@ namespace
     struct replicating_client_fixture_sync_rm
     {
         replicating_client_fixture_sync_rm()
-            : sc("s1", "s1", wsrep::server_state::rm_sync)
+            : server_service(sc)
+            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc, wsrep::client_id(1),
                  wsrep::client_state::m_local)
             , tc(cc.transaction())
@@ -43,6 +44,7 @@ namespace
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
         }
+        wsrep::mock_server_service server_service;
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;
         const wsrep::transaction& tc;
@@ -51,7 +53,8 @@ namespace
     struct replicating_client_fixture_async_rm
     {
         replicating_client_fixture_async_rm()
-            : sc("s1", "s1", wsrep::server_state::rm_async)
+            : server_service(sc)
+            , sc("s1", "s1", wsrep::server_state::rm_async, server_service)
             , cc(sc, wsrep::client_id(1),
                  wsrep::client_state::m_local)
             , tc(cc.transaction())
@@ -63,6 +66,7 @@ namespace
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
         }
+        wsrep::mock_server_service server_service;
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;
         const wsrep::transaction& tc;
@@ -71,7 +75,8 @@ namespace
     struct replicating_client_fixture_2pc
     {
         replicating_client_fixture_2pc()
-            : sc("s1", "s1", wsrep::server_state::rm_sync)
+            : server_service(sc)
+            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,  wsrep::client_id(1),
                  wsrep::client_state::m_local)
             , tc(cc.transaction())
@@ -84,6 +89,7 @@ namespace
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
         }
+        wsrep::mock_server_service server_service;
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;
         const wsrep::transaction& tc;
@@ -92,7 +98,8 @@ namespace
     struct replicating_client_fixture_autocommit
     {
         replicating_client_fixture_autocommit()
-            : sc("s1", "s1", wsrep::server_state::rm_sync)
+            : server_service(sc)
+            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc, wsrep::client_id(1),
                  wsrep::client_state::m_local)
             , tc(cc.transaction())
@@ -105,6 +112,7 @@ namespace
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
         }
+        wsrep::mock_server_service server_service;
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;
         const wsrep::transaction& tc;
@@ -113,8 +121,9 @@ namespace
     struct applying_client_fixture
     {
         applying_client_fixture()
-            : sc("s1", "s1",
-                 wsrep::server_state::rm_async)
+            : server_service(sc)
+            , sc("s1", "s1",
+                 wsrep::server_state::rm_async, server_service)
             , cc(sc,
                  wsrep::client_id(1),
                  wsrep::client_state::m_high_priority)
@@ -136,6 +145,7 @@ namespace
             BOOST_REQUIRE(tc.certified() == true);
             BOOST_REQUIRE(tc.ordered() == true);
         }
+        wsrep::mock_server_service server_service;
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;
         const wsrep::transaction& tc;
@@ -144,8 +154,9 @@ namespace
     struct applying_client_fixture_2pc
     {
         applying_client_fixture_2pc()
-            : sc("s1", "s1",
-                 wsrep::server_state::rm_async)
+            : server_service(sc)
+            , sc("s1", "s1",
+                 wsrep::server_state::rm_async, server_service)
             , cc(sc,
                  wsrep::client_id(1),
                  wsrep::client_state::m_high_priority)
@@ -168,6 +179,7 @@ namespace
             BOOST_REQUIRE(tc.certified() == true);
             BOOST_REQUIRE(tc.ordered() == true);
         }
+        wsrep::mock_server_service server_service;
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;
         const wsrep::transaction& tc;
@@ -176,7 +188,8 @@ namespace
     struct streaming_client_fixture_row
     {
         streaming_client_fixture_row()
-            : sc("s1", "s1", wsrep::server_state::rm_sync)
+            : server_service(sc)
+            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,
                  wsrep::client_id(1),
                  wsrep::client_state::m_local)
@@ -190,6 +203,7 @@ namespace
             BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
             cc.enable_streaming(wsrep::streaming_context::row, 1);
         }
+        wsrep::mock_server_service server_service;
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;
         const wsrep::transaction& tc;
@@ -198,7 +212,8 @@ namespace
     struct streaming_client_fixture_byte
     {
         streaming_client_fixture_byte()
-            : sc("s1", "s1", wsrep::server_state::rm_sync)
+            : server_service(sc)
+            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,
                  wsrep::client_id(1),
                  wsrep::client_state::m_local)
@@ -212,6 +227,7 @@ namespace
             BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
             cc.enable_streaming(wsrep::streaming_context::bytes, 1);
         }
+        wsrep::mock_server_service server_service;
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;
         const wsrep::transaction& tc;
@@ -220,7 +236,8 @@ namespace
     struct streaming_client_fixture_statement
     {
         streaming_client_fixture_statement()
-            : sc("s1", "s1", wsrep::server_state::rm_sync)
+            : server_service(sc)
+            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,
                  wsrep::client_id(1),
                  wsrep::client_state::m_local)
@@ -235,6 +252,7 @@ namespace
             cc.enable_streaming(wsrep::streaming_context::row, 1);
         }
 
+        wsrep::mock_server_service server_service;
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;
         const wsrep::transaction& tc;

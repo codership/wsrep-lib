@@ -23,7 +23,7 @@
 #include "wsrep/client_state.hpp"
 
 wsrep::mock_storage_service::mock_storage_service(
-    wsrep::mock_server_state& server_state,
+    wsrep::server_state& server_state,
     wsrep::client_id client_id)
     : server_state_(server_state)
     , client_service_(client_state_)

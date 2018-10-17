@@ -270,7 +270,10 @@ namespace wsrep
          *
          * @throw wsrep::runtime_error if provider has not been loaded
          *
-         * @todo This should not be virtual.
+         * @todo This should not be virtual. However, currently there
+         *       is no mechanism for tests and integrations to provide
+         *       their own provider implementations, so this is kept virtual
+         *       for time being.
          */
         virtual wsrep::provider& provider() const
         {

@@ -17,8 +17,8 @@
  * along with wsrep-lib.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef WSREP_MOCK_SERVER_CONTEXT_HPP
-#define WSREP_MOCK_SERVER_CONTEXT_HPP
+#ifndef WSREP_MOCK_SERVER_STATE_HPP
+#define WSREP_MOCK_SERVER_STATE_HPP
 
 #include "wsrep/server_state.hpp"
 #include "wsrep/server_service.hpp"
@@ -31,50 +31,42 @@
 
 namespace wsrep
 {
-    class mock_server_state
-        : public wsrep::server_state
-        , public wsrep::server_service
+    class mock_server_service : public wsrep::server_service
     {
     public:
-        mock_server_state(const std::string& name,
-                            const std::string& id,
-                            enum wsrep::server_state::rollback_mode rollback_mode)
-            : wsrep::server_state(mutex_, cond_, *this,
-                                  name, id, "", "", "./", wsrep::gtid::undefined(), 1, rollback_mode)
-            , sync_point_enabled_()
+        mock_server_service(wsrep::server_state& server_state)
+            : sync_point_enabled_()
             , sync_point_action_()
             , sst_before_init_()
-            , mutex_()
-            , cond_()
-            , provider_(*this)
+            , server_state_(server_state)
             , last_client_id_(0)
             , last_transaction_id_(0)
         { }
 
-        wsrep::mock_provider& provider() const
-        { return provider_; }
-
         wsrep::storage_service* storage_service(wsrep::client_service&)
+            WSREP_OVERRIDE
         {
-            return new wsrep::mock_storage_service(*this,
+            return new wsrep::mock_storage_service(server_state_,
                                                    wsrep::client_id(++last_client_id_));
         }
 
         wsrep::storage_service* storage_service(wsrep::high_priority_service&)
+            WSREP_OVERRIDE
         {
-            return new wsrep::mock_storage_service(*this,
+            return new wsrep::mock_storage_service(server_state_,
                                                    wsrep::client_id(++last_client_id_));
         }
 
         void release_storage_service(wsrep::storage_service* storage_service)
+            WSREP_OVERRIDE
         {
             delete storage_service;
         }
 
-        wsrep::client_state* local_client_state()
+        wsrep::client_state* local_client_state() WSREP_OVERRIDE
         {
             wsrep::client_state* ret(new wsrep::mock_client(
-                                         *this,
+                                         server_state_,
                                          wsrep::client_id(++last_client_id_),
                                          wsrep::client_state::m_local));
             ret->open(ret->id());
@@ -82,33 +74,37 @@ namespace wsrep
         }
 
         void release_client_state(wsrep::client_state* client_state)
+            WSREP_OVERRIDE
         {
             delete client_state;
         }
 
         wsrep::high_priority_service* streaming_applier_service(
             wsrep::client_service&)
+            WSREP_OVERRIDE
         {
             wsrep::mock_client* cs(new wsrep::mock_client(
-                                       *this,
+                                       server_state_,
                                        wsrep::client_id(++last_client_id_),
                                        wsrep::client_state::m_high_priority));
             wsrep::mock_high_priority_service* ret(
-                new wsrep::mock_high_priority_service(*this, cs, false));
+                new wsrep::mock_high_priority_service(server_state_,
+                                                      cs, false));
             cs->open(cs->id());
             cs->before_command();
             return ret;
         }
 
         wsrep::high_priority_service* streaming_applier_service(
-            wsrep::high_priority_service&)
+            wsrep::high_priority_service&) WSREP_OVERRIDE
         {
             wsrep::mock_client* cs(new wsrep::mock_client(
-                                       *this,
+                                       server_state_,
                                        wsrep::client_id(++last_client_id_),
                                        wsrep::client_state::m_high_priority));
             wsrep::mock_high_priority_service* ret(
-                new wsrep::mock_high_priority_service(*this, cs, false));
+                new wsrep::mock_high_priority_service(server_state_,
+                                                      cs, false));
             cs->open(cs->id());
             cs->before_command();
             return ret;
@@ -130,15 +126,17 @@ namespace wsrep
         }
         void bootstrap() WSREP_OVERRIDE { }
         void log_message(enum wsrep::log::level level, const char* message)
+            WSREP_OVERRIDE
         {
-            wsrep::log(level, name().c_str()) << message;
+            wsrep::log(level, server_state_.name().c_str()) << message;
         }
         void log_dummy_write_set(wsrep::client_state&,
                                  const wsrep::ws_meta&)
             WSREP_OVERRIDE
         {
         }
-        void log_view(wsrep::high_priority_service*, const wsrep::view&) { }
+        void log_view(wsrep::high_priority_service*, const wsrep::view&)
+            WSREP_OVERRIDE { }
         void log_state_change(enum wsrep::server_state::state,
                               enum wsrep::server_state::state)
         { }
@@ -169,7 +167,7 @@ namespace wsrep
                 switch (sync_point_action_)
                 {
                 case spa_initialize:
-                    initialized();
+                    server_state_.initialized();
                     break;
                 }
             }
@@ -183,12 +181,36 @@ namespace wsrep
         bool sst_before_init_;
 
     private:
-        wsrep::default_mutex mutex_;
-        wsrep::default_condition_variable cond_;
-        mutable wsrep::mock_provider provider_;
+        wsrep::server_state& server_state_;
         unsigned long long last_client_id_;
         unsigned long long last_transaction_id_;
     };
+
+
+    class mock_server_state : public wsrep::server_state
+    {
+    public:
+        mock_server_state(const std::string& name,
+                          const std::string& id,
+                          enum wsrep::server_state::rollback_mode rollback_mode,
+                          wsrep::server_service& server_service)
+            : wsrep::server_state(mutex_, cond_, server_service,
+                                  name, id, "", "", "./",
+                                  wsrep::gtid::undefined(),
+                                  1,
+                                  rollback_mode)
+            , mutex_()
+            , cond_()
+            , provider_(*this)
+        { }
+
+        wsrep::mock_provider& provider() const WSREP_OVERRIDE
+        { return provider_; }
+    private:
+        wsrep::default_mutex mutex_;
+        wsrep::default_condition_variable cond_;
+        mutable wsrep::mock_provider provider_;
+    };
 }
 
-#endif // WSREP_MOCK_SERVER_CONTEXT_HPP
+#endif // WSREP_MOCK_SERVER_STATE_HPP

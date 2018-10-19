@@ -5,7 +5,6 @@
 cmake_minimum_required (VERSION 2.8)
 project (wsrep-lib)
 include(CheckIncludeFile)
-include(CTest)
 
 # Options
 
@@ -13,7 +12,7 @@ include(CTest)
 option(WSREP_LIB_WITH_UNIT_TESTS "Compile unit tests" ON)
 if (WSREP_LIB_WITH_UNIT_TESTS)
   # Run tests automatically by default if compiled
-  option(WSREP_LIB_WITH_AUTO_TEST "Run unit tests automatically after build" ON)
+  option(WSREP_LIB_WITH_AUTO_TEST "Run unit tests automatically after build" OFF)
 endif()
 
 # Build a sample program
@@ -81,9 +80,9 @@ endif()
 add_subdirectory(src)
 add_subdirectory(wsrep-API)
 if (WSREP_LIB_WITH_UNIT_TESTS)
+  enable_testing()
   add_subdirectory(test)
 endif()
 if (WSREP_LIB_WITH_DBSIM)
   add_subdirectory(dbsim)
 endif()
-

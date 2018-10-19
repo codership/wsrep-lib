@@ -13,11 +13,11 @@ add_executable(wsrep-lib_test
   transaction_test_2pc.cpp
   wsrep-lib_test.cpp
   )
+
 target_link_libraries(wsrep-lib_test wsrep-lib)
-add_test(NAME wsrep-lib_test
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/wsrep-lib_test
-  )
+
+add_test(NAME    wsrep-lib_test
+         COMMAND wsrep-lib_test)
 
 if (WSREP_LIB_WITH_AUTO_TEST)
   set(UNIT_TEST wsrep-lib_test)

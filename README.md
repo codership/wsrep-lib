@@ -33,7 +33,7 @@ In order to build the library, run
 
 * WSREP_LIB_WITH_UNIT_TESTS - Compile unit tests (default ON)
 * WSREP_LIB_WITH_AUTO_TEST - Run unit tests automatically as a part
-  of compilation (default ON)
+  of compilation (default OFF)
 * WSREP_LIB_WITH_DBSIM - Compile sample program (default ON)
 * WSREP_LIB_WITH_ASAN - Enable address sanitizer instrumentation (default OFF)
 * WSREP_LIB_WITH_TSAN - Enable thread sanitizer instrumentation (default OFF)

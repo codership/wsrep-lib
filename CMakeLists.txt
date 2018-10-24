@@ -24,8 +24,14 @@ option(WSREP_LIB_WITH_TSAN "Enable thread sanitizer" OFF)
 option(WSREP_LIB_WITH_DOCUMENTATION "Generate documentation" OFF)
 option(WSREP_LIB_WITH_COVERAGE "Compile with coverage instrumentation" OFF)
 
+option(WSREP_LIB_STRICT_BUILD_FLAGS "Compile with strict build flags")
+
 # CXX flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Weffc++ -Woverloaded-virtual -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Woverloaded-virtual -g")
+
+if (WSREP_LIB_STRICT_BUILD_FLAGS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Weffc++")
+endif()
 
 check_include_file("${CMAKE_CURRENT_SOURCE_DIR}/wsrep/wsrep_api.h" HAVE_WSREP_API_HPP)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")

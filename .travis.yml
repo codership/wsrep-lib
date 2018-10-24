@@ -1,0 +1,67 @@
+#
+language: cpp
+
+compiler:
+  - gcc
+# - clang - does not compile yet
+
+# Build type and option combinations
+# env:
+#  - TYPE=Debug ASAN=ON
+#  - TYPE=RelWithDebInfo ASAN=ON
+#  - CC=gcc-5 CXX=g++-5 TYPE=Debug ASAN=ON
+#  - CC=gcc-5 CXX=g++-5 TYPE=RelWithDebInfo ASAN=ON
+
+matrix:
+  include:
+    - os: linux
+      name: "GCC 4.8 Debug"
+      env: MATRIX_EVAL="TYPE=Debug ASAN=ON DBSIM=OFF"
+    - os: linux
+      name: "GCC 4.8 RelWithDebInfo"
+      env: MATRIX_EVAL="TYPE=RelWithDebInfo ASAN=ON DBSIM=OFF"
+    - os: linux
+      name: "GCC 5 Debug"
+      env: MATRIX_EVAL="CC=gcc-5 CXX=g++-5 TYPE=Debug ASAN=OFF DBSIM=ON"
+    - os: linux
+      name: "GCC 5 RelWithDebInfo"
+      env: MATRIX_EVAL="CC=gcc-5 CXX=g++-5 TYPE=RelWithDebInfo ASAN=OFF DBSIM=ON"
+    - os: linux
+      name: "GCC 6 Debug"
+      env: MATRIX_EVAL="CC=gcc-6 CXX=g++-6 TYPE=Debug ASAN=OFF DBSIM=ON"
+    - os: linux
+      name: "GCC 6 RelWithDebInfo"
+      env: MATRIX_EVAL="CC=gcc-6 CXX=g++-6 TYPE=RelWithDebInfo ASAN=OFF DBSIM=ON"
+    - os: linux
+      name: "GCC 7 Debug"
+      env: MATRIX_EVAL="CC=gcc-7 CXX=g++-7 TYPE=Debug ASAN=OFF DBSIM=ON"
+    - os: linux
+      name: "GCC 7 RelWithDebInfo"
+      env: MATRIX_EVAL="CC=gcc-7 CXX=g++-7 TYPE=RelWithDebInfo ASAN=OFF DBSIM=ON"
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - cmake
+      - g++-5
+      - g++-6
+      - g++-7
+      - libboost-test-dev
+      - libboost-program-options-dev
+      - libboost-filesystem-dev
+      - libboost-thread-dev
+
+before_install:
+  - eval ${MATRIX_EVAL}
+
+script:
+  - echo CC=${CC} CXX=${CXX} TYPE=${TYPE} ASAN=${ASAN} DBSIM=${DBSIM}
+  - cmake . -DCMAKE_BUILD_TYPE=${TYPE}
+            -DWSREP_LIB_WITH_UNIT_TESTS:BOOL=ON
+            -DWSREP_LIB_WITH_DBSIM:BOOL=${DBSIM}
+            -DWSREP_LIB_WITH_ASAN:BOOL=${ASAN}
+  - make VERBOSE=1 -j 4
+  - make test
+

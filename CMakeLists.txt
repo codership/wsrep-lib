@@ -38,9 +38,14 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep-API/v26")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep")
 
-if (WSREP_LIB_WITH_UNIT_TESTS OR WSREP_LIB_WITH_DBSIM)
+if (WSREP_LIB_WITH_UNIT_TESTS)
   find_package(Boost 1.54.0 REQUIRED
     unit_test_framework
+    )
+endif()
+
+if (WSREP_LIB_WITH_DBSIM)
+  find_package(Boost 1.54.0 REQUIRED
     program_options
     filesystem
     thread

@@ -217,7 +217,8 @@ namespace wsrep
             static const int pa_unsafe = (1 << 4);
             static const int commutative = (1 << 5);
             static const int native = (1 << 6);
-            static const int snapshot = (1 << 7);
+            static const int prepare = (1 << 7);
+            static const int snapshot = (1 << 8);
         };
 
         /**
@@ -376,6 +377,11 @@ namespace wsrep
     static inline bool rolls_back_transaction(int flags)
     {
         return (flags & wsrep::provider::flag::rollback);
+    }
+
+    static inline bool prepares_transaction(int flags)
+    {
+        return (flags & wsrep::provider::flag::prepare);
     }
 
     static inline bool is_toi(int flags)

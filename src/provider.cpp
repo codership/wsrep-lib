@@ -62,6 +62,8 @@ std::string wsrep::flags_to_string(int flags)
         oss << "isolation | ";
     if (flags & provider::flag::pa_unsafe)
         oss << "pa_unsafe | ";
+    if (flags & provider::flag::prepare)
+        oss << "prepare | ";
     if (flags & provider::flag::snapshot)
         oss << "snapshot | ";
 

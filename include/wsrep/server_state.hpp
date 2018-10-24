@@ -45,9 +45,9 @@
  * Rollback Mode
  * -------------
  *
- * When High Prioity Transaction (HTP) write set is applied, it
- * may be required that the HTP Brute Force Aborts (BFA) locally
- * executing transaction. As HTP must be able to apply all its
+ * When High Priority Transaction (HPT) write set is applied, it
+ * may be required that the HPT Brute Force Aborts (BFA) locally
+ * executing transaction. As HPT must be able to apply all its
  * write sets without interruption, the locally executing transaction
  * must yield immediately, otherwise a transaction processing
  * may stop or even deadlock. Depending on DBMS implementation,
@@ -55,7 +55,7 @@
  * (synchronous mode)  or the rollback may happen later on
  * (asynchronous mode). The Server Context implementation
  * which derives from Server Context base class must provide
- * the base class the rollback mode which server operates on.
+ * the base class for the rollback mode which server operates on.
  *
  * ### Synchronous
  *
@@ -465,11 +465,9 @@ namespace wsrep
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             return init_initialized_;
         }
+
         /**
-         *
-         */
-        /**
-         * This method will be called by the provider hen
+         * This method will be called by the provider when
          * a remote write set is being applied. It is the responsibility
          * of the caller to set up transaction context and data properly.
          *

@@ -63,22 +63,6 @@ namespace wsrep
             delete storage_service;
         }
 
-        wsrep::client_state* local_client_state() WSREP_OVERRIDE
-        {
-            wsrep::client_state* ret(new wsrep::mock_client(
-                                         server_state_,
-                                         wsrep::client_id(++last_client_id_),
-                                         wsrep::client_state::m_local));
-            ret->open(ret->id());
-            return ret;
-        }
-
-        void release_client_state(wsrep::client_state* client_state)
-            WSREP_OVERRIDE
-        {
-            delete client_state;
-        }
-
         wsrep::high_priority_service* streaming_applier_service(
             wsrep::client_service&)
             WSREP_OVERRIDE

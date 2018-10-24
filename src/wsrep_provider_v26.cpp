@@ -92,6 +92,7 @@ namespace
     {
         return wsrep::seqno(seqno);
     }
+
     template <typename F, typename T>
     inline uint32_t map_one(const int flags, const F from,
                             const T to)
@@ -102,18 +103,32 @@ namespace
     uint32_t map_flags_to_native(int flags)
     {
         using wsrep::provider;
-        return (map_one(flags, provider::flag::start_transaction,
+        return (map_one(flags,
+                        provider::flag::start_transaction,
                         WSREP_FLAG_TRX_START) |
-                map_one(flags, provider::flag::commit, WSREP_FLAG_TRX_END) |
-                map_one(flags, provider::flag::rollback, WSREP_FLAG_ROLLBACK) |
-                map_one(flags, provider::flag::isolation, WSREP_FLAG_ISOLATION) |
-                map_one(flags, provider::flag::pa_unsafe, WSREP_FLAG_PA_UNSAFE) |
+                map_one(flags,
+                        provider::flag::commit,
+                        WSREP_FLAG_TRX_END) |
+                map_one(flags,
+                        provider::flag::rollback,
+                        WSREP_FLAG_ROLLBACK) |
+                map_one(flags,
+                        provider::flag::isolation,
+                        WSREP_FLAG_ISOLATION) |
+                map_one(flags,
+                        provider::flag::pa_unsafe,
+                        WSREP_FLAG_PA_UNSAFE) |
                 // map_one(flags, provider::flag::commutative, WSREP_FLAG_COMMUTATIVE) |
                 // map_one(flags, provider::flag::native, WSREP_FLAG_NATIVE) |
-                map_one(flags, provider::flag::snapshot, WSREP_FLAG_SNAPSHOT));
+                map_one(flags,
+                        provider::flag::prepare,
+                        WSREP_FLAG_TRX_PREPARE) |
+                map_one(flags,
+                        provider::flag::snapshot,
+                        WSREP_FLAG_SNAPSHOT));
     }
 
-        int map_flags_from_native(uint32_t flags)
+    int map_flags_from_native(uint32_t flags)
     {
         using wsrep::provider;
         return (map_one(flags,
@@ -133,7 +148,12 @@ namespace
                         provider::flag::pa_unsafe) |
                 // map_one(flags, provider::flag::commutative, WSREP_FLAG_COMMUTATIVE) |
                 // map_one(flags, provider::flag::native, WSREP_FLAG_NATIVE) |
-                map_one(flags, WSREP_FLAG_SNAPSHOT, provider::flag::snapshot));
+                map_one(flags,
+                        WSREP_FLAG_TRX_PREPARE,
+                        provider::flag::prepare) |
+                map_one(flags,
+                        WSREP_FLAG_SNAPSHOT,
+                        provider::flag::snapshot));
     }
 
     class mutable_ws_handle

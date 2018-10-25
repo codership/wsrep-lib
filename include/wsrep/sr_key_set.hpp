@@ -36,8 +36,8 @@ namespace wsrep
 
         void insert(const wsrep::key& key)
         {
-            assert(key.size() == 3);
-            if (key.size() < 3)
+            assert(key.size() >= 2);
+            if (key.size() < 2)
             {
                 throw wsrep::runtime_error("Invalid key size");
             }

@@ -38,6 +38,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_append_key_data,
 {
     cc.start_transaction(wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.active());
+    BOOST_REQUIRE(tc.is_empty());
     int vals[3] = {1, 2, 3};
     wsrep::key key(wsrep::key::exclusive);
     for (int i(0); i < 3; ++i)
@@ -45,6 +46,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_append_key_data,
         key.append_key_part(&vals[i], sizeof(vals[i]));
     }
     BOOST_REQUIRE(cc.append_key(key) == 0);
+    BOOST_REQUIRE(tc.is_empty() == false);
     wsrep::const_buffer data(&vals[2], sizeof(vals[2]));
     BOOST_REQUIRE(cc.append_data(data) == 0);
     BOOST_REQUIRE(cc.before_commit() == 0);

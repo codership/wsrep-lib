@@ -51,6 +51,7 @@ namespace wsrep
 
         const branch_type& root() const { return root_; }
         void clear() { root_.clear(); }
+        bool empty() const { return root_.empty(); }
     private:
         branch_type root_;
     };

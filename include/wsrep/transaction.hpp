@@ -98,6 +98,14 @@ namespace wsrep
             return (streaming_context_.fragments_certified() > 0);
         }
 
+        /**
+         * Return true if transaction has not generated any changes.
+         */
+        bool is_empty() const
+        {
+            return sr_keys_.empty();
+        }
+
         bool pa_unsafe() const { return pa_unsafe_; }
         void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }
 

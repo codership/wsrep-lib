@@ -1229,7 +1229,6 @@ int wsrep::transaction::certify_commit(
         append_sr_keys_for_commit();
         flags(flags() | wsrep::provider::flag::pa_unsafe);
     }
-    sr_keys_.clear();
 
     flags(flags() | wsrep::provider::flag::commit);
 
@@ -1462,6 +1461,7 @@ void wsrep::transaction::cleanup()
     flags_ = 0;
     certified_ = false;
     pa_unsafe_ = false;
+    sr_keys_.clear();
     streaming_context_.cleanup();
     client_service_.cleanup_transaction();
     debug_log_state("cleanup_leave");

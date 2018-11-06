@@ -72,9 +72,9 @@ bool db::server_service::sst_before_init() const
 std::string db::server_service::sst_request()
 {
     std::ostringstream os;
-    os << server_.server_state().id();
+    os << server_.server_state().name();
     wsrep::log_info() << "SST request: "
-                      << server_.server_state().id();
+                      << server_.server_state().name();
 
     return os.str();
 }

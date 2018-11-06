@@ -38,19 +38,29 @@ void db::simulator::sst(db::server& server,
                         const wsrep::gtid& gtid,
                         bool bypass)
 {
-    wsrep::id id;
-    std::istringstream is(request);
-    is >> id;
+    // The request may contain extra trailing '\0' after it goes
+    // through the provider, strip it first.
+    std::string name(request);
+    name.erase(std::find(name.begin(), name.end(), '\0'), name.end());
+
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    auto i(servers_.find(id));
-    wsrep::log_info() << "SST request";
+    auto i(servers_.find(name));
+    wsrep::log_info() << "SST request '" << name << "'";
     if (i == servers_.end())
     {
+        wsrep::log_error() << "Server " << request << " not found";
+        wsrep::log_info() << "servers:";
+        for (const auto& s : servers_)
+        {
+            wsrep::log_info() << "server: " << s.first;
+        }
         throw wsrep::runtime_error("Server " + request + " not found");
     }
     if (bypass == false)
     {
-        wsrep::log_info() << "SST " << server.server_state().id() << " -> " << id;
+        wsrep::log_info() << "SST "
+                          << server.server_state().name()
+                          << " -> " << request;
     }
     i->second->server_state().sst_received(gtid, 0);
     server.server_state().sst_sent(gtid, 0);
@@ -105,7 +115,7 @@ void db::simulator::start()
         wsrep::id server_id(id_os.str());
         auto it(servers_.insert(
                     std::make_pair(
-                        server_id,
+                        name_os.str(),
                         std::make_unique<db::server>(
                             *this,
                             name_os.str(),

@@ -61,7 +61,7 @@ namespace db
 
         wsrep::default_mutex mutex_;
         const db::params& params_;
-        std::map<wsrep::id, std::unique_ptr<db::server>> servers_;
+        std::map<std::string, std::unique_ptr<db::server>> servers_;
         std::chrono::time_point<std::chrono::steady_clock> clients_start_;
         std::chrono::time_point<std::chrono::steady_clock> clients_stop_;
     public:

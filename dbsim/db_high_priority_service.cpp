@@ -86,7 +86,7 @@ int db::high_priority_service::rollback(const wsrep::ws_handle& ws_handle,
 
 void db::high_priority_service::after_apply()
 {
-    client_.client_state_.after_statement();
+    client_.client_state_.after_applying();
 }
 
 bool db::high_priority_service::is_replaying() const

@@ -30,6 +30,7 @@
 #include "seqno.hpp"
 #include "gtid.hpp"
 #include <vector>
+#include <iostream>
 
 namespace wsrep
 {
@@ -111,6 +112,8 @@ namespace wsrep
             return (members_.empty() && own_index_ == -1);
         }
 
+        void print(std::ostream& os) const;
+
     private:
         wsrep::gtid state_id_;
         wsrep::seqno view_seqno_;
@@ -120,6 +123,12 @@ namespace wsrep
         int protocol_version_;
         std::vector<wsrep::view::member> members_;
     };
+
+    static inline
+    std::ostream& operator<<(std::ostream& os, const wsrep::view& v)
+    {
+        v.print(os); return os;
+    }
 }
 
 #endif // WSREP_VIEW

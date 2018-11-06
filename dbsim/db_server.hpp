@@ -41,7 +41,6 @@ namespace db
     public:
         server(simulator& simulator,
                const std::string& name,
-               const std::string& id,
                const std::string& address);
         void applier_thread();
         void start_applier();

@@ -296,7 +296,7 @@ namespace wsrep
          * A method which will be called when the server
          * has been joined to the cluster
          */
-        void on_connect(const wsrep::gtid& gtid);
+        void on_connect(const wsrep::view& view);
 
         /**
          * A method which will be called when a view
@@ -540,7 +540,6 @@ namespace wsrep
                      wsrep::condition_variable& cond,
                      wsrep::server_service& server_service,
                      const std::string& name,
-                     const std::string& id,
                      const std::string& incoming_address,
                      const std::string& address,
                      const std::string& working_dir,
@@ -565,7 +564,7 @@ namespace wsrep
             , streaming_appliers_()
             , provider_()
             , name_(name)
-            , id_(id)
+            , id_(wsrep::id::undefined())
             , incoming_address_(incoming_address)
             , address_(address)
             , working_dir_(working_dir)

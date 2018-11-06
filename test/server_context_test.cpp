@@ -23,11 +23,11 @@
 
 namespace
 {
-    struct applying_server_fixture
+    struct server_fixture_base
     {
-        applying_server_fixture()
+        server_fixture_base()
             : server_service(ss)
-            , ss("s1", "s1",
+            , ss("s1",
                  wsrep::server_state::rm_sync, server_service)
             , cc(ss,
                  wsrep::client_id(1),
@@ -52,19 +52,28 @@ namespace
         wsrep::ws_meta ws_meta;
     };
 
-    struct sst_first_server_fixture : applying_server_fixture
+    struct applying_server_fixture : server_fixture_base
+    {
+        applying_server_fixture()
+            : server_fixture_base()
+        {
+            ss.mock_connect();
+        }
+    };
+
+    struct sst_first_server_fixture : server_fixture_base
     {
         sst_first_server_fixture()
-            : applying_server_fixture()
+            : server_fixture_base()
         {
             server_service.sst_before_init_ = true;
         }
     };
 
-    struct init_first_server_fixture : applying_server_fixture
+    struct init_first_server_fixture : server_fixture_base
     {
         init_first_server_fixture()
-            : applying_server_fixture()
+            : server_fixture_base()
         {
             server_service.sst_before_init_ = false;
         }
@@ -194,7 +203,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_sst_first_boostrap,
                                1,
                                members);
     BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);
-    ss.on_connect(wsrep::gtid(cluster_id, wsrep::seqno(0)));
+    ss.on_connect(bootstrap_view);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
     server_service.sync_point_enabled_ = "on_view_wait_initialized";
     server_service.sync_point_action_  = server_service.spa_initialize;
@@ -222,7 +231,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_init_first_boostrap,
     ss.initialized();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_initialized);
     BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);
-    ss.on_connect(wsrep::gtid(cluster_id, wsrep::seqno(0)));
+    ss.on_connect(bootstrap_view);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
     ss.on_view(bootstrap_view, &hps);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);

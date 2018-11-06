@@ -35,7 +35,6 @@ namespace db
         server_state(db::server& server,
                      wsrep::server_service& server_service,
                      const std::string& name,
-                     const std::string& server_id,
                      const std::string& address,
                      const std::string& working_dir)
             : wsrep::server_state(
@@ -43,7 +42,6 @@ namespace db
                 cond_,
                 server_service,
                 name,
-                server_id,
                 "",
                 address,
                 working_dir,

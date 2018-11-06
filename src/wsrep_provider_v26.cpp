@@ -287,7 +287,8 @@ namespace
     {
         return capabilities;
     }
-    wsrep::view view_from_native(const wsrep_view_info& view_info)
+    wsrep::view view_from_native(const wsrep_view_info& view_info,
+                                 const wsrep::id& own_id)
     {
         std::vector<wsrep::view::member> members;
         for (int i(0); i < view_info.memb_num; ++i)
@@ -303,6 +304,25 @@ namespace
                         sizeof(view_info.members[i].incoming)));
             members.push_back(wsrep::view::member(id, name, incoming));
         }
+
+        int own_idx(-1);
+        if (own_id.is_undefined())
+        {
+            // If own ID is undefined, obtain it from the view. This is
+            // the case on the initial connect to cluster.
+            own_idx = view_info.my_idx;
+        }
+        else
+        {
+            // If the node has already obtained its ID from cluster,
+            // its position in the view (or lack thereof) must be determined
+            // by the ID.
+            for (size_t i(0); i < members.size(); ++i)
+            {
+                if (own_id == members[i].id()) { own_idx = i; break; }
+            }
+        }
+
         return wsrep::view(
             wsrep::gtid(
                 wsrep::id(view_info.state_id.uuid.data,
@@ -311,7 +331,7 @@ namespace
             wsrep::seqno(view_info.view),
             map_view_status_from_native(view_info.status),
             map_capabilities_from_native(view_info.capabilities),
-            view_info.my_idx,
+            own_idx,
             view_info.proto_ver,
             members);
     }
@@ -325,12 +345,14 @@ namespace
         const wsrep_view_info_t* view_info)
     {
         assert(app_ctx);
-        wsrep::view view(view_from_native(*view_info));
         wsrep::server_state& server_state(
             *reinterpret_cast<wsrep::server_state*>(app_ctx));
+        assert(server_state.id().is_undefined());
+        wsrep::view view(view_from_native(*view_info, server_state.id()));
+        assert(view.own_index() >= 0);
         try
         {
-            server_state.on_connect(view.state_id());
+            server_state.on_connect(view);
             return WSREP_CB_SUCCESS;
         }
         catch (const wsrep::runtime_error& e)
@@ -354,7 +376,7 @@ namespace
             reinterpret_cast<wsrep::high_priority_service*>(recv_ctx));
         try
         {
-            wsrep::view view(view_from_native(*view_info));
+            wsrep::view view(view_from_native(*view_info, server_state.id()));
             server_state.on_view(view, high_priority_service);
             return WSREP_CB_SUCCESS;
         }

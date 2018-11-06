@@ -11,6 +11,7 @@ add_library(wsrep-lib
   logger.cpp
   provider.cpp
   seqno.cpp
+  view.cpp
   server_state.cpp
   transaction.cpp
   wsrep_provider_v26.cpp)

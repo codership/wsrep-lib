@@ -27,7 +27,6 @@
 
 db::server::server(simulator& simulator,
                    const std::string& name,
-                   const std::string& server_id,
                    const std::string& address)
     : simulator_(simulator)
     , storage_engine_(simulator_.params())
@@ -35,7 +34,7 @@ db::server::server(simulator& simulator,
     , cond_()
     , server_service_(*this)
     , server_state_(*this, server_service_,
-                    name, server_id, address, "dbsim_" + name + "_data")
+                    name, address, "dbsim_" + name + "_data")
     , last_client_id_(0)
     , last_transaction_id_(0)
     , appliers_()

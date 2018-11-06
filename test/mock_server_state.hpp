@@ -176,11 +176,10 @@ namespace wsrep
     {
     public:
         mock_server_state(const std::string& name,
-                          const std::string& id,
                           enum wsrep::server_state::rollback_mode rollback_mode,
                           wsrep::server_service& server_service)
             : wsrep::server_state(mutex_, cond_, server_service,
-                                  name, id, "", "", "./",
+                                  name, "", "", "./",
                                   wsrep::gtid::undefined(),
                                   1,
                                   rollback_mode)
@@ -191,6 +190,48 @@ namespace wsrep
 
         wsrep::mock_provider& provider() const WSREP_OVERRIDE
         { return provider_; }
+
+        // mock connected state for tests without overriding the connect()
+        // method.
+        int mock_connect(const std::string& own_id,
+                         const std::string& cluster_name,
+                         const std::string& cluster_address,
+                         const std::string& state_donor,
+                         bool bootstrap)
+        {
+            int const ret(server_state::connect(cluster_name,
+                                                cluster_address,
+                                                state_donor,
+                                                bootstrap));
+            if (0 == ret)
+            {
+                wsrep::id cluster_id("1");
+                wsrep::gtid state_id(cluster_id, wsrep::seqno(0));
+                std::vector<wsrep::view::member> members;
+                members.push_back(wsrep::view::member(wsrep::id(own_id),
+                                                      "name", ""));
+                wsrep::view bootstrap_view(state_id,
+                                           wsrep::seqno(1),
+                                           wsrep::view::primary,
+                                           0,
+                                           0,
+                                           1,
+                                           members);
+                server_state::on_connect(bootstrap_view);
+            }
+            else
+            {
+                assert(0);
+            }
+
+            return ret;
+        }
+
+        int mock_connect()
+        {
+             return mock_connect(name(), "cluster", "local", "0", false);
+        }
+
     private:
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;

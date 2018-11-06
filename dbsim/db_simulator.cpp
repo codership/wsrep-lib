@@ -109,7 +109,6 @@ void db::simulator::start()
                         std::make_unique<db::server>(
                             *this,
                             name_os.str(),
-                            id_os.str(),
                             address_os.str()))));
         if (it.second == false)
         {

@@ -32,11 +32,12 @@ namespace
     {
         replicating_client_fixture_sync_rm()
             : server_service(sc)
-            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
+            , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc, wsrep::client_id(1),
                  wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
+            sc.mock_connect();
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
@@ -54,11 +55,12 @@ namespace
     {
         replicating_client_fixture_async_rm()
             : server_service(sc)
-            , sc("s1", "s1", wsrep::server_state::rm_async, server_service)
+            , sc("s1", wsrep::server_state::rm_async, server_service)
             , cc(sc, wsrep::client_id(1),
                  wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
+            sc.mock_connect();
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
@@ -76,11 +78,12 @@ namespace
     {
         replicating_client_fixture_2pc()
             : server_service(sc)
-            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
+            , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,  wsrep::client_id(1),
                  wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
+            sc.mock_connect();
             cc.open(cc.id());
             cc.do_2pc_ = true;
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -99,11 +102,12 @@ namespace
     {
         replicating_client_fixture_autocommit()
             : server_service(sc)
-            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
+            , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc, wsrep::client_id(1),
                  wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
+            sc.mock_connect();
             cc.open(cc.id());
             cc.is_autocommit_ = true;
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -122,13 +126,14 @@ namespace
     {
         applying_client_fixture()
             : server_service(sc)
-            , sc("s1", "s1",
+            , sc("s1",
                  wsrep::server_state::rm_async, server_service)
             , cc(sc,
                  wsrep::client_id(1),
                  wsrep::client_state::m_high_priority)
             , tc(cc.transaction())
         {
+            sc.mock_connect();
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
@@ -155,13 +160,14 @@ namespace
     {
         applying_client_fixture_2pc()
             : server_service(sc)
-            , sc("s1", "s1",
+            , sc("s1",
                  wsrep::server_state::rm_async, server_service)
             , cc(sc,
                  wsrep::client_id(1),
                  wsrep::client_state::m_high_priority)
             , tc(cc.transaction())
         {
+            sc.mock_connect();
             cc.open(cc.id());
             cc.do_2pc_ = true;
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -189,12 +195,13 @@ namespace
     {
         streaming_client_fixture_row()
             : server_service(sc)
-            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
+            , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,
                  wsrep::client_id(1),
                  wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
+            sc.mock_connect();
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
@@ -214,12 +221,13 @@ namespace
     {
         streaming_client_fixture_byte()
             : server_service(sc)
-            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
+            , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,
                  wsrep::client_id(1),
                  wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
+            sc.mock_connect();
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
@@ -238,12 +246,13 @@ namespace
     {
         streaming_client_fixture_statement()
             : server_service(sc)
-            , sc("s1", "s1", wsrep::server_state::rm_sync, server_service)
+            , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,
                  wsrep::client_id(1),
                  wsrep::client_state::m_local)
             , tc(cc.transaction())
         {
+            sc.mock_connect();
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);

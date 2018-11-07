@@ -38,6 +38,12 @@ namespace wsrep
             warning,
             error
         };
+
+        /**
+         * Signature for user defined logger callback function.
+         */
+        typedef void (*logger_fn_type)(level, const char*);
+
         static const char* to_c_string(enum level level)
         {
             switch (level)
@@ -49,21 +55,36 @@ namespace wsrep
             };
             return "unknown";
         }
+
         log(enum wsrep::log::level level, const char* prefix = "")
             : level_(level)
             , prefix_(prefix)
             , oss_()
         { }
+
         ~log()
         {
-            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            os_ << prefix_ << ": " << oss_.str() << std::endl;
+            if (logger_fn_)
+            {
+                logger_fn_(level_, oss_.str().c_str());
+            }
+            else
+            {
+                wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+                os_ << prefix_ << ": " << oss_.str() << std::endl;
+            }
         }
+
         template <typename T>
         std::ostream& operator<<(const T& val)
         {
             return (oss_ << val);
         }
+
+        /**
+         * Set user defined logger callback function.
+         */
+        static void logger_fn(logger_fn_type);
     private:
         log(const log&);
         log& operator=(const log&);
@@ -72,6 +93,7 @@ namespace wsrep
         std::ostringstream oss_;
         static wsrep::mutex& mutex_;
         static std::ostream& os_;
+        static logger_fn_type logger_fn_;
     };
 
     class log_error : public log

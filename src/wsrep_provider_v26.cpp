@@ -498,20 +498,19 @@ namespace
         {
         case WSREP_LOG_FATAL:
         case WSREP_LOG_ERROR:
-            wsrep::log_error() << "wsrep-lib: " << msg;
+            wsrep::log_error() << msg;
             break;
         case WSREP_LOG_WARN:
-            wsrep::log_warning() << "wsrep-lib: " <<msg;
+            wsrep::log_warning() << msg;
             break;
         case WSREP_LOG_INFO:
-            wsrep::log_info() << "wsrep-lib: " << msg;
+            wsrep::log_info() <<  msg;
             break;
         case WSREP_LOG_DEBUG:
-            wsrep::log_debug() << "wsrep-lib: " << msg;
+            wsrep::log_debug() << msg;
             break;
         }
     }
-
 }
 
 wsrep::wsrep_provider_v26::wsrep_provider_v26(

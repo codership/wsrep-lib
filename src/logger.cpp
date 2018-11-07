@@ -24,3 +24,9 @@
 std::ostream& wsrep::log::os_ = std::cout;
 static wsrep::default_mutex log_mutex_;
 wsrep::mutex& wsrep::log::mutex_ = log_mutex_;
+wsrep::log::logger_fn_type wsrep::log::logger_fn_ = 0;
+
+void wsrep::log::logger_fn(wsrep::log::logger_fn_type logger_fn)
+{
+    logger_fn_ = logger_fn;
+}

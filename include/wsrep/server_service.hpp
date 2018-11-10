@@ -226,7 +226,6 @@ namespace wsrep
                               const wsrep::gtid& gtid,
                               bool bypass) = 0;
 
-
         /**
          * Wait until committing transactions have completed.
          * Prior calling this method the server should have been
@@ -240,6 +239,16 @@ namespace wsrep
          */
         virtual void debug_sync(const char* sync_point) = 0;
 
+        /*
+         * Encrypt/decrypt data
+         */
+        virtual int do_crypt(void**                ctx,
+                             wsrep::const_buffer&  key,
+                             const char            (*iv)[32],
+                             wsrep::const_buffer&  input,
+                             void*                 output,
+                             bool                  encrypt,
+                             bool                  last) = 0;
     };
 }
 

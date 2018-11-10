@@ -161,3 +161,14 @@ void db::server_service::debug_sync(const char*)
 {
 
 }
+
+int db::server_service::do_crypt(void**                ctx         WSREP_UNUSED,
+                                 wsrep::const_buffer&  key         WSREP_UNUSED,
+                                 const char            (*iv)[32]   WSREP_UNUSED,
+                                 wsrep::const_buffer&  input       WSREP_UNUSED,
+                                 void*                 output      WSREP_UNUSED,
+                                 bool                  encrypt     WSREP_UNUSED,
+                                 bool                  last        WSREP_UNUSED)
+{
+    return -1;
+}

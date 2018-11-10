@@ -78,7 +78,7 @@ namespace wsrep
         wsrep::gtid last_committed_gtid() const;
         int sst_sent(const wsrep::gtid&,int);
         int sst_received(const wsrep::gtid& gtid, int);
-
+        int enc_set_key(const wsrep::const_buffer& key);
         std::vector<status_variable> status() const;
         void reset_status();
         std::string options() const;

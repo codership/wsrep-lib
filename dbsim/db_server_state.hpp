@@ -40,6 +40,7 @@ namespace db
                 mutex_,
                 cond_,
                 server_service,
+                nullptr,
                 name,
                 "",
                 address,

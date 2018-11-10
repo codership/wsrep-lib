@@ -190,6 +190,18 @@ namespace wsrep
             }
         }
 
+        int do_crypt(void**                ctx         WSREP_UNUSED,
+                     wsrep::const_buffer&  key         WSREP_UNUSED,
+                     const char            (*iv)[32]   WSREP_UNUSED,
+                     wsrep::const_buffer&  input       WSREP_UNUSED,
+                     void*                 output      WSREP_UNUSED,
+                     bool                  encrypt     WSREP_UNUSED,
+                     bool                  last        WSREP_UNUSED)
+            WSREP_OVERRIDE
+        { 
+            return -1;
+        }
+
         std::string sync_point_enabled_;
         enum sync_point_action
         {

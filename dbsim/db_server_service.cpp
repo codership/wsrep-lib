@@ -26,6 +26,7 @@
 
 db::server_service::server_service(db::server& server)
     : server_(server)
+    , logged_view_()
 { }
 
 wsrep::storage_service* db::server_service::storage_service(
@@ -106,9 +107,25 @@ void db::server_service::log_dummy_write_set(
 }
 
 void db::server_service::log_view(wsrep::high_priority_service*,
-                                  const wsrep::view&)
+                                  const wsrep::view& v)
 {
-    wsrep::log_info() << "View";
+    wsrep::log_info() << "View:\n" << v;
+    logged_view_ = v;
+}
+wsrep::view db::server_service::get_view(wsrep::client_service&,
+                                         const wsrep::id& own_id)
+{
+    int const my_idx(logged_view_.member_index(own_id));
+    wsrep::view my_view(
+        logged_view_.state_id(),
+        logged_view_.view_seqno(),
+        logged_view_.status(),
+        logged_view_.capabilities(),
+        my_idx,
+        logged_view_.protocol_version(),
+        logged_view_.members()
+    );
+    return my_view;
 }
 
 void db::server_service::log_state_change(

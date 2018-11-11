@@ -18,13 +18,45 @@
  */
 
 #include "wsrep/view.hpp"
+#include "wsrep/provider.hpp"
+
+int wsrep::view::member_index(const wsrep::id& member_id) const
+{
+    // first, quick guess
+    if (own_index_ >= 0 && members_[own_index_].id() == member_id)
+    {
+        return own_index_;
+    }
+
+    // guesing didn't work, scan the list
+    for (unsigned int i(0); i < members_.size(); ++i)
+    {
+        if (i != own_index_ && members_[i].id() == member_id) return i;
+    }
+
+    return -1;
+}
+
+static const char* view_status_str(enum wsrep::view::status s)
+{
+    switch(s)
+    {
+        case wsrep::view::primary:      return "PRIMARY";
+        case wsrep::view::non_primary:  return "NON-PRIMARY";
+        case wsrep::view::disconnected: return "DISCONNECTED";
+    }
+
+    assert(0);
+    return "invalid status";
+}
 
 void wsrep::view::print(std::ostream& os) const
 {
     os << "  id: " << state_id() << "\n"
-       << "  status: " << status() << "\n"
+       << "  status: " << view_status_str(status()) << "\n"
        << "  prococol_version: " << protocol_version() << "\n"
-       << "  final: " << final() << "\n"
+       << "  capabilities: " << provider::capability::str(capabilities())<<"\n"
+       << "  final: " << (final() ? "yes" : "no") << "\n"
        << "  own_index: " << own_index() << "\n"
        << "  members(" << members().size() << "):\n";
 
@@ -32,7 +64,7 @@ void wsrep::view::print(std::ostream& os) const
          i != members().end(); ++i)
     {
         os << "\t" << (i - members().begin()) /* ordinal index */
-           << ") id: " << i->id()
-           << ", name: " << i->name() << "\n";
+           << ": " << i->id()
+           << ", " << i->name() << "\n";
     }
 }

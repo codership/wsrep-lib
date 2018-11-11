@@ -491,11 +491,13 @@ void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
     }
 }
 
-void wsrep::server_state::sst_received(const wsrep::gtid& gtid, int error)
+void wsrep::server_state::sst_received(wsrep::client_service& cs,
+                                       const wsrep::gtid& gtid, int error)
 {
     wsrep::log_info() << "SST received: " << gtid;
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state_ == s_joiner || state_ == s_initialized);
+
     if (server_service_.sst_before_init())
     {
         if (init_initialized_ == false)
@@ -504,20 +506,40 @@ void wsrep::server_state::sst_received(const wsrep::gtid& gtid, int error)
             wait_until_state(lock, s_initialized);
             assert(init_initialized_);
         }
-        state(lock, s_joined);
-        lock.unlock();
-        if (provider().sst_received(gtid, error))
-        {
-            throw wsrep::runtime_error("SST received failed");
-        }
     }
-    else
+    state(lock, s_joined);
+    lock.unlock();
+
+    if (id_.is_undefined())
     {
-        state(lock, s_joined);
-        if (provider().sst_received(gtid, error))
-        {
-            throw wsrep::runtime_error("SST received failed");
-        }
+        assert(0);
+        throw wsrep::runtime_error(
+            "wsrep::sst_received() called before connection to cluster");
+    }
+
+    wsrep::view const v(server_service_.get_view(cs, id_));
+    wsrep::log_info() << "Recovered view from SST:\n" << v;
+
+    if (v.state_id().id() != gtid.id() ||
+        v.state_id().seqno() > gtid.seqno())
+    {
+        /* Since IN GENERAL we may not be able to recover SST GTID from
+         * the state data, we have to rely on SST script passing the GTID
+         * value explicitly.
+         * Here we check if the passed GTID makes any sense: it should
+         * have the same UUID and greater or equal seqno than the last
+         * logged view. */
+        std::ostringstream msg;
+        msg << "SST script passed bogus GTID: " << gtid
+            << ". Preceeding view GTID: " << v.state_id();
+        throw wsrep::runtime_error(msg.str());
+    }
+
+    current_view_ = v;
+
+    if (provider().sst_received(gtid, error))
+    {
+        throw wsrep::runtime_error("wsrep::sst_received() failed");
     }
 }
 
@@ -676,7 +698,7 @@ void wsrep::server_state::on_view(const wsrep::view& view,
         assert(high_priority_service);
         if (high_priority_service)
         {
-            close_foreign_sr_transactions(lock, *high_priority_service);
+            close_orphaned_sr_transactions(lock, *high_priority_service);
         }
         if (server_service_.sst_before_init())
         {
@@ -1009,7 +1031,7 @@ void wsrep::server_state::wait_until_state(
     cond_.notify_all();
 }
 
-void wsrep::server_state::close_foreign_sr_transactions(
+void wsrep::server_state::close_orphaned_sr_transactions(
     wsrep::unique_lock<wsrep::mutex>& lock,
     wsrep::high_priority_service& high_priority_service)
 {

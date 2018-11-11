@@ -48,12 +48,15 @@ namespace db
             override;
         void log_view(wsrep::high_priority_service*,
                       const wsrep::view&) override;
+        wsrep::view get_view(wsrep::client_service&, const wsrep::id&)
+            override;
         void log_state_change(enum wsrep::server_state::state,
                               enum wsrep::server_state::state) override;
         int wait_committing_transactions(int) override;
         void debug_sync(const char*) override;
     private:
         db::server& server_;
+        wsrep::view logged_view_;
     };
 }
 

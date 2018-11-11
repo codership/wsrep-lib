@@ -244,7 +244,11 @@ namespace wsrep
             static const int streaming = (1 << 15);
             static const int snapshot = (1 << 16);
             static const int nbo = (1 << 17);
+
+            /** decipher capability bitmask */
+            static std::string str(int);
         };
+
         provider(wsrep::server_state& server_state)
             : server_state_(server_state)
         { }
@@ -328,7 +332,7 @@ namespace wsrep
          * @return Provider status indicating the result of the call.
          */
         virtual std::pair<wsrep::gtid, enum status>
-        causal_read(int timeout) const = 0;
+            causal_read(int timeout) const = 0;
         virtual enum status wait_for_gtid(const wsrep::gtid&, int timeout) const = 0;
         /**
          * Return last committed GTID.

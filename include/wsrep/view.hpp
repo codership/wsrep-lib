@@ -97,6 +97,9 @@ namespace wsrep
         wsrep::view::status status() const
         { return status_; }
 
+        ssize_t capabilities() const
+        { return capabilities_; }
+
         ssize_t own_index() const
         { return own_index_; }
 
@@ -111,6 +114,11 @@ namespace wsrep
         {
             return (members_.empty() && own_index_ == -1);
         }
+
+        /**
+         * Return member index in the view
+         */
+        int member_index(const wsrep::id& member_id) const;
 
         void print(std::ostream& os) const;
 

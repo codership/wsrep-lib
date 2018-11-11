@@ -131,6 +131,17 @@ namespace wsrep
             const wsrep::view& view) = 0;
 
         /**
+         * Recover a cluster view change event.
+         * The method takes own node ID.
+         *
+         * @param client_service Reference to client_service
+         * @param own_id this node ID obtained on connection to cluster
+         */
+        virtual wsrep::view get_view(
+            wsrep::client_service& client_service,
+            const wsrep::id& own_id) = 0;
+
+        /**
          * Log a state change event.
          *
          * Note that this method may be called with server_state

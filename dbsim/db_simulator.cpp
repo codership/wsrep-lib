@@ -18,6 +18,7 @@
  */
 
 #include "db_simulator.hpp"
+#include "db_client.hpp"
 
 #include "wsrep/logger.hpp"
 
@@ -62,7 +63,11 @@ void db::simulator::sst(db::server& server,
                           << server.server_state().name()
                           << " -> " << request;
     }
-    i->second->server_state().sst_received(gtid, 0);
+
+    db::client dummy(*(i->second), wsrep::client_id(-1),
+                     wsrep::client_state::m_local, params());
+
+    i->second->server_state().sst_received(dummy.client_service(), gtid, 0);
     server.server_state().sst_sent(gtid, 0);
 }
 

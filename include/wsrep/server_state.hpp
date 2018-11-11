@@ -103,6 +103,7 @@ namespace wsrep
     class transaction;
     class const_buffer;
     class server_service;
+    class client_service;
 
     /** @class Server Context
      *
@@ -446,9 +447,12 @@ namespace wsrep
          * initialized, the call will shift the state to initializing
          * and will wait until the initialization is complete.
          *
+         * @param client_service
          * @param gtid GTID provided by the SST transfer
+         * @param error code of the SST operation
          */
-        void sst_received(const wsrep::gtid& gtid, int error);
+        void sst_received(wsrep::client_service& cs,
+                          const wsrep::gtid& gtid, int error);
 
         /**
          * This method must be called after the server initialization
@@ -587,7 +591,7 @@ namespace wsrep
         void wait_until_state(wsrep::unique_lock<wsrep::mutex>&, enum state) const;
         // Close SR transcations whose origin is outside of current
         // cluster view.
-        void close_foreign_sr_transactions(
+        void close_orphaned_sr_transactions(
             wsrep::unique_lock<wsrep::mutex>&,
             wsrep::high_priority_service&);
 

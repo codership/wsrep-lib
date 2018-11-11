@@ -49,6 +49,48 @@ wsrep::provider* wsrep::provider::make_provider(
     return 0;
 }
 
+std::string wsrep::provider::capability::str(int caps)
+{
+    std::ostringstream os;
+
+#define WSREP_PRINT_CAPABILITY(cap_value, cap_string) \
+    if (caps & cap_value) {                           \
+        os << cap_string ", ";                        \
+        caps &= ~cap_value;                           \
+    }
+
+    WSREP_PRINT_CAPABILITY(multi_master,         "MULTI-MASTER");
+    WSREP_PRINT_CAPABILITY(certification,        "CERTIFICATION");
+    WSREP_PRINT_CAPABILITY(parallel_applying,    "PARALLEL_APPLYING");
+    WSREP_PRINT_CAPABILITY(transaction_replay,   "REPLAY");
+    WSREP_PRINT_CAPABILITY(isolation,            "ISOLATION");
+    WSREP_PRINT_CAPABILITY(pause,                "PAUSE");
+    WSREP_PRINT_CAPABILITY(causal_reads,         "CAUSAL_READ");
+    WSREP_PRINT_CAPABILITY(causal_transaction,   "CAUSAL_TRX");
+    WSREP_PRINT_CAPABILITY(incremental_writeset, "INCREMENTAL_WS");
+    WSREP_PRINT_CAPABILITY(session_locks,        "SESSION_LOCK");
+    WSREP_PRINT_CAPABILITY(distributed_locks,    "DISTRIBUTED_LOCK");
+    WSREP_PRINT_CAPABILITY(consistency_check,    "CONSISTENCY_CHECK");
+    WSREP_PRINT_CAPABILITY(unordered,            "UNORDERED");
+    WSREP_PRINT_CAPABILITY(annotation,           "ANNOTATION");
+    WSREP_PRINT_CAPABILITY(preordered,           "PREORDERED");
+    WSREP_PRINT_CAPABILITY(streaming,            "STREAMING");
+    WSREP_PRINT_CAPABILITY(snapshot,             "SNAPSHOT");
+    WSREP_PRINT_CAPABILITY(nbo,                  "NBO");
+
+#undef WSREP_PRINT_CAPABILITY
+
+    if (caps)
+    {
+        assert(caps == 0); // to catch missed capabilities
+        os << "UNKNOWN(" << caps << ")  ";
+    }
+
+    std::string ret(os.str());
+    if (ret.size() > 2) ret.erase(ret.size() - 2);
+    return ret;
+}
+
 std::string wsrep::flags_to_string(int flags)
 {
     std::ostringstream oss;

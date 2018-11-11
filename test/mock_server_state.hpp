@@ -41,6 +41,7 @@ namespace wsrep
             , server_state_(server_state)
             , last_client_id_(0)
             , last_transaction_id_(0)
+            , logged_view_()
         { }
 
         wsrep::storage_service* storage_service(wsrep::client_service&)
@@ -120,8 +121,28 @@ namespace wsrep
             WSREP_OVERRIDE
         {
         }
-        void log_view(wsrep::high_priority_service*, const wsrep::view&)
-            WSREP_OVERRIDE { }
+        void log_view(wsrep::high_priority_service*, const wsrep::view& view)
+            WSREP_OVERRIDE
+        {
+            logged_view_ = view;
+        }
+
+        wsrep::view get_view(wsrep::client_service&, const wsrep::id& own_id)
+            WSREP_OVERRIDE
+        {
+            int const my_idx(logged_view_.member_index(own_id));
+            wsrep::view my_view(
+                logged_view_.state_id(),
+                logged_view_.view_seqno(),
+                logged_view_.status(),
+                logged_view_.capabilities(),
+                my_idx,
+                logged_view_.protocol_version(),
+                logged_view_.members()
+            );
+            return my_view;
+        }
+
         void log_state_change(enum wsrep::server_state::state,
                               enum wsrep::server_state::state)
         { }
@@ -169,6 +190,7 @@ namespace wsrep
         wsrep::server_state& server_state_;
         unsigned long long last_client_id_;
         unsigned long long last_transaction_id_;
+        wsrep::view logged_view_;
     };
 
 

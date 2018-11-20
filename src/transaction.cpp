@@ -89,9 +89,6 @@ namespace
         wsrep::storage_service* storage_service_;
         D deleter_;
     };
-
-
-
 }
 
 // Public
@@ -640,16 +637,19 @@ int wsrep::transaction::after_rollback()
     if (is_streaming() && bf_aborted_in_total_order_)
     {
         lock.unlock();
-        scoped_storage_service<storage_service_deleter>
-            sr_scope(
-                client_service_,
-                server_service_.storage_service(client_service_),
-                storage_service_deleter(server_service_));
-        wsrep::storage_service& storage_service(
-            sr_scope.storage_service());
-        storage_service.adopt_transaction(*this);
-        storage_service.remove_fragments();
-        storage_service.commit(wsrep::ws_handle(), wsrep::ws_meta());
+        // Storage service scope
+        {
+            scoped_storage_service<storage_service_deleter>
+                sr_scope(
+                    client_service_,
+                    server_service_.storage_service(client_service_),
+                    storage_service_deleter(server_service_));
+            wsrep::storage_service& storage_service(
+                sr_scope.storage_service());
+            storage_service.adopt_transaction(*this);
+            storage_service.remove_fragments();
+            storage_service.commit(wsrep::ws_handle(), wsrep::ws_meta());
+        }
         lock.lock();
         streaming_context_.cleanup();
     }
@@ -1058,9 +1058,11 @@ int wsrep::transaction::certify_fragment(
     {
         client_state_.server_state_.start_streaming_client(&client_state_);
     }
+
     int ret(0);
-    // Storage service scope
+    enum wsrep::client_error error(wsrep::e_success);
     enum wsrep::provider::status cert_ret(wsrep::provider::success);
+    // Storage service scope
     {
         scoped_storage_service<storage_service_deleter>
             sr_scope(
@@ -1074,91 +1076,92 @@ int wsrep::transaction::certify_fragment(
         // This is done to ensure that there is enough capacity
         // available to store the fragment. The fragment meta data
         // is updated after certification.
-        if (storage_service.start_transaction(ws_handle_))
-        {
-            lock.lock();
-            state(lock, s_must_abort);
-            client_state_.override_error(wsrep::e_append_fragment_error);
-            return 1;
-        }
-
         wsrep::id server_id(client_state_.server_state().id());
         assert(server_id.is_undefined() == false);
-        if (storage_service.append_fragment(
+        if (storage_service.start_transaction(ws_handle_) ||
+            storage_service.append_fragment(
                 server_id,
                 id(),
                 flags(),
                 wsrep::const_buffer(data.data(), data.size())))
         {
-            lock.lock();
-            state(lock, s_must_abort);
-            client_state_.override_error(wsrep::e_append_fragment_error);
-            return 1;
+            ret = 1;
+            error = wsrep::e_append_fragment_error;
         }
 
-        client_service_.debug_crash(
-            "crash_replicate_fragment_before_certify");
-        wsrep::ws_meta sr_ws_meta;
-        cert_ret = provider().certify(client_state_.id(),
-                                      ws_handle_,
-                                      flags(),
-                                      sr_ws_meta);
-        client_service_.debug_crash(
-            "crash_replicate_fragment_after_certify");
-        switch (cert_ret)
+        if (ret == 0)
         {
-        case wsrep::provider::success:
-            assert(sr_ws_meta.seqno().is_undefined() == false);
-            streaming_context_.certified(data.size());
-            if (storage_service.update_fragment_meta(sr_ws_meta))
+            client_service_.debug_crash(
+                "crash_replicate_fragment_before_certify");
+
+            wsrep::ws_meta sr_ws_meta;
+            cert_ret = provider().certify(client_state_.id(),
+                                          ws_handle_,
+                                          flags(),
+                                          sr_ws_meta);
+            client_service_.debug_crash(
+                "crash_replicate_fragment_after_certify");
+
+            switch (cert_ret)
             {
+            case wsrep::provider::success:
+                assert(sr_ws_meta.seqno().is_undefined() == false);
+                streaming_context_.certified(data.size());
+                if (storage_service.update_fragment_meta(sr_ws_meta))
+                {
+                    storage_service.rollback(wsrep::ws_handle(),
+                                             wsrep::ws_meta());
+                    ret = 1;
+                    error = wsrep::e_deadlock_error;
+                    break;
+                }
+                if (storage_service.commit(ws_handle_, sr_ws_meta))
+                {
+                    ret = 1;
+                    error = wsrep::e_deadlock_error;
+                }
+                else
+                {
+                    streaming_context_.stored(sr_ws_meta.seqno());
+                }
+                client_service_.debug_crash(
+                    "crash_replicate_fragment_success");
+                break;
+            case wsrep::provider::error_bf_abort:
+            case wsrep::provider::error_certification_failed:
+                // Streaming transcation got BF aborted, so it must roll
+                // back. Roll back the fragment storage operation out of
+                // order as the commit order will be grabbed later on
+                // during rollback process. Mark the fragment as certified
+                // though in streaming context in order to enter streaming
+                // rollback codepath.
+                //
+                // Note that despite we handle error_certification_failed
+                // here, we mark the transaction as streaming. Apparently
+                // the provider may return status corresponding to certification
+                // failure even if the fragment has passed certification.
+                // This may be a bug in provider implementation or a limitation
+                // of error codes defined in wsrep-API. In order to make
+                // sure that the transaction will be cleaned on other servers,
+                // we take a risk of sending one rollback fragment for nothing.
                 storage_service.rollback(wsrep::ws_handle(),
                                          wsrep::ws_meta());
+                streaming_context_.certified(data.size());
                 ret = 1;
+                error = wsrep::e_deadlock_error;
+                break;
+            default:
+                // Storage service rollback must be done out of order,
+                // otherwise there may be a deadlock between BF aborter
+                // and the rollback process.
+                storage_service.rollback(wsrep::ws_handle(), wsrep::ws_meta());
+                ret = 1;
+                error = wsrep::e_deadlock_error;
                 break;
             }
-            if (storage_service.commit(ws_handle_, sr_ws_meta))
-            {
-                ret = 1;
-            }
-            else
-            {
-                streaming_context_.stored(sr_ws_meta.seqno());
-            }
-            client_service_.debug_crash(
-                "crash_replicate_fragment_success");
-            break;
-        case wsrep::provider::error_bf_abort:
-        case wsrep::provider::error_certification_failed:
-            // Streaming transcation got BF aborted, so it must roll
-            // back. Roll back the fragment storage operation out of
-            // order as the commit order will be grabbed later on
-            // during rollback process. Mark the fragment as certified
-            // though in streaming context in order to enter streaming
-            // rollback codepath.
-            //
-            // Note that despite we handle error_certification_failed
-            // here, we mark the transaction as streaming. Apparently
-            // the provider may return status corresponding to certification
-            // failure even if the fragment has passed certification.
-            // This may be a bug in provider implementation or a limitation
-            // of error codes defined in wsrep-API. In order to make
-            // sure that the transaction will be cleaned on other servers,
-            // we take a risk of sending one rollback fragment for nothing.
-            storage_service.rollback(wsrep::ws_handle(),
-                                     wsrep::ws_meta());
-            streaming_context_.certified(data.size());
-            ret = 1;
-            break;
-        default:
-            // Storage service rollback must be done out of order,
-            // otherwise there may be a deadlock between BF aborter
-            // and the rollback process.
-            storage_service.rollback(wsrep::ws_handle(), wsrep::ws_meta());
-            ret = 1;
-            break;
         }
     }
+
     // Note: This does not release the handle in the provider
     // since streaming is still on. However it is needed to
     // make provider internal state to transition for the
@@ -1167,11 +1170,17 @@ int wsrep::transaction::certify_fragment(
     // rollback process.
     if (ret == 0)
     {
+        assert(error == wsrep::e_success);
         ret = provider().release(ws_handle_);
+        if (ret)
+        {
+            error = wsrep::e_deadlock_error;
+        }
     }
     lock.lock();
     if (ret)
     {
+        assert(error != wsrep::e_success);
         if (is_streaming() == false)
         {
             lock.unlock();
@@ -1186,7 +1195,7 @@ int wsrep::transaction::certify_fragment(
         {
             state(lock, s_must_abort);
         }
-        client_state_.override_error(wsrep::e_deadlock_error, cert_ret);
+        client_state_.override_error(error, cert_ret);
     }
     else if (state_ == s_must_abort)
     {

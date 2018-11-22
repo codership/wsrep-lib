@@ -419,11 +419,12 @@ namespace
         }
     }
     
-    int encrypt_cb(wsrep_enc_ctx_t*      /*ctx*/,
-                   const wsrep_buf_t*    /*input*/,
-                   void*                 /*output*/,
-                   wsrep_enc_direction_t /*direction*/,
-                   bool                  /*final*/)
+    wsrep_cb_status_t encrypt_cb(void*                 /* app ctx */,
+                                 wsrep_enc_ctx_t*      /*ctx*/,
+                                 const wsrep_buf_t*    /*input*/,
+                                 void*                 /*output*/,
+                                 wsrep_enc_direction_t /*direction*/,
+                                 bool                  /*final*/)
     {
         return WSREP_CB_SUCCESS;
     }

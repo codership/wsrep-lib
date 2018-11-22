@@ -110,6 +110,7 @@ wsrep::transaction::transaction(
     , ws_meta_()
     , flags_()
     , pa_unsafe_(false)
+    , implicit_deps_(false)
     , certified_(false)
     , streaming_context_()
     , sr_keys_()
@@ -1061,6 +1062,11 @@ int wsrep::transaction::certify_fragment(
         client_state_.server_state_.start_streaming_client(&client_state_);
     }
 
+    if (implicit_deps())
+    {
+        flags(flags() | wsrep::provider::flag::implicit_deps);
+    }
+
     int ret(0);
     enum wsrep::client_error error(wsrep::e_success);
     enum wsrep::provider::status cert_ret(wsrep::provider::success);
@@ -1239,6 +1245,11 @@ int wsrep::transaction::certify_commit(
     {
         append_sr_keys_for_commit();
         flags(flags() | wsrep::provider::flag::pa_unsafe);
+    }
+
+    if (implicit_deps())
+    {
+        flags(flags() | wsrep::provider::flag::implicit_deps);
     }
 
     flags(flags() | wsrep::provider::flag::commit);
@@ -1472,6 +1483,7 @@ void wsrep::transaction::cleanup()
     flags_ = 0;
     certified_ = false;
     pa_unsafe_ = false;
+    implicit_deps_ = false;
     sr_keys_.clear();
     streaming_context_.cleanup();
     client_service_.cleanup_transaction();

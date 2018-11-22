@@ -219,6 +219,7 @@ namespace wsrep
             static const int native = (1 << 6);
             static const int prepare = (1 << 7);
             static const int snapshot = (1 << 8);
+            static const int implicit_deps = (1 << 9);
         };
 
         /**

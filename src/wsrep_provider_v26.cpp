@@ -125,7 +125,10 @@ namespace
                         WSREP_FLAG_TRX_PREPARE) |
                 map_one(flags,
                         provider::flag::snapshot,
-                        WSREP_FLAG_SNAPSHOT));
+                        WSREP_FLAG_SNAPSHOT) |
+                map_one(flags,
+                        provider::flag::implicit_deps,
+                        WSREP_FLAG_IMPLICIT_DEPS));
     }
 
     int map_flags_from_native(uint32_t flags)
@@ -153,7 +156,10 @@ namespace
                         provider::flag::prepare) |
                 map_one(flags,
                         WSREP_FLAG_SNAPSHOT,
-                        provider::flag::snapshot));
+                        provider::flag::snapshot) |
+                map_one(flags,
+                        WSREP_FLAG_IMPLICIT_DEPS,
+                        provider::flag::implicit_deps));
     }
 
     class mutable_ws_handle

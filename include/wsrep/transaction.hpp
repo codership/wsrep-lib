@@ -109,6 +109,9 @@ namespace wsrep
         bool pa_unsafe() const { return pa_unsafe_; }
         void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }
 
+        bool implicit_deps() const { return implicit_deps_; }
+        void implicit_deps(bool implicit) { implicit_deps_ = implicit; }
+
         int start_transaction(const wsrep::transaction_id& id);
 
         int start_transaction(const wsrep::ws_handle& ws_handle,
@@ -204,6 +207,7 @@ namespace wsrep
         wsrep::ws_meta ws_meta_;
         int flags_;
         bool pa_unsafe_;
+        bool implicit_deps_;
         bool certified_;
         wsrep::streaming_context streaming_context_;
         wsrep::sr_key_set sr_keys_;

@@ -108,6 +108,8 @@ std::string wsrep::flags_to_string(int flags)
         oss << "prepare | ";
     if (flags & provider::flag::snapshot)
         oss << "snapshot | ";
+    if (flags & provider::flag::implicit_deps)
+        oss << "implicit_deps | ";
 
     std::string ret(oss.str());
     if (ret.size() > 3) ret.erase(ret.size() - 3);

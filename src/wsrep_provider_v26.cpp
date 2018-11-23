@@ -347,9 +347,12 @@ namespace
         assert(app_ctx);
         wsrep::server_state& server_state(
             *reinterpret_cast<wsrep::server_state*>(app_ctx));
-        assert(server_state.id().is_undefined());
         wsrep::view view(view_from_native(*view_info, server_state.id()));
         assert(view.own_index() >= 0);
+        assert(// first connect
+               server_state.id().is_undefined() ||
+               // reconnect to primary component
+               server_state.id() == view.members()[view.own_index()].id());
         try
         {
             server_state.on_connect(view);

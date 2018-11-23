@@ -591,25 +591,36 @@ wsrep::server_state::causal_read(int timeout) const
 void wsrep::server_state::on_connect(const wsrep::view& view)
 {
     // Sanity checks
-    if (id_.is_undefined() == false)
-    {
-        wsrep::log_warning() << "Unexpected connection in connected state. "
-                             << "Received view: " << view
-                             << "Previous ID: " << id_;
-        assert(0);
-    }
-
     if (view.own_index() < 0 ||
         size_t(view.own_index()) >= view.members().size())
     {
         std::ostringstream os;
         os << "Invalid view on connect: own index out of range: " << view;
+#ifndef NDEBUG
         wsrep::log_error() << os.str();
         assert(0);
+#endif
         throw wsrep::runtime_error(os.str());
     }
 
-    id_ = view.members()[view.own_index()].id();
+    if (id_.is_undefined() == false &&
+        id_ != view.members()[view.own_index()].id())
+    {
+        std::ostringstream os;
+        os << "Connection in connected state.\n"
+           << "Connected view:\n" << view
+           << "Previous view:\n" << current_view_
+           << "Current own ID: " << id_;
+#ifndef NDEBUG
+        wsrep::log_error() << os.str();
+        assert(0);
+#endif
+        throw wsrep::runtime_error(os.str());
+    }
+    else
+    {
+        id_ = view.members()[view.own_index()].id();
+    }
 
     wsrep::log_info() << "Server "
                       << name_
@@ -621,6 +632,20 @@ void wsrep::server_state::on_connect(const wsrep::view& view)
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     connected_gtid_ = view.state_id();
     state(lock, s_connected);
+}
+
+void wsrep::server_state::go_final(wsrep::unique_lock<wsrep::mutex>& lock,
+                                   const wsrep::view& view,
+                                   wsrep::high_priority_service* hps)
+{
+    assert(view.final());
+    assert(hps);
+    if (hps)
+    {
+        close_transactions_at_disconnect(*hps);
+    }
+    state(lock, s_disconnected);
+    id_ = wsrep::id::undefined();
 }
 
 void wsrep::server_state::on_view(const wsrep::view& view,
@@ -730,13 +755,7 @@ void wsrep::server_state::on_view(const wsrep::view& view,
         wsrep::log_info() << "Non-primary view";
         if (view.final())
         {
-            assert(high_priority_service);
-            if (high_priority_service)
-            {
-                close_transactions_at_disconnect(*high_priority_service);
-            }
-            id_ = id::undefined();
-            state(lock, s_disconnected);
+            go_final(lock, view, high_priority_service);
         }
         else if (state_ != s_disconnecting)
         {
@@ -745,15 +764,8 @@ void wsrep::server_state::on_view(const wsrep::view& view,
     }
     else
     {
-        assert(view.final());
-        assert(high_priority_service);
-        if (high_priority_service)
-        {
-            close_transactions_at_disconnect(*high_priority_service);
-        }
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-        state(lock, s_disconnected);
-        id_ = wsrep::id::undefined();
+        go_final(lock, view, high_priority_service);
     }
 
     server_service_.log_view(high_priority_service, view);

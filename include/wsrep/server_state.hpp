@@ -597,6 +597,9 @@ namespace wsrep
 
         // Close transactions when handling disconnect from the group.
         void close_transactions_at_disconnect(wsrep::high_priority_service&);
+        // Common actions on final view
+        void go_final(wsrep::unique_lock<wsrep::mutex>&,
+                      const wsrep::view&, wsrep::high_priority_service*);
 
         wsrep::mutex& mutex_;
         wsrep::condition_variable& cond_;

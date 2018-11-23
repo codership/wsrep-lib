@@ -536,6 +536,7 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
     }
 
     current_view_ = v;
+    server_service_.log_view(NULL /* this view is stored already */, v);
 
     if (provider().sst_received(gtid, error))
     {

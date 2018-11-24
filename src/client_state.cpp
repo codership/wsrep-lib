@@ -37,6 +37,7 @@ void wsrep::client_state::open(wsrep::client_id id)
     debug_log_state("open: enter");
     owning_thread_id_ = wsrep::this_thread::get_id();
     current_thread_id_ = owning_thread_id_;
+    has_rollbacker_ = false;
     state(lock, s_idle);
     id_ = id;
     debug_log_state("open: leave");
@@ -86,7 +87,10 @@ int wsrep::client_state::before_command()
     if (transaction_.active() &&
         server_state_.rollback_mode() == wsrep::server_state::rm_sync)
     {
-        while (transaction_.state() == wsrep::transaction::s_aborting)
+        /*
+         * has_rollbacker() returns false, when background rollback is over
+         */
+        while (has_rollbacker())
         {
             cond_.wait(lock);
         }

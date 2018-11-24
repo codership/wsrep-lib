@@ -43,5 +43,4 @@ namespace wsrep_test
     void bf_abort_provider(wsrep::mock_server_state& sc,
                            const wsrep::transaction& tc,
                            wsrep::seqno bf_seqno);
-
 }

@@ -899,6 +899,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
     BOOST_REQUIRE(tc.active() == true);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
+    cc.sync_rollback_complete();
     BOOST_REQUIRE(cc.before_command() == 1);
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
@@ -923,6 +924,7 @@ BOOST_FIXTURE_TEST_CASE(
     wsrep_test::bf_abort_unordered(cc);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
     BOOST_REQUIRE(tc.active());
+    cc.sync_rollback_complete();
     BOOST_REQUIRE(cc.before_command() == 1);
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);

@@ -918,6 +918,8 @@ bool wsrep::transaction::bf_abort(
             // between releasing the lock and before background
             // rollbacker gets control.
             state(lock, wsrep::transaction::s_aborting);
+            client_state_.set_rollbacker(true);
+
             if (client_state_.mode() == wsrep::client_state::m_high_priority)
             {
                 lock.unlock();

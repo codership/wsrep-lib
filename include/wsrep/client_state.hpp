@@ -428,12 +428,14 @@ namespace wsrep
         /**
          * This method should be called by the background rollbacker
          * thread after the rollback is complete. This will allow
-         * the client to proceed with command execution.
+         * the client to proceed through before_command().
          */
         void sync_rollback_complete()
         {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(state_ == s_idle && mode_ == m_local &&
                    transaction_.state() == wsrep::transaction::s_aborted);
+            set_rollbacker(false);
             cond_.notify_all();
         }
         /** @} */
@@ -707,6 +709,7 @@ namespace wsrep
                      enum mode mode)
             : owning_thread_id_(wsrep::this_thread::get_id())
             , current_thread_id_(owning_thread_id_)
+            , has_rollbacker_(false)
             , mutex_(mutex)
             , cond_(cond)
             , server_state_(server_state)
@@ -749,6 +752,7 @@ namespace wsrep
 
         wsrep::thread::id owning_thread_id_;
         wsrep::thread::id current_thread_id_;
+        bool has_rollbacker_;
         wsrep::mutex& mutex_;
         wsrep::condition_variable& cond_;
         wsrep::server_state& server_state_;
@@ -766,6 +770,21 @@ namespace wsrep
         int debug_log_level_;
         enum wsrep::client_error current_error_;
         enum wsrep::provider::status current_error_status_;
+
+        /**
+         * Assigns external rollbacker thread for the client
+         * this will block client in before_command(), until
+         * rolbacker has released the client
+         */
+        void set_rollbacker(bool value)
+        {
+            has_rollbacker_ = value;
+        }
+
+        bool has_rollbacker()
+        {
+            return(has_rollbacker_);
+        }
     };
 
     static inline const char* to_c_string(

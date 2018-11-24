@@ -638,6 +638,7 @@ void wsrep::server_state::go_final(wsrep::unique_lock<wsrep::mutex>& lock,
                                    const wsrep::view& view,
                                    wsrep::high_priority_service* hps)
 {
+    (void)view; // avoid compiler warning "unused parameter 'view'"
     assert(view.final());
     assert(hps);
     if (hps)

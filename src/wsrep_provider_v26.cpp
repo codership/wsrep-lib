@@ -73,13 +73,11 @@ namespace
         switch (type)
         {
         case wsrep::key::shared:        return WSREP_KEY_SHARED;
-        case wsrep::key::semi_shared:   return WSREP_KEY_SEMI;
-        case wsrep::key::semi_exclusive:
-            /** @todo Implement semi exclusive in API */
-            assert(0);
-            return WSREP_KEY_EXCLUSIVE;
+        case wsrep::key::reference:     return WSREP_KEY_REFERENCE;
+        case wsrep::key::update:        return WSREP_KEY_UPDATE;
         case wsrep::key::exclusive:     return WSREP_KEY_EXCLUSIVE;
         }
+        assert(0);
         throw wsrep::runtime_error("Invalid key type");
     }
 

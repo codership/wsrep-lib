@@ -33,8 +33,8 @@ namespace wsrep
         enum type
         {
             shared,
-            semi_shared,
-            semi_exclusive,
+            reference,
+            update,
             exclusive
         };
 

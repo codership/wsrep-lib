@@ -517,26 +517,29 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
             "wsrep::sst_received() called before connection to cluster");
     }
 
-    wsrep::view const v(server_service_.get_view(cs, id_));
-    wsrep::log_info() << "Recovered view from SST:\n" << v;
-
-    if (v.state_id().id() != gtid.id() ||
-        v.state_id().seqno() > gtid.seqno())
+    if (0 == error) /* SST was a success, recover view */
     {
-        /* Since IN GENERAL we may not be able to recover SST GTID from
-         * the state data, we have to rely on SST script passing the GTID
-         * value explicitly.
-         * Here we check if the passed GTID makes any sense: it should
-         * have the same UUID and greater or equal seqno than the last
-         * logged view. */
-        std::ostringstream msg;
-        msg << "SST script passed bogus GTID: " << gtid
-            << ". Preceeding view GTID: " << v.state_id();
-        throw wsrep::runtime_error(msg.str());
-    }
+        wsrep::view const v(server_service_.get_view(cs, id_));
+        wsrep::log_info() << "Recovered view from SST:\n" << v;
 
-    current_view_ = v;
-    server_service_.log_view(NULL /* this view is stored already */, v);
+        if (v.state_id().id() != gtid.id() ||
+            v.state_id().seqno() > gtid.seqno())
+        {
+            /* Since IN GENERAL we may not be able to recover SST GTID from
+             * the state data, we have to rely on SST script passing the GTID
+             * value explicitly.
+             * Here we check if the passed GTID makes any sense: it should
+             * have the same UUID and greater or equal seqno than the last
+             * logged view. */
+            std::ostringstream msg;
+            msg << "SST script passed bogus GTID: " << gtid
+                << ". Preceeding view GTID: " << v.state_id();
+            throw wsrep::runtime_error(msg.str());
+        }
+
+        current_view_ = v;
+        server_service_.log_view(NULL /* this view is stored already */, v);
+    }
 
     if (provider().sst_received(gtid, error))
     {

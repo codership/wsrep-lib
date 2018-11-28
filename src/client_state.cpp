@@ -49,10 +49,10 @@ void wsrep::client_state::close()
     debug_log_state("close: enter");
     state(lock, s_quitting);
     lock.unlock();
-    if (transaction_.active())
+    if (transaction_->active())
     {
         client_service_.bf_rollback();
-        transaction_.after_statement();
+        transaction_->after_statement();
     }
     debug_log_state("close: leave");
 }
@@ -84,7 +84,7 @@ int wsrep::client_state::before_command()
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("before_command: enter");
     assert(state_ == s_idle);
-    if (transaction_.active() &&
+    if (transaction_->active() &&
         server_state_.rollback_mode() == wsrep::server_state::rm_sync)
     {
         /*
@@ -97,40 +97,40 @@ int wsrep::client_state::before_command()
     }
     store_globals(); // Marks the control for this thread
     state(lock, s_exec);
-    assert(transaction_.active() == false ||
-           (transaction_.state() == wsrep::transaction::s_executing ||
-            transaction_.state() == wsrep::transaction::s_aborted ||
-            (transaction_.state() == wsrep::transaction::s_must_abort &&
+    assert(transaction_->active() == false ||
+           (transaction_->state() == wsrep::transaction::s_executing ||
+            transaction_->state() == wsrep::transaction::s_aborted ||
+            (transaction_->state() == wsrep::transaction::s_must_abort &&
              server_state_.rollback_mode() == wsrep::server_state::rm_async)));
 
-    if (transaction_.active())
+    if (transaction_->active())
     {
-        if (transaction_.state() == wsrep::transaction::s_must_abort)
+        if (transaction_->state() == wsrep::transaction::s_must_abort)
         {
             assert(server_state_.rollback_mode() ==
                    wsrep::server_state::rm_async);
             override_error(wsrep::e_deadlock_error);
             lock.unlock();
             client_service_.bf_rollback();
-            (void)transaction_.after_statement();
+            (void)transaction_->after_statement();
             lock.lock();
-            assert(transaction_.state() ==
+            assert(transaction_->state() ==
                    wsrep::transaction::s_aborted);
-            assert(transaction_.active() == false);
+            assert(transaction_->active() == false);
             assert(current_error() != wsrep::e_success);
             debug_log_state("before_command: error");
             return 1;
         }
-        else if (transaction_.state() == wsrep::transaction::s_aborted)
+        else if (transaction_->state() == wsrep::transaction::s_aborted)
         {
             // Transaction was rolled back either just before sending result
             // to the client, or after client_state become idle.
             // Clean up the transaction and return error.
             override_error(wsrep::e_deadlock_error);
             lock.unlock();
-            (void)transaction_.after_statement();
+            (void)transaction_->after_statement();
             lock.lock();
-            assert(transaction_.active() == false);
+            assert(transaction_->active() == false);
             debug_log_state("before_command: error");
             return 1;
         }
@@ -144,15 +144,15 @@ void wsrep::client_state::after_command_before_result()
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("after_command_before_result: enter");
     assert(state() == s_exec);
-    if (transaction_.active() &&
-        transaction_.state() == wsrep::transaction::s_must_abort)
+    if (transaction_->active() &&
+        transaction_->state() == wsrep::transaction::s_must_abort)
     {
         override_error(wsrep::e_deadlock_error);
         lock.unlock();
         client_service_.bf_rollback();
-        (void)transaction_.after_statement();
+        (void)transaction_->after_statement();
         lock.lock();
-        assert(transaction_.state() == wsrep::transaction::s_aborted);
+        assert(transaction_->state() == wsrep::transaction::s_aborted);
         assert(current_error() != wsrep::e_success);
     }
     state(lock, s_result);
@@ -164,17 +164,17 @@ void wsrep::client_state::after_command_after_result()
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("after_command_after_result_enter");
     assert(state() == s_result);
-    assert(transaction_.state() != wsrep::transaction::s_aborting);
-    if (transaction_.active() &&
-        transaction_.state() == wsrep::transaction::s_must_abort)
+    assert(transaction_->state() != wsrep::transaction::s_aborting);
+    if (transaction_->active() &&
+        transaction_->state() == wsrep::transaction::s_must_abort)
     {
         lock.unlock();
         client_service_.bf_rollback();
         lock.lock();
-        assert(transaction_.state() == wsrep::transaction::s_aborted);
+        assert(transaction_->state() == wsrep::transaction::s_aborted);
         override_error(wsrep::e_deadlock_error);
     }
-    else if (transaction_.active() == false)
+    else if (transaction_->active() == false)
     {
         current_error_ = wsrep::e_success;
     }
@@ -199,8 +199,8 @@ int wsrep::client_state::before_statement()
     }
 #endif // 0
 
-    if (transaction_.active() &&
-        transaction_.state() == wsrep::transaction::s_must_abort)
+    if (transaction_->active() &&
+        transaction_->state() == wsrep::transaction::s_must_abort)
     {
         // Rollback and cleanup will happen in after_command_before_result()
         debug_log_state("before_statement_error");
@@ -217,18 +217,18 @@ int wsrep::client_state::after_statement()
     assert(state() == s_exec);
     assert(mode() == m_local);
 
-    if (transaction_.active() &&
-        transaction_.state() == wsrep::transaction::s_must_abort)
+    if (transaction_->active() &&
+        transaction_->state() == wsrep::transaction::s_must_abort)
     {
         lock.unlock();
         client_service_.bf_rollback();
         lock.lock();
-        assert(transaction_.state() == wsrep::transaction::s_aborted);
+        assert(transaction_->state() == wsrep::transaction::s_aborted);
         override_error(wsrep::e_deadlock_error);
     }
     lock.unlock();
 
-    (void)transaction_.after_statement();
+    (void)transaction_->after_statement();
     if (current_error() == wsrep::e_deadlock_error)
     {
         if (mode_ == m_local)
@@ -246,6 +246,28 @@ int wsrep::client_state::after_statement()
     return 0;
 }
 
+void wsrep::client_state::push_transaction()
+{
+    stored_transactions_.push(transaction_);
+
+    wsrep::log_info() << "(PUSH) stack: " << stored_transactions_.size()
+                      << " id: " << int64_t(transaction_->id().get());
+
+    transaction_ = new wsrep::transaction(*this);
+
+}
+
+void wsrep::client_state::pop_transaction()
+{
+    delete transaction_;
+    transaction_ = stored_transactions_.top();
+    stored_transactions_.pop();
+
+     wsrep::log_info() << "(POP) stack: " << stored_transactions_.size()
+                       << " id: " << int64_t(transaction_->id().get());
+
+}
+
 //////////////////////////////////////////////////////////////////////////////
 //                             Streaming                                    //
 //////////////////////////////////////////////////////////////////////////////
@@ -256,8 +278,8 @@ int wsrep::client_state::enable_streaming(
     size_t fragment_size)
 {
     assert(mode_ == m_local);
-    if (transaction_.is_streaming() &&
-        transaction_.streaming_context().fragment_unit() !=
+    if (transaction_->is_streaming() &&
+        transaction_->streaming_context().fragment_unit() !=
         fragment_unit)
     {
         wsrep::log_error()
@@ -265,14 +287,14 @@ int wsrep::client_state::enable_streaming(
             << "not allowed";
         return 1;
     }
-    transaction_.streaming_context().enable(fragment_unit, fragment_size);
+    transaction_->streaming_context().enable(fragment_unit, fragment_size);
     return 0;
 }
 
 void wsrep::client_state::disable_streaming()
 {
     assert(state_ == s_exec && mode_ == m_local);
-    transaction_.streaming_context().disable();
+    transaction_->streaming_context().disable();
 }
 
 //////////////////////////////////////////////////////////////////////////////

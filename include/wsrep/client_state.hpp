@@ -31,6 +31,8 @@
 #ifndef WSREP_CLIENT_STATE_HPP
 #define WSREP_CLIENT_STATE_HPP
 
+#include <stack>
+
 #include "server_state.hpp"
 #include "server_service.hpp"
 #include "provider.hpp"
@@ -148,7 +150,11 @@ namespace wsrep
          */
         virtual ~client_state()
         {
-            assert(transaction_.active() == false);
+            if (transaction_)
+            {
+                assert(transaction_->active() == false);
+                delete transaction_;
+            }
         }
 
         /** @name Client session handling */
@@ -251,7 +257,7 @@ namespace wsrep
         void after_applying()
         {
             assert(mode_ == m_high_priority);
-            transaction_.after_applying();
+            transaction_->after_applying();
         }
 
         /** @name Replication interface */
@@ -267,7 +273,8 @@ namespace wsrep
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(state_ == s_exec);
-            return transaction_.start_transaction(id);
+
+            return transaction_->start_transaction(id);
         }
 
         /**
@@ -277,7 +284,7 @@ namespace wsrep
         {
             assert(mode_ == m_local);
             assert(state_ == s_exec);
-            return transaction_.append_key(key);
+            return transaction_->append_key(key);
         }
 
         /**
@@ -287,7 +294,7 @@ namespace wsrep
         {
             assert(mode_ == m_local);
             assert(state_ == s_exec);
-            return transaction_.append_data(data);
+            return transaction_->append_data(data);
         }
 
         /** @} */
@@ -301,8 +308,8 @@ namespace wsrep
         {
             assert(mode_ == m_local);
             assert(state_ == s_exec);
-            return (transaction_.streaming_context().fragment_size() ?
-                    transaction_.after_row() : 0);
+            return (transaction_->streaming_context().fragment_size() ?
+                    transaction_->after_row() : 0);
         }
 
         /**
@@ -330,7 +337,7 @@ namespace wsrep
         void fragment_applied(wsrep::seqno seqno)
         {
             assert(mode_ == m_high_priority);
-            transaction_.fragment_applied(seqno);
+            transaction_->fragment_applied(seqno);
         }
 
         /**
@@ -350,7 +357,7 @@ namespace wsrep
                                  bool is_commit)
         {
             assert(state_ == s_exec);
-            return transaction_.prepare_for_ordering(
+            return transaction_->prepare_for_ordering(
                 ws_handle, ws_meta, is_commit);
         }
         /** @} */
@@ -363,7 +370,8 @@ namespace wsrep
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(mode_ == m_high_priority);
-            return transaction_.start_transaction(wsh, meta);
+
+            return transaction_->start_transaction(wsh, meta);
         }
 
         /** @name Commit ordering interface */
@@ -373,7 +381,7 @@ namespace wsrep
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_exec);
-            return transaction_.before_prepare(lock);
+            return transaction_->before_prepare(lock);
         }
 
         int after_prepare()
@@ -381,28 +389,28 @@ namespace wsrep
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_exec);
-            return transaction_.after_prepare(lock);
+            return transaction_->after_prepare(lock);
         }
 
         int before_commit()
         {
             assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_exec || mode_ == m_local);
-            return transaction_.before_commit();
+            return transaction_->before_commit();
         }
 
         int ordered_commit()
         {
             assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_exec || mode_ == m_local);
-            return transaction_.ordered_commit();
+            return transaction_->ordered_commit();
         }
 
         int after_commit()
         {
             assert(current_thread_id_ == wsrep::this_thread::get_id());
             assert(state_ == s_exec || mode_ == m_local);
-            return transaction_.after_commit();
+            return transaction_->after_commit();
         }
         /** @} */
         int before_rollback()
@@ -412,7 +420,7 @@ namespace wsrep
                    state_ == s_exec ||
                    state_ == s_result ||
                    state_ == s_quitting);
-            return transaction_.before_rollback();
+            return transaction_->before_rollback();
         }
 
         int after_rollback()
@@ -422,7 +430,7 @@ namespace wsrep
                    state_ == s_exec ||
                    state_ == s_result ||
                    state_ == s_quitting);
-            return transaction_.after_rollback();
+            return transaction_->after_rollback();
         }
 
         /**
@@ -434,7 +442,7 @@ namespace wsrep
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(state_ == s_idle && mode_ == m_local &&
-                   transaction_.state() == wsrep::transaction::s_aborted);
+                   transaction_->state() == wsrep::transaction::s_aborted);
             set_rollbacker(false);
             cond_.notify_all();
         }
@@ -451,8 +459,8 @@ namespace wsrep
         int bf_abort(wsrep::seqno bf_seqno)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            assert(mode_ == m_local || transaction_.is_streaming());
-            return transaction_.bf_abort(lock, bf_seqno);
+            assert(mode_ == m_local || transaction_->is_streaming());
+            return transaction_->bf_abort(lock, bf_seqno);
         }
         /**
          * Brute force abort a transaction in total order. This method
@@ -462,8 +470,8 @@ namespace wsrep
         int total_order_bf_abort(wsrep::seqno bf_seqno)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            assert(mode_ == m_local || transaction_.is_streaming());
-            return transaction_.total_order_bf_abort(lock, bf_seqno);
+            assert(mode_ == m_local || transaction_->is_streaming());
+            return transaction_->total_order_bf_abort(lock, bf_seqno);
         }
 
         /**
@@ -476,7 +484,7 @@ namespace wsrep
         void adopt_transaction(const wsrep::transaction& transaction)
         {
             assert(mode_ == m_high_priority);
-            transaction_.adopt(transaction);
+            transaction_->adopt(transaction);
         }
 
         /** @name Non-transactional operations */
@@ -607,8 +615,11 @@ namespace wsrep
          */
         const wsrep::transaction& transaction() const
         {
-            return transaction_;
+            return *transaction_;
         }
+
+        void push_transaction();
+        void pop_transaction();
 
         const wsrep::ws_meta& toi_meta() const
         {
@@ -719,7 +730,7 @@ namespace wsrep
             , toi_mode_()
             , state_(s_none)
             , state_hist_()
-            , transaction_(*this)
+            , transaction_(new wsrep::transaction(*this))
             , toi_meta_()
             , allow_dirty_reads_()
             , sync_wait_gtid_()
@@ -762,7 +773,8 @@ namespace wsrep
         enum mode toi_mode_;
         enum state state_;
         std::vector<enum state> state_hist_;
-        wsrep::transaction transaction_;
+        wsrep::transaction* transaction_;
+        std::stack<wsrep::transaction*> stored_transactions_;
         wsrep::ws_meta toi_meta_;
         bool allow_dirty_reads_;
         wsrep::gtid sync_wait_gtid_;

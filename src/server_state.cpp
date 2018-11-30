@@ -480,14 +480,18 @@ int wsrep::server_state::start_sst(const std::string& sst_request,
 
 void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
 {
-    wsrep::log_info() << "SST sent: " << gtid << ": " << error;
+    if (0 == error)
+        wsrep::log_info() << "SST sent: " << gtid;
+    else
+        wsrep::log_info() << "SST sending failed: " << error;
+
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     state(lock, s_joined);
     lock.unlock();
     if (provider_->sst_sent(gtid, error))
     {
         server_service_.log_message(wsrep::log::warning,
-                                    "SST sent returned an error");
+                                    "Provider sst_sent() returned an error");
     }
 }
 

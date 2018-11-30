@@ -224,7 +224,13 @@ int wsrep::client_state::after_statement()
         client_service_.bf_rollback();
         lock.lock();
         assert(transaction_.state() == wsrep::transaction::s_aborted);
-        override_error(wsrep::e_deadlock_error);
+        // Error may be set already. For example, if fragment size
+        // exceeded the maximum size in certify_fragment(), then
+        // we already have wsrep::e_error_during_commit
+        if (current_error() == wsrep::e_success)
+        {
+            override_error(wsrep::e_deadlock_error);
+        }
     }
     lock.unlock();
 

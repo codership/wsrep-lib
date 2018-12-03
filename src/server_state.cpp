@@ -878,7 +878,8 @@ void wsrep::server_state::convert_streaming_client_to_applier(
     streaming_applier->adopt_transaction(client_state->transaction());
     if (streaming_appliers_.insert(
             std::make_pair(
-                std::make_pair(id_, client_state->transaction().id()),
+                std::make_pair(client_state->transaction().server_id(),
+                               client_state->transaction().id()),
                 streaming_applier)).second == false)
     {
         wsrep::log_warning() << "Could not insert streaming applier "
@@ -1110,10 +1111,12 @@ void wsrep::server_state::close_orphaned_sr_transactions(
                 wsrep::gtid(),
                 wsrep::stid(server_id, transaction_id, wsrep::client_id()),
                 wsrep::seqno::undefined(), 0);
+            lock.unlock();
             high_priority_service.remove_fragments(ws_meta);
             high_priority_service.commit(wsrep::ws_handle(transaction_id, 0),
                                          ws_meta);
             high_priority_service.after_apply();
+            lock.lock();
         }
         else
         {

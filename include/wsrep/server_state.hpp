@@ -562,6 +562,7 @@ namespace wsrep
             , init_synced_()
             , sst_gtid_()
             , desync_count_()
+            , desynced_on_pause_()
             , pause_count_()
             , pause_seqno_()
             , streaming_clients_()
@@ -613,6 +614,9 @@ namespace wsrep
         bool init_synced_;
         wsrep::gtid sst_gtid_;
         size_t desync_count_;
+        // Boolean to denote if desync was succesfull when desyncing
+        // and pausing the provider on one go.
+        bool desynced_on_pause_;
         size_t pause_count_;
         wsrep::seqno pause_seqno_;
         typedef std::map<wsrep::client_id, wsrep::client_state*>

@@ -420,11 +420,23 @@ void wsrep::server_state::resume()
 
 wsrep::seqno wsrep::server_state::desync_and_pause()
 {
-    wsrep::log_info() << "desync_and_pause";
+    wsrep::log_info() << "Desyncing and pausing the provider";
+    // Temporary variable to store desync() return status. This will be
+    // assigned to desynced_on_pause_ after pause() call to prevent
+    // concurrent access to  member variable desynced_on_pause_.
+    bool desync_successful;
     if (desync())
     {
-        wsrep::log_warning() << "Failed to desync server";
-        return wsrep::seqno::undefined();
+        // Desync may give transient error if the provider cannot
+        // communicate with the rest of the cluster. However, this
+        // error can be tolerated because if the provider can be
+        // paused succesfully below.
+        wsrep::log_debug() << "Failed to desync server before pause";
+        desync_successful = false;
+    }
+    else
+    {
+        desync_successful = true;
     }
     wsrep::seqno ret(pause());
     if (ret.is_undefined())
@@ -433,17 +445,29 @@ wsrep::seqno wsrep::server_state::desync_and_pause()
         resync();
         return wsrep::seqno::undefined();
     }
+    else
+    {
+        desynced_on_pause_ = desync_successful;
+    }
     wsrep::log_info() << "Provider paused at: " << ret;
     return ret;
 }
 
 void wsrep::server_state::resume_and_resync()
 {
-    wsrep::log_info() << "resume_and_resync";
+    wsrep::log_info() << "Resuming and resyncing the provider";
     try
     {
+        // Assign desynced_on_pause_ to local variable before resuming
+        // in order to avoid concurrent access to desynced_on_pause_ member
+        // variable.
+        bool do_resync = desynced_on_pause_;
+        desynced_on_pause_ = false;
         resume();
-        resync();
+        if (do_resync)
+        {
+            resync();
+        }
     }
     catch (const wsrep::runtime_error& e)
     {
@@ -988,10 +1012,18 @@ void wsrep::server_state::resync(wsrep::unique_lock<wsrep::mutex>&
 {
     assert(lock.owns_lock());
     assert(desync_count_ > 0);
-    --desync_count_;
-    if (provider_->resync())
+    if (desync_count_ > 0)
     {
-        throw wsrep::runtime_error("Failed to resync");
+        --desync_count_;
+        if (provider_->resync())
+        {
+            throw wsrep::runtime_error("Failed to resync");
+        }
+    }
+    else
+    {
+        wsrep::log_warning() << "desync_count " << desync_count_
+                             << " on resync";
     }
 }
 

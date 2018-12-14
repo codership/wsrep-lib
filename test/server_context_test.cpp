@@ -65,6 +65,20 @@ namespace
         wsrep::ws_meta ws_meta;
         wsrep::id cluster_id;
         wsrep::view bootstrap_view;
+
+        void final_view()
+        {
+            BOOST_REQUIRE(ss.state() != wsrep::server_state::s_disconnected);
+            wsrep::view view(wsrep::gtid(),                     // state_id
+                             wsrep::seqno::undefined(),         // view seqno
+                             wsrep::view::disconnected,         // status
+                             0,                                 // capabilities
+                             -1,                                // own_index
+                             0,                                 // protocol ver
+                             std::vector<wsrep::view::member>() // members
+                );
+            ss.on_view(view, &hps);
+        }
     };
 
     struct applying_server_fixture : server_fixture_base
@@ -83,6 +97,22 @@ namespace
         {
             server_service.sst_before_init_ = true;
         }
+
+        // Helper method to bootstrap the server with bootstrap view
+        void bootstrap()
+        {
+            BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);
+            ss.on_connect(bootstrap_view);
+            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
+            server_service.sync_point_enabled_ = "on_view_wait_initialized";
+            server_service.sync_point_action_  = server_service.spa_initialize;
+            ss.on_view(bootstrap_view, &hps);
+            server_service.sync_point_enabled_ = "";
+            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
+            ss.on_sync();
+            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+        }
+
     };
 
     struct init_first_server_fixture : server_fixture_base
@@ -210,17 +240,48 @@ BOOST_AUTO_TEST_CASE(server_state_state_strings)
 BOOST_FIXTURE_TEST_CASE(server_state_sst_first_boostrap,
                         sst_first_server_fixture)
 {
+    bootstrap();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+}
+
+// Cycle from synced state to disconnected and back to synced. Server
+// storage engines remain initialized.
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_synced_disconnected_synced_no_sst,
+    sst_first_server_fixture)
+{
+    bootstrap();
+    ss.disconnect();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnecting);
+    final_view();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
+
+    // Connect back as a sole member in the cluster
     BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);
-    ss.on_connect(bootstrap_view);
+    // @todo: s_connecting state would be good to have
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
+    // Server state must keep the initialized state
+    BOOST_REQUIRE(ss.is_initialized() == true);
+    std::vector<wsrep::view::member> members;
+    members.push_back(wsrep::view::member(wsrep::id("s1"), "name", ""));
+    wsrep::view view(wsrep::gtid(cluster_id, wsrep::seqno(1)),
+                     wsrep::seqno(2),
+                     wsrep::view::primary,
+                     0, // capabilities
+                     0, // own index
+                     1, // protocol version
+                     members);
+    ss.on_connect(view);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
-    server_service.sync_point_enabled_ = "on_view_wait_initialized";
-    server_service.sync_point_action_  = server_service.spa_initialize;
-    ss.on_view(bootstrap_view, &hps);
-    server_service.sync_point_enabled_ = "";
+    // As storage engines have been initialized, there should not be
+    // any reason to wait for initialization. State should jump directly
+    // to s_joined after handling the view.
+    ss.on_view(view, &hps);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_sync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //                     Test cases for init first                             //

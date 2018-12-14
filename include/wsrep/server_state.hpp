@@ -286,6 +286,16 @@ namespace wsrep
             return *provider_;
         }
 
+        /**
+         * Initialize connection to cluster.
+         *
+         * @param cluster_name A string containing the name of the cluster
+         * @param cluster_address Cluster address string
+         * @param state_donor String containing a list of desired donors
+         * @param bootstrap Bootstrap option
+         *
+         * @return Zero in case of success, non-zero on error.
+         */
         int connect(const std::string& cluster_name,
                     const std::string& cluster_address,
                     const std::string& state_donor,
@@ -598,6 +608,7 @@ namespace wsrep
 
         // Close transactions when handling disconnect from the group.
         void close_transactions_at_disconnect(wsrep::high_priority_service&);
+
         // Common actions on final view
         void go_final(wsrep::unique_lock<wsrep::mutex>&,
                       const wsrep::view&, wsrep::high_priority_service*);

@@ -686,6 +686,7 @@ void wsrep::server_state::on_view(const wsrep::view& view,
     wsrep::log_info()
         << "================================================\nView:\n"
         << "  id: " << view.state_id() << "\n"
+        << "  seqno: " << view.view_seqno() << "\n"
         << "  status: " << view.status() << "\n"
         << "  prococol_version: " << view.protocol_version() << "\n"
         << "  own_index: " << view.own_index() << "\n"
@@ -722,6 +723,13 @@ void wsrep::server_state::on_view(const wsrep::view& view,
             {
                 state(lock, s_joiner);
                 state(lock, s_initializing);
+                if (init_initialized_)
+                {
+                    // If storage engines have already been initialized,
+                    // skip directly to s_joined.
+                    state(lock, s_initialized);
+                    state(lock, s_joined);
+                }
             }
             else if (state_ == s_joiner)
             {

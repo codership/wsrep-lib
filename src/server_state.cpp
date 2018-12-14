@@ -691,7 +691,7 @@ void wsrep::server_state::on_primary_view(
             state(lock, s_initializing);
             if (init_initialized_)
             {
-                // If storage engines have already been initialized,
+                // If server side has already been initialized,
                 // skip directly to s_joined.
                 state(lock, s_initialized);
                 state(lock, s_joined);
@@ -709,6 +709,12 @@ void wsrep::server_state::on_primary_view(
         if (state_ == s_connected)
         {
             state(lock, s_joiner);
+        }
+        if (init_initialized_)
+        {
+            // If server side has already been initialized,
+            // skip directly to s_joined.
+            state(lock, s_joined);
         }
     }
 

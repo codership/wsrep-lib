@@ -122,6 +122,20 @@ namespace
         {
             server_service.sst_before_init_ = false;
         }
+
+        // Helper method to bootstrap the server with bootstrap view
+        void bootstrap()
+        {
+            ss.initialized();
+            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_initialized);
+            BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);
+            ss.on_connect(bootstrap_view);
+            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
+            ss.on_view(bootstrap_view, &hps);
+            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
+            ss.on_sync();
+            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+        }
     };
 }
 
@@ -290,12 +304,43 @@ BOOST_FIXTURE_TEST_CASE(
 BOOST_FIXTURE_TEST_CASE(server_state_init_first_boostrap,
                         init_first_server_fixture)
 {
-    ss.initialized();
-    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_initialized);
+    bootstrap();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+}
+
+// Cycle from synced state to disconnected and back to synced. Server
+// storage engines remain initialized.
+BOOST_FIXTURE_TEST_CASE(
+    server_state_init_first_synced_disconnected_synced_no_sst,
+    init_first_server_fixture)
+{
+    bootstrap();
+    ss.disconnect();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnecting);
+    final_view();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
+
+    // Connect back as a sole member in the cluster
     BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);
-    ss.on_connect(bootstrap_view);
+    // @todo: s_connecting state would be good to have
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
+    // Server state must keep the initialized state
+    BOOST_REQUIRE(ss.is_initialized() == true);
+    std::vector<wsrep::view::member> members;
+    members.push_back(wsrep::view::member(wsrep::id("s1"), "name", ""));
+    wsrep::view view(wsrep::gtid(cluster_id, wsrep::seqno(1)),
+                     wsrep::seqno(2),
+                     wsrep::view::primary,
+                     0, // capabilities
+                     0, // own index
+                     1, // protocol version
+                     members);
+    ss.on_connect(view);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
-    ss.on_view(bootstrap_view, &hps);
+    // As storage engines have been initialized, there should not be
+    // any reason to wait for initialization. State should jump directly
+    // to s_joined after handling the view.
+    ss.on_view(view, &hps);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_sync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);

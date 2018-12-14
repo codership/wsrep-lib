@@ -665,6 +665,113 @@ void wsrep::server_state::on_connect(const wsrep::view& view)
     state(lock, s_connected);
 }
 
+void wsrep::server_state::on_primary_view(
+    const wsrep::view& view,
+    wsrep::high_priority_service* high_priority_service)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    assert(view.final() == false);
+    //
+    // Reached primary from connected state. This may mean the following
+    //
+    // 1) Server was joined to the cluster and got SST transfer
+    // 2) Server was partitioned from the cluster and got back
+    // 3) A new cluster was bootstrapped from non-prim cluster
+    //
+    // There is no enough information here what was the cause
+    // of the primary component, so we need to walk through
+    // all states leading to joined to notify possible state
+    // waiters in other threads.
+    //
+    if (server_service_.sst_before_init())
+    {
+        if (state_ == s_connected)
+        {
+            state(lock, s_joiner);
+            state(lock, s_initializing);
+            if (init_initialized_)
+            {
+                // If storage engines have already been initialized,
+                // skip directly to s_joined.
+                state(lock, s_initialized);
+                state(lock, s_joined);
+            }
+        }
+        else if (state_ == s_joiner)
+        {
+            // Got partiioned from the cluster, got IST and
+            // started applying actions.
+            state(lock, s_joined);
+        }
+    }
+    else
+    {
+        if (state_ == s_connected)
+        {
+            state(lock, s_joiner);
+        }
+    }
+
+    if (init_initialized_ == false)
+    {
+        lock.unlock();
+        server_service_.debug_sync("on_view_wait_initialized");
+        lock.lock();
+        wait_until_state(lock, s_initialized);
+    }
+    assert(init_initialized_);
+
+    if (bootstrap_)
+    {
+        server_service_.bootstrap();
+        bootstrap_ = false;
+    }
+
+    assert(high_priority_service);
+    if (high_priority_service)
+    {
+        close_orphaned_sr_transactions(lock, *high_priority_service);
+    }
+    if (server_service_.sst_before_init())
+    {
+        if (state_ == s_initialized)
+        {
+            state(lock, s_joined);
+            if (init_synced_)
+            {
+                state(lock, s_synced);
+            }
+        }
+    }
+    else
+    {
+        if (state_ == s_joiner)
+        {
+            state(lock, s_joined);
+            if (init_synced_)
+            {
+                state(lock, s_synced);
+            }
+        }
+    }
+}
+
+void wsrep::server_state::on_non_primary_view(
+    const wsrep::view& view,
+    wsrep::high_priority_service* high_priority_service)
+{
+        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        wsrep::log_info() << "Non-primary view";
+        if (view.final())
+        {
+            go_final(lock, view, high_priority_service);
+        }
+        else if (state_ != s_disconnecting)
+        {
+            state(lock, s_connected);
+        }
+}
+
 void wsrep::server_state::go_final(wsrep::unique_lock<wsrep::mutex>& lock,
                                    const wsrep::view& view,
                                    wsrep::high_priority_service* hps)
@@ -701,111 +808,23 @@ void wsrep::server_state::on_view(const wsrep::view& view,
     }
     wsrep::log_info() << "=================================================";
     current_view_ = view;
-    if (view.status() == wsrep::view::primary)
+    switch (view.status())
     {
-        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-        assert(view.final() == false);
-        //
-        // Reached primary from connected state. This may mean the following
-        //
-        // 1) Server was joined to the cluster and got SST transfer
-        // 2) Server was partitioned from the cluster and got back
-        // 3) A new cluster was bootstrapped from non-prim cluster
-        //
-        // There is no enough information here what was the cause
-        // of the primary component, so we need to walk through
-        // all states leading to joined to notify possible state
-        // waiters in other threads.
-        //
-        if (server_service_.sst_before_init())
-        {
-            if (state_ == s_connected)
-            {
-                state(lock, s_joiner);
-                state(lock, s_initializing);
-                if (init_initialized_)
-                {
-                    // If storage engines have already been initialized,
-                    // skip directly to s_joined.
-                    state(lock, s_initialized);
-                    state(lock, s_joined);
-                }
-            }
-            else if (state_ == s_joiner)
-            {
-                // Got partiioned from the cluster, got IST and
-                // started applying actions.
-                state(lock, s_joined);
-            }
-        }
-        else
-        {
-            if (state_ == s_connected)
-            {
-                state(lock, s_joiner);
-            }
-        }
-
-        if (init_initialized_ == false)
-        {
-            lock.unlock();
-            server_service_.debug_sync("on_view_wait_initialized");
-            lock.lock();
-            wait_until_state(lock, s_initialized);
-        }
-        assert(init_initialized_);
-
-        if (bootstrap_)
-        {
-            server_service_.bootstrap();
-            bootstrap_ = false;
-        }
-
-        assert(high_priority_service);
-        if (high_priority_service)
-        {
-            close_orphaned_sr_transactions(lock, *high_priority_service);
-        }
-        if (server_service_.sst_before_init())
-        {
-            if (state_ == s_initialized)
-            {
-                state(lock, s_joined);
-                if (init_synced_)
-                {
-                    state(lock, s_synced);
-                }
-            }
-        }
-        else
-        {
-            if (state_ == s_joiner)
-            {
-                state(lock, s_joined);
-                if (init_synced_)
-                {
-                    state(lock, s_synced);
-                }
-            }
-        }
-    }
-    else if (view.status() == wsrep::view::non_primary)
-    {
-        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-        wsrep::log_info() << "Non-primary view";
-        if (view.final())
-        {
-            go_final(lock, view, high_priority_service);
-        }
-        else if (state_ != s_disconnecting)
-        {
-            state(lock, s_connected);
-        }
-    }
-    else
+    case wsrep::view::primary:
+        on_primary_view(view, high_priority_service);
+        break;
+    case wsrep::view::non_primary:
+        on_non_primary_view(view, high_priority_service);
+        break;
+    case wsrep::view::disconnected:
     {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
         go_final(lock, view, high_priority_service);
+        break;
+    }
+    default:
+        wsrep::log_warning() << "Unrecognized view status: " << view.status();
+        assert(0);
     }
 
     server_service_.log_view(high_priority_service, view);

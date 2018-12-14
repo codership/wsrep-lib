@@ -40,7 +40,20 @@ namespace
                       wsrep::seqno(0),
                       wsrep::provider::flag::start_transaction |
                       wsrep::provider::flag::commit)
+            , cluster_id("1")
+            , bootstrap_view()
         {
+            wsrep::gtid state_id(cluster_id, wsrep::seqno(0));
+            std::vector<wsrep::view::member> members;
+            members.push_back(wsrep::view::member(wsrep::id("s1"), "name", ""));
+            bootstrap_view = wsrep::view(state_id,
+                                         wsrep::seqno(1),
+                                         wsrep::view::primary,
+                                         0, // capabilities
+                                         0, // own index
+                                         1, // protocol version
+                                         members);
+
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
         }
@@ -50,6 +63,8 @@ namespace
         wsrep::mock_high_priority_service hps;
         wsrep::ws_handle ws_handle;
         wsrep::ws_meta ws_meta;
+        wsrep::id cluster_id;
+        wsrep::view bootstrap_view;
     };
 
     struct applying_server_fixture : server_fixture_base
@@ -188,20 +203,13 @@ BOOST_AUTO_TEST_CASE(server_state_state_strings)
                       static_cast<enum wsrep::server_state::state>(0xff)) == "unknown");
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//                     Test cases for SST first                              //
+///////////////////////////////////////////////////////////////////////////////
+
 BOOST_FIXTURE_TEST_CASE(server_state_sst_first_boostrap,
                         sst_first_server_fixture)
 {
-    wsrep::id cluster_id("1");
-    wsrep::gtid state_id(cluster_id, wsrep::seqno(0));
-    std::vector<wsrep::view::member> members;
-    members.push_back(wsrep::view::member(wsrep::id("s1"), "name", ""));
-    wsrep::view bootstrap_view(state_id,
-                               wsrep::seqno(1),
-                               wsrep::view::primary,
-                               0,
-                               0,
-                               1,
-                               members);
     BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);
     ss.on_connect(bootstrap_view);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
@@ -214,20 +222,13 @@ BOOST_FIXTURE_TEST_CASE(server_state_sst_first_boostrap,
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//                     Test cases for init first                             //
+///////////////////////////////////////////////////////////////////////////////
+
 BOOST_FIXTURE_TEST_CASE(server_state_init_first_boostrap,
                         init_first_server_fixture)
 {
-    wsrep::id cluster_id("1");
-    wsrep::gtid state_id(cluster_id, wsrep::seqno(0));
-    std::vector<wsrep::view::member> members;
-    members.push_back(wsrep::view::member(wsrep::id("s1"), "name", ""));
-    wsrep::view bootstrap_view(state_id,
-                               wsrep::seqno(1),
-                               wsrep::view::primary,
-                               0,
-                               0,
-                               1,
-                               members);
     ss.initialized();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_initialized);
     BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);

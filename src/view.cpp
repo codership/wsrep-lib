@@ -29,9 +29,12 @@ int wsrep::view::member_index(const wsrep::id& member_id) const
     }
 
     // guesing didn't work, scan the list
-    for (unsigned int i(0); i < members_.size(); ++i)
+    for (size_t i(0); i < members_.size(); ++i)
     {
-        if (i != own_index_ && members_[i].id() == member_id) return i;
+        if (static_cast<int>(i) != own_index_ && members_[i].id() == member_id)
+        {
+            return i;
+        }
     }
 
     return -1;

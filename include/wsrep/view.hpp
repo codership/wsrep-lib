@@ -116,7 +116,10 @@ namespace wsrep
         }
 
         /**
-         * Return member index in the view
+         * Return member index in the view.
+         *
+         * @return Member index if found, -1 if member is not present
+         *         in the view.
          */
         int member_index(const wsrep::id& member_id) const;
 

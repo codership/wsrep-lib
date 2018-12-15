@@ -22,21 +22,14 @@
 
 int wsrep::view::member_index(const wsrep::id& member_id) const
 {
-    // first, quick guess
-    if (own_index_ >= 0 && members_[own_index_].id() == member_id)
+    for (std::vector<member>::const_iterator i(members_.begin());
+         i != members_.end(); ++i)
     {
-        return own_index_;
-    }
-
-    // guesing didn't work, scan the list
-    for (size_t i(0); i < members_.size(); ++i)
-    {
-        if (static_cast<int>(i) != own_index_ && members_[i].id() == member_id)
+        if (i->id() == member_id)
         {
-            return i;
+            return (i - members_.begin());
         }
     }
-
     return -1;
 }
 

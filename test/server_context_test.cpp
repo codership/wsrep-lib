@@ -513,3 +513,19 @@ BOOST_FIXTURE_TEST_CASE(
     ss.on_sync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
 }
+
+/////////////////////////////////////////////////////////////////////////////
+//                    Pause/Resume and Desync/Resync                       //
+/////////////////////////////////////////////////////////////////////////////
+
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_desync_and_pause_resync_and_resume,
+    sst_first_server_fixture)
+{
+    bootstrap();
+    ss.desync_and_pause();
+    // @todo: Should we have here different state than synced
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+    ss.resume_and_resync();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+}

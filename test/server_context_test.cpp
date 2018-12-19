@@ -371,7 +371,7 @@ BOOST_FIXTURE_TEST_CASE(
     disconnect();
 }
 
-// Error during SST.q
+// Error during SST.
 BOOST_FIXTURE_TEST_CASE(
     server_state_sst_first_error_on_joiner,
     sst_first_server_fixture)
@@ -379,6 +379,9 @@ BOOST_FIXTURE_TEST_CASE(
     connect_in_view(second_view);
     ss.prepare_for_sst();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
+    ss.sst_received(cc, wsrep::gtid(wsrep::id::undefined(),
+                                    wsrep::seqno::undefined()), 1);
+    disconnect();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

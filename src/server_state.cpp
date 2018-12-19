@@ -520,11 +520,25 @@ void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
 }
 
 void wsrep::server_state::sst_received(wsrep::client_service& cs,
-                                       const wsrep::gtid& gtid, int error)
+                                       const wsrep::gtid& gtid,
+                                       int const error)
 {
     wsrep::log_info() << "SST received: " << gtid;
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state_ == s_joiner || state_ == s_initialized);
+
+    // Deal with error case first. If the SST failed, the system
+    // may be in unrecoverable state. There is no point of doing
+    // anything else then notifying the provider about failure
+    // and returning control back to caller.
+    if (error)
+    {
+        if (provider().sst_received(gtid, error))
+        {
+            throw wsrep::runtime_error("wsrep::sst_received() failed");
+        }
+        return;
+    }
 
     if (server_service_.sst_before_init())
     {
@@ -548,29 +562,26 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
             "wsrep::sst_received() called before connection to cluster");
     }
 
-    if (0 == error) /* SST was a success, recover view */
+    wsrep::view const v(server_service_.get_view(cs, id_));
+    wsrep::log_info() << "Recovered view from SST:\n" << v;
+
+    if (v.state_id().id() != gtid.id() ||
+        v.state_id().seqno() > gtid.seqno())
     {
-        wsrep::view const v(server_service_.get_view(cs, id_));
-        wsrep::log_info() << "Recovered view from SST:\n" << v;
-
-        if (v.state_id().id() != gtid.id() ||
-            v.state_id().seqno() > gtid.seqno())
-        {
-            /* Since IN GENERAL we may not be able to recover SST GTID from
-             * the state data, we have to rely on SST script passing the GTID
-             * value explicitly.
-             * Here we check if the passed GTID makes any sense: it should
-             * have the same UUID and greater or equal seqno than the last
-             * logged view. */
-            std::ostringstream msg;
-            msg << "SST script passed bogus GTID: " << gtid
-                << ". Preceeding view GTID: " << v.state_id();
-            throw wsrep::runtime_error(msg.str());
-        }
-
-        current_view_ = v;
-        server_service_.log_view(NULL /* this view is stored already */, v);
+        /* Since IN GENERAL we may not be able to recover SST GTID from
+         * the state data, we have to rely on SST script passing the GTID
+         * value explicitly.
+         * Here we check if the passed GTID makes any sense: it should
+         * have the same UUID and greater or equal seqno than the last
+         * logged view. */
+        std::ostringstream msg;
+        msg << "SST script passed bogus GTID: " << gtid
+            << ". Preceeding view GTID: " << v.state_id();
+        throw wsrep::runtime_error(msg.str());
     }
+
+    current_view_ = v;
+    server_service_.log_view(NULL /* this view is stored already */, v);
 
     if (provider().sst_received(gtid, error))
     {
@@ -1076,7 +1087,7 @@ void wsrep::server_state::state(
             {  1,   0,   1,    0,    0,   0,   0,   0,   0}, /* ing */
             {  1,   0,   0,    1,    0,   1,   0,   0,   0}, /* ized */
             {  1,   0,   0,    1,    1,   0,   0,   1,   1}, /* cted */
-            {  1,   1,   0,    0,    0,   1,   0,   0,   0}, /* jer */
+            {  1,   1,   0,    0,    0,   1,   0,   0,   1}, /* jer */
             {  1,   0,   0,    1,    0,   0,   0,   1,   1}, /* jed */
             {  1,   0,   0,    0,    0,   1,   0,   0,   1}, /* dor */
             {  1,   0,   0,    1,    0,   1,   1,   0,   1}, /* sed */

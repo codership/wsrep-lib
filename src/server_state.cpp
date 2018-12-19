@@ -531,6 +531,9 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
         if (init_initialized_ == false)
         {
             state(lock, s_initializing);
+            lock.unlock();
+            server_service_.debug_sync("on_view_wait_initialized");
+            lock.lock();
             wait_until_state(lock, s_initialized);
             assert(init_initialized_);
         }
@@ -1072,7 +1075,7 @@ void wsrep::server_state::state(
             {  0,   1,   0,    1,    0,   0,   0,   0,   0}, /* dis */
             {  1,   0,   1,    0,    0,   0,   0,   0,   0}, /* ing */
             {  1,   0,   0,    1,    0,   1,   0,   0,   0}, /* ized */
-            {  1,   0,   0,    1,    1,   0,   0,   1,   0}, /* cted */
+            {  1,   0,   0,    1,    1,   0,   0,   1,   1}, /* cted */
             {  1,   1,   0,    0,    0,   1,   0,   0,   0}, /* jer */
             {  1,   0,   0,    1,    0,   0,   0,   1,   1}, /* jed */
             {  1,   0,   0,    0,    0,   1,   0,   0,   1}, /* dor */

@@ -186,6 +186,10 @@ namespace wsrep
         } sync_point_action_;
         bool sst_before_init_;
 
+        void logged_view(const wsrep::view& view)
+        {
+            logged_view_ = view;
+        }
     private:
         wsrep::server_state& server_state_;
         unsigned long long last_client_id_;

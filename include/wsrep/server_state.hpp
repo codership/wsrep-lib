@@ -117,7 +117,7 @@ namespace wsrep
          *
          * @todo Fix UML generation
          *
-         * Server state diagram if the sst_before_init() returns false.
+         * Server state diagram if initialization happens before SST.
          *
          * [*] --> disconnected
          * disconnected --> initializing
@@ -129,7 +129,7 @@ namespace wsrep
          * synced --> donor
          * donor --> joined
          *
-         * Server state diagram if the sst_before_init() returns true.
+         * Server state diagram if SST happens before initialization.
          *
          * [*] --> disconnected
          * disconnected --> connected

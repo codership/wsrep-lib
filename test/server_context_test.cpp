@@ -42,10 +42,12 @@ namespace
                       wsrep::provider::flag::commit)
             , cluster_id("1")
             , bootstrap_view()
+            , second_view()
         {
             wsrep::gtid state_id(cluster_id, wsrep::seqno(0));
             std::vector<wsrep::view::member> members;
-            members.push_back(wsrep::view::member(wsrep::id("s1"), "name", ""));
+            members.push_back(wsrep::view::member(
+                                  wsrep::id("s1"), "s1", ""));
             bootstrap_view = wsrep::view(state_id,
                                          wsrep::seqno(1),
                                          wsrep::view::primary,
@@ -53,6 +55,16 @@ namespace
                                          0, // own index
                                          1, // protocol version
                                          members);
+
+            members.push_back(wsrep::view::member(
+                                  wsrep::id("s2"), "s2", ""));
+            second_view = wsrep::view(wsrep::gtid(cluster_id, wsrep::seqno(1)),
+                                      wsrep::seqno(2),
+                                      wsrep::view::primary,
+                                      0, // capabilities
+                                      1, // own index
+                                      1, // protocol version
+                                      members);
 
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -65,6 +77,7 @@ namespace
         wsrep::ws_meta ws_meta;
         wsrep::id cluster_id;
         wsrep::view bootstrap_view;
+        wsrep::view second_view;
 
         void final_view()
         {
@@ -79,6 +92,16 @@ namespace
                 );
             ss.on_view(view, &hps);
         }
+
+        void disconnect()
+        {
+            BOOST_REQUIRE(ss.state() != wsrep::server_state::s_disconnecting);
+            ss.disconnect();
+            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnecting);
+            final_view();
+            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
+        }
+
     };
 
     struct applying_server_fixture : server_fixture_base
@@ -98,16 +121,37 @@ namespace
             server_service.sst_before_init_ = true;
         }
 
+        void connect_in_view(const wsrep::view& view)
+        {
+            BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);
+            ss.on_connect(view);
+            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
+        }
+
+        void prepare_for_sst()
+        {
+            ss.prepare_for_sst();
+            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
+        }
+
+        void sst_received_action()
+        {
+            server_service.sync_point_enabled_ = "on_view_wait_initialized";
+            server_service.sync_point_action_  = server_service.spa_initialize;
+        }
+        void clear_sst_received_action()
+        {
+            server_service.sync_point_enabled_ = "";
+        }
+
         // Helper method to bootstrap the server with bootstrap view
         void bootstrap()
         {
-            BOOST_REQUIRE(ss.connect("cluster", "local", "0", false) == 0);
-            ss.on_connect(bootstrap_view);
-            BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
-            server_service.sync_point_enabled_ = "on_view_wait_initialized";
-            server_service.sync_point_action_  = server_service.spa_initialize;
+            connect_in_view(bootstrap_view);
+
+            sst_received_action();
             ss.on_view(bootstrap_view, &hps);
-            server_service.sync_point_enabled_ = "";
+            clear_sst_received_action();
             BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
             ss.on_sync();
             BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
@@ -258,6 +302,24 @@ BOOST_FIXTURE_TEST_CASE(server_state_sst_first_boostrap,
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
 }
 
+
+BOOST_FIXTURE_TEST_CASE(server_state_sst_first_join_with_sst,
+                        sst_first_server_fixture)
+{
+    connect_in_view(second_view);
+    prepare_for_sst();
+    sst_received_action();
+    // Mock server service get_view() gets view from logged_view_.
+    // Get_view() is called from sst_received(). This emulates the
+    // case where SST contains the view in which SST happens.
+    server_service.logged_view(second_view);
+    ss.sst_received(cc, wsrep::gtid(cluster_id, wsrep::seqno(2)), 0);
+    clear_sst_received_action();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
+    ss.on_sync();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+}
+
 // Cycle from synced state to disconnected and back to synced. Server
 // storage engines remain initialized.
 BOOST_FIXTURE_TEST_CASE(
@@ -296,6 +358,28 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
 }
 
+//
+// Error after connecting to cluster. This scenario may happen if SST
+// request preparation fails.
+//
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_error_on_connect,
+    sst_first_server_fixture)
+{
+    connect_in_view(second_view);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
+    disconnect();
+}
+
+// Error during SST.q
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_error_on_joiner,
+    sst_first_server_fixture)
+{
+    connect_in_view(second_view);
+    ss.prepare_for_sst();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //                     Test cases for init first                             //

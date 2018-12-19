@@ -384,6 +384,39 @@ BOOST_FIXTURE_TEST_CASE(
     disconnect();
 }
 
+// Error or shutdown happens during catchup phase after receiving
+// SST succesfully.
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_error_on_joined,
+    sst_first_server_fixture)
+{
+    connect_in_view(second_view);
+    ss.prepare_for_sst();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
+    sst_received_action();
+    // Mock server service get_view() gets view from logged_view_.
+    // Get_view() is called from sst_received(). This emulates the
+    // case where SST contains the view in which SST happens.
+    server_service.logged_view(second_view);
+    ss.sst_received(cc, wsrep::gtid(cluster_id, wsrep::seqno(2)), 0);
+    clear_sst_received_action();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
+    disconnect();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
+}
+
+// Error or shutdown happens when donating a snapshot.
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_error_on_donor,
+    sst_first_server_fixture)
+{
+    bootstrap();
+    ss.start_sst("", wsrep::gtid(cluster_id, wsrep::seqno(2)), false);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_donor);
+    disconnect();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //                     Test cases for init first                             //
 ///////////////////////////////////////////////////////////////////////////////

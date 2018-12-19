@@ -481,3 +481,35 @@ BOOST_FIXTURE_TEST_CASE(
     ss.on_sync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
 }
+
+/////////////////////////////////////////////////////////////////////////////
+//                          Donor state transitions                        //
+/////////////////////////////////////////////////////////////////////////////
+
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_donate_success,
+    sst_first_server_fixture)
+{
+    bootstrap();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+    ss.start_sst("", wsrep::gtid(cluster_id, wsrep::seqno(2)), false);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_donor);
+    ss.sst_sent(wsrep::gtid(cluster_id, wsrep::seqno(2)), 0);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
+    ss.on_sync();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+}
+
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_donate_error,
+    sst_first_server_fixture)
+{
+    bootstrap();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+    ss.start_sst("", wsrep::gtid(cluster_id, wsrep::seqno(2)), false);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_donor);
+    ss.sst_sent(wsrep::gtid(cluster_id, wsrep::seqno(2)), 1);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
+    ss.on_sync();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+}

@@ -377,7 +377,7 @@ wsrep::server_state::~server_state()
 std::vector<wsrep::provider::status_variable>
 wsrep::server_state::status() const
 {
-    return provider_->status();
+    return provider().status();
 }
 
 
@@ -394,7 +394,7 @@ wsrep::seqno wsrep::server_state::pause()
     ++pause_count_;
     assert(pause_seqno_.is_undefined());
     lock.unlock();
-    pause_seqno_ = provider_->pause();
+    pause_seqno_ = provider().pause();
     lock.lock();
     if (pause_seqno_.is_undefined())
     {
@@ -409,7 +409,7 @@ void wsrep::server_state::resume()
     wsrep::log_info() << "resume";
     assert(pause_seqno_.is_undefined() == false);
     assert(pause_count_ == 1);
-    if (provider_->resume())
+    if (provider().resume())
     {
         throw wsrep::runtime_error("Failed to resume provider");
     }
@@ -512,7 +512,7 @@ void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     state(lock, s_joined);
     lock.unlock();
-    if (provider_->sst_sent(gtid, error))
+    if (provider().sst_sent(gtid, error))
     {
         server_service_.log_message(wsrep::log::warning,
                                     "Provider sst_sent() returned an error");
@@ -624,13 +624,13 @@ enum wsrep::provider::status
 wsrep::server_state::wait_for_gtid(const wsrep::gtid& gtid, int timeout)
     const
 {
-    return provider_->wait_for_gtid(gtid, timeout);
+    return provider().wait_for_gtid(gtid, timeout);
 }
 
 std::pair<wsrep::gtid, enum wsrep::provider::status>
 wsrep::server_state::causal_read(int timeout) const
 {
-    return provider_->causal_read(timeout);
+    return provider().causal_read(timeout);
 }
 
 void wsrep::server_state::on_connect(const wsrep::view& view)
@@ -1045,7 +1045,7 @@ int wsrep::server_state::desync(wsrep::unique_lock<wsrep::mutex>& lock)
     assert(lock.owns_lock());
     ++desync_count_;
     lock.unlock();
-    int ret(provider_->desync());
+    int ret(provider().desync());
     lock.lock();
     if (ret)
     {
@@ -1062,7 +1062,7 @@ void wsrep::server_state::resync(wsrep::unique_lock<wsrep::mutex>&
     if (desync_count_ > 0)
     {
         --desync_count_;
-        if (provider_->resync())
+        if (provider().resync())
         {
             throw wsrep::runtime_error("Failed to resync");
         }

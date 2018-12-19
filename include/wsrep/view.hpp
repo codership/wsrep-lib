@@ -140,6 +140,17 @@ namespace wsrep
     {
         v.print(os); return os;
     }
+
+    static inline const char* to_c_string(enum wsrep::view::status status)
+    {
+        switch(status)
+        {
+        case wsrep::view::primary:      return "primary";
+        case wsrep::view::non_primary:  return "non-primary";
+        case wsrep::view::disconnected: return "disconnected";
+        }
+        return "invalid status";
+    }
 }
 
 #endif // WSREP_VIEW

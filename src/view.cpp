@@ -33,23 +33,10 @@ int wsrep::view::member_index(const wsrep::id& member_id) const
     return -1;
 }
 
-static const char* view_status_str(enum wsrep::view::status s)
-{
-    switch(s)
-    {
-        case wsrep::view::primary:      return "PRIMARY";
-        case wsrep::view::non_primary:  return "NON-PRIMARY";
-        case wsrep::view::disconnected: return "DISCONNECTED";
-    }
-
-    assert(0);
-    return "invalid status";
-}
-
 void wsrep::view::print(std::ostream& os) const
 {
     os << "  id: " << state_id() << "\n"
-       << "  status: " << view_status_str(status()) << "\n"
+       << "  status: " << to_c_string(status()) << "\n"
        << "  prococol_version: " << protocol_version() << "\n"
        << "  capabilities: " << provider::capability::str(capabilities())<<"\n"
        << "  final: " << (final() ? "yes" : "no") << "\n"

@@ -35,7 +35,6 @@ std::istream& wsrep::operator>>(std::istream& is, wsrep::gtid& gtid)
     long long seq;
     is >> seq;
     gtid = wsrep::gtid(wsrep::id(id_str), wsrep::seqno(seq));
-    std::cout << "GTID: " << gtid << "\n";
     return is;
 }
 

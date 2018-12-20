@@ -152,9 +152,18 @@ namespace
             server_service.sync_point_enabled_ = "on_view_wait_initialized";
             server_service.sync_point_action_  = server_service.spa_initialize;
         }
-        void clear_sst_received_action()
+
+        void initialization_failure_action()
+        {
+            server_service.sync_point_enabled_ = "on_view_wait_initialized";
+            server_service.sync_point_action_ =
+                server_service.spa_initialize_error;
+        }
+
+        void clear_sync_point_action()
         {
             server_service.sync_point_enabled_ = "";
+            server_service.sync_point_action_ = server_service.spa_none;
         }
 
         // Helper method to bootstrap the server with bootstrap view
@@ -164,7 +173,7 @@ namespace
 
             sst_received_action();
             ss.on_view(bootstrap_view, &hps);
-            clear_sst_received_action();
+            clear_sync_point_action();
             BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
             ss.on_sync();
             BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
@@ -194,6 +203,9 @@ namespace
             BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
         }
     };
+
+    // Helper to pass to BOOST_REQUIRE_EXCEPTION. Always returns true.
+    bool exception_check(const wsrep::runtime_error&) { return true; }
 }
 
 // Test on_apply() method for 1pc
@@ -327,7 +339,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_sst_first_join_with_sst,
     // case where SST contains the view in which SST happens.
     server_service.logged_view(second_view);
     ss.sst_received(cc, wsrep::gtid(cluster_id, wsrep::seqno(2)), 0);
-    clear_sst_received_action();
+    clear_sync_point_action();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_sync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
@@ -343,7 +355,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_sst_first_join_with_ist,
     server_service.logged_view(second_view);
     sst_received_action();
     ss.on_view(second_view, &hps);
-    clear_sst_received_action();
+    clear_sync_point_action();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_view(third_view, &hps);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
@@ -416,6 +428,23 @@ BOOST_FIXTURE_TEST_CASE(
     disconnect();
 }
 
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_error_on_initializing,
+    sst_first_server_fixture)
+{
+    connect_in_view(second_view);
+    ss.prepare_for_sst();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
+    initialization_failure_action();
+    BOOST_REQUIRE_EXCEPTION(ss.sst_received(cc, second_view.state_id(), 0),
+                            wsrep::runtime_error, exception_check);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_initializing);
+    BOOST_REQUIRE_EXCEPTION(ss.on_view(second_view, &hps),
+                            wsrep::runtime_error, exception_check);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_initializing);
+    disconnect();
+}
+
 // Error or shutdown happens during catchup phase after receiving
 // SST succesfully.
 BOOST_FIXTURE_TEST_CASE(
@@ -431,7 +460,7 @@ BOOST_FIXTURE_TEST_CASE(
     // case where SST contains the view in which SST happens.
     server_service.logged_view(second_view);
     ss.sst_received(cc, wsrep::gtid(cluster_id, wsrep::seqno(2)), 0);
-    clear_sst_received_action();
+    clear_sync_point_action();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     disconnect();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);

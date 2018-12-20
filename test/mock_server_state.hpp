@@ -172,8 +172,13 @@ namespace wsrep
             {
                 switch (sync_point_action_)
                 {
+                case spa_none:
+                    break;
                 case spa_initialize:
                     server_state_.initialized();
+                    break;
+                case spa_initialize_error:
+                    throw wsrep::runtime_error("Inject initialization error");
                     break;
                 }
             }
@@ -182,7 +187,10 @@ namespace wsrep
         std::string sync_point_enabled_;
         enum sync_point_action
         {
-            spa_initialize
+            spa_none,
+            spa_initialize,
+            spa_initialize_error
+
         } sync_point_action_;
         bool sst_before_init_;
 

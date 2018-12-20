@@ -681,7 +681,7 @@ void wsrep::server_state::on_connect(const wsrep::view& view)
 }
 
 void wsrep::server_state::on_primary_view(
-    const wsrep::view& view,
+    const wsrep::view& view WSREP_UNUSED,
     wsrep::high_priority_service* high_priority_service)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);

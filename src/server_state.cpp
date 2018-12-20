@@ -365,6 +365,7 @@ int wsrep::server_state::disconnect()
     {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
         state(lock, s_disconnecting);
+        interrupt_state_waiters(lock);
     }
     return provider().disconnect();
 }
@@ -1084,8 +1085,8 @@ void wsrep::server_state::state(
         {
             /* dis, ing, ized, cted, jer, jed, dor, sed, ding */
             {  0,   1,   0,    1,    0,   0,   0,   0,   0}, /* dis */
-            {  1,   0,   1,    0,    0,   0,   0,   0,   0}, /* ing */
-            {  1,   0,   0,    1,    0,   1,   0,   0,   0}, /* ized */
+            {  1,   0,   1,    0,    0,   0,   0,   0,   1}, /* ing */
+            {  1,   0,   0,    1,    0,   1,   0,   0,   1}, /* ized */
             {  1,   0,   0,    1,    1,   0,   0,   1,   1}, /* cted */
             {  1,   1,   0,    0,    0,   1,   0,   0,   1}, /* jer */
             {  1,   0,   0,    1,    0,   0,   0,   1,   1}, /* jed */
@@ -1127,8 +1128,23 @@ void wsrep::server_state::wait_until_state(
     while (state_ != state)
     {
         cond_.wait(lock);
+        // If the waiter waits for any other state than disconnecting
+        // or disconnected and the state has been changed to disconnecting,
+        // this usually means that some error was encountered 
+        if (state != s_disconnecting && state != s_disconnected
+            && state_ == s_disconnecting)
+        {
+            throw wsrep::runtime_error("State wait was interrupted");
+        }
     }
     --state_waiters_[state];
+    cond_.notify_all();
+}
+
+void wsrep::server_state::interrupt_state_waiters(
+    wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED)
+{
+    assert(lock.owns_lock());
     cond_.notify_all();
 }
 

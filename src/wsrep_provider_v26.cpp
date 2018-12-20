@@ -364,7 +364,7 @@ namespace
         }
         catch (const wsrep::runtime_error& e)
         {
-            std::cerr << "Exception: " << e.what();
+            wsrep::log_error() << "Exception: " << e.what();
             return WSREP_CB_FAILURE;
         }
     }
@@ -389,7 +389,7 @@ namespace
         }
         catch (const wsrep::runtime_error& e)
         {
-            std::cerr << "Exception: " << e.what();
+            wsrep::log_error() << "Exception: " << e.what();
             return WSREP_CB_FAILURE;
         }
     }

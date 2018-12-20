@@ -600,6 +600,8 @@ namespace wsrep
         void resync(wsrep::unique_lock<wsrep::mutex>&);
         void state(wsrep::unique_lock<wsrep::mutex>&, enum state);
         void wait_until_state(wsrep::unique_lock<wsrep::mutex>&, enum state) const;
+        // Interrupt all threads which are waiting for state
+        void interrupt_state_waiters(wsrep::unique_lock<wsrep::mutex>&);
         // Close SR transcations whose origin is outside of current
         // cluster view.
         void close_orphaned_sr_transactions(

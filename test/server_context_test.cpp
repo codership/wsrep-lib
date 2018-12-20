@@ -43,6 +43,7 @@ namespace
             , cluster_id("1")
             , bootstrap_view()
             , second_view()
+            , third_view()
         {
             wsrep::gtid state_id(cluster_id, wsrep::seqno(0));
             std::vector<wsrep::view::member> members;
@@ -66,6 +67,17 @@ namespace
                                       1, // protocol version
                                       members);
 
+            members.push_back(wsrep::view::member(
+                                  wsrep::id("s3"), "s3", ""));
+
+            third_view = wsrep::view(wsrep::gtid(cluster_id, wsrep::seqno(2)),
+                                     wsrep::seqno(3),
+                                     wsrep::view::primary,
+                                     0, // capabilities
+                                     1, // own index
+                                     1, // protocol version
+                                     members);
+
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
         }
@@ -78,6 +90,7 @@ namespace
         wsrep::id cluster_id;
         wsrep::view bootstrap_view;
         wsrep::view second_view;
+        wsrep::view third_view;
 
         void connect_in_view(const wsrep::view& view)
         {
@@ -320,6 +333,25 @@ BOOST_FIXTURE_TEST_CASE(server_state_sst_first_join_with_sst,
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
 }
 
+BOOST_FIXTURE_TEST_CASE(server_state_sst_first_join_with_ist,
+                        sst_first_server_fixture)
+{
+    connect_in_view(second_view);
+    // Mock server service get_view() gets view from logged_view_.
+    // Get_view() is called from sst_received(). This emulates the
+    // case where the view is stored in stable storage.
+    server_service.logged_view(second_view);
+    sst_received_action();
+    ss.on_view(second_view, &hps);
+    clear_sst_received_action();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
+    ss.on_view(third_view, &hps);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
+    ss.on_sync();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+}
+
+
 // Cycle from synced state to disconnected and back to synced. Server
 // storage engines remain initialized.
 BOOST_FIXTURE_TEST_CASE(
@@ -443,6 +475,23 @@ BOOST_FIXTURE_TEST_CASE(server_state_init_first_join_with_sst,
     ss.on_sync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
 }
+
+BOOST_FIXTURE_TEST_CASE(server_state_init_first_join_with_ist,
+                        init_first_server_fixture)
+{
+    ss.initialized();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_initialized);
+    connect_in_view(second_view);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
+    server_service.logged_view(second_view);
+    ss.on_view(second_view, &hps);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
+    ss.on_view(third_view, &hps);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
+    ss.on_sync();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+}
+
 
 // Cycle from synced state to disconnected and back to synced. Server
 // storage engines remain initialized.

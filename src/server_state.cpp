@@ -724,7 +724,7 @@ void wsrep::server_state::on_primary_view(
         {
             state(lock, s_joiner);
         }
-        if (init_initialized_)
+        if (init_initialized_ && state_ != s_joined)
         {
             // If server side has already been initialized,
             // skip directly to s_joined.

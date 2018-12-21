@@ -528,61 +528,54 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state_ == s_joiner || state_ == s_initialized);
 
-    // Deal with error case first. If the SST failed, the system
-    // may be in unrecoverable state. There is no point of doing
-    // anything else then notifying the provider about failure
-    // and returning control back to caller.
-    if (error)
+    // Run initialization only if the SST was successful.
+    // In case of SST failure the system is in undefined state
+    // may not be recoverable. 
+    if (error == 0)
     {
-        if (provider().sst_received(gtid, error))
+        if (server_service_.sst_before_init())
         {
-            throw wsrep::runtime_error("wsrep::sst_received() failed");
+            if (init_initialized_ == false)
+            {
+                state(lock, s_initializing);
+                lock.unlock();
+                server_service_.debug_sync("on_view_wait_initialized");
+                lock.lock();
+                wait_until_state(lock, s_initialized);
+                assert(init_initialized_);
+            }
         }
-        return;
-    }
+        state(lock, s_joined);
+        lock.unlock();
 
-    if (server_service_.sst_before_init())
-    {
-        if (init_initialized_ == false)
+        if (id_.is_undefined())
         {
-            state(lock, s_initializing);
-            lock.unlock();
-            server_service_.debug_sync("on_view_wait_initialized");
-            lock.lock();
-            wait_until_state(lock, s_initialized);
-            assert(init_initialized_);
+            assert(0);
+            throw wsrep::runtime_error(
+                "wsrep::sst_received() called before connection to cluster");
         }
+
+        wsrep::view const v(server_service_.get_view(cs, id_));
+        wsrep::log_info() << "Recovered view from SST:\n" << v;
+
+        if (v.state_id().id() != gtid.id() ||
+            v.state_id().seqno() > gtid.seqno())
+        {
+            /* Since IN GENERAL we may not be able to recover SST GTID from
+             * the state data, we have to rely on SST script passing the GTID
+             * value explicitly.
+             * Here we check if the passed GTID makes any sense: it should
+             * have the same UUID and greater or equal seqno than the last
+             * logged view. */
+            std::ostringstream msg;
+            msg << "SST script passed bogus GTID: " << gtid
+                << ". Preceeding view GTID: " << v.state_id();
+            throw wsrep::runtime_error(msg.str());
+        }
+
+        current_view_ = v;
+        server_service_.log_view(NULL /* this view is stored already */, v);
     }
-    state(lock, s_joined);
-    lock.unlock();
-
-    if (id_.is_undefined())
-    {
-        assert(0);
-        throw wsrep::runtime_error(
-            "wsrep::sst_received() called before connection to cluster");
-    }
-
-    wsrep::view const v(server_service_.get_view(cs, id_));
-    wsrep::log_info() << "Recovered view from SST:\n" << v;
-
-    if (v.state_id().id() != gtid.id() ||
-        v.state_id().seqno() > gtid.seqno())
-    {
-        /* Since IN GENERAL we may not be able to recover SST GTID from
-         * the state data, we have to rely on SST script passing the GTID
-         * value explicitly.
-         * Here we check if the passed GTID makes any sense: it should
-         * have the same UUID and greater or equal seqno than the last
-         * logged view. */
-        std::ostringstream msg;
-        msg << "SST script passed bogus GTID: " << gtid
-            << ". Preceeding view GTID: " << v.state_id();
-        throw wsrep::runtime_error(msg.str());
-    }
-
-    current_view_ = v;
-    server_service_.log_view(NULL /* this view is stored already */, v);
 
     if (provider().sst_received(gtid, error))
     {

@@ -1039,6 +1039,14 @@ int wsrep::transaction::certify_fragment(
 
     lock.unlock();
 
+    if (client_service_.interrupted())
+    {
+        lock.lock();
+        state(lock, s_must_abort);
+        client_state_.override_error(wsrep::e_interrupted_error);
+        return 1;
+    }
+
     wsrep::mutable_buffer data;
     if (client_service_.prepare_fragment_for_replication(data))
     {

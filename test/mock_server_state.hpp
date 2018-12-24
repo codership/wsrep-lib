@@ -214,7 +214,6 @@ namespace wsrep
                           wsrep::server_service& server_service)
             : wsrep::server_state(mutex_, cond_, server_service,
                                   name, "", "", "./",
-                                  wsrep::gtid::undefined(),
                                   1,
                                   rollback_mode)
             , mutex_()

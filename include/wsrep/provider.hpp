@@ -362,7 +362,8 @@ namespace wsrep
         static provider* make_provider(
             wsrep::server_state&,
             const std::string& provider_spec,
-            const std::string& provider_options);
+            const std::string& provider_options,
+            const wsrep::gtid& initial_position);
     protected:
         wsrep::server_state& server_state_;
     };

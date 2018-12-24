@@ -137,7 +137,8 @@ void db::simulator::start()
         std::string server_options(params_.wsrep_provider_options);
 
         if (server.server_state().load_provider(
-                params_.wsrep_provider, server_options))
+                params_.wsrep_provider, server_options,
+                wsrep::gtid::undefined()))
         {
             throw wsrep::runtime_error("Failed to load provider");
         }

@@ -546,15 +546,16 @@ namespace
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
     wsrep::server_state& server_state,
     const std::string& provider_options,
-    const std::string& provider_spec)
+    const std::string& provider_spec,
+    const wsrep::gtid& initial_position)
     : provider(server_state)
     , wsrep_()
 {
     wsrep_gtid_t state_id;
     std::memcpy(state_id.uuid.data,
-                server_state.initial_position().id().data(),
+                initial_position.id().data(),
                 sizeof(state_id.uuid.data));
-    state_id.seqno = server_state.initial_position().seqno().get();
+    state_id.seqno = initial_position.seqno().get();
     struct wsrep_init_args init_args;
     memset(&init_args, 0, sizeof(init_args));
     init_args.app_ctx = &server_state;

@@ -34,7 +34,10 @@ std::istream& wsrep::operator>>(std::istream& is, wsrep::gtid& gtid)
     std::getline(is, id_str, ':');
     long long seq;
     is >> seq;
-    gtid = wsrep::gtid(wsrep::id(id_str), wsrep::seqno(seq));
+    if (!is.fail())
+    {
+        gtid = wsrep::gtid(wsrep::id(id_str), wsrep::seqno(seq));
+    }
     return is;
 }
 

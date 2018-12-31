@@ -551,7 +551,7 @@ int wsrep::transaction::before_rollback()
         case s_preparing:
             // Error detected during prepare phase
             state(lock, s_must_abort);
-            // fall through
+            WSREP_FALLTHROUGH;
         case s_executing:
             // Voluntary rollback
             if (is_streaming())
@@ -697,7 +697,7 @@ int wsrep::transaction::after_statement()
             break;
         }
         // Continue to replay if rollback() changed the state to s_must_replay
-        // Fall through
+        WSREP_FALLTHROUGH;
     case s_must_replay:
     {
         state(lock, s_replaying);

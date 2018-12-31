@@ -29,3 +29,11 @@
 #else
 #define WSREP_OVERRIDE
 #endif // __cplusplus >= 201103L
+
+#if defined(__clang__) && __cplusplus >= 201103L
+#define WSREP_FALLTHROUGH [[clang::fallthrough]]
+#elif (defined(__GNUC__) || defined(__GNUG__)) && (__GNUC__ >= 7)
+#define WSREP_FALLTHROUGH __attribute__((fallthrough))
+#else
+#define WSREP_FALLTHROUGH
+#endif

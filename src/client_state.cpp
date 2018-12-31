@@ -54,6 +54,10 @@ void wsrep::client_state::close()
         client_service_.bf_rollback();
         transaction_.after_statement();
     }
+    if (mode_ == m_local)
+    {
+        disable_streaming();
+    }
     debug_log_state("close: leave");
 }
 
@@ -277,7 +281,8 @@ int wsrep::client_state::enable_streaming(
 
 void wsrep::client_state::disable_streaming()
 {
-    assert(state_ == s_exec && mode_ == m_local);
+    assert(mode_ == m_local);
+    assert(state_ == s_exec || state_ == s_quitting);
     transaction_.streaming_context().disable();
 }
 

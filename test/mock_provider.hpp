@@ -248,6 +248,9 @@ namespace wsrep
         std::string options() const { return ""; }
         enum wsrep::provider::status options(const std::string&)
         { return wsrep::provider::success; }
+        std::string name() const WSREP_OVERRIDE { return "mock"; }
+        std::string version() const WSREP_OVERRIDE { return "0.0"; }
+        std::string vendor() const WSREP_OVERRIDE { return "mock"; }
         void* native() const { return 0; }
 
         //

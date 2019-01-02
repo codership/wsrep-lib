@@ -83,6 +83,9 @@ namespace wsrep
         void reset_status();
         std::string options() const;
         enum wsrep::provider::status options(const std::string&);
+        std::string name() const;
+        std::string version() const;
+        std::string vendor() const;
         void* native() const;
     private:
         wsrep_provider_v26(const wsrep_provider_v26&);

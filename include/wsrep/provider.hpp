@@ -347,6 +347,26 @@ namespace wsrep
 
         virtual std::string options() const = 0;
         virtual enum status options(const std::string&) = 0;
+        /**
+         * Get provider name.
+         *
+         * @return Provider name string.
+         */
+        virtual std::string name() const = 0;
+
+        /**
+         * Get provider version.
+         *
+         * @return Provider version string.
+         */
+        virtual std::string version() const = 0;
+
+        /**
+         * Get provider vendor.
+         *
+         * @return Provider vendor string.
+         */
+        virtual std::string vendor() const = 0;
 
         /**
          * Return pointer to native provider handle.

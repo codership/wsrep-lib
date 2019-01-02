@@ -925,6 +925,21 @@ wsrep::wsrep_provider_v26::options(const std::string& opts)
     return map_return_value(wsrep_->options_set(wsrep_, opts.c_str()));
 }
 
+std::string wsrep::wsrep_provider_v26::name() const
+{
+    return (wsrep_->provider_name ? wsrep_->provider_name : "unknown");
+}
+
+std::string wsrep::wsrep_provider_v26::version() const
+{
+    return (wsrep_->provider_version ? wsrep_->provider_version : "unknown");
+}
+
+std::string wsrep::wsrep_provider_v26::vendor() const
+{
+    return (wsrep_->provider_vendor ? wsrep_->provider_vendor : "unknown");
+}
+
 void* wsrep::wsrep_provider_v26::native() const
 {
     return wsrep_;

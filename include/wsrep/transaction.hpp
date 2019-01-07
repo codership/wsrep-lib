@@ -183,6 +183,7 @@ namespace wsrep
 
         wsrep::provider& provider();
         void flags(int flags) { flags_ = flags; }
+        int streaming_step(wsrep::unique_lock<wsrep::mutex>&);
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
         int append_sr_keys_for_commit();

@@ -118,6 +118,11 @@ namespace wsrep
             return unit_counter_;
         }
 
+        void set_unit_counter(size_t count)
+        {
+            unit_counter_ = count;
+        }
+
         void increment_unit_counter(size_t inc)
         {
             unit_counter_ += inc;
@@ -131,6 +136,11 @@ namespace wsrep
         const std::vector<wsrep::seqno>& fragments() const
         {
             return fragments_;
+        }
+
+        bool fragment_size_exceeded() const
+        {
+            return unit_counter_ >= fragment_size_;
         }
 
         void cleanup()

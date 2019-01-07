@@ -241,31 +241,10 @@ int wsrep::transaction::after_row()
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("after_row_enter");
     int ret(0);
-    if (streaming_context_.fragment_size() > 0)
+    if (streaming_context_.fragment_size() &&
+        streaming_context_.fragment_unit() != streaming_context::statement)
     {
-        switch (streaming_context_.fragment_unit())
-        {
-        case streaming_context::row:
-            streaming_context_.increment_unit_counter(1);
-            if (streaming_context_.unit_counter() >=
-                streaming_context_.fragment_size())
-            {
-                streaming_context_.reset_unit_counter();
-                ret = certify_fragment(lock);
-            }
-            break;
-        case streaming_context::bytes:
-            if (client_service_.bytes_generated() >=
-                streaming_context_.bytes_certified()
-                + streaming_context_.fragment_size())
-            {
-                ret = certify_fragment(lock);
-            }
-            break;
-        case streaming_context::statement:
-            // This case is checked in after_statement()
-            break;
-        }
+        ret = streaming_step(lock);
     }
     debug_log_state("after_row_leave");
     return ret;
@@ -692,12 +671,7 @@ int wsrep::transaction::after_statement()
         streaming_context_.fragment_size() &&
         streaming_context_.fragment_unit() == streaming_context::statement)
     {
-        streaming_context_.increment_unit_counter(1);
-        if (streaming_context_.unit_counter() >= streaming_context_.fragment_size())
-        {
-            streaming_context_.reset_unit_counter();
-            ret = certify_fragment(lock);
-        }
+        ret = streaming_step(lock);
     }
 
     switch (state())
@@ -1019,6 +993,45 @@ void wsrep::transaction::state(
     }
 }
 
+int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    assert(lock.owns_lock());
+    assert(streaming_context_.fragment_size());
+
+    int ret(0);
+    const ssize_t bytes_to_replicate(client_service_.bytes_generated() -
+                                     streaming_context_.bytes_certified());
+
+    switch (streaming_context_.fragment_unit())
+    {
+    case streaming_context::row:
+        // fall through
+    case streaming_context::statement:
+        streaming_context_.increment_unit_counter(1);
+        break;
+    case streaming_context::bytes:
+        streaming_context_.set_unit_counter(bytes_to_replicate);
+        break;
+    }
+
+    if (streaming_context_.fragment_size_exceeded())
+    {
+        // Some statements have no effect. Do not atttempt to
+        // replicate a fragment if no data has been generated
+        // since last fragment replication.
+        if (bytes_to_replicate <= 0)
+        {
+            assert(bytes_to_replicate == 0);
+            return ret;
+        }
+
+        streaming_context_.reset_unit_counter();
+        ret = certify_fragment(lock);
+    }
+
+    return ret;
+}
+
 int wsrep::transaction::certify_fragment(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
@@ -1054,6 +1067,14 @@ int wsrep::transaction::certify_fragment(
         state(lock, s_must_abort);
         client_state_.override_error(wsrep::e_error_during_commit);
         return 1;
+    }
+
+    if (data.size() == 0)
+    {
+        wsrep::log_warning() << "Attempt to replicate empty data buffer";
+        lock.lock();
+        state(lock, s_executing);
+        return 0;
     }
 
     if (provider().append_data(ws_handle_,

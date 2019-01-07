@@ -1190,10 +1190,8 @@ BOOST_FIXTURE_TEST_CASE(transaction_byte_batch_streaming_1pc_commit,
         cc.enable_streaming(
             wsrep::streaming_context::bytes, 2) == 0);
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
-    cc.bytes_generated_ = 1;
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
-    cc.bytes_generated_ = 2;
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_commit() == 0);
@@ -1206,12 +1204,31 @@ BOOST_FIXTURE_TEST_CASE(transaction_byte_batch_streaming_1pc_commit,
 }
 
 
+BOOST_FIXTURE_TEST_CASE(transaction_statement_streaming_statement_with_no_effect,
+                        streaming_client_fixture_statement)
+{
+    BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
+    BOOST_REQUIRE(cc.before_statement() == 0);
+    BOOST_REQUIRE(cc.after_statement() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(cc.before_statement() == 0);
+    BOOST_REQUIRE(cc.after_statement() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
+    BOOST_REQUIRE(cc.before_statement() == 0);
+    BOOST_REQUIRE(cc.before_commit() == 0);
+    BOOST_REQUIRE(cc.ordered_commit() == 0);
+    BOOST_REQUIRE(cc.after_commit() == 0);
+    BOOST_REQUIRE(cc.after_statement() == 0);
+    BOOST_REQUIRE(sc.provider().fragments() == 2);
+    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
+    BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
+}
+
 BOOST_FIXTURE_TEST_CASE(transaction_statement_streaming_1pc_commit,
                         streaming_client_fixture_statement)
 {
-    BOOST_REQUIRE(
-        cc.enable_streaming(
-            wsrep::streaming_context::statement, 1) == 0);
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
@@ -1254,11 +1271,8 @@ BOOST_FIXTURE_TEST_CASE(transaction_statement_batch_streaming_1pc_commit,
 }
 
 BOOST_FIXTURE_TEST_CASE(transaction_statement_streaming_cert_fail,
-                        streaming_client_fixture_row)
+                        streaming_client_fixture_statement)
 {
-    BOOST_REQUIRE(
-        cc.enable_streaming(
-            wsrep::streaming_context::statement, 1) == 0);
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);

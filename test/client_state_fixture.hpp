@@ -259,7 +259,7 @@ namespace
             // Verify initial state
             BOOST_REQUIRE(tc.active() == false);
             BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
-            cc.enable_streaming(wsrep::streaming_context::row, 1);
+            cc.enable_streaming(wsrep::streaming_context::statement, 1);
         }
 
         wsrep::mock_server_service server_service;

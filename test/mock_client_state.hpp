@@ -200,6 +200,12 @@ namespace wsrep
             : mock_client_state(server_state, *this, id, mode)
             , mock_client_service(static_cast<mock_client_state&>(*this))
         { }
+
+        int after_row()
+        {
+            bytes_generated_++;
+            return wsrep::client_state::after_row();
+        }
     };
 }
 

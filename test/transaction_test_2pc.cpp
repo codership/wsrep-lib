@@ -31,6 +31,9 @@ BOOST_FIXTURE_TEST_CASE(transaction_2pc,
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
     BOOST_REQUIRE(cc.before_prepare() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_preparing);
+    BOOST_REQUIRE(tc.ordered());
+    BOOST_REQUIRE(tc.certified());
+    BOOST_REQUIRE(tc.ws_meta().gtid().is_undefined() == false);
     BOOST_REQUIRE(cc.after_prepare() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committing);
     BOOST_REQUIRE(cc.before_commit() == 0);
@@ -85,21 +88,21 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
     BOOST_REQUIRE(cc.before_prepare() == 0);
+    BOOST_REQUIRE(tc.certified() == true);
+    BOOST_REQUIRE(tc.ordered() == true);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_preparing);
-    wsrep_test::bf_abort_unordered(cc);
+    wsrep_test::bf_abort_ordered(cc);
     BOOST_REQUIRE(cc.after_prepare());
-    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_abort);
-    BOOST_REQUIRE(tc.certified() == false);
-    BOOST_REQUIRE(tc.ordered() == false);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
     BOOST_REQUIRE(cc.before_rollback() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborting);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
     BOOST_REQUIRE(cc.after_rollback() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
-    BOOST_REQUIRE(cc.after_statement() );
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
+    BOOST_REQUIRE(cc.after_statement() == 0);
     BOOST_REQUIRE(tc.active() == false);
     BOOST_REQUIRE(tc.ordered() == false);
     BOOST_REQUIRE(tc.certified() == false);
-    BOOST_REQUIRE(cc.current_error());
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
 }
 
 //

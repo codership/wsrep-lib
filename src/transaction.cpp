@@ -266,8 +266,6 @@ int wsrep::transaction::before_prepare(
         return 1;
     }
 
-    state(lock, s_preparing);
-
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_local:
@@ -300,17 +298,37 @@ int wsrep::transaction::before_prepare(
                 ret = 1;
             }
         }
+        if (ret == 0)
+        {
+            ret = certify_commit(lock);
+            assert((ret == 0 && state() == s_preparing) ||
+                   (state() == s_must_abort ||
+                    state() == s_must_replay ||
+                    state() == s_cert_failed));
+
+            if (ret)
+            {
+                assert(state() == s_must_replay ||
+                       client_state_.current_error());
+                ret = 1;
+            }
+        }
+
         break;
     case wsrep::client_state::m_high_priority:
         // Note: fragment removal is done from applying
         // context for high priority mode.
+        state(lock, s_preparing);
         break;
     default:
         assert(0);
         break;
     }
 
-    assert(state() == s_preparing || (ret && state() == s_must_abort));
+    assert(state() == s_preparing ||
+           (ret && (state() == s_must_abort ||
+                    state() == s_must_replay ||
+                    state() == s_cert_failed)));
     debug_log_state("before_prepare_leave");
     return ret;
 }
@@ -319,36 +337,22 @@ int wsrep::transaction::after_prepare(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
     assert(lock.owns_lock());
-    int ret(1);
+
     debug_log_state("after_prepare_enter");
+    assert(certified() && ordered());
     assert(state() == s_preparing || state() == s_must_abort);
+
     if (state() == s_must_abort)
     {
         assert(client_state_.mode() == wsrep::client_state::m_local);
-        client_state_.override_error(wsrep::e_deadlock_error);
+        state(lock, s_must_replay);
         return 1;
     }
 
-    switch (client_state_.mode())
-    {
-    case wsrep::client_state::m_local:
-        ret = certify_commit(lock);
-        assert((ret == 0 && state() == s_committing) ||
-               (state() == s_must_abort ||
-                state() == s_must_replay ||
-                state() == s_cert_failed));
-        break;
-    case wsrep::client_state::m_high_priority:
-        state(lock, s_certifying);
-        state(lock, s_committing);
-        ret = 0;
-        break;
-    default:
-        assert(0);
-        break;
-    }
+    state(lock, s_committing);
+
     debug_log_state("after_prepare_leave");
-    return ret;
+    return 0;
 }
 
 int wsrep::transaction::before_commit()
@@ -961,8 +965,8 @@ void wsrep::transaction::state(
     static const char allowed[n_states][n_states] =
         { /*  ex pr ce co oc ct cf ma ab ad mr re */
             { 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0}, /* ex */
-            { 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0}, /* pr */
-            { 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0}, /* ce */
+            { 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0}, /* pr */
+            { 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0}, /* ce */
             { 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0}, /* co */
             { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}, /* oc */
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ct */
@@ -1331,7 +1335,7 @@ int wsrep::transaction::certify_commit(
         switch (state())
         {
         case s_certifying:
-            state(lock, s_committing);
+            state(lock, s_preparing);
             ret = 0;
             break;
         case s_must_abort:

@@ -265,6 +265,8 @@ namespace wsrep
 
         void unload_provider();
 
+        bool is_provider_loaded() const { return provider_ != 0; }
+
         /**
          * Return reference to provider.
          *

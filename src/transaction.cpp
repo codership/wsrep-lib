@@ -404,6 +404,7 @@ int wsrep::transaction::before_commit()
             assert(certified());
             assert(ordered());
             lock.unlock();
+            client_service_.debug_sync("wsrep_before_commit_order_enter");
             enum wsrep::provider::status
                 status(provider().commit_order_enter(ws_handle_, ws_meta_));
             lock.lock();

@@ -67,7 +67,7 @@ void db::simulator::sst(db::server& server,
     db::client dummy(*(i->second), wsrep::client_id(-1),
                      wsrep::client_state::m_local, params());
 
-    i->second->server_state().sst_received(dummy.client_service(), gtid, 0);
+    i->second->server_state().sst_received(dummy.client_service(), 0);
     server.server_state().sst_sent(gtid, 0);
 }
 

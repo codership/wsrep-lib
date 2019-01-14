@@ -142,6 +142,16 @@ namespace wsrep
             const wsrep::id& own_id) = 0;
 
         /**
+         * Get the current replication position from the server
+         * storage.
+         *
+         * @param client_service Reference to client_service
+         *
+         * @return Current position GTID.
+         */
+        virtual wsrep::gtid get_position(
+            wsrep::client_service& client_service) = 0;
+        /**
          * Log a state change event.
          *
          * Note that this method may be called with server_state

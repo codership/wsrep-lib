@@ -128,6 +128,11 @@ wsrep::view db::server_service::get_view(wsrep::client_service&,
     return my_view;
 }
 
+wsrep::gtid db::server_service::get_position(wsrep::client_service&)
+{
+    throw wsrep::not_implemented_error();
+}
+
 void db::server_service::log_state_change(
     enum wsrep::server_state::state prev_state,
     enum wsrep::server_state::state current_state)

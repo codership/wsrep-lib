@@ -42,6 +42,7 @@ namespace wsrep
             , last_client_id_(0)
             , last_transaction_id_(0)
             , logged_view_()
+            , position_()
         { }
 
         wsrep::storage_service* storage_service(wsrep::client_service&)
@@ -143,6 +144,10 @@ namespace wsrep
             return my_view;
         }
 
+        wsrep::gtid get_position(wsrep::client_service&) WSREP_OVERRIDE
+        {
+            return position_;
+        }
         void log_state_change(enum wsrep::server_state::state,
                               enum wsrep::server_state::state)
         { }
@@ -198,11 +203,16 @@ namespace wsrep
         {
             logged_view_ = view;
         }
+        void position(const wsrep::gtid& position)
+        {
+            position_ = position;
+        }
     private:
         wsrep::server_state& server_state_;
         unsigned long long last_client_id_;
         unsigned long long last_transaction_id_;
         wsrep::view logged_view_;
+        wsrep::gtid position_;
     };
 
 

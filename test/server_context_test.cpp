@@ -338,7 +338,8 @@ BOOST_FIXTURE_TEST_CASE(server_state_sst_first_join_with_sst,
     // Get_view() is called from sst_received(). This emulates the
     // case where SST contains the view in which SST happens.
     server_service.logged_view(second_view);
-    ss.sst_received(cc, wsrep::gtid(cluster_id, wsrep::seqno(2)), 0);
+    server_service.position(wsrep::gtid(cluster_id, wsrep::seqno(2)));
+    ss.sst_received(cc, 0);
     clear_sync_point_action();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_sync();
@@ -423,8 +424,8 @@ BOOST_FIXTURE_TEST_CASE(
     connect_in_view(second_view);
     ss.prepare_for_sst();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
-    ss.sst_received(cc, wsrep::gtid(wsrep::id::undefined(),
-                                    wsrep::seqno::undefined()), 1);
+    server_service.position(wsrep::gtid::undefined());
+    ss.sst_received(cc, 1);
     disconnect();
 }
 
@@ -436,7 +437,8 @@ BOOST_FIXTURE_TEST_CASE(
     ss.prepare_for_sst();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
     initialization_failure_action();
-    BOOST_REQUIRE_EXCEPTION(ss.sst_received(cc, second_view.state_id(), 0),
+    server_service.position(wsrep::gtid(second_view.state_id()));
+    BOOST_REQUIRE_EXCEPTION(ss.sst_received(cc, 0),
                             wsrep::runtime_error, exception_check);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_initializing);
     BOOST_REQUIRE_EXCEPTION(ss.on_view(second_view, &hps),
@@ -459,7 +461,8 @@ BOOST_FIXTURE_TEST_CASE(
     // Get_view() is called from sst_received(). This emulates the
     // case where SST contains the view in which SST happens.
     server_service.logged_view(second_view);
-    ss.sst_received(cc, wsrep::gtid(cluster_id, wsrep::seqno(2)), 0);
+    server_service.position(wsrep::gtid(cluster_id, wsrep::seqno(2)));
+    ss.sst_received(cc, 0);
     clear_sync_point_action();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     disconnect();
@@ -499,7 +502,8 @@ BOOST_FIXTURE_TEST_CASE(server_state_init_first_join_with_sst,
     prepare_for_sst();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
     server_service.logged_view(second_view);
-    ss.sst_received(cc, wsrep::gtid(cluster_id, wsrep::seqno(2)), 0);
+    server_service.position(wsrep::gtid(cluster_id, wsrep::seqno(2)));
+    ss.sst_received(cc, 0);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_sync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);

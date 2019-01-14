@@ -524,16 +524,16 @@ void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
 }
 
 void wsrep::server_state::sst_received(wsrep::client_service& cs,
-                                       const wsrep::gtid& gtid,
                                        int const error)
 {
-    wsrep::log_info() << "SST received: " << gtid;
+    wsrep::log_info() << "SST received";
+    wsrep::gtid gtid(wsrep::gtid::undefined());
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state_ == s_joiner || state_ == s_initialized);
 
     // Run initialization only if the SST was successful.
     // In case of SST failure the system is in undefined state
-    // may not be recoverable. 
+    // may not be recoverable.
     if (error == 0)
     {
         if (server_service_.sst_before_init())
@@ -558,6 +558,8 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
                 "wsrep::sst_received() called before connection to cluster");
         }
 
+        gtid = server_service_.get_position(cs);
+        wsrep::log_info() << "Recovered position from storage: " << gtid;
         wsrep::view const v(server_service_.get_view(cs, id_));
         wsrep::log_info() << "Recovered view from SST:\n" << v;
 

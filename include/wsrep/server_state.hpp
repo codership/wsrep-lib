@@ -460,11 +460,9 @@ namespace wsrep
          * and will wait until the initialization is complete.
          *
          * @param client_service
-         * @param gtid GTID provided by the SST transfer
          * @param error code of the SST operation
          */
-        void sst_received(wsrep::client_service& cs,
-                          const wsrep::gtid& gtid, int error);
+        void sst_received(wsrep::client_service& cs, int error);
 
         /**
          * This method must be called after the server initialization

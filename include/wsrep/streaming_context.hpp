@@ -50,8 +50,8 @@ namespace wsrep
 
         void enable(enum fragment_unit fragment_unit, size_t fragment_size)
         {
-            wsrep::log_info() << "Enabling streaming: "
-                              << fragment_unit << " " << fragment_size;
+            wsrep::log_debug() << "Enabling streaming: "
+                               << fragment_unit << " " << fragment_size;
             assert(fragment_size > 0);
             fragment_unit_ = fragment_unit;
             fragment_size_ = fragment_size;
@@ -63,7 +63,7 @@ namespace wsrep
 
         void disable()
         {
-            wsrep::log_info() << "Disabling streaming";
+            wsrep::log_debug() << "Disabling streaming";
             fragment_size_ = 0;
         }
 

@@ -160,12 +160,15 @@ static int apply_write_set(wsrep::server_state& server_state,
                     ws_meta.server_id(), ws_meta.transaction_id()));
             if (sa == 0)
             {
-                // It is possible that rapid group membership changes
-                // may cause streaming transaction be rolled back before
-                // commit fragment comes in. Although this is a valid
-                // situation, log a warning if a sac cannot be found as
-                // it may be an indication of  a bug too.
-                wsrep::log_warning()
+                // It is a known limitation that galera provider
+                // cannot always determine if certification test
+                // for interrupted transaction will pass or fail
+                // (see comments in transaction::certify_fragment()).
+                // As a consequence, unnecessary rollback fragments
+                // may be delivered here. The message below has
+                // been intentionally turned into a debug message,
+                // rather than warning.
+                wsrep::log_debug()
                     << "Could not find applier context for "
                     << ws_meta.server_id()
                     << ": " << ws_meta.transaction_id();

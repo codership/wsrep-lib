@@ -77,9 +77,6 @@ namespace wsrep
 
         int bf_rollback() WSREP_OVERRIDE;
 
-        bool do_2pc() const WSREP_OVERRIDE
-        { return do_2pc_; }
-
         bool interrupted() const WSREP_OVERRIDE
         { return killed_before_certify_; }
 

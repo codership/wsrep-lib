@@ -27,11 +27,6 @@ db::client_service::client_service(db::client& client)
     , client_state_(client_.client_state())
 { }
 
-bool db::client_service::do_2pc() const
-{
-    return client_.do_2pc();
-}
-
 int db::client_service::bf_rollback()
 {
     int ret(client_state_.before_rollback());

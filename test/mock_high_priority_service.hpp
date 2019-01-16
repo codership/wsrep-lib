@@ -33,6 +33,7 @@ namespace wsrep
             wsrep::mock_client_state* client_state,
             bool replaying)
             : wsrep::high_priority_service(server_state)
+            , do_2pc_()
             , fail_next_applying_()
             , fail_next_toi_()
             , client_state_(client_state)
@@ -74,6 +75,7 @@ namespace wsrep
         {
             return client_state_;
         }
+        bool do_2pc_;
         bool fail_next_applying_;
         bool fail_next_toi_;
     private:

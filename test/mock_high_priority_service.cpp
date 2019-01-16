@@ -48,7 +48,7 @@ int wsrep::mock_high_priority_service::commit(
 {
     int ret(0);
     client_state_->prepare_for_ordering(ws_handle, ws_meta, true);
-    if (client_state_->client_service().do_2pc())
+    if (do_2pc_)
     {
         ret = client_state_->before_prepare() ||
             client_state_->after_prepare();

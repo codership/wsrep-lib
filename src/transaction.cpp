@@ -374,7 +374,6 @@ int wsrep::transaction::before_commit()
     case wsrep::client_state::m_local:
         if (state() == s_executing)
         {
-            assert(client_service_.do_2pc() == false);
             ret = before_prepare(lock) || after_prepare(lock);
             assert((ret == 0 && state() == s_committing)
                    ||

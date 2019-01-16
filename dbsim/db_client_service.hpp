@@ -33,7 +33,6 @@ namespace db
     public:
         client_service(db::client& client);
 
-        bool do_2pc() const override;
         bool interrupted() const override { return false; }
         void reset_globals() override { }
         void store_globals() override { }

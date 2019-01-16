@@ -40,15 +40,6 @@ namespace wsrep
     public:
         client_service() { }
         virtual ~client_service() { }
-        /**
-         * Return true if two pahase commit is required for transaction
-         * to commit.
-         *
-         * @todo This interface method should be deprecated, 1pc vs 2pc
-         *       will be deduced from transaction states in
-         *       transaction::before_commit() call.
-         */
-        virtual bool do_2pc() const = 0;
 
         /**
          * Return true if the current transaction has been interrupted

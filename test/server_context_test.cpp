@@ -226,6 +226,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_applying_1pc,
 BOOST_FIXTURE_TEST_CASE(server_state_applying_2pc,
                         applying_server_fixture)
 {
+    hps.do_2pc_ = true;
     char buf[1] = { 1 };
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer(buf, 1)) == 0);
@@ -251,6 +252,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_applying_1pc_rollback,
 BOOST_FIXTURE_TEST_CASE(server_state_applying_2pc_rollback,
                         applying_server_fixture)
 {
+    hps.do_2pc_ = true;
     hps.fail_next_applying_ = true;
     char buf[1] = { 1 };
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,

@@ -777,13 +777,9 @@ void wsrep::server_state::on_primary_view(
     }
     else
     {
-        if (state_ == s_joiner)
+        if (state_ == s_initialized)
         {
             state(lock, s_joined);
-            if (init_synced_)
-            {
-                state(lock, s_synced);
-            }
         }
     }
 }

@@ -112,6 +112,17 @@ void db::server_service::log_view(wsrep::high_priority_service*,
     wsrep::log_info() << "View:\n" << v;
     logged_view_ = v;
 }
+
+void db::server_service::recover_streaming_appliers(
+    wsrep::client_service&)
+{
+}
+
+void db::server_service::recover_streaming_appliers(
+    wsrep::high_priority_service&)
+{
+}
+
 wsrep::view db::server_service::get_view(wsrep::client_service&,
                                          const wsrep::id& own_id)
 {

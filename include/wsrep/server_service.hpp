@@ -131,6 +131,35 @@ namespace wsrep
             const wsrep::view& view) = 0;
 
         /**
+         * Recover streaming appliers from the streaming log.
+         * The implementation must scan through log of stored streaming
+         * fragments and reconstruct the streaming applier service
+         * objects.
+         *
+         * This is overload for calls which are done from client context,
+         * e.g. after SST has been received.
+         *
+         * @param client_service Reference to client service object
+         */
+        virtual void recover_streaming_appliers(
+            wsrep::client_service& client_service) = 0;
+
+        /**
+         * Recover streaming appliers from the streaming log.
+         * The implementation must scan through log of stored streaming
+         * fragments and reconstruct the streaming applier service
+         * objects.
+         *
+         * This is overload for calls which are done from high priority
+         * context, e.g. when handling cluster view change events.
+         *
+         * @param high_priority_service Reference to high priority service
+         *        object.
+         */
+        virtual void recover_streaming_appliers(
+            wsrep::high_priority_service& high_priority_service) = 0;
+
+        /**
          * Recover a cluster view change event.
          * The method takes own node ID.
          *

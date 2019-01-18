@@ -48,6 +48,8 @@ namespace db
             override;
         void log_view(wsrep::high_priority_service*,
                       const wsrep::view&) override;
+        void recover_streaming_appliers(wsrep::client_service&) override;
+        void recover_streaming_appliers(wsrep::high_priority_service&) override;
         wsrep::view get_view(wsrep::client_service&, const wsrep::id&)
             override;
         wsrep::gtid get_position(wsrep::client_service&) override;

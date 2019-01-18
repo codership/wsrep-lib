@@ -20,6 +20,7 @@
 #ifndef WSREP_STREAMING_CONTEXT_HPP
 #define WSREP_STREAMING_CONTEXT_HPP
 
+#include "compiler.hpp"
 #include "logger.hpp"
 #include "seqno.hpp"
 #include "transaction_id.hpp"
@@ -80,7 +81,7 @@ namespace wsrep
 
         void stored(wsrep::seqno seqno)
         {
-            assert(seqno.is_undefined() == false);
+            check_fragment_seqno(seqno);
             fragments_.push_back(seqno);
         }
 
@@ -91,7 +92,7 @@ namespace wsrep
 
         void applied(wsrep::seqno seqno)
         {
-            assert(seqno.is_undefined() == false);
+            check_fragment_seqno(seqno);
             ++fragments_certified_;
             fragments_.push_back(seqno);
         }
@@ -152,6 +153,13 @@ namespace wsrep
             unit_counter_ = 0;
         }
     private:
+
+        void check_fragment_seqno(wsrep::seqno seqno WSREP_UNUSED)
+        {
+            assert(seqno.is_undefined() == false);
+            assert(fragments_.empty() || fragments_.back() < seqno);
+        }
+
         size_t fragments_certified_;
         std::vector<wsrep::seqno> fragments_;
         wsrep::transaction_id rollback_replicated_for_;

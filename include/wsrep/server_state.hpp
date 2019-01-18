@@ -577,6 +577,7 @@ namespace wsrep
             , pause_seqno_()
             , streaming_clients_()
             , streaming_appliers_()
+            , streaming_appliers_recovered_()
             , provider_()
             , name_(name)
             , id_(wsrep::id::undefined())
@@ -602,6 +603,12 @@ namespace wsrep
         void wait_until_state(wsrep::unique_lock<wsrep::mutex>&, enum state) const;
         // Interrupt all threads which are waiting for state
         void interrupt_state_waiters(wsrep::unique_lock<wsrep::mutex>&);
+
+        // Recover streaming appliers if not already recoverd
+        template <class C>
+        void recover_streaming_appliers_if_not_recovered(
+            wsrep::unique_lock<wsrep::mutex>&, C&);
+
         // Close SR transcations whose origin is outside of current
         // cluster view.
         void close_orphaned_sr_transactions(
@@ -658,6 +665,7 @@ namespace wsrep
         };
 
         streaming_appliers_map streaming_appliers_;
+        bool streaming_appliers_recovered_;
         wsrep::provider* provider_;
         std::string name_;
         wsrep::id id_;

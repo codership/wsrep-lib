@@ -128,6 +128,14 @@ namespace wsrep
             logged_view_ = view;
         }
 
+        void recover_streaming_appliers(wsrep::client_service&)
+            WSREP_OVERRIDE
+        { }
+
+        void recover_streaming_appliers(wsrep::high_priority_service&)
+            WSREP_OVERRIDE
+        { }
+
         wsrep::view get_view(wsrep::client_service&, const wsrep::id& own_id)
             WSREP_OVERRIDE
         {

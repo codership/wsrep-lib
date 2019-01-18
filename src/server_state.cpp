@@ -580,6 +580,10 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
 
         current_view_ = v;
         server_service_.log_view(NULL /* this view is stored already */, v);
+
+        lock.lock();
+        recover_streaming_appliers_if_not_recovered(lock, cs);
+        lock.unlock();
     }
 
     if (provider().sst_received(gtid, error))
@@ -747,10 +751,14 @@ void wsrep::server_state::on_primary_view(
     }
 
     assert(high_priority_service);
+
     if (high_priority_service)
     {
+        recover_streaming_appliers_if_not_recovered(lock,
+                                                    *high_priority_service);
         close_orphaned_sr_transactions(lock, *high_priority_service);
     }
+
     if (server_service_.sst_before_init())
     {
         if (state_ == s_initialized)
@@ -1143,6 +1151,20 @@ void wsrep::server_state::interrupt_state_waiters(
     cond_.notify_all();
 }
 
+template <class C>
+void wsrep::server_state::recover_streaming_appliers_if_not_recovered(
+    wsrep::unique_lock<wsrep::mutex>& lock, C& c)
+{
+    assert(lock.owns_lock());
+    if (streaming_appliers_recovered_ == false)
+    {
+        lock.unlock();
+        server_service_.recover_streaming_appliers(c);
+        lock.lock();
+    }
+    streaming_appliers_recovered_ = true;
+}
+
 void wsrep::server_state::close_orphaned_sr_transactions(
     wsrep::unique_lock<wsrep::mutex>& lock,
     wsrep::high_priority_service& high_priority_service)
@@ -1242,4 +1264,5 @@ void wsrep::server_state::close_transactions_at_disconnect(
         streaming_appliers_.erase(i++);
         server_service_.release_high_priority_service(streaming_applier);
     }
+    streaming_appliers_recovered_ = false;
 }

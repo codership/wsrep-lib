@@ -31,8 +31,8 @@ namespace wsrep
     {
     public:
         gtid()
-            : id_(wsrep::id::undefined())
-            , seqno_(wsrep::seqno::undefined())
+            : id_()
+            , seqno_()
         { }
         gtid(const wsrep::id& id, wsrep::seqno seqno)
             : id_(id)
@@ -44,13 +44,12 @@ namespace wsrep
         {
             return (seqno_.is_undefined() && id_.is_undefined());
         }
-        static wsrep::gtid undefined()
+        static const wsrep::gtid& undefined()
         {
-            static const wsrep::gtid ret(wsrep::id::undefined(),
-                                         wsrep::seqno::undefined());
-            return ret;
+            return undefined_;
         }
     private:
+        static const wsrep::gtid undefined_;
         wsrep::id id_;
         wsrep::seqno seqno_;
     };

@@ -90,10 +90,10 @@ namespace wsrep
 
         static const wsrep::id& undefined()
         {
-            static wsrep::id ret = wsrep::id();
-            return ret;
+            return undefined_;
         }
     private:
+        static const wsrep::id undefined_;
         unsigned char data_[16];
     };
 

@@ -23,6 +23,8 @@
 #include <iostream>
 #include <sstream>
 
+const wsrep::gtid wsrep::gtid::undefined_ = wsrep::gtid();
+
 std::ostream& wsrep::operator<<(std::ostream& os, const wsrep::gtid& gtid)
 {
     return (os << gtid.id() << ":" << gtid.seqno());

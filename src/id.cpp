@@ -24,6 +24,8 @@
 #include <sstream>
 #include <algorithm>
 
+const wsrep::id wsrep::id::undefined_ = wsrep::id();
+
 wsrep::id::id(const std::string& str)
     :  data_()
 {

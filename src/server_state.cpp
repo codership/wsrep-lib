@@ -957,21 +957,29 @@ void wsrep::server_state::convert_streaming_client_to_applier(
     {
         streaming_clients_.erase(i);
     }
-    wsrep::high_priority_service* streaming_applier(
-        server_service_.streaming_applier_service(
-            client_state->client_service()));
-    streaming_applier->adopt_transaction(client_state->transaction());
-    if (streaming_appliers_.insert(
-            std::make_pair(
-                std::make_pair(client_state->transaction().server_id(),
-                               client_state->transaction().id()),
-                streaming_applier)).second == false)
+
+    // Convert to applier only if the state is not disconnected. In
+    // disconnected state the applier map is supposed to be empty
+    // and it will be reconstructed from fragment storage when
+    // joining back to cluster.
+    if (state(lock) != s_disconnected)
     {
-        wsrep::log_warning() << "Could not insert streaming applier "
-                             << id_
-                             << ", "
-                             << client_state->transaction().id();
-        assert(0);
+        wsrep::high_priority_service* streaming_applier(
+            server_service_.streaming_applier_service(
+                client_state->client_service()));
+        streaming_applier->adopt_transaction(client_state->transaction());
+        if (streaming_appliers_.insert(
+                std::make_pair(
+                    std::make_pair(client_state->transaction().server_id(),
+                                   client_state->transaction().id()),
+                    streaming_applier)).second == false)
+        {
+            wsrep::log_warning() << "Could not insert streaming applier "
+                                 << id_
+                                 << ", "
+                                 << client_state->transaction().id();
+            assert(0);
+        }
     }
 }
 

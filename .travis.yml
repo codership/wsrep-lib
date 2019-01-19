@@ -1,10 +1,4 @@
-#
 language: cpp
-
-compiler:
-  - gcc
-# - clang - does not compile yet
-
 
 matrix:
   include:
@@ -108,6 +102,129 @@ matrix:
             - libboost-filesystem-dev
             - libboost-thread-dev
       env: MATRIX_EVAL="CC=gcc-7 CXX=g++-7 TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=ON"
+    - os: linux
+      name: "Clang 3.6 Debug"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.6
+          packages:
+            - clang-3.6
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=clang-3.6 CXX=clang++-3.6 TYPE=Debug STRICT=ON ASAN=OFF DBSIM=ON"
+    - os: linux
+      name: "Clang 3.6 RelWithDebInfo"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.6
+          packages:
+            - clang-3.6
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=clang-3.6 CXX=clang++-3.6 TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=ON"
+    - os: linux
+      name: "Clang 4.0 Debug"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-4.0
+          packages:
+            - clang-4.0
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=clang-4.0 CXX=clang++-4.0 TYPE=Debug STRICT=ON ASAN=OFF DBSIM=OFF"
+    - os: linux
+      name: "Clang 4.0 RelWithDebInfo"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-4.0
+          packages:
+            - clang-4.0
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=clang-4.0 CXX=clang++-4.0 TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=OFF"
+    - os: linux
+      name: "Clang 5.0 Debug"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-5.0
+          packages:
+            - clang-5.0
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=clang-5.0 CXX=clang++-5.0 TYPE=Debug STRICT=ON ASAN=OFF DBSIM=OFF"
+    - os: linux
+      name: "Clang 5.0 RelWithDebInfo"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-5.0
+          packages:
+            - clang-5.0
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=clang-5.0 CXX=clang++-5.0 TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=OFF"
+    - os: linux
+      dist: xenial
+      name: "Clang 7.0 Debug"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-7.0
+          packages:
+            - clang
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=Debug STRICT=ON ASAN=OFF DBSIM=OFF"
+    - os: linux
+      dist: xenial
+      name: "Clang 7.0 RelWithDebInfo"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-7.0
+          packages:
+            - clang
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=OFF"
+
 before_install:
   - eval ${MATRIX_EVAL}
 

@@ -57,25 +57,27 @@ namespace wsrep
 
         enum wsrep::provider::status
         connect(const std::string&, const std::string&, const std::string&,
-                bool)
+                bool) WSREP_OVERRIDE
         { return wsrep::provider::success; }
-        int disconnect() { return 0; }
-        int capabilities() const { return 0; }
-        int desync() { return 0; }
-        int resync() { return 0; }
-        wsrep::seqno pause() { return wsrep::seqno(0); }
-        int resume() { return 0; }
+        int disconnect() WSREP_OVERRIDE { return 0; }
+        int capabilities() const WSREP_OVERRIDE { return 0; }
+        int desync() WSREP_OVERRIDE { return 0; }
+        int resync() WSREP_OVERRIDE { return 0; }
+        wsrep::seqno pause() WSREP_OVERRIDE { return wsrep::seqno(0); }
+        int resume() WSREP_OVERRIDE { return 0; }
         enum wsrep::provider::status run_applier(wsrep::high_priority_service*)
+            WSREP_OVERRIDE
         {
             return wsrep::provider::success;
         }
         // Provider implemenatation interface
-        int start_transaction(wsrep::ws_handle&) { return 0; }
+        int start_transaction(wsrep::ws_handle&) WSREP_OVERRIDE { return 0; }
         enum wsrep::provider::status
         certify(wsrep::client_id client_id,
                 wsrep::ws_handle& ws_handle,
                 int flags,
                 wsrep::ws_meta& ws_meta)
+            WSREP_OVERRIDE
         {
             ws_handle = wsrep::ws_handle(ws_handle.transaction_id(), (void*)1);
             wsrep::log_info() << "provider certify: "
@@ -142,11 +144,14 @@ namespace wsrep
         }
 
         int append_key(wsrep::ws_handle&, const wsrep::key&)
+            WSREP_OVERRIDE
         { return 0; }
         enum wsrep::provider::status
         append_data(wsrep::ws_handle&, const wsrep::const_buffer&)
+            WSREP_OVERRIDE
         { return wsrep::provider::success; }
         enum wsrep::provider::status rollback(const wsrep::transaction_id)
+        WSREP_OVERRIDE
         {
             ++fragments_;
             ++rollback_fragments_;
@@ -155,6 +160,7 @@ namespace wsrep
         enum wsrep::provider::status
         commit_order_enter(const wsrep::ws_handle& ws_handle,
                            const wsrep::ws_meta& ws_meta)
+            WSREP_OVERRIDE
         {
             BOOST_REQUIRE(ws_handle.opaque());
             BOOST_REQUIRE(ws_meta.seqno().is_undefined() == false);
@@ -163,6 +169,7 @@ namespace wsrep
 
         int commit_order_leave(const wsrep::ws_handle& ws_handle,
                                const wsrep::ws_meta& ws_meta)
+            WSREP_OVERRIDE
         {
             BOOST_REQUIRE(ws_handle.opaque());
             BOOST_REQUIRE(ws_meta.seqno().is_undefined() == false);
@@ -170,6 +177,7 @@ namespace wsrep
         }
 
         int release(wsrep::ws_handle& )
+            WSREP_OVERRIDE
         {
             // BOOST_REQUIRE(ws_handle.opaque());
             return release_result_;
@@ -178,6 +186,7 @@ namespace wsrep
         enum wsrep::provider::status replay(
             const wsrep::ws_handle& ws_handle,
             wsrep::high_priority_service* hps)
+            WSREP_OVERRIDE
         {
             wsrep::mock_high_priority_service& high_priority_service(
                 *static_cast<wsrep::mock_high_priority_service*>(hps));
@@ -223,8 +232,10 @@ namespace wsrep
                                                const wsrep::const_buffer&,
                                                wsrep::ws_meta&,
                                                int)
+            WSREP_OVERRIDE
         { return wsrep::provider::success; }
         enum wsrep::provider::status leave_toi(wsrep::client_id)
+            WSREP_OVERRIDE
         { return wsrep::provider::success; }
 
         std::pair<wsrep::gtid, enum wsrep::provider::status>
@@ -236,22 +247,24 @@ namespace wsrep
         enum wsrep::provider::status wait_for_gtid(const wsrep::gtid&,
             int) const WSREP_OVERRIDE
         { return wsrep::provider::success; }
-        wsrep::gtid last_committed_gtid() const { return wsrep::gtid(); }
-        int sst_sent(const wsrep::gtid&, int) { return 0; }
-        int sst_received(const wsrep::gtid&, int) { return 0; }
+        wsrep::gtid last_committed_gtid() const WSREP_OVERRIDE
+        { return wsrep::gtid(); }
+        int sst_sent(const wsrep::gtid&, int) WSREP_OVERRIDE { return 0; }
+        int sst_received(const wsrep::gtid&, int) WSREP_OVERRIDE { return 0; }
 
-        std::vector<status_variable> status() const
+        std::vector<status_variable> status() const WSREP_OVERRIDE
         {
             return std::vector<status_variable>();
         }
-        void reset_status() { }
-        std::string options() const { return ""; }
+        void reset_status() WSREP_OVERRIDE { }
+        std::string options() const WSREP_OVERRIDE { return ""; }
         enum wsrep::provider::status options(const std::string&)
+            WSREP_OVERRIDE
         { return wsrep::provider::success; }
         std::string name() const WSREP_OVERRIDE { return "mock"; }
         std::string version() const WSREP_OVERRIDE { return "0.0"; }
         std::string vendor() const WSREP_OVERRIDE { return "mock"; }
-        void* native() const { return 0; }
+        void* native() const WSREP_OVERRIDE { return 0; }
 
         //
         // Methods to modify mock state
@@ -266,6 +279,7 @@ namespace wsrep
         bf_abort(wsrep::seqno bf_seqno,
                  wsrep::transaction_id trx_id,
                  wsrep::seqno& victim_seqno)
+            WSREP_OVERRIDE
         {
             bf_abort_map_.insert(std::make_pair(trx_id, bf_seqno));
             if (bf_seqno.is_undefined() == false)

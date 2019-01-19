@@ -32,8 +32,7 @@ namespace db
     class server_state : public wsrep::server_state
     {
     public:
-        server_state(db::server& server,
-                     wsrep::server_service& server_service,
+        server_state(wsrep::server_service& server_service,
                      const std::string& name,
                      const std::string& address,
                      const std::string& working_dir)
@@ -50,12 +49,10 @@ namespace db
                 wsrep::server_state::rm_async)
             , mutex_()
             , cond_()
-            , server_(server)
         { }
     private:
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;
-        db::server& server_;
     };
 }
 

@@ -25,8 +25,7 @@
 wsrep::mock_storage_service::mock_storage_service(
     wsrep::server_state& server_state,
     wsrep::client_id client_id)
-    : server_state_(server_state)
-    , client_service_(client_state_)
+    : client_service_(client_state_)
     , client_state_(server_state, client_service_, client_id,
                     wsrep::client_state::m_high_priority)
 {

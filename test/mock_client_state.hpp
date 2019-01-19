@@ -112,7 +112,7 @@ namespace wsrep
         }
 
         void cleanup_transaction() WSREP_OVERRIDE { }
-        size_t bytes_generated() const
+        size_t bytes_generated() const WSREP_OVERRIDE
         {
             return bytes_generated_;
         }

@@ -249,8 +249,7 @@ namespace
     {
     public:
         const_ws_meta(const wsrep::ws_meta& ws_meta)
-            : ws_meta_(ws_meta)
-            , trx_meta_()
+            : trx_meta_()
         {
             std::memcpy(trx_meta_.gtid.uuid.data, ws_meta.group_id().data(),
                         sizeof(trx_meta_.gtid.uuid.data));
@@ -268,7 +267,6 @@ namespace
 
         const wsrep_trx_meta* native() const { return &trx_meta_; }
     private:
-        const wsrep::ws_meta& ws_meta_;
         wsrep_trx_meta_t trx_meta_;
     };
 

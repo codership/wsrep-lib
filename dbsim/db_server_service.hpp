@@ -43,7 +43,7 @@ namespace db
         std::string sst_request() override;
         void background_rollback(wsrep::client_state&) override;
         void bootstrap() override;
-        void log_message(enum wsrep::log::level, const char* message);
+        void log_message(enum wsrep::log::level, const char* message) override;
         void log_dummy_write_set(wsrep::client_state&, const wsrep::ws_meta&)
             override;
         void log_view(wsrep::high_priority_service*,

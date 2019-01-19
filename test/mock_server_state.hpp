@@ -150,6 +150,7 @@ namespace wsrep
         }
         void log_state_change(enum wsrep::server_state::state,
                               enum wsrep::server_state::state)
+            WSREP_OVERRIDE
         { }
         bool sst_before_init() const WSREP_OVERRIDE
         { return sst_before_init_; }

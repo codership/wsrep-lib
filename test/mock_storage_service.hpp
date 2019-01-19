@@ -55,7 +55,6 @@ class mock_server_state;
         void store_globals() WSREP_OVERRIDE { }
         void reset_globals() WSREP_OVERRIDE { }
     private:
-        wsrep::server_state& server_state_;
         wsrep::mock_client_service client_service_;
         wsrep::mock_client_state client_state_;
     };

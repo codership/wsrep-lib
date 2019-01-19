@@ -33,7 +33,7 @@ db::server::server(simulator& simulator,
     , mutex_()
     , cond_()
     , server_service_(*this)
-    , server_state_(*this, server_service_,
+    , server_state_(server_service_,
                     name, address, "dbsim_" + name + "_data")
     , last_client_id_(0)
     , last_transaction_id_(0)

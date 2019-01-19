@@ -60,7 +60,7 @@ namespace db
         enum wsrep::provider::status replay()
             override;
 
-        void emergency_shutdown() { ::abort(); }
+        void emergency_shutdown() override { ::abort(); }
         void debug_sync(const char*) override { }
         void debug_crash(const char*) override { }
     private:

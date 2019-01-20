@@ -567,7 +567,8 @@ namespace
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
     wsrep::server_state& server_state,
     const std::string& provider_options,
-    const std::string& provider_spec)
+    const std::string& provider_spec,
+    bool const encrypt)
     : provider(server_state)
     , wsrep_()
 {
@@ -591,7 +592,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     init_args.connected_cb = &connected_cb;
     init_args.view_cb = &view_cb;
     init_args.sst_request_cb = &sst_request_cb;
-    init_args.encrypt_cb = &encrypt_cb;
+    init_args.encrypt_cb = encrypt ? &encrypt_cb : NULL;
     init_args.apply_cb = &apply_cb;
     init_args.unordered_cb = 0;
     init_args.sst_donate_cb = &sst_donate_cb;

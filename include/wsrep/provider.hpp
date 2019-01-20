@@ -384,7 +384,8 @@ namespace wsrep
         static provider* make_provider(
             wsrep::server_state&,
             const std::string& provider_spec,
-            const std::string& provider_options);
+            const std::string& provider_options,
+            bool encrypt);
     protected:
         wsrep::server_state& server_state_;
     };

@@ -31,7 +31,7 @@ namespace wsrep
     public:
 
         wsrep_provider_v26(wsrep::server_state&, const std::string&,
-                           const std::string&);
+                           const std::string&, bool encrypt);
         ~wsrep_provider_v26();
         enum wsrep::provider::status
         connect(const std::string&, const std::string&, const std::string&,

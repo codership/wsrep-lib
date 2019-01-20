@@ -261,7 +261,8 @@ namespace wsrep
          * @return Zero on success, non-zero on error.
          */
         int load_provider(const std::string& provider,
-                          const std::string& provider_options);
+                          const std::string& provider_options,
+                          bool encrypt);
 
         void unload_provider();
 

@@ -1106,28 +1106,25 @@ void wsrep::server_state::state(
             {  1,   0,   0,    0,    0,   0,   0,   0,   0}  /* ding */
         };
 
-    if (allowed[state_][state])
-    {
-        wsrep::log_debug() << "server " << name_ << " state change: "
-                           << to_c_string(state_) << " -> "
-                           << to_c_string(state);
-        state_hist_.push_back(state_);
-        server_service_.log_state_change(state_, state);
-        state_ = state;
-        cond_.notify_all();
-        while (state_waiters_[state_])
-        {
-            cond_.wait(lock);
-        }
-    }
-    else
+    if (allowed[state_][state] == false)
     {
         std::ostringstream os;
         os << "server: " << name_ << " unallowed state transition: "
            << wsrep::to_string(state_) << " -> " << wsrep::to_string(state);
-        wsrep::log_error() << os.str() << "\n";
-        ::abort();
-        // throw wsrep::runtime_error(os.str());
+        wsrep::log_warning() << os.str() << "\n";
+        assert(0);
+    }
+
+    wsrep::log_debug() << "server " << name_ << " state change: "
+                       << to_c_string(state_) << " -> "
+                       << to_c_string(state);
+    state_hist_.push_back(state_);
+    server_service_.log_state_change(state_, state);
+    state_ = state;
+    cond_.notify_all();
+    while (state_waiters_[state_])
+    {
+        cond_.wait(lock);
     }
 }
 

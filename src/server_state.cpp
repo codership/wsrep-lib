@@ -335,15 +335,14 @@ static int apply_toi(wsrep::provider& provider,
 //////////////////////////////////////////////////////////////////////////////
 
 int wsrep::server_state::load_provider(const std::string& provider_spec,
-                                       const std::string& provider_options,
-                                       bool const encrypt)
+                                       const std::string& provider_options)
 {
     wsrep::log_info() << "Loading provider "
                       << provider_spec
                       << "initial position: "
                       << initial_position_;
     provider_ = wsrep::provider::make_provider(
-        *this, provider_spec, provider_options, encrypt);
+        *this, provider_spec, provider_options);
     return (provider_ ? 0 : 1);
 }
 

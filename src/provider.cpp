@@ -25,13 +25,12 @@
 wsrep::provider* wsrep::provider::make_provider(
     wsrep::server_state& server_state,
     const std::string& provider_spec,
-    const std::string& provider_options,
-    bool const encrypt)
+    const std::string& provider_options)
 {
     try
     {
         return new wsrep::wsrep_provider_v26(
-            server_state, provider_options, provider_spec, encrypt);
+            server_state, provider_options, provider_spec);
     }
     catch (const wsrep::runtime_error& e)
     {

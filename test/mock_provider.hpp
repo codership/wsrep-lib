@@ -252,9 +252,6 @@ namespace wsrep
         int sst_sent(const wsrep::gtid&, int) WSREP_OVERRIDE { return 0; }
         int sst_received(const wsrep::gtid&, int) WSREP_OVERRIDE { return 0; }
 
-        int enc_set_key(const wsrep::const_buffer&) WSREP_OVERRIDE 
-        { return 0; }
-
         std::vector<status_variable> status() const WSREP_OVERRIDE
         {
             return std::vector<status_variable>();

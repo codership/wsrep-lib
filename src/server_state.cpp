@@ -626,18 +626,6 @@ wsrep::server_state::wait_for_gtid(const wsrep::gtid& gtid, int timeout)
     return provider().wait_for_gtid(gtid, timeout);
 }
 
-int 
-wsrep::server_state::set_encryption_key(std::vector<unsigned char>& key)
-{
-    encryption_key_ = key;
-    if (state_ != s_disconnected)
-    {
-        return provider_->enc_set_key(wsrep::const_buffer(encryption_key_.data(),
-                                                          encryption_key_.size()));
-    }
-    return 0;
-}
-
 std::pair<wsrep::gtid, enum wsrep::provider::status>
 wsrep::server_state::causal_read(int timeout) const
 {

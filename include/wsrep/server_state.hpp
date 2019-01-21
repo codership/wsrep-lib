@@ -370,21 +370,6 @@ namespace wsrep
         wait_for_gtid(const wsrep::gtid&, int timeout) const;
 
         /**
-         * Set encryption key
-         * 
-         * @param key Encryption key
-         * 
-         * @return Zero on success, non-zero on failure.
-         */
-        int set_encryption_key(std::vector<unsigned char>& key);
-
-        /**
-         * Return encryption key.
-         */
-        const std::vector<unsigned char>& get_encryption_key() const
-        { return encryption_key_; }
-
-        /**
          * Perform a causal read in the cluster. After the call returns,
          * all the causally preceding write sets have been committed
          * or the error is returned.
@@ -598,7 +583,6 @@ namespace wsrep
             , incoming_address_(incoming_address)
             , address_(address)
             , working_dir_(working_dir)
-            , encryption_key_()
             , max_protocol_version_(max_protocol_version)
             , rollback_mode_(rollback_mode)
             , connected_gtid_()
@@ -680,7 +664,6 @@ namespace wsrep
         std::string incoming_address_;
         std::string address_;
         std::string working_dir_;
-        std::vector<unsigned char> encryption_key_;
         int max_protocol_version_;
         enum rollback_mode rollback_mode_;
         wsrep::gtid connected_gtid_;

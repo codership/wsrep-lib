@@ -342,8 +342,6 @@ namespace wsrep
         virtual int sst_sent(const wsrep::gtid&, int) = 0;
         virtual int sst_received(const wsrep::gtid&, int) = 0;
 
-        virtual int enc_set_key(const wsrep::const_buffer& key) = 0;
-
         virtual std::vector<status_variable> status() const = 0;
         virtual void reset_status() = 0;
 

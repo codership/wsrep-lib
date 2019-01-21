@@ -55,15 +55,6 @@ namespace db
                               enum wsrep::server_state::state) override;
         int wait_committing_transactions(int) override;
         void debug_sync(const char*) override;
-
-        int do_crypt(void**                ctx,
-                     wsrep::const_buffer&  key,
-                     const char            (*iv)[32],
-                     wsrep::const_buffer&  input,
-                     void*                 output,
-                     bool                  encrypt,
-                     bool                  last) override;
-                     
     private:
         db::server& server_;
         wsrep::view logged_view_;

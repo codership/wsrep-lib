@@ -420,15 +420,15 @@ namespace
             return WSREP_CB_FAILURE;
         }
     }
-    
-    wsrep_cb_status_t encrypt_cb(void*                 /* app ctx */,
+
+    int encrypt_cb(void*                 /* app ctx */,
                                  wsrep_enc_ctx_t*      /*ctx*/,
                                  const wsrep_buf_t*    /*input*/,
                                  void*                 /*output*/,
                                  wsrep_enc_direction_t /*direction*/,
                                  bool                  /*final*/)
     {
-        return WSREP_CB_SUCCESS;
+        return 0;
     }
 
     wsrep_cb_status_t apply_cb(void* ctx,

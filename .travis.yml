@@ -224,6 +224,14 @@ matrix:
             - libboost-filesystem-dev
             - libboost-thread-dev
       env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=OFF"
+    - os: osx
+      osx_image: xcode10.1
+      name: "Xcode 10.1 Debug"
+      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=Debug STRICT=ON ASAN=OFF DBSIM=OFF"
+    - os: osx
+      osx_image: xcode10.1
+      name: "Xcode 10.1 RelWithDebInfo"
+      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=OFF"
 
 before_install:
   - eval ${MATRIX_EVAL}

@@ -705,8 +705,17 @@ void wsrep::server_state::on_primary_view(
         if (state_ == s_connected)
         {
             state(lock, s_joiner);
+            // We need to assign init_initialized_ here to local
+            // variable. If the value here was false, we need to skip
+            // the initializing -> initialized -> joined state cycle
+            // below. However, if we don't assign the value to
+            // local, it is possible that the main thread gets control
+            // between changing the state to initializing and checking
+            // initialized flag, which may cause the initialzing -> initialized
+            // state change to be executed even if it should not be.
+            const bool was_initialized(init_initialized_);
             state(lock, s_initializing);
-            if (init_initialized_)
+            if (was_initialized)
             {
                 // If server side has already been initialized,
                 // skip directly to s_joined.

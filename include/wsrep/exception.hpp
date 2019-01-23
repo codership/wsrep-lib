@@ -30,6 +30,15 @@ namespace wsrep
     class runtime_error : public std::runtime_error
     {
     public:
+        runtime_error(const char* msg)
+            : std::runtime_error(msg)
+        {
+            if (abort_on_exception)
+            {
+                ::abort();
+            }
+        }
+
         runtime_error(const std::string& msg)
             : std::runtime_error(msg)
         {

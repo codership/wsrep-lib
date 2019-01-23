@@ -66,7 +66,7 @@ int db::high_priority_service::commit(const wsrep::ws_handle& ws_handle,
 {
     client_.client_state_.prepare_for_ordering(ws_handle, ws_meta, true);
     int ret(client_.client_state_.before_commit());
-    if (ret == 0) client_.se_trx_.commit();
+    if (ret == 0) client_.se_trx_.commit(ws_meta.gtid());
     ret = ret || client_.client_state_.ordered_commit();
     ret = ret || client_.client_state_.after_commit();
     return ret;

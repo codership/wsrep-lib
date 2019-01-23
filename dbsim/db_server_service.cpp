@@ -26,7 +26,6 @@
 
 db::server_service::server_service(db::server& server)
     : server_(server)
-    , logged_view_()
 { }
 
 wsrep::storage_service* db::server_service::storage_service(
@@ -110,7 +109,7 @@ void db::server_service::log_view(wsrep::high_priority_service*,
                                   const wsrep::view& v)
 {
     wsrep::log_info() << "View:\n" << v;
-    logged_view_ = v;
+    server_.storage_engine().store_view(v);
 }
 
 void db::server_service::recover_streaming_appliers(
@@ -126,22 +125,23 @@ void db::server_service::recover_streaming_appliers(
 wsrep::view db::server_service::get_view(wsrep::client_service&,
                                          const wsrep::id& own_id)
 {
-    int const my_idx(logged_view_.member_index(own_id));
+    wsrep::view stored_view(server_.storage_engine().get_view());
+    int const my_idx(stored_view.member_index(own_id));
     wsrep::view my_view(
-        logged_view_.state_id(),
-        logged_view_.view_seqno(),
-        logged_view_.status(),
-        logged_view_.capabilities(),
+        stored_view.state_id(),
+        stored_view.view_seqno(),
+        stored_view.status(),
+        stored_view.capabilities(),
         my_idx,
-        logged_view_.protocol_version(),
-        logged_view_.members()
+        stored_view.protocol_version(),
+        stored_view.members()
     );
     return my_view;
 }
 
 wsrep::gtid db::server_service::get_position(wsrep::client_service&)
 {
-    throw wsrep::not_implemented_error();
+    return server_.storage_engine().get_position();
 }
 
 void db::server_service::log_state_change(

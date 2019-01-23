@@ -135,7 +135,7 @@ void db::client::run_one_transaction()
                 err = err || client_state_.after_prepare();
             }
             err = err || client_state_.before_commit();
-            if (err == 0) se_trx_.commit();
+            if (err == 0) se_trx_.commit(transaction.ws_meta().gtid());
             err = err || client_state_.ordered_commit();
             err = err || client_state_.after_commit();
             if (err)

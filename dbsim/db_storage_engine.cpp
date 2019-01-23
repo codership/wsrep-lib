@@ -37,12 +37,13 @@ void db::storage_engine::transaction::apply(
     se_.bf_abort_some(transaction);
 }
 
-void db::storage_engine::transaction::commit()
+void db::storage_engine::transaction::commit(const wsrep::gtid& gtid)
 {
     if (cc_)
     {
         wsrep::unique_lock<wsrep::mutex> lock(se_.mutex_);
         se_.transactions_.erase(cc_);
+        se_.store_position(gtid);
     }
     cc_ = nullptr;
 }
@@ -78,5 +79,40 @@ void db::storage_engine::bf_abort_some(const wsrep::transaction& txc)
                 }
             }
         }
+    }
+}
+
+void db::storage_engine::store_position(const wsrep::gtid& gtid)
+{
+    validate_position(gtid);
+    position_ = gtid;
+}
+
+wsrep::gtid db::storage_engine::get_position() const
+{
+    return position_;
+}
+
+void db::storage_engine::store_view(const wsrep::view& view)
+{
+    view_ = view;
+}
+
+wsrep::view db::storage_engine::get_view() const
+{
+    return view_;
+}
+
+void db::storage_engine::validate_position(const wsrep::gtid& gtid) const
+{
+    using std::rel_ops::operator<=;
+    if (position_.id() == gtid.id() && gtid.seqno() <= position_.seqno())
+    {
+        std::ostringstream os;
+        os << "Invalid position submitted, position seqno "
+           << position_.seqno()
+           << " is greater than submitted seqno "
+           << gtid.seqno();
+        throw wsrep::runtime_error(os.str());
     }
 }

@@ -62,6 +62,9 @@ void db::simulator::sst(db::server& server,
         wsrep::log_info() << "SST "
                           << server.server_state().name()
                           << " -> " << request;
+        i->second->storage_engine().store_position(gtid);
+        i->second->storage_engine().store_view(
+            server.storage_engine().get_view());
     }
 
     db::client dummy(*(i->second), wsrep::client_id(-1),
@@ -146,11 +149,16 @@ void db::simulator::start()
         {
             throw wsrep::runtime_error("Failed to connect");
         }
+        wsrep::log_debug() << "main: Starting applier";
         server.start_applier();
+        wsrep::log_debug() << "main: Waiting initializing state";
         server.server_state().wait_until_state(wsrep::server_state::s_initializing);
+        wsrep::log_debug() << "main: Calling initialized";
         server.server_state().initialized();
+        wsrep::log_debug() << "main: Waiting for synced state";
         server.server_state().wait_until_state(
             wsrep::server_state::s_synced);
+        wsrep::log_debug() << "main: Server synced";
     }
 
     // Start client threads

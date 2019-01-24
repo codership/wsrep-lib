@@ -75,6 +75,8 @@ namespace wsrep
             , aborts_()
         { }
 
+        std::string query() const WSREP_OVERRIDE { return ""; }
+
         int bf_rollback() WSREP_OVERRIDE;
 
         bool interrupted() const WSREP_OVERRIDE

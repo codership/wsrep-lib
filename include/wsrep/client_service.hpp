@@ -42,6 +42,12 @@ namespace wsrep
         virtual ~client_service() { }
 
         /**
+         * Returns a string that represents the query that is being
+         * executed by the client.
+         */
+        virtual std::string query() const = 0;
+
+        /**
          * Return true if the current transaction has been interrupted
          * by the DBMS.
          */

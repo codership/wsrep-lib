@@ -1523,8 +1523,7 @@ void wsrep::transaction::cleanup()
     debug_log_state("cleanup_leave");
 }
 
-void wsrep::transaction::debug_log_state(
-    const char* context) const
+void wsrep::transaction::debug_log_state(const char* context) const
 {
     WSREP_TC_LOG_DEBUG(
         1, context
@@ -1550,7 +1549,7 @@ void wsrep::transaction::debug_log_state(
         << ", bytes: " << streaming_context_.bytes_certified()
         << ", sr_rb: " << streaming_context_.rolled_back()
         << "\n    own: " << (client_state_.owning_thread_id_ == wsrep::this_thread::get_id())
-        << "");
+        << "\n    query: " << client_service_.query());
 }
 
 void wsrep::transaction::debug_log_key_append(const wsrep::key& key)

@@ -52,8 +52,7 @@ namespace db
         void switch_execution_context(wsrep::high_priority_service&) override
         { }
         int log_dummy_write_set(const wsrep::ws_handle&,
-                                const wsrep::ws_meta&) override
-        { return 0; }
+                                const wsrep::ws_meta&) override;
         bool is_replaying() const override;
         void debug_crash(const char*) override { }
     private:

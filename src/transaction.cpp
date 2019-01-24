@@ -758,8 +758,6 @@ int wsrep::transaction::after_statement()
             ret = provider().commit_order_enter(ws_handle_, ws_meta_);
             if (ret == 0)
             {
-                // client_state_.server_state().last_committed_gtid(
-                //   ws_meta.gtid());
                 provider().commit_order_leave(ws_handle_, ws_meta_);
             }
         }
@@ -1550,6 +1548,7 @@ void wsrep::transaction::debug_log_state(
         << ", bytes: " << streaming_context_.bytes_certified()
         << ", sr_rb: " << streaming_context_.rolled_back()
         << "\n    own: " << (client_state_.owning_thread_id_ == wsrep::this_thread::get_id())
+        << " thread_id: " << client_state_.owning_thread_id_
         << "");
 }
 

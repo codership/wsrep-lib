@@ -89,6 +89,23 @@ void db::high_priority_service::after_apply()
     client_.client_state_.after_applying();
 }
 
+int db::high_priority_service::log_dummy_write_set(
+    const wsrep::ws_handle& ws_handle,
+    const wsrep::ws_meta& ws_meta)
+{
+    int ret(client_.client_state_.start_transaction(ws_handle, ws_meta));
+    assert(ret == 0);
+    client_.client_state_.prepare_for_ordering(ws_handle, ws_meta, true);
+    ret = client_.client_state_.before_commit();
+    assert(ret == 0);
+    ret = client_.client_state_.ordered_commit();
+    assert(ret == ret);
+    ret = client_.client_state_.after_commit();
+    assert(ret == 0);
+    client_.client_state_.after_applying();
+    return ret;
+}
+
 bool db::high_priority_service::is_replaying() const
 {
     return (client_.client_state_.transaction().state() == wsrep::transaction::s_replaying);

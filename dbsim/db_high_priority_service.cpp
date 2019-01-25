@@ -108,5 +108,5 @@ int db::high_priority_service::log_dummy_write_set(
 
 bool db::high_priority_service::is_replaying() const
 {
-    return (client_.client_state_.transaction().state() == wsrep::transaction::s_replaying);
+    return false;
 }

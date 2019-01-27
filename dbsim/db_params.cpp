@@ -69,6 +69,8 @@ db::params db::parse_args(int argc, char** argv)
          "number of rows per table")
         ("alg-freq", po::value<size_t>(&params.alg_freq),
          "ALG frequency")
+        ("sync-wait", po::value<bool>(&params.sync_wait),
+         "Turn on sync wait for each transaction")
         ("debug-log-level", po::value<int>(&params.debug_log_level),
          "debug logging level: 0 - none, 1 - verbose")
         ("fast-exit", po::value<int>(&params.fast_exit),
@@ -86,18 +88,18 @@ db::params db::parse_args(int argc, char** argv)
     {
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
-        po::notify(vm);
         if (vm.count("help"))
         {
             std::cerr << desc << "\n";
             exit(0);
         }
-
+        po::notify(vm);
         validate_params(params);
     }
     catch (const po::error& e)
     {
         std::cerr << "Error parsing arguments: " << e.what() << "\n";
+        std::cerr << desc << "\n";
         exit(1);
     }
     catch (...)

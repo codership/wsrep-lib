@@ -90,6 +90,13 @@ int db::client::client_command(F f)
 
 void db::client::run_one_transaction()
 {
+    if (params_.sync_wait)
+    {
+        if (client_state_.sync_wait(5))
+        {
+            throw wsrep::runtime_error("Sync wait failed");
+        }
+    }
     client_state_.reset_error();
     int err = client_command(
         [&]()

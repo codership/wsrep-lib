@@ -32,6 +32,7 @@ namespace db
         size_t n_transactions;
         size_t n_rows;
         size_t alg_freq;
+        bool sync_wait;
         std::string topology;
         std::string wsrep_provider;
         std::string wsrep_provider_options;
@@ -45,6 +46,7 @@ namespace db
             , n_transactions(0)
             , n_rows(1000)
             , alg_freq(0)
+            , sync_wait(false)
             , topology()
             , wsrep_provider()
             , wsrep_provider_options()

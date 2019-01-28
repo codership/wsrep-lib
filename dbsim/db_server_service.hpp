@@ -65,7 +65,6 @@ namespace db
                      void*                 output,
                      bool                  encrypt,
                      bool                  last) override;
-                     
     private:
         db::server& server_;
     };

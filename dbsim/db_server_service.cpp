@@ -165,10 +165,16 @@ void db::server_service::debug_sync(const char*)
 int db::server_service::do_crypt(void**                ctx         WSREP_UNUSED,
                                  wsrep::const_buffer&  key         WSREP_UNUSED,
                                  const char            (*iv)[32]   WSREP_UNUSED,
-                                 wsrep::const_buffer&  input       WSREP_UNUSED,
-                                 void*                 output      WSREP_UNUSED,
+                                 wsrep::const_buffer&  input,
+                                 void*                 output,
                                  bool                  encrypt     WSREP_UNUSED,
                                  bool                  last        WSREP_UNUSED)
 {
-    return -1;
+
+    for (size_t i(0); i < input.size(); ++i)
+    {
+        static_cast<unsigned char*>(output)[i] =
+            ~static_cast<const unsigned char*>(input.data())[i];
+    }
+    return input.size();
 }

@@ -69,6 +69,8 @@ db::params db::parse_args(int argc, char** argv)
          "number of rows per table")
         ("alg-freq", po::value<size_t>(&params.alg_freq),
          "ALG frequency")
+        ("encryption", po::value<bool>(&params.encryption),
+         "Enable encryption callback")
         ("debug-log-level", po::value<int>(&params.debug_log_level),
          "debug logging level: 0 - none, 1 - verbose")
         ("fast-exit", po::value<int>(&params.fast_exit),

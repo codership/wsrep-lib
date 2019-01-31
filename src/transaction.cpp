@@ -824,7 +824,27 @@ bool wsrep::transaction::bf_abort(
 
     if (active() == false)
     {
-        WSREP_TC_LOG_DEBUG(1, "Transaction not active, skipping bf abort");
+        WSREP_TC_LOG_DEBUG(1, "Aborting non-active transaction");
+        wsrep::seqno victim_seqno;
+        enum wsrep::provider::status status(
+            client_state_.provider().bf_abort(bf_seqno, id_, victim_seqno));
+        switch (status)
+        {
+        case wsrep::provider::success:
+            WSREP_TC_LOG_DEBUG(1, "Seqno " << bf_seqno
+                               << " succesfully BF aborted non-active " << id_
+                               << " victim_seqno " << victim_seqno);
+            bf_abort_state_ = state();
+            ret = true;
+            break;
+        default:
+            WSREP_TC_LOG_DEBUG(1,
+                               "Seqno " << bf_seqno
+                               << " failed to BF abort non-active" << id_
+                               << " with status " << status
+                               << " victim_seqno " << victim_seqno);
+          break;
+        }
     }
     else
     {

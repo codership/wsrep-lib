@@ -172,11 +172,20 @@ static int commit_fragment(wsrep::server_state& server_state,
         {
             assert(err.size() == 0);
         }
-        streaming_applier->debug_crash(
-            "crash_apply_cb_before_fragment_removal");
-        ret = ret || streaming_applier->remove_fragments(ws_meta);
-        streaming_applier->debug_crash(
-            "crash_apply_cb_after_fragment_removal");
+
+        const wsrep::transaction& trx(streaming_applier->transaction());
+        // Fragment removal for XA is going to happen in after_commit
+        if (!trx.is_xa())
+        {
+            streaming_applier->debug_crash(
+                "crash_apply_cb_before_fragment_removal");
+
+            ret = ret || streaming_applier->remove_fragments(ws_meta);
+
+            streaming_applier->debug_crash(
+                "crash_apply_cb_after_fragment_removal");
+        }
+
         streaming_applier->debug_crash(
             "crash_commit_cb_before_last_fragment_commit");
         ret = ret || streaming_applier->commit(ws_handle, ws_meta);
@@ -420,7 +429,7 @@ static int apply_write_set(wsrep::server_state& server_state,
     }
     if (ret)
     {
-        wsrep::log_info() << "Failed to apply write set: " << ws_meta;
+        wsrep::log_error() << "Failed to apply write set: " << ws_meta;
     }
     return ret;
 }

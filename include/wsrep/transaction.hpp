@@ -27,17 +27,16 @@
 #include "streaming_context.hpp"
 #include "lock.hpp"
 #include "sr_key_set.hpp"
+#include "client_service.hpp"
 
 #include <cassert>
 #include <vector>
 
 namespace wsrep
 {
-    class client_service;
     class client_state;
     class key;
     class const_buffer;
-
 
     class transaction
     {
@@ -118,6 +117,11 @@ namespace wsrep
         bool is_empty() const
         {
             return sr_keys_.empty();
+        }
+
+        bool is_xa() const
+        {
+            return client_service_.is_xa();
         }
 
         bool pa_unsafe() const { return pa_unsafe_; }

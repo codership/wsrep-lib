@@ -34,12 +34,13 @@
 
 namespace wsrep
 {
-    class transaction;
     class client_service
     {
     public:
         client_service() { }
         virtual ~client_service() { }
+
+        virtual const char* query() const = 0;
 
         /**
          * Return true if the current transaction has been interrupted
@@ -68,6 +69,11 @@ namespace wsrep
          * Clean up after transcation has been terminated.
          */
         virtual void cleanup_transaction() = 0;
+
+        /**
+         * Return true if the current transactions is XA
+         */
+        virtual bool is_xa() const = 0;
 
         //
         // Streaming

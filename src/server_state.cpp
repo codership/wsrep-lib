@@ -831,7 +831,7 @@ void wsrep::server_state::on_view(const wsrep::view& view,
         << "  id: " << view.state_id() << "\n"
         << "  seqno: " << view.view_seqno() << "\n"
         << "  status: " << view.status() << "\n"
-        << "  prococol_version: " << view.protocol_version() << "\n"
+        << "  protocol_version: " << view.protocol_version() << "\n"
         << "  own_index: " << view.own_index() << "\n"
         << "  final: " << view.final() << "\n"
         << "  members";

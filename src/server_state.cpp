@@ -338,7 +338,7 @@ int wsrep::server_state::load_provider(const std::string& provider_spec,
                                        const std::string& provider_options)
 {
     wsrep::log_info() << "Loading provider " << provider_spec
-                      << "initial position: " << initial_position_;
+                      << " initial position: " << initial_position_;
 
     provider_ = wsrep::provider::make_provider(*this,
                                                provider_spec,

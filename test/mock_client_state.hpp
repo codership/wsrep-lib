@@ -75,6 +75,8 @@ namespace wsrep
             , aborts_()
         { }
 
+        std::string query() const WSREP_OVERRIDE { return ""; }
+
         int bf_rollback() WSREP_OVERRIDE;
 
         bool interrupted() const WSREP_OVERRIDE
@@ -112,6 +114,12 @@ namespace wsrep
         }
 
         void cleanup_transaction() WSREP_OVERRIDE { }
+
+        bool is_xa() const WSREP_OVERRIDE
+        {
+            return false;
+        }
+
         size_t bytes_generated() const WSREP_OVERRIDE
         {
             return bytes_generated_;

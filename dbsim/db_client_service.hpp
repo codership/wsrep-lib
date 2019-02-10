@@ -33,6 +33,7 @@ namespace db
     public:
         client_service(db::client& client);
 
+        std::string query() const override { return ""; }
         bool interrupted() const override { return false; }
         void reset_globals() override { }
         void store_globals() override { }
@@ -41,6 +42,10 @@ namespace db
             return 0;
         }
         void cleanup_transaction() override { }
+        bool is_xa () const override
+        {
+            return false;
+        }
         size_t bytes_generated() const override
         {
             return 0;

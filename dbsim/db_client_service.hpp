@@ -33,6 +33,7 @@ namespace db
     public:
         client_service(db::client& client);
 
+        std::string query() const override { return ""; }
         bool interrupted(wsrep::unique_lock<wsrep::mutex>&)
             const override
         { return false; }
@@ -43,6 +44,10 @@ namespace db
             return 0;
         }
         void cleanup_transaction() override { }
+        bool is_xa () const override
+        {
+            return false;
+        }
         size_t bytes_generated() const override
         {
             return 0;

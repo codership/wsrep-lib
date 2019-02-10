@@ -46,15 +46,14 @@ namespace db
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
         int rollback(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
         int apply_toi(const wsrep::ws_meta&, const wsrep::const_buffer&) override;
-        void after_apply() override;
+        virtual void after_apply() override;
         void store_globals() override { }
         void reset_globals() override { }
         void switch_execution_context(wsrep::high_priority_service&) override
         { }
         int log_dummy_write_set(const wsrep::ws_handle&,
-                                const wsrep::ws_meta&) override
-        { return 0; }
-        bool is_replaying() const override;
+                                const wsrep::ws_meta&) override;
+        virtual bool is_replaying() const override;
         void debug_crash(const char*) override { }
     private:
         high_priority_service(const high_priority_service&);
@@ -62,6 +61,20 @@ namespace db
         db::server& server_;
         db::client& client_;
     };
+
+    class replayer_service : public db::high_priority_service
+    {
+    public:
+        replayer_service(db::server& server, db::client& client)
+            : db::high_priority_service(server, client)
+        { }
+        // After apply is empty for replayer to keep the transaction
+        // context available for the client session after replaying
+        // is over.
+        void after_apply() override { }
+        bool is_replaying() const override { return true; }
+    };
+
 }
 
 #endif // WSREP_DB_HIGH_PRIORITY_SERVICE_HPP

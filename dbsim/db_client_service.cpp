@@ -41,11 +41,11 @@ enum wsrep::provider::status
 db::client_service::replay()
 {
     wsrep::high_priority_context high_priority_context(client_state_);
-    db::high_priority_service high_priority_service(
+    db::replayer_service replayer_service(
         client_.server_, client_);
     auto ret(client_state_.provider().replay(
                  client_state_.transaction().ws_handle(),
-                 &high_priority_service));
+                 &replayer_service));
     if (ret == wsrep::provider::success)
     {
         ++client_.stats_.replays;

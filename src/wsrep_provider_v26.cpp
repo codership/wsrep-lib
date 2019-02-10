@@ -19,6 +19,7 @@
 
 #include "wsrep_provider_v26.hpp"
 
+#include "wsrep/encryption_service.hpp"
 #include "wsrep/server_state.hpp"
 #include "wsrep/high_priority_service.hpp"
 #include "wsrep/view.hpp"
@@ -421,14 +422,42 @@ namespace
         }
     }
 
-    int encrypt_cb(void*                 /* app ctx */,
-                                 wsrep_enc_ctx_t*      /*ctx*/,
-                                 const wsrep_buf_t*    /*input*/,
-                                 void*                 /*output*/,
-                                 wsrep_enc_direction_t /*direction*/,
-                                 bool                  /*final*/)
+    int encrypt_cb(void*                 app_ctx,
+                   wsrep_enc_ctx_t*      enc_ctx,
+                   const wsrep_buf_t*    input,
+                   void*                 output,
+                   wsrep_enc_direction_t direction,
+                   bool                  last)
     {
-        return 0;
+        assert(app_ctx);
+        wsrep::server_state& server_state(
+            *static_cast<wsrep::server_state*>(app_ctx));
+
+        assert(server_state.encryption_service());
+        if (server_state.encryption_service() == 0)
+        {
+            wsrep::log_error() << "Encryption service not defined in encrypt_cb()";
+            return -1;
+        }
+
+        wsrep::const_buffer key(enc_ctx->key->ptr, enc_ctx->key->len);
+        wsrep::const_buffer in(input->ptr, input->len);
+        try
+        {   
+            return server_state.encryption_service()->do_crypt(&enc_ctx->ctx,
+                                                              key,
+                                                              enc_ctx->iv,
+                                                              in,
+                                                              output,
+                                                              direction == WSREP_ENC,
+                                                              last);
+        }
+        catch (const wsrep::runtime_error& e)
+        {
+            free(enc_ctx->ctx);
+            // Return negative value in case of callback error
+            return -1;
+        }
     }
 
     wsrep_cb_status_t apply_cb(void* ctx,
@@ -549,6 +578,8 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     , wsrep_()
 {
     wsrep_gtid_t state_id;
+    bool encryption_enabled = server_state.encryption_service() &&
+                              server_state.encryption_service()->encryption_enabled();
     std::memcpy(state_id.uuid.data,
                 server_state.initial_position().id().data(),
                 sizeof(state_id.uuid.data));
@@ -568,7 +599,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     init_args.connected_cb = &connected_cb;
     init_args.view_cb = &view_cb;
     init_args.sst_request_cb = &sst_request_cb;
-    init_args.encrypt_cb = &encrypt_cb;
+    init_args.encrypt_cb = encryption_enabled ? encrypt_cb : NULL;
     init_args.apply_cb = &apply_cb;
     init_args.unordered_cb = 0;
     init_args.sst_donate_cb = &sst_donate_cb;
@@ -581,6 +612,19 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     if (wsrep_->init(wsrep_, &init_args) != WSREP_OK)
     {
         throw wsrep::runtime_error("Failed to initialize wsrep provider");
+    }
+
+    if (encryption_enabled)
+    {
+        const std::vector<unsigned char>& key = server_state.get_encryption_key();
+        if (key.size())
+        {
+            wsrep::const_buffer const_key(key.data(), key.size());
+            if(enc_set_key(const_key))
+            {
+                throw wsrep::runtime_error("Failed to set encryption key");
+            }
+        }
     }
 }
 
@@ -850,6 +894,16 @@ int wsrep::wsrep_provider_v26::sst_received(const wsrep::gtid& gtid, int err)
                 sizeof(wsrep_gtid.uuid.data));
     wsrep_gtid.seqno = gtid.seqno().get();
     if (wsrep_->sst_received(wsrep_, &wsrep_gtid, 0, err) != WSREP_OK)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+int wsrep::wsrep_provider_v26::enc_set_key(const wsrep::const_buffer& key)
+{
+    wsrep_enc_key_t enc_key = {key.data(), key.size()};
+    if (wsrep_->enc_set_key(wsrep_, &enc_key) != WSREP_OK)
     {
         return 1;
     }

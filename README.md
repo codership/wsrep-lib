@@ -40,4 +40,7 @@ In order to build the library, run
 * WSREP_LIB_WITH_DOCUMENTATION - Generate documentation, requires Doxygen
   (default OFF)
 * WSREP_LIB_WITH_COVERAGE - Compile with coverage instrumentation (default OFF)
-
+* WSREP_LIB_STRICT_BUILD_FLAGS - Compile with strict build flags, currently
+  enables -Weffc++ (default OFF)
+* WSREP_LIB_MAINTAINER_MODE - Make every compiler warning to be treated
+  as error, enables -Werror compiler flag (default OFF)

@@ -39,6 +39,8 @@ namespace db
             , transactions_()
             , alg_freq_(params.alg_freq)
             , bf_aborts_()
+            , position_()
+            , view_()
         { }
 
         class transaction
@@ -55,7 +57,7 @@ namespace db
             bool active() const { return cc_ != nullptr; }
             void start(client* cc);
             void apply(const wsrep::transaction&);
-            void commit();
+            void commit(const wsrep::gtid&);
             void rollback();
             db::client* client() { return cc_; }
             transaction(const transaction&) = delete;
@@ -66,11 +68,18 @@ namespace db
         };
         void bf_abort_some(const wsrep::transaction& tc);
         long long bf_aborts() const { return bf_aborts_; }
+        void store_position(const wsrep::gtid& gtid);
+        wsrep::gtid get_position() const;
+        void store_view(const wsrep::view& view);
+        wsrep::view get_view() const;
     private:
+        void validate_position(const wsrep::gtid& gtid) const;
         wsrep::default_mutex mutex_;
         std::unordered_set<db::client*> transactions_;
         size_t alg_freq_;
         std::atomic<long long> bf_aborts_;
+        wsrep::gtid position_;
+        wsrep::view view_;
     };
 }
 

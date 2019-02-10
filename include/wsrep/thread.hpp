@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2019 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -18,6 +18,7 @@
  */
 
 #include <pthread.h>
+#include <iosfwd>
 
 namespace wsrep
 {
@@ -34,6 +35,7 @@ namespace wsrep
             {
                 return (pthread_equal(left.thread_, right.thread_));
             }
+            friend std::ostream& operator<<(std::ostream&, const id&);
             pthread_t thread_;
         };
 
@@ -48,4 +50,6 @@ namespace wsrep
     {
         static inline thread::id get_id() { return thread::id(pthread_self()); }
     }
+
+    std::ostream& operator<<(std::ostream&, const thread::id&);
 };

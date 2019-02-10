@@ -1,0 +1,12 @@
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+Makefile
+cmake_install.cmake
+
+# Built binaries
+dbsim/dbsim
+src/libwsrep-lib.a
+test/wsrep-lib_test
+wsrep-API/libwsrep_api_v26.a

@@ -231,7 +231,7 @@ namespace wsrep
         mock_server_state(const std::string& name,
                           enum wsrep::server_state::rollback_mode rollback_mode,
                           wsrep::server_service& server_service)
-            : wsrep::server_state(mutex_, cond_, server_service,
+            : wsrep::server_state(mutex_, cond_, server_service, NULL,
                                   name, "", "", "./",
                                   wsrep::gtid::undefined(),
                                   1,

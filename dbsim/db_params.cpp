@@ -73,15 +73,23 @@ db::params db::parse_args(int argc, char** argv)
          "debug logging level: 0 - none, 1 - verbose")
         ("fast-exit", po::value<int>(&params.fast_exit),
          "exit from simulation without graceful shutdown");
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
-    if (vm.count("help"))
+    try
+    {
+        po::variables_map vm;
+        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::notify(vm);
+        if (vm.count("help"))
+        {
+            std::cerr << desc << "\n";
+            exit(0);
+        }
+
+        validate_params(params);
+    }
+    catch (...)
     {
         std::cerr << desc << "\n";
-        exit(0);
+        exit(1);
     }
-
-    validate_params(params);
     return params;
 }

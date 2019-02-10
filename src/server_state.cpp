@@ -347,12 +347,12 @@ static int apply_toi(wsrep::provider& provider,
 int wsrep::server_state::load_provider(const std::string& provider_spec,
                                        const std::string& provider_options)
 {
-    wsrep::log_info() << "Loading provider "
-                      << provider_spec
-                      << "initial position: "
-                      << initial_position_;
-    provider_ = wsrep::provider::make_provider(
-        *this, provider_spec, provider_options);
+    wsrep::log_info() << "Loading provider " << provider_spec
+                      << " initial position: " << initial_position_;
+
+    provider_ = wsrep::provider::make_provider(*this,
+                                               provider_spec,
+                                               provider_options);
     return (provider_ ? 0 : 1);
 }
 
@@ -640,6 +640,18 @@ wsrep::server_state::wait_for_gtid(const wsrep::gtid& gtid, int timeout)
     return provider().wait_for_gtid(gtid, timeout);
 }
 
+int 
+wsrep::server_state::set_encryption_key(std::vector<unsigned char>& key)
+{
+    encryption_key_ = key;
+    if (state_ != s_disconnected)
+    {
+        return provider_->enc_set_key(wsrep::const_buffer(encryption_key_.data(),
+                                                          encryption_key_.size()));
+    }
+    return 0;
+}
+
 std::pair<wsrep::gtid, enum wsrep::provider::status>
 wsrep::server_state::causal_read(int timeout) const
 {
@@ -715,8 +727,17 @@ void wsrep::server_state::on_primary_view(
         if (state_ == s_connected)
         {
             state(lock, s_joiner);
+            // We need to assign init_initialized_ here to local
+            // variable. If the value here was false, we need to skip
+            // the initializing -> initialized -> joined state cycle
+            // below. However, if we don't assign the value to
+            // local, it is possible that the main thread gets control
+            // between changing the state to initializing and checking
+            // initialized flag, which may cause the initialzing -> initialized
+            // state change to be executed even if it should not be.
+            const bool was_initialized(init_initialized_);
             state(lock, s_initializing);
-            if (init_initialized_)
+            if (was_initialized)
             {
                 // If server side has already been initialized,
                 // skip directly to s_joined.
@@ -832,7 +853,7 @@ void wsrep::server_state::on_view(const wsrep::view& view,
         << "  id: " << view.state_id() << "\n"
         << "  seqno: " << view.view_seqno() << "\n"
         << "  status: " << view.status() << "\n"
-        << "  prococol_version: " << view.protocol_version() << "\n"
+        << "  protocol_version: " << view.protocol_version() << "\n"
         << "  own_index: " << view.own_index() << "\n"
         << "  final: " << view.final() << "\n"
         << "  members";

@@ -59,7 +59,6 @@ namespace db
         void debug_sync(const char*) override;
     private:
         db::server& server_;
-        wsrep::view logged_view_;
     };
 }
 

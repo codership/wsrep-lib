@@ -104,6 +104,7 @@ namespace wsrep
     class const_buffer;
     class server_service;
     class client_service;
+    class encryption_service;
 
     /** @class Server Context
      *
@@ -180,8 +181,11 @@ namespace wsrep
 
         virtual ~server_state();
 
+        wsrep::encryption_service* encryption_service()
+        { return encryption_service_; }
 
         wsrep::server_service& server_service() { return server_service_; }
+
         /**
          * Return human readable server name.
          *
@@ -370,6 +374,21 @@ namespace wsrep
         wait_for_gtid(const wsrep::gtid&, int timeout) const;
 
         /**
+         * Set encryption key
+         * 
+         * @param key Encryption key
+         * 
+         * @return Zero on success, non-zero on failure.
+         */
+        int set_encryption_key(std::vector<unsigned char>& key);
+
+         /**
+         * Return encryption key.
+         */
+        const std::vector<unsigned char>& get_encryption_key() const
+        { return encryption_key_; }
+
+        /**
          * Perform a causal read in the cluster. After the call returns,
          * all the causally preceding write sets have been committed
          * or the error is returned.
@@ -553,6 +572,7 @@ namespace wsrep
         server_state(wsrep::mutex& mutex,
                      wsrep::condition_variable& cond,
                      wsrep::server_service& server_service,
+                     wsrep::encryption_service* encryption_service,
                      const std::string& name,
                      const std::string& incoming_address,
                      const std::string& address,
@@ -563,6 +583,7 @@ namespace wsrep
             : mutex_(mutex)
             , cond_(cond)
             , server_service_(server_service)
+            , encryption_service_(encryption_service)
             , state_(s_disconnected)
             , state_hist_()
             , state_waiters_(n_states_)
@@ -584,6 +605,7 @@ namespace wsrep
             , incoming_address_(incoming_address)
             , address_(address)
             , working_dir_(working_dir)
+            , encryption_key_()
             , max_protocol_version_(max_protocol_version)
             , rollback_mode_(rollback_mode)
             , connected_gtid_()
@@ -631,6 +653,7 @@ namespace wsrep
         wsrep::mutex& mutex_;
         wsrep::condition_variable& cond_;
         wsrep::server_service& server_service_;
+        wsrep::encryption_service* encryption_service_;
         enum state state_;
         std::vector<enum state> state_hist_;
         mutable std::vector<int> state_waiters_;
@@ -672,6 +695,7 @@ namespace wsrep
         std::string incoming_address_;
         std::string address_;
         std::string working_dir_;
+        std::vector<unsigned char> encryption_key_;
         int max_protocol_version_;
         enum rollback_mode rollback_mode_;
         wsrep::gtid connected_gtid_;

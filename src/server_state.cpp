@@ -352,7 +352,7 @@ static int apply_write_set(wsrep::server_state& server_state,
                              ws_meta,
                              data);
     }
-    else if (ws_meta.flags() == 0)
+    else if (ws_meta.flags() == 0 || wsrep::prepares_transaction(ws_meta.flags()))
     {
         wsrep::high_priority_service* sa(
             server_state.find_streaming_applier(
@@ -373,8 +373,8 @@ static int apply_write_set(wsrep::server_state& server_state,
         }
         else
         {
-            ret = apply_fragment(server_state,
-                                 high_priority_service,
+            sa->next_fragment(ws_meta);
+            ret = apply_fragment(high_priority_service,
                                  sa,
                                  ws_handle,
                                  ws_meta,
@@ -414,6 +414,7 @@ static int apply_write_set(wsrep::server_state& server_state,
             else
             {
                 // Commit fragment consumes sa
+                sa->next_fragment(ws_meta);
                 ret = commit_fragment(server_state,
                                       high_priority_service,
                                       sa,

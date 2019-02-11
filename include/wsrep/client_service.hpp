@@ -78,6 +78,11 @@ namespace wsrep
          */
         virtual bool is_xa() const = 0;
 
+        /**
+         * Return true if the current statement is XA PREPARE
+         */
+        virtual bool is_xa_prepare() const = 0;
+
         //
         // Streaming
         //

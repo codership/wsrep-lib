@@ -126,6 +126,11 @@ namespace wsrep
             return client_service_.is_xa();
         }
 
+        bool is_xa_prepare() const
+        {
+            return client_service_.is_xa_prepare();
+        }
+
         bool pa_unsafe() const { return pa_unsafe_; }
         void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }
 
@@ -136,6 +141,8 @@ namespace wsrep
 
         int start_transaction(const wsrep::ws_handle& ws_handle,
                               const wsrep::ws_meta& ws_meta);
+
+        int next_fragment(const wsrep::ws_meta& ws_meta);
 
         void adopt(const transaction& transaction);
         void fragment_applied(wsrep::seqno seqno);

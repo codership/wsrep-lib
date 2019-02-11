@@ -27,6 +27,12 @@ int wsrep::mock_high_priority_service::start_transaction(
     return client_state_->start_transaction(ws_handle, ws_meta);
 }
 
+int wsrep::mock_high_priority_service::next_fragment(
+    const wsrep::ws_meta& ws_meta)
+{
+    return client_state_->next_fragment(ws_meta);
+}
+
 int wsrep::mock_high_priority_service::adopt_transaction(
     const wsrep::transaction& transaction)
 {

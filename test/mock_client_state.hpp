@@ -120,6 +120,11 @@ namespace wsrep
             return false;
         }
 
+        bool is_xa_prepare() const WSREP_OVERRIDE
+        {
+            return false;
+        }
+
         size_t bytes_generated() const WSREP_OVERRIDE
         {
             return bytes_generated_;

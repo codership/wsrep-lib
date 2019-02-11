@@ -260,6 +260,14 @@ int wsrep::client_state::after_statement()
 //                             Streaming                                    //
 //////////////////////////////////////////////////////////////////////////////
 
+void wsrep::client_state::streaming_params(
+    enum wsrep::streaming_context::fragment_unit fragment_unit,
+    size_t fragment_size)
+{
+    assert(mode_ == m_local);
+    transaction_.streaming_context().params(fragment_unit, fragment_size);
+}
+
 int wsrep::client_state::enable_streaming(
     enum wsrep::streaming_context::fragment_unit
     fragment_unit,

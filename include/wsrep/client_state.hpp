@@ -306,6 +306,16 @@ namespace wsrep
         }
 
         /**
+         * Set streaming parameters.
+         *
+         * @param fragment_unit Desired fragment unit
+         * @param fragment_size Desired fragment size
+         */
+        void streaming_params(enum wsrep::streaming_context::fragment_unit
+                              fragment_unit,
+                              size_t fragment_size);
+
+        /**
          * Enable streaming replication.
          *
          * Currently it is not possible to change the fragment unit

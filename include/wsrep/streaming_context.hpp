@@ -49,6 +49,31 @@ namespace wsrep
             , unit_counter_()
         { }
 
+        /**
+         * Set streaming parameters.
+         *
+         * Calling this method has a side effect of resetting unit
+         * counter.
+         *
+         * @param fragment_unit Desired fragment unit.
+         * @param fragment_size Desired fragment size.
+         */
+        void params(enum fragment_unit fragment_unit, size_t fragment_size)
+        {
+            if (fragment_size)
+            {
+                wsrep::log_debug() << "Enabling streaming: "
+                                   << fragment_unit << " " << fragment_size;
+            }
+            else
+            {
+                wsrep::log_debug() << "Disabling streaming";
+            }
+            fragment_unit_ = fragment_unit;
+            fragment_size_ = fragment_size;
+            reset_unit_counter();
+        }
+
         void enable(enum fragment_unit fragment_unit, size_t fragment_size)
         {
             wsrep::log_debug() << "Enabling streaming: "

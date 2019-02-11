@@ -175,6 +175,16 @@ int wsrep::transaction::start_transaction(
     return 0;
 }
 
+int wsrep::transaction::next_fragment(
+    const wsrep::ws_meta& ws_meta)
+{
+    debug_log_state("next_fragment enter");
+    ws_meta_ = ws_meta;
+    debug_log_state("next_fragment leave");
+    return 0;
+}
+
+
 void wsrep::transaction::adopt(const wsrep::transaction& transaction)
 {
     debug_log_state("adopt enter");
@@ -1093,12 +1103,12 @@ int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock)
         break;
     }
 
-    if (streaming_context_.fragment_size_exceeded())
+    if (streaming_context_.fragment_size_exceeded() || client_service_.is_xa_prepare())
     {
         // Some statements have no effect. Do not atttempt to
         // replicate a fragment if no data has been generated
-        // since last fragment replication.
-        if (bytes_to_replicate <= 0)
+        // since last fragment replication, and statement is not XA PREPARE.
+        if (bytes_to_replicate <= 0 && !client_service_.is_xa_prepare())
         {
             assert(bytes_to_replicate == 0);
             return ret;
@@ -1367,6 +1377,7 @@ int wsrep::transaction::certify_commit(
     }
 
     flags(flags() | wsrep::provider::flag::commit);
+    flags(flags() & ~wsrep::provider::flag::prepare);
 
     if (client_service_.prepare_data_for_replication())
     {

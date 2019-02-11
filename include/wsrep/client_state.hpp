@@ -376,6 +376,14 @@ namespace wsrep
             return transaction_.start_transaction(wsh, meta);
         }
 
+        int next_fragment(const wsrep::ws_meta& meta)
+        {
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            assert(current_thread_id_ == wsrep::this_thread::get_id());
+            assert(mode_ == m_high_priority);
+            return transaction_.next_fragment(meta);
+        }
+
         /** @name Commit ordering interface */
         /** @{ */
         int before_prepare()

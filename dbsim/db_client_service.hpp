@@ -46,6 +46,10 @@ namespace db
         {
             return false;
         }
+        bool is_xa_prepare () const override
+        {
+            return false;
+        }
         size_t bytes_generated() const override
         {
             return 0;

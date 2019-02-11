@@ -191,7 +191,6 @@ int wsrep::transaction::next_fragment(
     return 0;
 }
 
-
 void wsrep::transaction::adopt(const wsrep::transaction& transaction)
 {
     debug_log_state("adopt enter");
@@ -1099,8 +1098,9 @@ int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock)
     if (streaming_context_.fragment_size_exceeded() || client_service_.is_xa_prepare())
     {
         // Some statements have no effect. Do not atttempt to
-        // replicate a fragment if no data has been generated
-        // since last fragment replication, and statement is not XA PREPARE.
+        // replicate a fragment if no data has been generated since
+        // last fragment replication. A XA PREPARE statement generates a
+        // fragment even if no data is currently pending replication.
         if (bytes_to_replicate <= 0 && !client_service_.is_xa_prepare())
         {
             assert(bytes_to_replicate == 0);

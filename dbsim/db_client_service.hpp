@@ -48,7 +48,7 @@ namespace db
         {
             return false;
         }
-        bool is_xa_prepare () const override
+        bool is_xa_prepare() const override
         {
             return false;
         }

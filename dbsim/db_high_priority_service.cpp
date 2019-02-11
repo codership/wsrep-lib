@@ -35,6 +35,11 @@ int db::high_priority_service::start_transaction(
     return client_.client_state().start_transaction(ws_handle, ws_meta);
 }
 
+int db::high_priority_service::next_fragment(const wsrep::ws_meta& ws_meta)
+{
+    return client_.client_state().next_fragment(ws_meta);
+}
+
 const wsrep::transaction& db::high_priority_service::transaction() const
 {
     return client_.client_state().transaction();

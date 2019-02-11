@@ -52,6 +52,11 @@ namespace wsrep
                                       const wsrep::ws_meta&) = 0;
 
         /**
+         * Start the next fragment of current transaction
+         */
+        virtual int next_fragment(const wsrep::ws_meta&) = 0;
+
+        /**
          * Return transaction object associated to high priority
          * service state.
          */

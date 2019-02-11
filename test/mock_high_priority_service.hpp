@@ -43,6 +43,8 @@ namespace wsrep
         int start_transaction(const wsrep::ws_handle&, const wsrep::ws_meta&)
             WSREP_OVERRIDE;
 
+        int next_fragment(const wsrep::ws_meta&) WSREP_OVERRIDE;
+
         const wsrep::transaction& transaction() const WSREP_OVERRIDE
         { return client_state_->transaction(); }
         int adopt_transaction(const wsrep::transaction&) WSREP_OVERRIDE;

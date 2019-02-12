@@ -563,24 +563,42 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
         wsrep::view const v(server_service_.get_view(cs, id_));
         wsrep::log_info() << "Recovered view from SST:\n" << v;
 
-        if (v.state_id().id() != gtid.id() ||
-            v.state_id().seqno() > gtid.seqno())
+        /*
+         * If the state id from recovered view has undefined ID, we may
+         * be upgrading from earlier version which does not provide
+         * view stored in stable storage. In this case we skip
+         * sanity checks and assigning the current view and wait
+         * until the first view delivery.
+         */
+        if (v.state_id().id().is_undefined() == false)
         {
-            /* Since IN GENERAL we may not be able to recover SST GTID from
-             * the state data, we have to rely on SST script passing the GTID
-             * value explicitly.
-             * Here we check if the passed GTID makes any sense: it should
-             * have the same UUID and greater or equal seqno than the last
-             * logged view. */
-            std::ostringstream msg;
-            msg << "SST script passed bogus GTID: " << gtid
-                << ". Preceeding view GTID: " << v.state_id();
-            throw wsrep::runtime_error(msg.str());
+            if (v.state_id().id() != gtid.id() ||
+                v.state_id().seqno() > gtid.seqno())
+            {
+                /* Since IN GENERAL we may not be able to recover SST GTID from
+                 * the state data, we have to rely on SST script passing the
+                 * GTID value explicitly.
+                 * Here we check if the passed GTID makes any sense: it should
+                 * have the same UUID and greater or equal seqno than the last
+                 * logged view. */
+                std::ostringstream msg;
+                msg << "SST script passed bogus GTID: " << gtid
+                    << ". Preceeding view GTID: " << v.state_id();
+                throw wsrep::runtime_error(msg.str());
+            }
+
+            current_view_ = v;
+            server_service_.log_view(NULL /* this view is stored already */, v);
         }
-
-        current_view_ = v;
-        server_service_.log_view(NULL /* this view is stored already */, v);
-
+        else
+        {
+            wsrep::log_warning()
+                << "View recovered from stable storage was empty. If the "
+                << "server is doing rolling upgrade from previous version "
+                << "which does not support storing view info into stable "
+                << "storage, this is ok. Otherwise this may be a sign of "
+                << "malfunction.";
+        }
         lock.lock();
         recover_streaming_appliers_if_not_recovered(lock, cs);
         lock.unlock();

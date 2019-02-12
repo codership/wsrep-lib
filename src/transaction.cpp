@@ -437,7 +437,9 @@ int wsrep::transaction::before_commit()
         {
             ret = 0;
         }
+        lock.unlock();
         ret = ret || provider().commit_order_enter(ws_handle_, ws_meta_);
+        lock.lock();
         if (ret)
         {
             state(lock, s_must_abort);

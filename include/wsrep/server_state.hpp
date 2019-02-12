@@ -87,6 +87,7 @@
 #include "id.hpp"
 #include "view.hpp"
 #include "transaction_id.hpp"
+#include "logger.hpp"
 #include "provider.hpp"
 #include "compiler.hpp"
 
@@ -542,17 +543,10 @@ namespace wsrep
          * - 0 - No debug logging.
          * - 1..n - Debug logging with increasing verbosity.
          */
-        void debug_log_level(int level) { debug_log_level_ = level; }
-
-        /**
-         *
-         */
-        int debug_log_level() const { return debug_log_level_; }
-
-        /**
-         * @todo Set filter for debug logging.
-         */
-        void debug_log_filter(const std::string&);
+        void debug_log_level(int level) 
+        { 
+            wsrep::log::debug_log_level(level);
+        }
 
         wsrep::mutex& mutex() { return mutex_; }
 
@@ -611,7 +605,6 @@ namespace wsrep
             , connected_gtid_()
             , current_view_()
             , last_committed_gtid_()
-            , debug_log_level_(0)
         { }
 
     private:
@@ -701,7 +694,6 @@ namespace wsrep
         wsrep::gtid connected_gtid_;
         wsrep::view current_view_;
         wsrep::gtid last_committed_gtid_;
-        int debug_log_level_;
     };
 
 

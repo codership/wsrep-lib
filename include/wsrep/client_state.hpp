@@ -674,7 +674,7 @@ namespace wsrep
         int debug_log_level() const
         {
             return std::max(debug_log_level_,
-                            server_state_.debug_log_level());
+                            wsrep::log::debug_log_level());
         }
 
         //

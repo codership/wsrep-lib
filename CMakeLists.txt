@@ -27,6 +27,9 @@ option(WSREP_LIB_WITH_COVERAGE "Compile with coverage instrumentation" OFF)
 option(WSREP_LIB_STRICT_BUILD_FLAGS "Compile with strict build flags" OFF)
 option(WSREP_LIB_MAINTAINER_MODE "Fail compilation on any warnings" OFF)
 
+# Compiler options
+set(CMAKE_CXX_STANDARD 11)
+
 # CXX flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Woverloaded-virtual -g")
 

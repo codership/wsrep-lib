@@ -31,6 +31,7 @@
 #include <sstream>
 #include <algorithm>
 
+
 //////////////////////////////////////////////////////////////////////////////
 //                               Helpers                                    //
 //////////////////////////////////////////////////////////////////////////////
@@ -168,10 +169,11 @@ static int apply_write_set(wsrep::server_state& server_state,
                 // may be delivered here. The message below has
                 // been intentionally turned into a debug message,
                 // rather than warning.
-                wsrep::log_debug()
-                    << "Could not find applier context for "
-                    << ws_meta.server_id()
-                    << ": " << ws_meta.transaction_id();
+                 WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                                 wsrep::log::debug_level_server_state,
+                                 "Could not find applier context for "
+                                 << ws_meta.server_id()
+                                 << ": " << ws_meta.transaction_id());
                 ret = high_priority_service.log_dummy_write_set(
                     ws_handle, ws_meta);
             }
@@ -435,7 +437,9 @@ wsrep::seqno wsrep::server_state::desync_and_pause()
         // communicate with the rest of the cluster. However, this
         // error can be tolerated because if the provider can be
         // paused succesfully below.
-        wsrep::log_debug() << "Failed to desync server before pause";
+        WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                        wsrep::log::debug_level_server_state,
+                        "Failed to desync server before pause");
         desync_successful = false;
     }
     else
@@ -967,7 +971,9 @@ void wsrep::server_state::start_streaming_client(
     wsrep::client_state* client_state)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    wsrep::log_debug() << "Start streaming client: " << client_state->id();
+     WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                     wsrep::log::debug_level_server_state,
+                     "Start streaming client: " << client_state->id());
     if (streaming_clients_.insert(
             std::make_pair(client_state->id(), client_state)).second == false)
     {
@@ -981,8 +987,10 @@ void wsrep::server_state::convert_streaming_client_to_applier(
     wsrep::client_state* client_state)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    wsrep::log_debug() << "Convert streaming client to applier "
-                       << client_state->id();
+     WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                     wsrep::log::debug_level_server_state,
+                     "Convert streaming client to applier "
+                     << client_state->id());
     streaming_clients_map::iterator i(
         streaming_clients_.find(client_state->id()));
     assert(i != streaming_clients_.end());
@@ -1027,7 +1035,9 @@ void wsrep::server_state::stop_streaming_client(
     wsrep::client_state* client_state)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    wsrep::log_debug() << "Stop streaming client: " << client_state->id();
+     WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                     wsrep::log::debug_level_server_state,
+                     "Stop streaming client: " << client_state->id());
     streaming_clients_map::iterator i(
         streaming_clients_.find(client_state->id()));
     assert(i != streaming_clients_.end());
@@ -1157,9 +1167,11 @@ void wsrep::server_state::state(
         assert(0);
     }
 
-    wsrep::log_debug() << "server " << name_ << " state change: "
-                       << to_c_string(state_) << " -> "
-                       << to_c_string(state);
+    WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                    wsrep::log::debug_level_server_state,
+                    "server " << name_ << " state change: "
+                    << to_c_string(state_) << " -> "
+                    << to_c_string(state));
     state_hist_.push_back(state_);
     server_service_.log_state_change(state_, state);
     state_ = state;
@@ -1255,9 +1267,11 @@ void wsrep::server_state::close_orphaned_sr_transactions(
                          server_id_cmp(i->first.first)) ==
             current_view_.members().end())
         {
-            wsrep::log_debug() << "Removing SR fragments for "
-                               << i->first.first
-                               << ", " << i->first.second;
+             WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                             wsrep::log::debug_level_server_state,
+                             "Removing SR fragments for "
+                             << i->first.first
+                             << ", " << i->first.second);
             wsrep::id server_id(i->first.first);
             wsrep::transaction_id transaction_id(i->first.second);
             wsrep::high_priority_service* streaming_applier(i->second);

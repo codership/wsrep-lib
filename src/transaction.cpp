@@ -29,14 +29,6 @@
 #include <sstream>
 #include <memory>
 
-#define WSREP_TC_LOG_DEBUG(level, msg)                  \
-    do {                                                \
-        if (client_state_.debug_log_level() < level)  \
-        { }                                             \
-        else wsrep::log_debug() << msg;                 \
-    } while (0)
-
-
 namespace
 {
     class storage_service_deleter
@@ -824,7 +816,9 @@ bool wsrep::transaction::bf_abort(
 
     if (active() == false)
     {
-        WSREP_TC_LOG_DEBUG(1, "Transaction not active, skipping bf abort");
+         WSREP_LOG_DEBUG(client_state_.debug_log_level(),
+                         wsrep::log::debug_level_transaction,
+                         "Transaction not active, skipping bf abort");
     }
     else
     {
@@ -842,26 +836,31 @@ bool wsrep::transaction::bf_abort(
             switch (status)
             {
             case wsrep::provider::success:
-                WSREP_TC_LOG_DEBUG(1, "Seqno " << bf_seqno
-                                   << " succesfully BF aborted " << id_
-                                   << " victim_seqno " << victim_seqno);
+                WSREP_LOG_DEBUG(client_state_.debug_log_level(),
+                                wsrep::log::debug_level_transaction,
+                                "Seqno " << bf_seqno
+                                << " succesfully BF aborted " << id_
+                                << " victim_seqno " << victim_seqno);
                 bf_abort_state_ = state();
                 state(lock, s_must_abort);
                 ret = true;
                 break;
             default:
-                WSREP_TC_LOG_DEBUG(1,
-                                   "Seqno " << bf_seqno
-                                   << " failed to BF abort " << id_
-                                   << " with status " << status
-                                   << " victim_seqno " << victim_seqno);
+                WSREP_LOG_DEBUG(client_state_.debug_log_level(),
+                                wsrep::log::debug_level_transaction,
+                                "Seqno " << bf_seqno
+                                << " failed to BF abort " << id_
+                                << " with status " << status
+                                << " victim_seqno " << victim_seqno);
                 break;
             }
             break;
         }
         default:
-            WSREP_TC_LOG_DEBUG(1, "BF abort not allowed in state "
-                               << wsrep::to_string(state()));
+                WSREP_LOG_DEBUG(client_state_.debug_log_level(),
+                                wsrep::log::debug_level_transaction,
+                                "BF abort not allowed in state "
+                                << wsrep::to_string(state()));
             break;
         }
     }
@@ -937,13 +936,13 @@ void wsrep::transaction::state(
     wsrep::unique_lock<wsrep::mutex>& lock __attribute__((unused)),
     enum wsrep::transaction::state next_state)
 {
-    if (client_state_.debug_log_level() >= 1)
-    {
-        log_debug() << "client: " << client_state_.id().get()
+    WSREP_LOG_DEBUG(client_state_.debug_log_level(),
+                    wsrep::log::debug_level_transaction,
+                    "client: " << client_state_.id().get()
                     << " txc: " << id().get()
                     << " state: " << to_string(state_)
-                    << " -> " << to_string(next_state);
-    }
+                    << " -> " << to_string(next_state));
+
     assert(lock.owns_lock());
     // BF aborter is allowed to change the state to must abort and
     // further to aborting and aborted if the background rollbacker
@@ -1524,8 +1523,10 @@ void wsrep::transaction::cleanup()
 void wsrep::transaction::debug_log_state(
     const char* context) const
 {
-    WSREP_TC_LOG_DEBUG(
-        1, context
+    WSREP_LOG_DEBUG(
+        client_state_.debug_log_level(),
+        wsrep::log::debug_level_transaction,
+        context
         << "\n    server: " << server_id_
         << ", client: " << int64_t(client_state_.id().get())
         << ", state: " << wsrep::to_c_string(client_state_.state())
@@ -1554,8 +1555,10 @@ void wsrep::transaction::debug_log_state(
 
 void wsrep::transaction::debug_log_key_append(const wsrep::key& key)
 {
-    WSREP_TC_LOG_DEBUG(2, "key_append"
-                       << "trx_id: "
-                       << int64_t(id().get())
-                       << " append key: " << key);
+    WSREP_LOG_DEBUG(client_state_.debug_log_level(),
+                    wsrep::log::debug_level_transaction,
+                    "key_append: "
+                    << "trx_id: "
+                    << int64_t(id().get())
+                    << " append key: " << key);
 }

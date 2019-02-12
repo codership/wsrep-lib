@@ -454,15 +454,15 @@ void wsrep::client_state::update_last_written_gtid(const wsrep::gtid& gtid)
 
 void wsrep::client_state::debug_log_state(const char* context) const
 {
-    if (debug_log_level() >= 1)
-    {
-        wsrep::log_debug() << context
-                           << "(" << id_.get()
-                           << "," << to_c_string(state_)
-                           << "," << to_c_string(mode_)
-                           << "," << wsrep::to_string(current_error_)
-                           << ")";
-    }
+    WSREP_LOG_DEBUG(debug_log_level(),
+                    wsrep::log::debug_level_client_state,
+                    context
+                    << "(" << id_.get()
+                    << "," << to_c_string(state_)
+                    << "," << to_c_string(mode_)
+                    << "," << wsrep::to_string(current_error_)
+                    << ")");
+    
 }
 
 void wsrep::client_state::state(

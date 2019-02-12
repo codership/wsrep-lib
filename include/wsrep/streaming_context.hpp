@@ -62,12 +62,16 @@ namespace wsrep
         {
             if (fragment_size)
             {
-                wsrep::log_debug() << "Enabling streaming: "
-                                   << fragment_unit << " " << fragment_size;
+                WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                                 wsrep::log::debug_level_streaming,
+                                 "Enabling streaming: "
+                                 << fragment_unit << " " << fragment_size);
             }
             else
             {
-                wsrep::log_debug() << "Disabling streaming";
+                WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                                wsrep::log::debug_level_streaming,
+                                "Disabling streaming");
             }
             fragment_unit_ = fragment_unit;
             fragment_size_ = fragment_size;
@@ -76,8 +80,10 @@ namespace wsrep
 
         void enable(enum fragment_unit fragment_unit, size_t fragment_size)
         {
-            wsrep::log_debug() << "Enabling streaming: "
-                               << fragment_unit << " " << fragment_size;
+            WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                            wsrep::log::debug_level_streaming,
+                            "Enabling streaming: "
+                            << fragment_unit << " " << fragment_size);
             assert(fragment_size > 0);
             fragment_unit_ = fragment_unit;
             fragment_size_ = fragment_size;
@@ -89,7 +95,9 @@ namespace wsrep
 
         void disable()
         {
-            wsrep::log_debug() << "Disabling streaming";
+            WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                            wsrep::log::debug_level_streaming,
+                            "Disabling streaming");
             fragment_size_ = 0;
         }
 

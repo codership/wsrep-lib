@@ -25,6 +25,12 @@
 
 #include <iosfwd>
 #include <sstream>
+#include <atomic>
+
+#define WSREP_LOG_DEBUG(debug_level_fn, debug_level, msg)               \
+    do {                                                                \
+        if (debug_level_fn >= debug_level) wsrep::log_debug() << msg;   \
+    } while (0)
 
 namespace wsrep
 {
@@ -37,6 +43,14 @@ namespace wsrep
             info,
             warning,
             error
+        };
+
+        enum debug_level
+        {
+            debug_level_server_state = 1,
+            debug_level_transaction,
+            debug_level_streaming,
+            debug_level_client_state
         };
 
         /**
@@ -85,6 +99,17 @@ namespace wsrep
          * Set user defined logger callback function.
          */
         static void logger_fn(logger_fn_type);
+
+        /**
+         * Set debug log level from client
+         */
+        static void debug_log_level(int debug_level);
+
+        /**
+         * Get current debug log level
+         */
+        static int debug_log_level();
+
     private:
         log(const log&);
         log& operator=(const log&);
@@ -94,6 +119,7 @@ namespace wsrep
         static wsrep::mutex& mutex_;
         static std::ostream& os_;
         static logger_fn_type logger_fn_;
+        static std::atomic_int debug_log_level_;
     };
 
     class log_error : public log

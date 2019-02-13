@@ -102,7 +102,7 @@ namespace wsrep
          *         If there is no data to replicate, the method shall return
          *         zero and leave the buffer empty.
          */
-        virtual int prepare_fragment_for_replication(wsrep::mutable_buffer&) = 0;
+        virtual int prepare_fragment_for_replication(wsrep::mutable_buffer&, size_t&) = 0;
 
         /**
          * Remove fragments from the storage within current transaction.

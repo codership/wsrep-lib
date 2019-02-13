@@ -144,6 +144,8 @@ namespace wsrep
         int flags_;
     };
 
+    std::string flags_to_string(int flags);
+
     static inline
     std::ostream& operator<<(std::ostream& os, const wsrep::ws_meta& ws_meta)
     {
@@ -151,7 +153,7 @@ namespace wsrep
            << " server_id: " << ws_meta.server_id()
            << " client_id: " << ws_meta.client_id()
            << " trx_id: " << ws_meta.transaction_id()
-           << " flags: " << ws_meta.flags();
+           << " flags: " << ws_meta.flags() << " (" << wsrep::flags_to_string(ws_meta.flags()) << ")";
         return os;
     }
 
@@ -386,8 +388,6 @@ namespace wsrep
     protected:
         wsrep::server_state& server_state_;
     };
-
-    std::string flags_to_string(int flags);
 
     static inline bool starts_transaction(int flags)
     {

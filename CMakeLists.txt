@@ -28,7 +28,23 @@ option(WSREP_LIB_STRICT_BUILD_FLAGS "Compile with strict build flags" OFF)
 option(WSREP_LIB_MAINTAINER_MODE "Fail compilation on any warnings" OFF)
 
 # Compiler options
-set(CMAKE_CXX_STANDARD 11)
+
+# Set std to C++0x/C++11 if superproject has not set standard yet
+if (NOT CMAKE_CXX_STANDARD OR CMAKE_CXX_STANDARD LESS 11)
+  string(FIND "${CMAKE_CXX_FLAGS}" "-std=" HAVE_STD)
+  if (HAVE_STD EQUAL -1)
+    if (CMAKE_VERSION VERSION_LESS "3.1")
+      if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
+          CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.8.1)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+      else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+      endif()
+    else()
+      set(CMAKE_CXX_STANDARD 11)
+    endif()
+  endif()
+endif()
 
 # CXX flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Woverloaded-virtual -g")
@@ -40,10 +56,9 @@ if (WSREP_LIB_MAINTAINER_MODE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 
-check_include_file("${CMAKE_CURRENT_SOURCE_DIR}/wsrep/wsrep_api.h" HAVE_WSREP_API_HPP)
+# Set up include directories
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep-API/v26")
-link_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep")
 
 if (WSREP_LIB_WITH_UNIT_TESTS)
   find_package(Boost 1.54.0 REQUIRED

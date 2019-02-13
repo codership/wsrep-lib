@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2019 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -22,10 +22,10 @@
 
 #include "mutex.hpp"
 #include "lock.hpp"
+#include "atomic.hpp"
 
 #include <iosfwd>
 #include <sstream>
-#include <atomic>
 
 #define WSREP_LOG_DEBUG(debug_level_fn, debug_level, msg)               \
     do {                                                                \

@@ -1178,13 +1178,15 @@ int wsrep::transaction::certify_fragment(
     lock.unlock();
 
     wsrep::mutable_buffer data;
-    if (client_service_.prepare_fragment_for_replication(data))
+    size_t log_position(0);
+    if (client_service_.prepare_fragment_for_replication(data, log_position))
     {
         lock.lock();
         state(lock, s_must_abort);
         client_state_.override_error(wsrep::e_error_during_commit);
         return 1;
     }
+    streaming_context_.set_log_position(log_position);
 
     if (data.size() == 0)
     {

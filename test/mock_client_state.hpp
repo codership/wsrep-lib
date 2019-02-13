@@ -146,7 +146,7 @@ namespace wsrep
 
         bool statement_allowed_for_streaming() const WSREP_OVERRIDE
         { return true; }
-        int prepare_fragment_for_replication(wsrep::mutable_buffer& buffer)
+        int prepare_fragment_for_replication(wsrep::mutable_buffer& buffer, size_t& position)
             WSREP_OVERRIDE
         {
             if (error_during_prepare_data_)
@@ -156,6 +156,7 @@ namespace wsrep
             static const char buf[1] = { 1 };
             buffer.push_back(&buf[0], &buf[1]);
             wsrep::const_buffer data(buffer.data(), buffer.size());
+            position = buffer.size();
             return client_state_.append_data(data);
         }
 

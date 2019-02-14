@@ -89,13 +89,27 @@ namespace wsrep
         bool ordered() const
         { return (ws_meta_.seqno().is_undefined() == false); }
 
-        /*!
+        /**
          * Return true if any fragments have been succesfully certified
          * for the transaction.
          */
         bool is_streaming() const
         {
             return (streaming_context_.fragments_certified() > 0);
+        }
+
+        /**
+         * Return number of fragments certified for current statement.
+         *
+         * This counts fragments which have been succesfully certified
+         * since the construction of object or last after_statement()
+         * call.
+         *
+         * @return Number of fragments certified for current statement.
+         */
+        size_t fragments_certified_for_statement() const
+        {
+            return fragments_certified_for_statement_;
         }
 
         /**
@@ -210,6 +224,7 @@ namespace wsrep
         bool pa_unsafe_;
         bool implicit_deps_;
         bool certified_;
+        size_t fragments_certified_for_statement_;
         wsrep::streaming_context streaming_context_;
         wsrep::sr_key_set sr_keys_;
     };

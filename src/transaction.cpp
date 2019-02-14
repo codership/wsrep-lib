@@ -104,6 +104,7 @@ wsrep::transaction::transaction(
     , pa_unsafe_(false)
     , implicit_deps_(false)
     , certified_(false)
+    , fragments_certified_for_statement_()
     , streaming_context_()
     , sr_keys_()
 { }
@@ -760,7 +761,7 @@ int wsrep::transaction::after_statement()
     {
         cleanup();
     }
-
+    fragments_certified_for_statement_ = 0;
     debug_log_state("after_statement_leave");
     assert(ret == 0 || state() == s_aborted);
     return ret;
@@ -1143,6 +1144,7 @@ int wsrep::transaction::certify_fragment(
             switch (cert_ret)
             {
             case wsrep::provider::success:
+                ++fragments_certified_for_statement_;
                 assert(sr_ws_meta.seqno().is_undefined() == false);
                 streaming_context_.certified(data.size());
                 if (storage_service.update_fragment_meta(sr_ws_meta))
@@ -1329,6 +1331,7 @@ int wsrep::transaction::certify_commit(
     case wsrep::provider::success:
         assert(ordered());
         certified_ = true;
+        ++fragments_certified_for_statement_;
         switch (state())
         {
         case s_certifying:

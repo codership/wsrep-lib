@@ -100,12 +100,17 @@ namespace wsrep
 
         /**
          * Prepare a buffer containing data for the next fragment to replicate.
+         * The caller may set log_position to record the database specific
+         * position corresponding to changes contained in the buffer.
+         * When the call returns, the log_position will be available to read
+         * from streaming_context::log_position().
          *
          * @return Zero in case of success, non-zero on failure.
          *         If there is no data to replicate, the method shall return
          *         zero and leave the buffer empty.
          */
-        virtual int prepare_fragment_for_replication(wsrep::mutable_buffer&, size_t&) = 0;
+        virtual int prepare_fragment_for_replication(wsrep::mutable_buffer& buffer,
+                                                     size_t& log_position) = 0;
 
         /**
          * Remove fragments from the storage within current transaction.

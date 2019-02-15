@@ -65,6 +65,7 @@ namespace wsrep
               // , fail_next_applying_()
               // , fail_next_toi_()
             , bf_abort_during_wait_()
+            , bf_abort_during_fragment_removal_()
             , error_during_prepare_data_()
             , killed_before_certify_()
             , sync_point_enabled_()
@@ -83,7 +84,19 @@ namespace wsrep
 
         void emergency_shutdown() WSREP_OVERRIDE { ++aborts_; }
 
-        int remove_fragments() WSREP_OVERRIDE { return 0; }
+        int remove_fragments() WSREP_OVERRIDE
+        {
+            if (bf_abort_during_fragment_removal_)
+            {
+                client_state_.before_rollback();
+                client_state_.after_rollback();
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
         void will_replay() WSREP_OVERRIDE { }
 
         enum wsrep::provider::status
@@ -165,6 +178,7 @@ namespace wsrep
         // bool fail_next_applying_;
         // bool fail_next_toi_;
         bool bf_abort_during_wait_;
+        bool bf_abort_during_fragment_removal_;
         bool error_during_prepare_data_;
         bool killed_before_certify_;
         std::string sync_point_enabled_;

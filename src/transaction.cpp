@@ -321,7 +321,8 @@ int wsrep::transaction::before_prepare(
     assert(state() == s_preparing ||
            (ret && (state() == s_must_abort ||
                     state() == s_must_replay ||
-                    state() == s_cert_failed)));
+                    state() == s_cert_failed ||
+                    state() == s_aborted)));
     debug_log_state("before_prepare_leave");
     return ret;
 }

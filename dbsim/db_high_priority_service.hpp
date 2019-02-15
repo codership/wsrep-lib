@@ -30,11 +30,7 @@ namespace db
     {
     public:
         high_priority_service(db::server& server, db::client& client);
-        int start_transaction(const wsrep::ws_handle&,
-                              const wsrep::ws_meta&) override;
-        int next_fragment(const wsrep::ws_meta&) override;
-        const wsrep::transaction& transaction() const override;
-        void adopt_transaction(const wsrep::transaction&) override;
+        wsrep::client_state& client_state() override;
         int apply_write_set(const wsrep::ws_meta&,
                             const wsrep::const_buffer&) override;
         int append_fragment_and_commit(

@@ -45,27 +45,12 @@ namespace wsrep
         {
             return server_state_.on_apply(*this, ws_handle, ws_meta, data);
         }
-        /**
-         * Start a new transaction
-         */
-        virtual int start_transaction(const wsrep::ws_handle&,
-                                      const wsrep::ws_meta&) = 0;
 
         /**
-         * Start the next fragment of current transaction
+         * Inner client state. Avoids the need for having simple "pass through"
+         * methods in the interface.
          */
-        virtual int next_fragment(const wsrep::ws_meta&) = 0;
-
-        /**
-         * Return transaction object associated to high priority
-         * service state.
-         */
-        virtual const wsrep::transaction& transaction() const = 0;
-
-        /**
-         * Adopt a transaction.
-         */
-        virtual void adopt_transaction(const wsrep::transaction&) = 0;
+        virtual wsrep::client_state& client_state() = 0;
 
         /**
          * Apply a write set.

@@ -191,7 +191,7 @@ namespace wsrep
             wsrep::mock_high_priority_service& high_priority_service(
                 *static_cast<wsrep::mock_high_priority_service*>(hps));
             wsrep::mock_client_state& cc(
-                *high_priority_service.client_state());
+                *high_priority_service.mock_client_state());
             wsrep::high_priority_context high_priority_context(cc);
             const wsrep::transaction& tc(cc.transaction());
             wsrep::ws_meta ws_meta;

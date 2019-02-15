@@ -85,7 +85,7 @@ static int commit_fragment(wsrep::server_state& server_state,
     {
         wsrep::high_priority_switch sw(
             high_priority_service, *streaming_applier);
-        const wsrep::transaction& trx(streaming_applier->transaction());
+        const wsrep::transaction& trx(streaming_applier->client_state().transaction());
 
         ret = streaming_applier->apply_write_set(ws_meta, data);
 
@@ -127,8 +127,8 @@ static int rollback_fragment(wsrep::server_state& server_state,
     int ret= 0;
     // Adopts transaction state and starts a transaction for
     // high priority service
-    high_priority_service.adopt_transaction(
-        streaming_applier->transaction());
+    high_priority_service.client_state().adopt_transaction(
+        streaming_applier->client_state().transaction());
     {
         wsrep::high_priority_switch ws(
             high_priority_service, *streaming_applier);
@@ -201,7 +201,7 @@ static int apply_write_set(wsrep::server_state& server_state,
     else if (wsrep::starts_transaction(ws_meta.flags()) &&
              wsrep::commits_transaction(ws_meta.flags()))
     {
-        ret = high_priority_service.start_transaction(ws_handle, ws_meta) ||
+        ret = high_priority_service.client_state().start_transaction(ws_handle, ws_meta) ||
             high_priority_service.apply_write_set(ws_meta, data) ||
             high_priority_service.commit(ws_handle, ws_meta);
         if (ret)
@@ -219,7 +219,7 @@ static int apply_write_set(wsrep::server_state& server_state,
                 high_priority_service));
         server_state.start_streaming_applier(
             ws_meta.server_id(), ws_meta.transaction_id(), sa);
-        sa->start_transaction(ws_handle, ws_meta);
+        sa->client_state().start_transaction(ws_handle, ws_meta);
         ret = apply_fragment(high_priority_service,
                              *sa,
                              ws_handle,
@@ -246,7 +246,7 @@ static int apply_write_set(wsrep::server_state& server_state,
         }
         else
         {
-            sa->next_fragment(ws_meta);
+            sa->client_state().next_fragment(ws_meta);
             ret = apply_fragment(high_priority_service,
                                  *sa,
                                  ws_handle,
@@ -258,7 +258,7 @@ static int apply_write_set(wsrep::server_state& server_state,
     {
         if (high_priority_service.is_replaying())
         {
-            ret = high_priority_service.start_transaction(
+            ret = high_priority_service.client_state().start_transaction(
                 ws_handle, ws_meta) ||
                 high_priority_service.apply_write_set(ws_meta, data) ||
                 high_priority_service.commit(ws_handle, ws_meta);
@@ -285,7 +285,7 @@ static int apply_write_set(wsrep::server_state& server_state,
             else
             {
                 // Commit fragment consumes sa
-                sa->next_fragment(ws_meta);
+                sa->client_state().next_fragment(ws_meta);
                 ret = commit_fragment(server_state,
                                       high_priority_service,
                                       sa,
@@ -1026,7 +1026,7 @@ void wsrep::server_state::convert_streaming_client_to_applier(
         wsrep::high_priority_service* streaming_applier(
             server_service_.streaming_applier_service(
                 client_state->client_service()));
-        streaming_applier->adopt_transaction(client_state->transaction());
+        streaming_applier->client_state().adopt_transaction(client_state->transaction());
         if (streaming_appliers_.insert(
                 std::make_pair(
                     std::make_pair(client_state->transaction().server_id(),
@@ -1287,8 +1287,8 @@ void wsrep::server_state::close_orphaned_sr_transactions(
             wsrep::id server_id(i->first.first);
             wsrep::transaction_id transaction_id(i->first.second);
             wsrep::high_priority_service* streaming_applier(i->second);
-            high_priority_service.adopt_transaction(
-                streaming_applier->transaction());
+            high_priority_service.client_state().adopt_transaction(
+                streaming_applier->client_state().transaction());
             {
                 wsrep::high_priority_switch sw(high_priority_service,
                                                *streaming_applier);

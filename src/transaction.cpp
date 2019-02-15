@@ -1020,7 +1020,7 @@ inline wsrep::provider& wsrep::transaction::provider()
 }
 
 void wsrep::transaction::state(
-    wsrep::unique_lock<wsrep::mutex>& lock __attribute__((unused)),
+    wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
     enum wsrep::transaction::state next_state)
 {
     WSREP_LOG_DEBUG(client_state_.debug_log_level(),

@@ -40,14 +40,7 @@ namespace wsrep
             , replaying_(replaying)
         { }
 
-        int start_transaction(const wsrep::ws_handle&, const wsrep::ws_meta&)
-            WSREP_OVERRIDE;
-
-        int next_fragment(const wsrep::ws_meta&) WSREP_OVERRIDE;
-
-        const wsrep::transaction& transaction() const WSREP_OVERRIDE
-        { return client_state_->transaction(); }
-        void adopt_transaction(const wsrep::transaction&) WSREP_OVERRIDE;
+        wsrep::client_state& client_state() WSREP_OVERRIDE;
         int apply_write_set(const wsrep::ws_meta&,
                             const wsrep::const_buffer&) WSREP_OVERRIDE;
         int append_fragment_and_commit(
@@ -73,7 +66,7 @@ namespace wsrep
         bool is_replaying() const WSREP_OVERRIDE { return replaying_; }
         void debug_crash(const char*) WSREP_OVERRIDE { /* Not in unit tests*/}
 
-        wsrep::mock_client_state* client_state()
+        wsrep::mock_client_state* mock_client_state()
         {
             return client_state_;
         }

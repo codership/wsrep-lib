@@ -37,6 +37,8 @@ namespace db
         std::string wsrep_provider_options;
         int debug_log_level;
         int fast_exit;
+        int thread_instrumentation;
+        bool cond_checks;
         params()
             : n_servers(0)
             , n_clients(0)
@@ -48,6 +50,8 @@ namespace db
             , wsrep_provider_options()
             , debug_log_level(0)
             , fast_exit(0)
+            , thread_instrumentation()
+            , cond_checks()
         { }
     };
 

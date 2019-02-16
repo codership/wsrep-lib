@@ -19,11 +19,14 @@
 
 #include "db_simulator.hpp"
 #include "db_client.hpp"
+#include "db_threads.hpp"
 
 #include "wsrep/logger.hpp"
 
 #include <boost/filesystem.hpp>
 #include <sstream>
+
+static db::ti thread_instrumentation;
 
 void db::simulator::run()
 {
@@ -32,6 +35,7 @@ void db::simulator::run()
     std::flush(std::cerr);
     std::cout << "Results:\n";
     std::cout << stats() << std::endl;
+    std::cout << db::ti::stats() << std::endl;
 }
 
 void db::simulator::sst(db::server& server,
@@ -108,6 +112,8 @@ std::string db::simulator::stats() const
 
 void db::simulator::start()
 {
+    thread_instrumentation.level(params_.thread_instrumentation);
+    thread_instrumentation.cond_checks(params_.cond_checks);
     wsrep::log_info() << "Provider: " << params_.wsrep_provider;
 
     std::string cluster_address(build_cluster_address());
@@ -139,13 +145,17 @@ void db::simulator::start()
         server.server_state().debug_log_level(params_.debug_log_level);
         std::string server_options(params_.wsrep_provider_options);
 
-        if (server.server_state().load_provider(
-                params_.wsrep_provider, server_options))
+        wsrep::provider::services services;
+        services.thread_service = params_.thread_instrumentation
+                                      ? &thread_instrumentation
+                                      : nullptr;
+        if (server.server_state().load_provider(params_.wsrep_provider,
+                                                server_options, services))
         {
             throw wsrep::runtime_error("Failed to load provider");
         }
         if (server.server_state().connect("sim_cluster", cluster_address, "",
-                                            i == 0))
+                                          i == 0))
         {
             throw wsrep::runtime_error("Failed to connect");
         }
@@ -185,6 +195,7 @@ void db::simulator::stop()
     clients_stop_ = std::chrono::steady_clock::now();
     wsrep::log_info() << "######## Stats ############";
     wsrep::log_info()  << stats();
+    std::cout << db::ti::stats() << std::endl;
     wsrep::log_info() << "######## Stats ############";
     if (params_.fast_exit)
     {

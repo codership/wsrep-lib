@@ -82,7 +82,7 @@ endif()
 
 # Set up include directories
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep-API/v26")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep-API")
 
 if (WSREP_LIB_WITH_UNIT_TESTS)
   find_package(Boost 1.54.0 REQUIRED

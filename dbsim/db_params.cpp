@@ -72,7 +72,16 @@ db::params db::parse_args(int argc, char** argv)
         ("debug-log-level", po::value<int>(&params.debug_log_level),
          "debug logging level: 0 - none, 1 - verbose")
         ("fast-exit", po::value<int>(&params.fast_exit),
-         "exit from simulation without graceful shutdown");
+         "exit from simulation without graceful shutdown")
+        ("ti",
+         po::value<int>(&params.thread_instrumentation),
+         "use instrumentation for threads/mutexes/condition variables"
+         "(0 default disabled, 1 total counts, 2 per object)")
+        ("ti-cond-checks",
+         po::value<bool>(&params.cond_checks),
+         "Enable checks for correct condition variable use. "
+         " Effective only if thread-instrumentation is enabled")
+        ;
     try
     {
         po::variables_map vm;
@@ -86,8 +95,14 @@ db::params db::parse_args(int argc, char** argv)
 
         validate_params(params);
     }
+    catch (const po::error& e)
+    {
+        std::cerr << "Error parsing arguments: " << e.what() << "\n";
+        exit(1);
+    }
     catch (...)
     {
+        std::cerr << "Error parsing arguments\n";
         std::cerr << desc << "\n";
         exit(1);
     }

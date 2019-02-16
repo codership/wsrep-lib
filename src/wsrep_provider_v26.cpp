@@ -25,9 +25,13 @@
 #include "wsrep/view.hpp"
 #include "wsrep/exception.hpp"
 #include "wsrep/logger.hpp"
+#include "wsrep/thread_service.hpp"
 
-#include <wsrep_api.h>
+#include "thread_service_v1.hpp"
+#include "v26/wsrep_api.h"
 
+
+#include <dlfcn.h>
 #include <cassert>
 #include <climits>
 
@@ -562,12 +566,39 @@ namespace
             break;
         }
     }
+
+    static int init_thread_service(void* dlh,
+                                   wsrep::thread_service* thread_service)
+    {
+        assert(thread_service);
+        if (wsrep::thread_service_v1_probe(dlh))
+        {
+            // No support in library.
+            return 0;
+        }
+        else
+        {
+            if (thread_service->before_init())
+            {
+                wsrep::log_error() << "Thread service before init failed";
+                return 1;
+            }
+            wsrep::thread_service_v1_init(dlh, thread_service);
+            if (thread_service->after_init())
+            {
+                wsrep::log_error() << "Thread service after init failed";
+                return 1;
+            }
+        }
+        return 0;
+    }
 }
 
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
     wsrep::server_state& server_state,
     const std::string& provider_options,
-    const std::string& provider_spec)
+    const std::string& provider_spec,
+    const wsrep::provider::services& services)
     : provider(server_state)
     , wsrep_()
 {
@@ -603,6 +634,13 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     {
         throw wsrep::runtime_error("Failed to load wsrep library");
     }
+
+    if (services.thread_service &&
+        init_thread_service(wsrep_->dlh, services.thread_service))
+    {
+        throw wsrep::runtime_error("Failed to initialize thread service");
+    }
+
     if (wsrep_->init(wsrep_, &init_args) != WSREP_OK)
     {
         throw wsrep::runtime_error("Failed to initialize wsrep provider");

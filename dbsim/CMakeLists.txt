@@ -12,6 +12,7 @@ add_executable(dbsim
   db_server_state.cpp
   db_simulator.cpp
   db_storage_engine.cpp
+  db_threads.cpp
   dbsim.cpp
 )
 

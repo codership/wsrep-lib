@@ -25,6 +25,7 @@
 #include "buffer.hpp"
 #include "client_id.hpp"
 #include "transaction_id.hpp"
+#include "compiler.hpp"
 
 #include <cassert>
 #include <cstring>
@@ -33,10 +34,17 @@
 #include <vector>
 #include <ostream>
 
+/**
+ * Empty provider magic. If none provider is passed to make_provider(),
+ * a dummy provider is loaded.
+ */
+#define WSREP_LIB_PROVIDER_NONE "none"
+
 namespace wsrep
 {
     class server_state;
     class high_priority_service;
+    class thread_service;
     class stid
     {
     public:
@@ -186,7 +194,6 @@ namespace wsrep
     class provider
     {
     public:
-
         class status_variable
         {
         public:
@@ -405,15 +412,30 @@ namespace wsrep
         virtual void* native() const = 0;
 
         /**
+         * Services argument passed to make_provider. This struct contains
+         * optional services which are passed to the provider.
+         */
+        struct services
+        {
+            wsrep::thread_service* thread_service;
+            services()
+                : thread_service()
+            {
+            }
+        };
+        /**
          * Create a new provider.
          *
          * @param provider_spec Provider specification
          * @param provider_options Initial options to provider
+         * @param thread_service Optional thread service implementation.
          */
-        static provider* make_provider(
-            wsrep::server_state&,
-            const std::string& provider_spec,
-            const std::string& provider_options);
+        static provider* make_provider(wsrep::server_state&,
+                                       const std::string& provider_spec,
+                                       const std::string& provider_options,
+                                       const wsrep::provider::services& services
+                                       = wsrep::provider::services());
+
     protected:
         wsrep::server_state& server_state_;
     };

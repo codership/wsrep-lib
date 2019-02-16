@@ -20,12 +20,30 @@
 
 /** @file compiler.hpp
  *
- * Compiler specific options.
+ * Compiler specific macro definitions.
+ *
+ * WSREP_NOEXCEPT - Specifies that the method/function does not throw. If
+ *                  and exception is thrown inside, std::terminate is called
+ *                  without propagating the exception.
+ *                  Set to "noexcept" if the compiler supports it, otherwise
+ *                  left empty.
+ * WSREP_NORETURN - Indicates that the method/function does not return.
+ *                  Set to attribute "[[noreturn]]" if the compiler supports,
+ *                  it, otherwise "__attribute__((noreturn))".
+ * WSREP_OVERRIDE - Set to "override" if the compiler supports it, otherwise
+ *                  left empty.
+ * WSREP_UNUSED - Can be used to mark variables which may be present in
+ *                debug builds but not in release builds.
  */
 
-#define WSREP_UNUSED __attribute__((unused))
+
 #if __cplusplus >= 201103L
+#define WSREP_NOEXCEPT noexcept
+#define WSREP_NORETURN [[noreturn]]
 #define WSREP_OVERRIDE override
 #else
+#define WSREP_NOEXCEPT
+#define WSREP_NORETURN __attribute__((noreturn))
 #define WSREP_OVERRIDE
 #endif // __cplusplus >= 201103L
+#define WSREP_UNUSED __attribute__((unused))

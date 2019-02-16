@@ -95,6 +95,13 @@
 #include <string>
 #include <map>
 
+/**
+ * Magic string to tell provider to engage into trivial (empty)
+ * state transfer. No data will be passed, but the node shall be
+ * considered joined.
+ */
+#define WSREP_LIB_SST_TRIVIAL "trivial"
+
 namespace wsrep
 {
     // Forward declarations
@@ -179,7 +186,6 @@ namespace wsrep
             rm_sync
         };
 
-
         virtual ~server_state();
 
         wsrep::encryption_service* encryption_service()
@@ -262,11 +268,15 @@ namespace wsrep
          * @param provider WSRep provider library to be loaded.
          * @param provider_options Provider specific options string
          *        to be passed for provider during initialization.
+         * @param services Application defined services passed to
+         *                 the provider.
          *
          * @return Zero on success, non-zero on error.
          */
         int load_provider(const std::string& provider,
-                          const std::string& provider_options);
+                          const std::string& provider_options,
+                          const wsrep::provider::services& services
+                          = wsrep::provider::services());
 
         void unload_provider();
 

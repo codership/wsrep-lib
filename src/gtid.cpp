@@ -36,11 +36,47 @@ std::istream& wsrep::operator>>(std::istream& is, wsrep::gtid& gtid)
     std::getline(is, id_str, ':');
     long long seq;
     is >> seq;
-    gtid = wsrep::gtid(wsrep::id(id_str), wsrep::seqno(seq));
+    if (!is)
+    {
+        is.clear(std::ios_base::failbit);
+        return is;
+    }
+    try
+    {
+        // wsrep::id constructor will throw if it cannot parse the
+        // id_str.
+        gtid = wsrep::gtid(wsrep::id(id_str), wsrep::seqno(seq));
+    }
+    catch (const wsrep::runtime_error& e)
+    {
+        // Formatting or extraction error. Clear the istream state and
+        // set failibit.
+        is.clear(std::ios_base::failbit);
+    }
     return is;
 }
 
-ssize_t wsrep::gtid_print_to_c_str(
+ssize_t wsrep::scan_from_c_str(
+    const char* buf, size_t buf_len, wsrep::gtid& gtid)
+{
+    std::istringstream is(std::string(buf, buf_len));
+    is >> gtid;
+    // Whole string was consumed without failures
+    if (is && is.eof())
+    {
+        return static_cast<ssize_t>(buf_len);
+    }
+    // Some failure occurred
+    if (!is)
+    {
+        return -EINVAL;
+    }
+    // The string was not consumed completely, return current position
+    // of the istream.
+    return is.tellg();
+}
+
+ssize_t wsrep::print_to_c_str(
     const wsrep::gtid& gtid, char* buf, size_t buf_len)
 {
     std::ostringstream os;

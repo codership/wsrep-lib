@@ -102,7 +102,6 @@ void db::server::stop_clients()
 
 void db::server::client_thread(const std::shared_ptr<db::client>& client)
 {
-    client->store_globals();
     client->start();
 }
 

@@ -20,12 +20,19 @@
 
 /** @file compiler.hpp
  *
- * Compiler specific options.
+ * Compiler specific macro definitions.
+ *
+ * WSREP_OVERRIDE - Set to "override" if the compiler supports it, otherwise
+ *                  left empty.
+ * WSREP_CONSTEXPR_OR_INLINE - Set to "constexpr" if the compiler supports it,
+ *                             otherwise "inline".
  */
 
 #define WSREP_UNUSED __attribute__((unused))
 #if __cplusplus >= 201103L
 #define WSREP_OVERRIDE override
+#define WSREP_CONSTEXPR_OR_INLINE constexpr
 #else
 #define WSREP_OVERRIDE
+#define WSREP_CONSTEXPR_OR_INLINE inline
 #endif // __cplusplus >= 201103L

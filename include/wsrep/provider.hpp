@@ -25,6 +25,7 @@
 #include "buffer.hpp"
 #include "client_id.hpp"
 #include "transaction_id.hpp"
+#include "compiler.hpp"
 
 #include <cassert>
 #include <cstring>
@@ -403,6 +404,14 @@ namespace wsrep
          * Return pointer to native provider handle.
          */
         virtual void* native() const = 0;
+
+
+        /**
+         * Empty provider magic. If none provider is passed to make_provider(),
+         * a dummy provider is loaded.
+         */
+        static WSREP_CONSTEXPR_OR_INLINE
+        const char* none() { return "none"; }
 
         /**
          * Create a new provider.

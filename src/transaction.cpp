@@ -431,7 +431,9 @@ int wsrep::transaction::before_commit()
         {
             ret = 0;
         }
+        lock.unlock();
         ret = ret || provider().commit_order_enter(ws_handle_, ws_meta_);
+        lock.lock();
         if (ret)
         {
             state(lock, s_must_abort);
@@ -749,7 +751,9 @@ int wsrep::transaction::after_statement()
     {
         if (ordered())
         {
+            lock.unlock();
             ret = provider().commit_order_enter(ws_handle_, ws_meta_);
+            lock.lock();
             if (ret == 0)
             {
                 provider().commit_order_leave(ws_handle_, ws_meta_);
@@ -785,7 +789,9 @@ void wsrep::transaction::after_applying()
     // been done.
     if (state_ == s_aborted && ordered())
     {
+        lock.unlock();
         int ret(provider().commit_order_enter(ws_handle_, ws_meta_));
+        lock.lock();
         if (ret == 0)
         {
             provider().commit_order_leave(ws_handle_, ws_meta_);

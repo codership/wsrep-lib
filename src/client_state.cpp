@@ -38,6 +38,8 @@ void wsrep::client_state::open(wsrep::client_id id)
     owning_thread_id_ = wsrep::this_thread::get_id();
     current_thread_id_ = owning_thread_id_;
     has_rollbacker_ = false;
+    sync_wait_gtid_ = wsrep::gtid::undefined();
+    last_written_gtid_ = wsrep::gtid::undefined();
     state(lock, s_idle);
     id_ = id;
     debug_log_state("open: leave");

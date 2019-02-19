@@ -820,7 +820,7 @@ bool wsrep::transaction::bf_abort(
     wsrep::seqno bf_seqno)
 {
     bool ret(false);
-    enum wsrep::transaction::state prev_state(state());
+    const enum wsrep::transaction::state state_at_enter(state());
     assert(lock.owns_lock());
 
     if (active() == false)
@@ -831,7 +831,7 @@ bool wsrep::transaction::bf_abort(
     }
     else
     {
-        switch (state())
+        switch (state_at_enter)
         {
         case s_executing:
         case s_preparing:
@@ -850,7 +850,7 @@ bool wsrep::transaction::bf_abort(
                                 "Seqno " << bf_seqno
                                 << " succesfully BF aborted " << id_
                                 << " victim_seqno " << victim_seqno);
-                bf_abort_state_ = state();
+                bf_abort_state_ = state_at_enter;
                 state(lock, s_must_abort);
                 ret = true;
                 break;
@@ -869,7 +869,7 @@ bool wsrep::transaction::bf_abort(
                 WSREP_LOG_DEBUG(client_state_.debug_log_level(),
                                 wsrep::log::debug_level_transaction,
                                 "BF abort not allowed in state "
-                                << wsrep::to_string(state()));
+                                << wsrep::to_string(state_at_enter));
             break;
         }
     }
@@ -884,7 +884,7 @@ bool wsrep::transaction::bf_abort(
         // storage engine operations and streaming rollback will be
         // handled from before_rollback() call.
         if (client_state_.mode() == wsrep::client_state::m_local &&
-            is_streaming() && prev_state == s_executing)
+            is_streaming() && state_at_enter == s_executing)
         {
             streaming_rollback(lock);
         }

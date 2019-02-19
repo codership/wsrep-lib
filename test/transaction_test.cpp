@@ -1083,6 +1083,21 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_rollback,
 }
 
 //
+// Test streaming BF abort in executing state.
+//
+BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_bf_abort_executing,
+                        streaming_client_fixture_row)
+{
+    BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
+    wsrep_test::bf_abort_unordered(cc);
+    BOOST_REQUIRE(tc.streaming_context().rolled_back());
+    BOOST_REQUIRE(cc.before_rollback() == 0);
+    BOOST_REQUIRE(cc.after_rollback() == 0);
+    BOOST_REQUIRE(cc.after_statement());
+}
+//
 // Test streaming certification failure during fragment replication
 //
 BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_cert_fail_non_commit,

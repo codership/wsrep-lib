@@ -816,10 +816,11 @@ void wsrep::transaction::after_applying()
 }
 
 bool wsrep::transaction::bf_abort(
-    wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
+    wsrep::unique_lock<wsrep::mutex>& lock,
     wsrep::seqno bf_seqno)
 {
     bool ret(false);
+    enum wsrep::transaction::state prev_state(state());
     assert(lock.owns_lock());
 
     if (active() == false)
@@ -883,7 +884,7 @@ bool wsrep::transaction::bf_abort(
         // storage engine operations and streaming rollback will be
         // handled from before_rollback() call.
         if (client_state_.mode() == wsrep::client_state::m_local &&
-            is_streaming() && state() == s_executing)
+            is_streaming() && prev_state == s_executing)
         {
             streaming_rollback(lock);
         }
@@ -1461,15 +1462,19 @@ void wsrep::transaction::streaming_rollback(wsrep::unique_lock<wsrep::mutex>& lo
     debug_log_state("streaming_rollback enter");
     assert(state_ != s_must_replay);
     assert(is_streaming());
-
     if (streaming_context_.rolled_back() == false)
     {
+        // We must set rolled_back id before stopping streaming client
+        // or converting to applier. Accessing server_state requires
+        // releasing the client_state lock in order to avoid violating
+        // locking order, and this will open up a possibility for two
+        // threads accessing this block simultaneously.
+        streaming_context_.rolled_back(id_);
         if (bf_aborted_in_total_order_)
         {
             lock.unlock();
             client_state_.server_state_.stop_streaming_client(&client_state_);
             lock.lock();
-            streaming_context_.rolled_back(id_);
         }
         else
         {
@@ -1483,11 +1488,14 @@ void wsrep::transaction::streaming_rollback(wsrep::unique_lock<wsrep::mutex>& lo
                 &client_state_);
             lock.lock();
             streaming_context_.cleanup();
+            // Cleanup cleans rolled_back_for from streaming context, but
+            // we want to preserve it to avoid executing this block
+            // more than once.
             streaming_context_.rolled_back(id_);
             enum wsrep::provider::status ret;
             if ((ret = provider().rollback(id_)))
             {
-                wsrep::log_warning()
+                wsrep::log_debug()
                     << "Failed to replicate rollback fragment for "
                     << id_ << ": " << ret;
             }

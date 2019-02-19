@@ -78,7 +78,8 @@ namespace wsrep
 
         int bf_rollback() WSREP_OVERRIDE;
 
-        bool interrupted() const WSREP_OVERRIDE
+        bool interrupted(wsrep::unique_lock<wsrep::mutex>&)
+            const WSREP_OVERRIDE
         { return killed_before_certify_; }
 
 

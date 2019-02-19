@@ -43,9 +43,12 @@ namespace wsrep
 
         /**
          * Return true if the current transaction has been interrupted
-         * by the DBMS.
+         * by the DBMS. The lock which is passed to interrupted call
+         * will always have underlying mutex locked.
+         *
+         * @param lock Lock object grabbed by the client_state
          */
-        virtual bool interrupted() const = 0;
+        virtual bool interrupted(wsrep::unique_lock<wsrep::mutex>& lock) const = 0;
 
         /**
          * Reset possible global or thread local parameters associated

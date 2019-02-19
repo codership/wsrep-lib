@@ -197,6 +197,12 @@ namespace wsrep
 
         wsrep::provider& provider();
         void flags(int flags) { flags_ = flags; }
+        // Return true if the transaction must abort, is aborting,
+        // or has been aborted, or has been interrupted by DBMS
+        // as indicated by client_service::interrupted() call.
+        // The call will adjust transaction state and set client_state
+        // error status accordingly.
+        bool abort_or_interrupt(wsrep::unique_lock<wsrep::mutex>&);
         int streaming_step(wsrep::unique_lock<wsrep::mutex>&);
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);

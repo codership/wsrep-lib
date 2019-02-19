@@ -983,24 +983,49 @@ void wsrep::transaction::state(
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, /* mr */
             { 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0}  /* re */
         };
-    if (allowed[state_][next_state])
-    {
-        state_hist_.push_back(state_);
-        if (state_hist_.size() == 12)
-        {
-            state_hist_.erase(state_hist_.begin());
-        }
-        state_ = next_state;
-    }
-    else
+
+    if (!allowed[state_][next_state])
     {
         std::ostringstream os;
         os << "unallowed state transition for transaction "
            << id_ << ": " << wsrep::to_string(state_)
            << " -> " << wsrep::to_string(next_state);
-        wsrep::log_error() << os.str();
-        throw wsrep::runtime_error(os.str());
+        wsrep::log_warning() << os.str();
+        assert(0);
     }
+
+    state_hist_.push_back(state_);
+    if (state_hist_.size() == 12)
+    {
+        state_hist_.erase(state_hist_.begin());
+    }
+    state_ = next_state;
+}
+
+bool wsrep::transaction::abort_or_interrupt(
+    wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    assert(lock.owns_lock());
+    if (state() == s_must_abort)
+    {
+        client_state_.override_error(wsrep::e_deadlock_error);
+        return true;
+    }
+    else if (state() == s_aborting || state() == s_aborted)
+    {
+        assert(client_state_.current_error());
+        return true;
+    }
+    else if (client_service_.interrupted(lock))
+    {
+        client_state_.override_error(wsrep::e_interrupted_error);
+        if (state() != s_must_abort)
+        {
+            state(lock, s_must_abort);
+        }
+        return true;
+    }
+    return false;
 }
 
 int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock)
@@ -1052,23 +1077,13 @@ int wsrep::transaction::certify_fragment(
            state() == s_must_abort);
 
     client_service_.wait_for_replayers(lock);
-    if (state() == s_must_abort)
+    if (abort_or_interrupt(lock))
     {
-        client_state_.override_error(wsrep::e_deadlock_error);
         return 1;
     }
 
     state(lock, s_certifying);
-
     lock.unlock();
-
-    if (client_service_.interrupted())
-    {
-        lock.lock();
-        state(lock, s_must_abort);
-        client_state_.override_error(wsrep::e_interrupted_error);
-        return 1;
-    }
 
     wsrep::mutable_buffer data;
     if (client_service_.prepare_fragment_for_replication(data))
@@ -1272,9 +1287,8 @@ int wsrep::transaction::certify_commit(
 
     assert(lock.owns_lock());
 
-    if (state() == s_must_abort)
+    if (abort_or_interrupt(lock))
     {
-        client_state_.override_error(wsrep::e_deadlock_error);
         return 1;
     }
 
@@ -1303,17 +1317,6 @@ int wsrep::transaction::certify_commit(
         // the client service.
         client_state_.override_error(wsrep::e_size_exceeded_error,
                                      wsrep::provider::error_size_exceeded);
-        if (state_ != s_must_abort)
-        {
-            state(lock, s_must_abort);
-        }
-        return 1;
-    }
-
-    if (client_service_.interrupted())
-    {
-        lock.lock();
-        client_state_.override_error(wsrep::e_interrupted_error);
         if (state_ != s_must_abort)
         {
             state(lock, s_must_abort);

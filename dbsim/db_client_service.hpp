@@ -33,7 +33,9 @@ namespace db
     public:
         client_service(db::client& client);
 
-        bool interrupted() const override { return false; }
+        bool interrupted(wsrep::unique_lock<wsrep::mutex>&)
+            const override
+        { return false; }
         void reset_globals() override { }
         void store_globals() override { }
         int prepare_data_for_replication() override

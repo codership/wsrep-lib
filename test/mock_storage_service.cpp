@@ -57,11 +57,27 @@ void wsrep::mock_storage_service::adopt_transaction(
 int wsrep::mock_storage_service::commit(const wsrep::ws_handle& ws_handle,
                                         const wsrep::ws_meta& ws_meta)
 {
-    int ret(client_state_.prepare_for_ordering(
-                ws_handle, ws_meta, true) ||
-            client_state_.before_commit() ||
-            client_state_.ordered_commit() ||
-            client_state_.after_commit());
+    // the logic here matches mariadb's wsrep_storage_service::commit
+    bool ret = 0;
+    const bool is_ordered = !ws_meta.seqno().is_undefined();
+    if (is_ordered)
+    {
+        ret = ret || client_state_.prepare_for_ordering(ws_handle, ws_meta, true);
+        ret = ret || client_state_.before_commit();
+        ret = ret || client_state_.ordered_commit();
+        ret = ret || client_state_.after_commit();
+    }
+
+    if (!is_ordered)
+    {
+        client_state_.before_rollback();
+        client_state_.after_rollback();
+    }
+    else if (ret)
+    {
+        client_state_.prepare_for_ordering(wsrep::ws_handle(), wsrep::ws_meta(), false);
+    }
+
     client_state_.after_applying();
     return ret;
 }

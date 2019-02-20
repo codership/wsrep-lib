@@ -1013,7 +1013,16 @@ bool wsrep::transaction::abort_or_interrupt(
     }
     else if (state() == s_aborting || state() == s_aborted)
     {
-        assert(client_state_.current_error());
+        // Somehow we got there after BF abort without setting error
+        // status. This may happen if the DBMS side aborts the transaction
+        // but still tries to continue processing rows. Raise the error here
+        // and assert so that the error will be caught in debug builds.
+        if (bf_abort_client_state_ &&
+            client_state_.current_error() == wsrep::e_success)
+        {
+            client_state_.override_error(wsrep::e_deadlock_error);
+            assert(0);
+        }
         return true;
     }
     else if (client_service_.interrupted(lock))

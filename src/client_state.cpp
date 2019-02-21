@@ -103,6 +103,7 @@ int wsrep::client_state::before_command()
     state(lock, s_exec);
     assert(transaction_.active() == false ||
            (transaction_.state() == wsrep::transaction::s_executing ||
+            transaction_.state() == wsrep::transaction::s_prepared ||
             transaction_.state() == wsrep::transaction::s_aborted ||
             (transaction_.state() == wsrep::transaction::s_must_abort &&
              server_state_.rollback_mode() == wsrep::server_state::rm_async)));

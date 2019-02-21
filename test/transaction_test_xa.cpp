@@ -17,13 +17,13 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
     cc.is_xa_prepare_ = true;
 
     BOOST_REQUIRE(cc.before_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_preparing);
     BOOST_REQUIRE(tc.ordered() == false);
     // certified() only after the last fragment
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(cc.after_prepare() == 0);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_prepared);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
     // XA START + PREPARE fragment
     BOOST_REQUIRE(sc.provider().start_fragments() == 1);
     BOOST_REQUIRE(sc.provider().fragments() == 1);
@@ -60,12 +60,12 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_applying,
     cc.is_xa_prepare_ = true;
 
     BOOST_REQUIRE(cc.before_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_preparing);
     BOOST_REQUIRE(tc.ordered());
     BOOST_REQUIRE(tc.certified());
     BOOST_REQUIRE(tc.ws_meta().gtid().is_undefined() == false);
     BOOST_REQUIRE(cc.after_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_prepared);
 
     cc.is_xa_prepare_ = false;
 
@@ -106,11 +106,11 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_sr,
     cc.is_xa_prepare_ = true;
 
     BOOST_REQUIRE(cc.before_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_preparing);
     BOOST_REQUIRE(tc.ordered() == false);
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(cc.after_prepare() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_prepared);
     // XA PREPARE fragment
     BOOST_REQUIRE(sc.provider().fragments() == 2);
 

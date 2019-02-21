@@ -109,6 +109,7 @@ int wsrep::client_state::before_command()
     // just before BF abort happened.
     assert(transaction_.active() == false ||
            (transaction_.state() == wsrep::transaction::s_executing ||
+            transaction_.state() == wsrep::transaction::s_prepared ||
             transaction_.state() == wsrep::transaction::s_aborted ||
             transaction_.state() == wsrep::transaction::s_must_abort));
 

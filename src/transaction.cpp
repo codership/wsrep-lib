@@ -326,6 +326,7 @@ int wsrep::transaction::before_prepare(
                 if (ret == 0)
                 {
                     assert(state() == s_executing);
+                    state(lock, s_preparing);
                 }
             }
             else
@@ -353,10 +354,7 @@ int wsrep::transaction::before_prepare(
         {
             assert(state() == s_executing);
         }
-        else
-        {
-            state(lock, s_preparing);
-        }
+        state(lock, s_preparing);
         break;
     default:
         assert(0);
@@ -364,7 +362,6 @@ int wsrep::transaction::before_prepare(
     }
 
     assert(state() == s_preparing ||
-           (state() == s_executing && is_xa()) ||
            (ret && (state() == s_must_abort ||
                     state() == s_must_replay ||
                     state() == s_cert_failed ||
@@ -381,10 +378,10 @@ int wsrep::transaction::after_prepare(
     debug_log_state("after_prepare_enter");
     if (is_xa())
     {
-        // TODO XA consider adding state s_prepared
-        assert(state() == s_executing);
+        assert(state() == s_preparing);
         assert(client_state_.mode() == wsrep::client_state::m_local ||
                (certified() && ordered()));
+        state(lock, s_prepared);
     }
     else
     {
@@ -411,6 +408,7 @@ int wsrep::transaction::before_commit()
     debug_log_state("before_commit_enter");
     assert(client_state_.mode() != wsrep::client_state::m_toi);
     assert(state() == s_executing ||
+           state() == s_prepared ||
            state() == s_committing ||
            state() == s_must_abort ||
            state() == s_replaying);
@@ -420,17 +418,14 @@ int wsrep::transaction::before_commit()
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_local:
-        if (state() == s_executing && is_xa())
+        if (state() == s_prepared)
         {
+            assert(is_xa());
             ret = certify_commit(lock);
-            assert((ret == 0 && state() == s_preparing) ||
+            assert((ret == 0 && state() == s_committing) ||
                    (state() == s_must_abort ||
                     state() == s_must_replay ||
                     state() == s_cert_failed));
-            if (ret == 0)
-            {
-                state(lock, s_committing);
-            }
         }
         else if (state() == s_executing)
         {
@@ -492,9 +487,7 @@ int wsrep::transaction::before_commit()
         assert(ordered());
         if (is_xa())
         {
-            assert(state() == s_executing);
-            // one more reason to add prepared state?
-            state(lock, s_preparing);
+            assert(state() == s_prepared);
             state(lock, s_committing);
         }
 
@@ -626,6 +619,7 @@ int wsrep::transaction::before_rollback()
     debug_log_state("before_rollback_enter");
     assert(state() == s_executing ||
            state() == s_preparing ||
+           state() == s_prepared ||
            state() == s_must_abort ||
            // Background rollbacker or rollback initiated from SE
            state() == s_aborting ||
@@ -644,6 +638,8 @@ int wsrep::transaction::before_rollback()
         case s_preparing:
             // Error detected during prepare phase
             state(lock, s_must_abort);
+            // fall through
+        case s_prepared:
             // fall through
         case s_executing:
             // Voluntary rollback
@@ -689,7 +685,7 @@ int wsrep::transaction::before_rollback()
         break;
     case wsrep::client_state::m_high_priority:
         // Rollback by rollback write set or BF abort
-        assert(state_ == s_executing || state_ == s_aborting);
+        assert(state_ == s_executing || state_ == s_prepared || state_ == s_aborting);
         if (state_ != s_aborting)
         {
             state(lock, s_aborting);
@@ -768,6 +764,7 @@ int wsrep::transaction::after_statement()
     debug_log_state("after_statement_enter");
     assert(client_state_.mode() == wsrep::client_state::m_local);
     assert(state() == s_executing ||
+           state() == s_prepared ||
            state() == s_committed ||
            state() == s_aborted ||
            state() == s_must_abort ||
@@ -785,6 +782,9 @@ int wsrep::transaction::after_statement()
     {
     case s_executing:
         // ?
+        break;
+    case s_prepared:
+        assert(is_xa());
         break;
     case s_committed:
         assert(is_streaming() == false);
@@ -850,6 +850,7 @@ int wsrep::transaction::after_statement()
     }
 
     assert(state() == s_executing ||
+           state() == s_prepared ||
            state() == s_committed ||
            state() == s_aborted   ||
            state() == s_must_replay);
@@ -863,7 +864,7 @@ int wsrep::transaction::after_statement()
         provider().release(ws_handle_);
     }
 
-    if (state() != s_executing)
+    if (state() != s_executing && state() != s_prepared)
     {
         cleanup();
     }
@@ -878,15 +879,17 @@ void wsrep::transaction::after_applying()
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex_);
     debug_log_state("after_applying enter");
     assert(state_ == s_executing ||
+           state_ == s_prepared ||
            state_ == s_committed ||
            state_ == s_aborted);
-    if (state_ != s_executing)
+
+    if (state_ != s_executing && state_ != s_prepared)
     {
         cleanup();
     }
     else
     {
-        // State remains executing, so this is a streaming applier.
+        // State remains executing or prepared, so this is a streaming applier.
         // Reset the meta data to avoid releasing commit order
         // critical section above if the next fragment is rollback
         // fragment. Rollback fragment ordering will be handled by
@@ -1060,19 +1063,20 @@ void wsrep::transaction::state(
            next_state == s_aborting);
 
     static const char allowed[n_states][n_states] =
-        { /*  ex pr ce co oc ct cf ma ab ad mr re */
-            { 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0}, /* ex */
-            { 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0}, /* pr */
-            { 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0}, /* ce */
-            { 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0}, /* co */
-            { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}, /* oc */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ct */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}, /* cf */
-            { 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0}, /* ma */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0}, /* ab */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ad */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, /* mr */
-            { 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0}  /* re */
+        { /*  ex pg pd ce co oc ct cf ma ab ad mr re */
+            { 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0}, /* ex */
+            { 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0}, /* pg */
+            { 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0}, /* pd */
+            { 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0}, /* ce */
+            { 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0}, /* co */
+            { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}, /* oc */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ct */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}, /* cf */
+            { 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0}, /* ma */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0}, /* ab */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ad */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, /* mr */
+            { 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0}  /* re */
         };
 
     if (!allowed[state_][next_state])
@@ -1235,7 +1239,7 @@ int wsrep::transaction::certify_fragment(
         flags(flags() | wsrep::provider::flag::implicit_deps);
     }
 
-    if (is_xa())
+    if (is_xa_prepare())
     {
         flags(flags() | wsrep::provider::flag::prepare);
     }
@@ -1466,7 +1470,14 @@ int wsrep::transaction::certify_commit(
         switch (state())
         {
         case s_certifying:
-            state(lock, s_preparing);
+            if (is_xa())
+            {
+                state(lock, s_committing);
+            }
+            else
+            {
+                state(lock, s_preparing);
+            }
             ret = 0;
             break;
         case s_must_abort:

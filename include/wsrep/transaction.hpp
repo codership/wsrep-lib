@@ -45,6 +45,7 @@ namespace wsrep
         {
             s_executing,
             s_preparing,
+            s_prepared,
             s_certifying,
             s_committing,
             s_ordered_commit,
@@ -252,6 +253,7 @@ namespace wsrep
         {
         case wsrep::transaction::s_executing: return "executing";
         case wsrep::transaction::s_preparing: return "preparing";
+        case wsrep::transaction::s_prepared: return "prepared";
         case wsrep::transaction::s_certifying: return "certifying";
         case wsrep::transaction::s_committing: return "committing";
         case wsrep::transaction::s_ordered_commit: return "ordered_commit";

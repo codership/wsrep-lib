@@ -1057,6 +1057,27 @@ BOOST_FIXTURE_TEST_CASE(
 }
 
 //
+// Fragments are removed in before_prepare in running transaction context.
+// In 1pc the before_prepare() is called from before_commit().
+// However, the BF abort may arrive during this removal and the
+// client_service::remove_fragments() may roll back the transaction
+// internally. This will cause the transaction to leave before_prepare()
+// in aborted state.
+//
+BOOST_FIXTURE_TEST_CASE(transaction_streaming_1pc_bf_abort_during_fragment_removal,
+                        streaming_client_fixture_row)
+{
+    BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
+    cc.bf_abort_during_fragment_removal_ = true;
+    BOOST_REQUIRE(cc.before_commit());
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
+    BOOST_REQUIRE(cc.after_statement());
+    BOOST_REQUIRE(tc.active() == false);
+}
+
+//
 // Test streaming rollback
 //
 BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_rollback,

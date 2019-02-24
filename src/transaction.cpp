@@ -373,7 +373,8 @@ int wsrep::transaction::before_commit()
                    ||
                    (state() == s_must_abort ||
                     state() == s_must_replay ||
-                    state() == s_cert_failed));
+                    state() == s_cert_failed ||
+                    state() == s_aborted));
         }
         else if (state() != s_committing)
         {

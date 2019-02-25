@@ -40,7 +40,7 @@ const wsrep::transaction& db::high_priority_service::transaction() const
     return client_.client_state().transaction();
 }
 
-void db::high_priority_service::adopt_transaction(const wsrep::transaction&)
+int db::high_priority_service::adopt_transaction(const wsrep::transaction&)
 {
     throw wsrep::not_implemented_error();
 }

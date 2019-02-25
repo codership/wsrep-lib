@@ -45,7 +45,7 @@ namespace wsrep
 
         const wsrep::transaction& transaction() const WSREP_OVERRIDE
         { return client_state_->transaction(); }
-        void adopt_transaction(const wsrep::transaction&) WSREP_OVERRIDE;
+        int adopt_transaction(const wsrep::transaction&) WSREP_OVERRIDE;
         int apply_write_set(const wsrep::ws_meta&,
                             const wsrep::const_buffer&) WSREP_OVERRIDE;
         int append_fragment_and_commit(

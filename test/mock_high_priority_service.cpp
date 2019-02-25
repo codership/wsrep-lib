@@ -26,10 +26,11 @@ int wsrep::mock_high_priority_service::start_transaction(
     return client_state_->start_transaction(ws_handle, ws_meta);
 }
 
-void wsrep::mock_high_priority_service::adopt_transaction(
+int wsrep::mock_high_priority_service::adopt_transaction(
     const wsrep::transaction& transaction)
 {
     client_state_->adopt_transaction(transaction);
+    return 0;
 }
 
 int wsrep::mock_high_priority_service::apply_write_set(

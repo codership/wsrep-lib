@@ -33,7 +33,7 @@ namespace db
         int start_transaction(const wsrep::ws_handle&,
                               const wsrep::ws_meta&) override;
         const wsrep::transaction& transaction() const override;
-        void adopt_transaction(const wsrep::transaction&) override;
+        int adopt_transaction(const wsrep::transaction&) override;
         int apply_write_set(const wsrep::ws_meta&,
                             const wsrep::const_buffer&) override;
         int append_fragment_and_commit(

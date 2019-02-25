@@ -60,7 +60,7 @@ namespace wsrep
         /**
          * Adopt a transaction.
          */
-        virtual void adopt_transaction(const wsrep::transaction&) = 0;
+        virtual int adopt_transaction(const wsrep::transaction&) = 0;
 
         /**
          * Apply a write set.

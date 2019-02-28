@@ -455,7 +455,9 @@ int wsrep::transaction::ordered_commit()
     debug_log_state("ordered_commit_enter");
     assert(state() == s_committing);
     assert(ordered());
+    client_service_.debug_sync("wsrep_before_commit_order_leave");
     int ret(provider().commit_order_leave(ws_handle_, ws_meta_));
+    client_service_.debug_sync("wsrep_after_commit_order_leave");
     // Should always succeed:
     // 1) If before commit before succeeds, the transaction handle
     //    in the provider is guaranteed to exist and the commit

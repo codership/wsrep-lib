@@ -11,6 +11,7 @@ add_executable(wsrep-lib_test
   gtid_test.cpp
   id_test.cpp
   server_context_test.cpp
+  toi_test.cpp
   transaction_test.cpp
   transaction_test_2pc.cpp
   transaction_test_xa.cpp

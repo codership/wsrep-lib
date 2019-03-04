@@ -80,12 +80,11 @@ namespace wsrep
             WSREP_OVERRIDE
         {
             ws_handle = wsrep::ws_handle(ws_handle.transaction_id(), (void*)1);
-            wsrep::log_info() << "provider certify: "
-                              << "client: " << client_id.get()
-                              << " flags: " << std::hex << flags
-                              << std::dec
-                              << " certify_status: " << certify_result_;
-
+            wsrep::log_debug() << "provider certify: "
+                               << "client: " << client_id.get()
+                               << " flags: " << std::hex << flags
+                               << std::dec
+                               << " certify_status: " << certify_result_;
             if (certify_result_)
             {
                 return certify_result_;
@@ -235,13 +234,26 @@ namespace wsrep
             return wsrep::provider::success;
         }
 
-        enum wsrep::provider::status enter_toi(wsrep::client_id,
+        enum wsrep::provider::status enter_toi(wsrep::client_id client_id,
                                                const wsrep::key_array&,
                                                const wsrep::const_buffer&,
-                                               wsrep::ws_meta&,
+                                               wsrep::ws_meta& toi_meta,
                                                int)
             WSREP_OVERRIDE
-        { return wsrep::provider::success; }
+        {
+                ++group_seqno_;
+                wsrep::gtid gtid(group_id_, wsrep::seqno(group_seqno_));
+                wsrep::stid stid(server_id_,
+                                 wsrep::transaction_id::undefined(),
+                                 client_id);
+                toi_meta = wsrep::ws_meta(gtid, stid,
+                                          wsrep::seqno(group_seqno_ - 1),
+                                          wsrep::provider::flag::start_transaction |
+                                          wsrep::provider::flag::commit);
+
+            return wsrep::provider::success;
+        }
+
         enum wsrep::provider::status leave_toi(wsrep::client_id,
                                                const wsrep::mutable_buffer&)
             WSREP_OVERRIDE

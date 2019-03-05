@@ -355,6 +355,7 @@ namespace wsrep
          *  Return current view
          */
         const wsrep::view& current_view() const { return current_view_; }
+
         /**
          * Set last committed GTID.
          */

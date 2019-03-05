@@ -887,21 +887,8 @@ void wsrep::server_state::on_view(const wsrep::view& view,
 {
     wsrep::log_info()
         << "================================================\nView:\n"
-        << "  id: " << view.state_id() << "\n"
-        << "  seqno: " << view.view_seqno() << "\n"
-        << "  status: " << view.status() << "\n"
-        << "  protocol_version: " << view.protocol_version() << "\n"
-        << "  own_index: " << view.own_index() << "\n"
-        << "  final: " << view.final() << "\n"
-        << "  members";
-    const std::vector<wsrep::view::member>& members(view.members());
-    for (std::vector<wsrep::view::member>::const_iterator i(members.begin());
-         i != members.end(); ++i)
-    {
-        wsrep::log_info() << "    id: " << i->id() << " "
-                          << "name: " << i->name();
-    }
-    wsrep::log_info() << "=================================================";
+        << view
+        << "=================================================";
     if (current_view_.status() == wsrep::view::primary)
     {
         previous_primary_view_ = current_view_;
@@ -1309,12 +1296,13 @@ void wsrep::server_state::close_orphaned_sr_transactions(
     streaming_appliers_map::iterator i(streaming_appliers_.begin());
     while (i != streaming_appliers_.end())
     {
-        bool origin_not_in_view = std::find_if(current_view_.members().begin(),
-                                               current_view_.members().end(),
-                                               server_id_cmp(i->first.first)) ==
-            current_view_.members().end();
-
-        if (origin_not_in_view || equal_consecutive_views)
+        // rollback SR on equal consecutive primary views or if its
+        // originator is not in the current view
+        if (equal_consecutive_views ||
+            (std::find_if(current_view_.members().begin(),
+                          current_view_.members().end(),
+                          server_id_cmp(i->first.first)) ==
+             current_view_.members().end()))
         {
             WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
                             wsrep::log::debug_level_server_state,

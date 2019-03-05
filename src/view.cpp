@@ -43,7 +43,8 @@ bool wsrep::view::equal_membership(const wsrep::view& other) const
     for (std::vector<member>::const_iterator i(members_.begin());
          i != members_.end(); ++i)
     {
-        if (other.member_index(i->id()) == -1) {
+        if (other.member_index(i->id()) == -1)
+        {
             return false;
         }
     }
@@ -54,7 +55,7 @@ void wsrep::view::print(std::ostream& os) const
 {
     os << "  id: " << state_id() << "\n"
        << "  status: " << to_c_string(status()) << "\n"
-       << "  prococol_version: " << protocol_version() << "\n"
+       << "  protocol_version: " << protocol_version() << "\n"
        << "  capabilities: " << provider::capability::str(capabilities())<<"\n"
        << "  final: " << (final() ? "yes" : "no") << "\n"
        << "  own_index: " << own_index() << "\n"

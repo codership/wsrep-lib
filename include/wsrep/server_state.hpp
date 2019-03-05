@@ -356,10 +356,6 @@ namespace wsrep
          */
         const wsrep::view& current_view() const { return current_view_; }
         /**
-         *  Return the previous primary view
-         */
-        const wsrep::view& previous_primary_view() const { return previous_primary_view_; }
-        /**
          * Set last committed GTID.
          */
         void last_committed_gtid(const wsrep::gtid&);

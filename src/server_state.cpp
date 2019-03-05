@@ -612,7 +612,8 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
                 throw wsrep::runtime_error(msg.str());
             }
 
-            if (current_view_.status() == wsrep::view::primary) {
+            if (current_view_.status() == wsrep::view::primary)
+            {
                 previous_primary_view_ = current_view_;
             }
             current_view_ = v;
@@ -901,7 +902,8 @@ void wsrep::server_state::on_view(const wsrep::view& view,
                           << "name: " << i->name();
     }
     wsrep::log_info() << "=================================================";
-    if (current_view_.status() == wsrep::view::primary) {
+    if (current_view_.status() == wsrep::view::primary)
+    {
         previous_primary_view_ = current_view_;
     }
     current_view_ = view;

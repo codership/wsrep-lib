@@ -103,6 +103,11 @@ namespace wsrep
         ssize_t own_index() const
         { return own_index_; }
 
+        /**
+         * Return true if the two views have the same membership
+         */
+        bool equal_membership(const wsrep::view& other) const;
+
         int protocol_version() const
         { return protocol_version_; }
         const std::vector<member>& members() const { return members_; }

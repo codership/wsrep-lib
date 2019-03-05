@@ -612,6 +612,9 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
                 throw wsrep::runtime_error(msg.str());
             }
 
+            if (current_view_.status() == wsrep::view::primary) {
+                previous_primary_view_ = current_view_;
+            }
             current_view_ = v;
             server_service_.log_view(NULL /* this view is stored already */, v);
         }
@@ -898,6 +901,9 @@ void wsrep::server_state::on_view(const wsrep::view& view,
                           << "name: " << i->name();
     }
     wsrep::log_info() << "=================================================";
+    if (current_view_.status() == wsrep::view::primary) {
+        previous_primary_view_ = current_view_;
+    }
     current_view_ = view;
     switch (view.status())
     {
@@ -1256,7 +1262,20 @@ void wsrep::server_state::close_orphaned_sr_transactions(
     wsrep::high_priority_service& high_priority_service)
 {
     assert(lock.owns_lock());
-    if (current_view_.own_index() == -1)
+
+    // When the originator of an SR transaction leaves the primary
+    // component of the cluster, that SR must be rolled back. When two
+    // consecutive primary views have the same membership, the system
+    // may have been in a state with no primary components.
+    // Example with 2 node cluster:
+    // - (1,2 primary)
+    // - (1 non-primary) and (2 non-primary)
+    // - (1,2 primary)
+    // We need to rollback SRs owned by both 1 and 2.
+    const bool equal_consecutive_views =
+        current_view_.equal_membership(previous_primary_view_);
+
+    if (current_view_.own_index() == -1 || equal_consecutive_views)
     {
         while (streaming_clients_.empty() == false)
         {
@@ -1285,20 +1304,21 @@ void wsrep::server_state::close_orphaned_sr_transactions(
         }
     }
 
-
     streaming_appliers_map::iterator i(streaming_appliers_.begin());
     while (i != streaming_appliers_.end())
     {
-        if (std::find_if(current_view_.members().begin(),
-                         current_view_.members().end(),
-                         server_id_cmp(i->first.first)) ==
-            current_view_.members().end())
+        bool origin_not_in_view = std::find_if(current_view_.members().begin(),
+                                               current_view_.members().end(),
+                                               server_id_cmp(i->first.first)) ==
+            current_view_.members().end();
+
+        if (origin_not_in_view || equal_consecutive_views)
         {
-             WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
-                             wsrep::log::debug_level_server_state,
-                             "Removing SR fragments for "
-                             << i->first.first
-                             << ", " << i->first.second);
+            WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                            wsrep::log::debug_level_server_state,
+                            "Removing SR fragments for "
+                            << i->first.first
+                            << ", " << i->first.second);
             wsrep::id server_id(i->first.first);
             wsrep::transaction_id transaction_id(i->first.second);
             wsrep::high_priority_service* streaming_applier(i->second);

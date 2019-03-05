@@ -33,6 +33,23 @@ int wsrep::view::member_index(const wsrep::id& member_id) const
     return -1;
 }
 
+bool wsrep::view::equal_membership(const wsrep::view& other) const
+{
+    if (members_.size() != other.members_.size())
+    {
+        return false;
+    }
+    // we can't assume members ordering
+    for (std::vector<member>::const_iterator i(members_.begin());
+         i != members_.end(); ++i)
+    {
+        if (other.member_index(i->id()) == -1) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void wsrep::view::print(std::ostream& os) const
 {
     os << "  id: " << state_id() << "\n"

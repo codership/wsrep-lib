@@ -39,3 +39,51 @@ BOOST_AUTO_TEST_CASE(view_test_member_index)
     BOOST_REQUIRE(view.member_index(wsrep::id("3")) == 2);
     BOOST_REQUIRE(view.member_index(wsrep::id("4")) == -1);
 }
+
+BOOST_AUTO_TEST_CASE(view_test_equal_membership)
+{
+    std::vector<wsrep::view::member> m1;
+    m1.push_back(wsrep::view::member(wsrep::id("1"), "", ""));
+    m1.push_back(wsrep::view::member(wsrep::id("2"), "", ""));
+    m1.push_back(wsrep::view::member(wsrep::id("3"), "", ""));
+
+    std::vector<wsrep::view::member> m2;
+    m2.push_back(wsrep::view::member(wsrep::id("2"), "", ""));
+    m2.push_back(wsrep::view::member(wsrep::id("3"), "", ""));
+    m2.push_back(wsrep::view::member(wsrep::id("1"), "", ""));
+
+    std::vector<wsrep::view::member> m3;
+    m3.push_back(wsrep::view::member(wsrep::id("1"), "", ""));
+    m3.push_back(wsrep::view::member(wsrep::id("2"), "", ""));
+    m3.push_back(wsrep::view::member(wsrep::id("3"), "", ""));
+    m3.push_back(wsrep::view::member(wsrep::id("4"), "", ""));
+
+    wsrep::view v1(wsrep::gtid(wsrep::id("cluster"), wsrep::seqno(1)),
+		     wsrep::seqno(1),
+		     wsrep::view::primary,
+		     0,
+		     1,
+		     0,
+             m1);
+
+    wsrep::view v2(wsrep::gtid(wsrep::id("cluster"), wsrep::seqno(1)),
+		     wsrep::seqno(1),
+		     wsrep::view::primary,
+		     0,
+		     1,
+		     0,
+		     m2);
+
+    wsrep::view v3(wsrep::gtid(wsrep::id("cluster"), wsrep::seqno(1)),
+		     wsrep::seqno(1),
+		     wsrep::view::primary,
+		     0,
+		     1,
+		     0,
+		     m3);
+
+    BOOST_REQUIRE(v1.equal_membership(v2));
+    BOOST_REQUIRE(v2.equal_membership(v1));
+    BOOST_REQUIRE(!v1.equal_membership(v3));
+    BOOST_REQUIRE(!v3.equal_membership(v1));
+}

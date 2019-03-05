@@ -356,6 +356,10 @@ namespace wsrep
          */
         const wsrep::view& current_view() const { return current_view_; }
         /**
+         *  Return the previous primary view
+         */
+        const wsrep::view& previous_primary_view() const { return previous_primary_view_; }
+        /**
          * Set last committed GTID.
          */
         void last_committed_gtid(const wsrep::gtid&);
@@ -603,6 +607,7 @@ namespace wsrep
             , max_protocol_version_(max_protocol_version)
             , rollback_mode_(rollback_mode)
             , connected_gtid_()
+            , previous_primary_view_()
             , current_view_()
             , last_committed_gtid_()
         { }
@@ -692,6 +697,7 @@ namespace wsrep
         int max_protocol_version_;
         enum rollback_mode rollback_mode_;
         wsrep::gtid connected_gtid_;
+        wsrep::view previous_primary_view_;
         wsrep::view current_view_;
         wsrep::gtid last_committed_gtid_;
     };

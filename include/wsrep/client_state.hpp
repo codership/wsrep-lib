@@ -100,10 +100,12 @@ namespace wsrep
             /** Client is in total order isolation mode */
             m_toi,
             /** Client is executing rolling schema upgrade */
-            m_rsu
+            m_rsu,
+            /** Client is executing NBO */
+            m_nbo
         };
 
-        static const int n_modes_ = m_rsu + 1;
+        static const int n_modes_ = m_nbo + 1;
         /**
          * Client state enumeration.
          *
@@ -669,6 +671,9 @@ namespace wsrep
          * @param buffer Buffer containing the action to execute inside
          *               total order isolation section
          * @param flags  Provider flags for TOI operation
+         * @todo Flags argument is not necessary for TOI operation,
+         *       they should always have start_transaction | commit
+         *       when passed to provider.
          *
          * @return Zero on success, non-zero otherwise.
          */
@@ -729,13 +734,45 @@ namespace wsrep
 
         /**
          * Begin non-blocking operation.
+         *
+         * The NBO operation is started by grabbing TOI critical
+         * section. The keys and buffer are certifed as in TOI
+         * operation. If the call fails due to error returned by
+         * the provider, the provider error code can be retrieved
+         * by current_error_status() call.
+         *
+         * @param keys Array of keys for NBO operation.
+         * @param buffer NBO write set
+         *
+         * @return Zero in case of success, non-zero in case of failure.
          */
-        int begin_nbo(const wsrep::key_array&);
+        int begin_nbo_phase_one(const wsrep::key_array& keys,
+                                const wsrep::const_buffer& buffer);
 
         /**
-         * End non-blocking operation
+         * End non-blocking operation phase after aquiring required
+         * resources for operation.
          */
-        int end_nbo();
+        int end_nbo_phase_one();
+
+        /**
+         * Begin non-blocking operation phase two. The keys argument
+         * passed to this call must contain the same keys which were
+         * passed to begin_nbo_phase_one().
+         *
+         * @todo Keys should be stored internally in client_state
+         *       so that they would not be required as an argument
+         *       here.
+         *
+         * @param keys Array of keys for non-blocking operation.
+         */
+        int begin_nbo_phase_two(const wsrep::key_array& keys);
+
+        /**
+         * End non-blocking operation phase two. This call will
+         * release TOI critical section and set the mode to m_local.
+         */
+        int end_nbo_phase_two();
 
         /**
          * Get reference to the client mutex.
@@ -1011,6 +1048,7 @@ namespace wsrep
         case wsrep::client_state::m_high_priority: return "high priority";
         case wsrep::client_state::m_toi: return "toi";
         case wsrep::client_state::m_rsu: return "rsu";
+        case wsrep::client_state::m_nbo: return "nbo";
         }
         return "unknown";
     }

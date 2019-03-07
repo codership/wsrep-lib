@@ -27,6 +27,7 @@ BOOST_FIXTURE_TEST_CASE(test_toi_mode,
                         replicating_client_fixture_sync_rm)
 {
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_local);
+    BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
     wsrep::key key(wsrep::key::exclusive);
     key.append_key_part("k1", 2);
     key.append_key_part("k2", 2);
@@ -40,6 +41,10 @@ BOOST_FIXTURE_TEST_CASE(test_toi_mode,
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
     BOOST_REQUIRE(cc.leave_toi() == 0);
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_local);
+    BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
+    BOOST_REQUIRE(sc.provider().toi_write_sets() == 1);
+    BOOST_REQUIRE(sc.provider().toi_start_transaction() == 1);
+    BOOST_REQUIRE(sc.provider().toi_commit() == 1);
 }
 
 BOOST_FIXTURE_TEST_CASE(test_toi_applying,
@@ -50,6 +55,7 @@ BOOST_FIXTURE_TEST_CASE(test_toi_applying,
                    cc.after_commit()) == 0);
     cc.after_applying();
 
+    BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
     wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(2)),
                            wsrep::stid(sc.id(),
                                        wsrep::transaction_id::undefined(),
@@ -61,5 +67,6 @@ BOOST_FIXTURE_TEST_CASE(test_toi_applying,
     BOOST_REQUIRE(cc.in_toi());
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_high_priority);
     BOOST_REQUIRE(cc.leave_toi() == 0);
+    BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
     cc.after_applying();
 }

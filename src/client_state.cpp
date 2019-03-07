@@ -24,7 +24,6 @@
 #include <sstream>
 #include <iostream>
 
-
 wsrep::provider& wsrep::client_state::provider() const
 {
     return server_state_.provider();
@@ -444,8 +443,105 @@ int wsrep::client_state::end_rsu()
     return ret;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//                                 NBO                                       //
+///////////////////////////////////////////////////////////////////////////////
 
+int wsrep::client_state::begin_nbo_phase_one(const wsrep::key_array& keys,
+                                             const wsrep::const_buffer& buffer)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    assert(state_ == s_exec);
+    assert(mode_ == m_local);
+    assert(toi_mode_ == m_local);
 
+    /**
+     * @todo Implement retrying if the call fails due to certification
+     * failure.
+     */
+    lock.unlock();
+    enum wsrep::provider::status status(
+        provider().enter_toi(
+            id_, keys, buffer, toi_meta_,
+            wsrep::provider::flag::start_transaction));
+    lock.lock();
+    switch (status)
+    {
+    case wsrep::provider::success:
+        toi_mode_ = mode_;
+        mode(lock, m_nbo);
+        return 0;
+    default:
+        current_error_status_ = status;
+        return 1;
+    }
+}
+
+int wsrep::client_state::end_nbo_phase_one()
+{
+    assert(state_ == s_exec);
+    assert(mode_ == m_nbo);
+    assert(in_toi());
+
+    enum wsrep::provider::status status(provider().leave_toi(id_));
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    int ret;
+    switch (status)
+    {
+    case wsrep::provider::success:
+        ret = 0;
+        break;
+    default:
+        current_error_status_ = status;
+        ret = 1;
+        break;
+    }
+    toi_meta_ = wsrep::ws_meta();
+    return ret;
+}
+
+int wsrep::client_state::begin_nbo_phase_two(const wsrep::key_array& keys)
+{
+    assert(state_ == s_exec);
+    assert(mode_ == m_nbo);
+
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    enum wsrep::provider::status status(
+        provider().enter_toi(id_, keys, wsrep::const_buffer(), toi_meta_,
+                             wsrep::provider::flag::commit));
+    switch (status)
+    {
+    case wsrep::provider::success:
+        return 0;
+    default:
+        current_error_status_ = status;
+        return 1;
+    }
+}
+
+int wsrep::client_state::end_nbo_phase_two()
+{
+    assert(state_ == s_exec);
+    assert(mode_ == m_nbo);
+    assert(in_toi());
+    enum wsrep::provider::status status(
+        provider().leave_toi(id_));
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    int ret;
+    switch (status)
+    {
+    case wsrep::provider::success:
+        ret = 0;
+        break;
+    default:
+        current_error_status_ = status;
+        ret = 1;
+        break;
+    }
+    toi_meta_ = wsrep::ws_meta();
+    mode(lock, m_local);
+    return ret;
+}
 ///////////////////////////////////////////////////////////////////////////////
 //                                 Misc                                      //
 ///////////////////////////////////////////////////////////////////////////////
@@ -519,7 +615,6 @@ void wsrep::client_state::debug_log_state(const char* context) const
                     << "," << to_c_string(mode_)
                     << "," << wsrep::to_string(current_error_)
                     << ")");
-    
 }
 
 void wsrep::client_state::state(
@@ -541,8 +636,10 @@ void wsrep::client_state::state(
         };
     if (!allowed[state_][state])
     {
-        wsrep::log_debug() << "client_state: Unallowed state transition: "
-                           << state_ << " -> " << state;
+        std::ostringstream os;
+        os << "client_state: Unallowed state transition: "
+           << state_ << " -> " << state;
+        wsrep::log_warning() << os.str();
         assert(0);
     }
     state_hist_.push_back(state_);
@@ -551,6 +648,7 @@ void wsrep::client_state::state(
     {
         state_hist_.erase(state_hist_.begin());
     }
+
 }
 
 void wsrep::client_state::mode(
@@ -560,17 +658,20 @@ void wsrep::client_state::mode(
     assert(lock.owns_lock());
 
     static const char allowed[n_modes_][n_modes_] =
-        {   /* u  l  h  t  r */
-            {  0, 0, 0, 0, 0 }, /* undefined */
-            {  0, 0, 1, 1, 1 }, /* local */
-            {  0, 1, 0, 1, 0 }, /* high prio */
-            {  0, 1, 1, 0, 0 }, /* toi */
-            {  0, 1, 0, 0, 0 }  /* rsu */
+        {   /* u  l  h  t  r  n */
+            {  0, 0, 0, 0, 0, 0 }, /* undefined */
+            {  0, 0, 1, 1, 1, 1 }, /* local */
+            {  0, 1, 0, 1, 0, 1 }, /* high prio */
+            {  0, 1, 1, 0, 0, 0 }, /* toi */
+            {  0, 1, 0, 0, 0, 0 }, /* rsu */
+            {  0, 1, 1, 0, 0, 0 }  /* nbo */
         };
     if (!allowed[mode_][mode])
     {
-        wsrep::log_debug() << "client_state: Unallowed mode transition: "
-                           << mode_ << " -> " << mode;
+        std::ostringstream os;
+        os << "client_state: Unallowed mode transition: "
+           << mode_ << " -> " << mode;
+        wsrep::log_warning() << os.str();
         assert(0);
     }
     mode_ = mode;

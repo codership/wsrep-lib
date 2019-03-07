@@ -99,7 +99,9 @@ namespace wsrep
             /** Client is in total order isolation mode */
             m_toi,
             /** Client is executing rolling schema upgrade */
-            m_rsu
+            m_rsu,
+            /** Client is executing NBO */
+            m_nbo
         };
 
         static const int n_modes_ = m_rsu + 1;
@@ -573,6 +575,9 @@ namespace wsrep
          * @param buffer Buffer containing the action to execute inside
          *               total order isolation section
          * @param flags  Provider flags for TOI operation
+         * @todo Flags argument is not necessary for TOI operation,
+         *       they should always have start_transaction | commit
+         *       when passed to provider.
          *
          * @return Zero on success, non-zero otherwise.
          */
@@ -634,12 +639,16 @@ namespace wsrep
         /**
          * Begin non-blocking operation.
          */
-        int begin_nbo(const wsrep::key_array&);
+        int begin_nbo_phase_one(const wsrep::key_array&);
 
         /**
          * End non-blocking operation
          */
-        int end_nbo();
+        int end_nbo_phase_one();
+
+        int begin_nbo_phase_two();
+
+        int end_nbo_phase_two();
 
         /**
          * Get reference to the client mutex.
@@ -915,6 +924,7 @@ namespace wsrep
         case wsrep::client_state::m_high_priority: return "high priority";
         case wsrep::client_state::m_toi: return "toi";
         case wsrep::client_state::m_rsu: return "rsu";
+        case wsrep::client_state::m_nbo: return "nbo";
         }
         return "unknown";
     }

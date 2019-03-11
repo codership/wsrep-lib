@@ -1150,7 +1150,7 @@ int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock)
     int ret(0);
 
     const size_t bytes_to_replicate(client_service_.bytes_generated() -
-                                    streaming_context_.bytes_certified());
+                                    streaming_context_.log_position());
 
     switch (streaming_context_.fragment_unit())
     {
@@ -1699,6 +1699,7 @@ void wsrep::transaction::debug_log_state(
         << ", unit: " << streaming_context_.fragment_unit()
         << ", size: " << streaming_context_.fragment_size()
         << ", counter: " << streaming_context_.unit_counter()
+        << ", log_pos: " << streaming_context_.log_position()
         << ", bytes: " << streaming_context_.bytes_certified()
         << ", sr_rb: " << streaming_context_.rolled_back()
         << "\n    own: " << (client_state_.owning_thread_id_ == wsrep::this_thread::get_id())

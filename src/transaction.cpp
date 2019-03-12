@@ -1271,7 +1271,7 @@ int wsrep::transaction::certify_fragment(
             case wsrep::provider::success:
                 ++fragments_certified_for_statement_;
                 assert(sr_ws_meta.seqno().is_undefined() == false);
-                streaming_context_.certified(data.size());
+                streaming_context_.certified();
                 if (storage_service.update_fragment_meta(sr_ws_meta))
                 {
                     storage_service.rollback(wsrep::ws_handle(),
@@ -1311,7 +1311,7 @@ int wsrep::transaction::certify_fragment(
                 // we take a risk of sending one rollback fragment for nothing.
                 storage_service.rollback(wsrep::ws_handle(),
                                          wsrep::ws_meta());
-                streaming_context_.certified(data.size());
+                streaming_context_.certified();
                 ret = 1;
                 error = wsrep::e_deadlock_error;
                 break;
@@ -1678,7 +1678,6 @@ void wsrep::transaction::debug_log_state(
         << ", size: " << streaming_context_.fragment_size()
         << ", counter: " << streaming_context_.unit_counter()
         << ", log_pos: " << streaming_context_.log_position()
-        << ", bytes: " << streaming_context_.bytes_certified()
         << ", sr_rb: " << streaming_context_.rolled_back()
         << "\n    own: " << (client_state_.owning_thread_id_ == wsrep::this_thread::get_id())
         << " thread_id: " << client_state_.owning_thread_id_

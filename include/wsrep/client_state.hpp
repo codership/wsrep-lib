@@ -294,6 +294,36 @@ namespace wsrep
         }
 
         /**
+         * Restores the client's transaction to prepared state
+         *
+         * The purpose of this method is to restore transaction state
+         * during recovery of a prepared XA transaction.
+         */
+        int restore_prepared_transaction()
+        {
+            return transaction_.restore_to_prepared_state();
+        }
+
+        /**
+         * Terminate transaction with the given xid
+         *
+         * Sends a commit or rollback fragment to terminate the a
+         * transaction with the given xid. For the fragment to be
+         * sent, a streaming applier for the transaction must exist
+         * and the transaction must be in prepared state.
+         *
+         * @param xid the xid of the the transaction to terminate
+         * @param commit whether to send a commmit or rollback fragment
+         *
+         * @return Zero on success, non-zero on error. In case of error
+         *         the client_state's current_error is set
+         */
+        int commit_or_rollback_by_xid(const std::string& xid, bool commit)
+        {
+            return transaction_.commit_or_rollback_by_xid(xid, commit);
+        }
+
+        /**
          * Append a key into transaction write set.
          */
         int append_key(const wsrep::key& key)

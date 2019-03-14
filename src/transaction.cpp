@@ -108,6 +108,7 @@ wsrep::transaction::transaction(
     , streaming_context_()
     , sr_keys_()
     , apply_error_buf_()
+    , is_recovered_xa_(false)
 { }
 
 
@@ -425,7 +426,8 @@ int wsrep::transaction::before_commit()
             assert((ret == 0 && state() == s_committing) ||
                    (state() == s_must_abort ||
                     state() == s_must_replay ||
-                    state() == s_cert_failed));
+                    state() == s_cert_failed ||
+                    state() == s_prepared));
         }
         else if (state() == s_executing)
         {
@@ -485,9 +487,8 @@ int wsrep::transaction::before_commit()
     case wsrep::client_state::m_high_priority:
         assert(certified());
         assert(ordered());
-        if (is_xa())
+        if (state() == s_prepared)
         {
-            assert(state() == s_prepared);
             state(lock, s_committing);
         }
 
@@ -567,7 +568,7 @@ int wsrep::transaction::after_commit()
         assert(client_state_.mode() == wsrep::client_state::m_local ||
                client_state_.mode() == wsrep::client_state::m_high_priority);
 
-        if (is_xa())
+        if (is_xa() || is_recovered_xa_)
         {
             // XA fragment removal happens here,
             // see comment in before_prepare
@@ -1035,6 +1036,73 @@ void wsrep::transaction::after_replay(const wsrep::transaction& other)
     clear_fragments();
 }
 
+int wsrep::transaction::restore_to_prepared_state()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex_);
+    assert(active());
+    assert(is_empty());
+    assert(state() == s_executing);
+    flags(flags() & ~wsrep::provider::flag::start_transaction);
+    state(lock, s_certifying);
+    state(lock, s_prepared);
+    is_recovered_xa_ = true;
+    return 0;
+}
+
+int wsrep::transaction::commit_or_rollback_by_xid(const std::string& xid,
+                                                  bool commit)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex_);
+    wsrep::server_state& server_state(client_state_.server_state());
+    wsrep::high_priority_service* sa(server_state.find_streaming_applier(xid));
+
+    if (!sa)
+    {
+        assert(sa);
+        client_state_.override_error(wsrep::e_error_during_commit);
+        return 1;
+    }
+
+    int flags(commit ?
+              wsrep::provider::flag::commit :
+              wsrep::provider::flag::rollback);
+    flags = flags | wsrep::provider::flag::pa_unsafe;
+    wsrep::stid stid(sa->transaction().server_id(),
+                     sa->transaction().id(),
+                     client_state_.id());
+    wsrep::ws_meta meta(stid);
+
+    const enum wsrep::provider::status cert_ret(
+        provider().certify(client_state_.id(),
+                           ws_handle_,
+                           flags,
+                           meta));
+
+    if (cert_ret == wsrep::provider::success)
+    {
+        if (commit)
+        {
+            state(lock, s_certifying);
+            state(lock, s_committing);
+            state(lock, s_committed);
+        }
+        else
+        {
+            state(lock, s_aborting);
+            state(lock, s_aborted);
+        }
+        return 0;
+    }
+    else
+    {
+        client_state_.override_error(wsrep::e_error_during_commit);
+        wsrep::log_error() << "Failed to commit_or_rollback_by_xid,"
+                           << " xid: " << xid
+                           << " error: " << cert_ret;
+        return 1;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                 Private                                    //
 ////////////////////////////////////////////////////////////////////////////////
@@ -1162,13 +1230,13 @@ int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock)
         break;
     }
 
-    if (streaming_context_.fragment_size_exceeded() || client_service_.is_xa_prepare())
+    if (streaming_context_.fragment_size_exceeded() || is_xa_prepare())
     {
         // Some statements have no effect. Do not atttempt to
         // replicate a fragment if no data has been generated since
         // last fragment replication. A XA PREPARE statement generates a
         // fragment even if no data is currently pending replication.
-        if (bytes_to_replicate <= 0 && !client_service_.is_xa_prepare())
+        if (bytes_to_replicate <= 0 && !is_xa_prepare())
         {
             assert(bytes_to_replicate == 0);
             return ret;
@@ -1266,7 +1334,8 @@ int wsrep::transaction::certify_fragment(
                 server_id,
                 id(),
                 flags(),
-                wsrep::const_buffer(data.data(), data.size())))
+                wsrep::const_buffer(data.data(), data.size()),
+                xid()))
         {
             ret = 1;
             error = wsrep::e_append_fragment_error;
@@ -1536,7 +1605,14 @@ int wsrep::transaction::certify_commit(
         {
             client_state_.override_error(wsrep::e_error_during_commit,
                                          cert_ret);
-            state(lock, s_must_abort);
+            if (is_xa())
+            {
+                state(lock, s_prepared);
+            }
+            else
+            {
+                state(lock, s_must_abort);
+            }
         }
         break;
     case wsrep::provider::error_provider_failed:
@@ -1668,6 +1744,7 @@ void wsrep::transaction::cleanup()
     streaming_context_.cleanup();
     client_service_.cleanup_transaction();
     apply_error_buf_.clear();
+    is_recovered_xa_ = false;
     debug_log_state("cleanup_leave");
 }
 

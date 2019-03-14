@@ -53,7 +53,8 @@ namespace wsrep
         int append_fragment_and_commit(
             const wsrep::ws_handle&,
             const wsrep::ws_meta&,
-            const wsrep::const_buffer&) WSREP_OVERRIDE
+            const wsrep::const_buffer&,
+            const std::string&) WSREP_OVERRIDE
         { return 0; }
         int remove_fragments(const wsrep::ws_meta&) WSREP_OVERRIDE
         { return 0; }

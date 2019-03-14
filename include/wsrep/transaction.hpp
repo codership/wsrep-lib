@@ -130,6 +130,15 @@ namespace wsrep
             return client_service_.is_xa_prepare();
         }
 
+        int restore_to_prepared_state();
+
+        int commit_or_rollback_by_xid(const std::string& xid, bool commit);
+
+        const std::string xid() const
+        {
+            return client_service_.xid();
+        }
+
         bool pa_unsafe() const { return pa_unsafe_; }
         void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }
 

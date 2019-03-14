@@ -107,7 +107,12 @@ namespace wsrep
             , depends_on_(depends_on)
             , flags_(flags)
         { }
-
+        ws_meta(const wsrep::stid& stid)
+            : gtid_()
+            , stid_(stid)
+            , depends_on_()
+            , flags_()
+        { }
         const wsrep::gtid& gtid() const { return gtid_; }
         const wsrep::id& group_id() const
         {

@@ -39,8 +39,9 @@ namespace db
                             const wsrep::const_buffer&) override;
         int append_fragment_and_commit(
             const wsrep::ws_handle&,
-            const wsrep::ws_meta&, const wsrep::const_buffer&)
-            override
+            const wsrep::ws_meta&,
+            const wsrep::const_buffer&,
+            const std::string&) override
         { return 0; }
         int remove_fragments(const wsrep::ws_meta&) override
         { return 0; }

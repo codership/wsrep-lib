@@ -52,6 +52,10 @@ namespace db
         {
             return false;
         }
+        std::string xid() const override
+        {
+            return "";
+        }
         size_t bytes_generated() const override
         {
             return 0;

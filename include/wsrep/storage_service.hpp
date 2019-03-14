@@ -63,7 +63,8 @@ namespace wsrep
         virtual int append_fragment(const wsrep::id& server_id,
                                     wsrep::transaction_id client_id,
                                     int flags,
-                                    const wsrep::const_buffer& data) = 0;
+                                    const wsrep::const_buffer& data,
+                                    const std::string& xid) = 0;
 
         /**
          * Update fragment meta data after certification process.

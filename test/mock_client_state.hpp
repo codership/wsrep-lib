@@ -141,6 +141,11 @@ namespace wsrep
             return is_xa_prepare_;
         }
 
+        std::string xid() const WSREP_OVERRIDE
+        {
+            return "";
+        }
+
         size_t bytes_generated() const WSREP_OVERRIDE
         {
             return bytes_generated_;

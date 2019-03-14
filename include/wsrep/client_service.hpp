@@ -73,6 +73,9 @@ namespace wsrep
          */
         virtual void cleanup_transaction() = 0;
 
+        //
+        // XA
+        //
         /**
          * Return true if the current transactions is XA
          */
@@ -82,6 +85,11 @@ namespace wsrep
          * Return true if the current statement is XA PREPARE
          */
         virtual bool is_xa_prepare() const = 0;
+
+        /**
+         * Return a string representing the xid of the transaction
+         */
+        virtual std::string xid() const = 0;
 
         //
         // Streaming

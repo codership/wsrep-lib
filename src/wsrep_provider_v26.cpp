@@ -209,7 +209,12 @@ namespace
             : ws_meta_(ws_meta)
             , trx_meta_()
             , flags_(flags)
-        { }
+        {
+          std::memcpy(trx_meta_.stid.node.data, ws_meta.server_id().data(),
+                      sizeof(trx_meta_.stid.node.data));
+          trx_meta_.stid.conn = ws_meta.client_id().get();
+          trx_meta_.stid.trx = ws_meta.transaction_id().get();
+        }
 
         ~mutable_ws_meta()
         {

@@ -935,6 +935,24 @@ bool wsrep::transaction::total_order_bf_abort(
     return ret;
 }
 
+void wsrep::transaction::clone_for_replay(const wsrep::transaction& other)
+{
+    assert(other.state() == s_replaying);
+    id_ = other.id_;
+    ws_handle_ = other.ws_handle_;
+    ws_meta_ = other.ws_meta_;
+    streaming_context_ = other.streaming_context_;
+    state_ = s_replaying;
+}
+
+void wsrep::transaction::after_replay(const wsrep::transaction& other)
+{
+    // Other must have been terminated
+    assert(other.state() == s_committed || other.state() == s_aborted);
+    state_ = other.state();
+    clear_fragments();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                 Private                                    //
 ////////////////////////////////////////////////////////////////////////////////

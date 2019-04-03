@@ -168,6 +168,11 @@ namespace wsrep
                       wsrep::seqno bf_seqno);
         bool total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>&,
                                   wsrep::seqno bf_seqno);
+
+        void clone_for_replay(const wsrep::transaction& other);
+
+        void after_replay(const wsrep::transaction& other);
+
         bool bf_aborted() const
         {
             return (bf_abort_client_state_ != 0);

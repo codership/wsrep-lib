@@ -75,7 +75,7 @@ std::string wsrep::provider::capability::str(int caps)
     WSREP_PRINT_CAPABILITY(annotation,           "ANNOTATION");
     WSREP_PRINT_CAPABILITY(preordered,           "PREORDERED");
     WSREP_PRINT_CAPABILITY(streaming,            "STREAMING");
-    WSREP_PRINT_CAPABILITY(snapshot,             "SNAPSHOT");
+    WSREP_PRINT_CAPABILITY(snapshot,             "READ_VIEW");
     WSREP_PRINT_CAPABILITY(nbo,                  "NBO");
 
 #undef WSREP_PRINT_CAPABILITY
@@ -107,7 +107,7 @@ std::string wsrep::flags_to_string(int flags)
     if (flags & provider::flag::prepare)
         oss << "prepare | ";
     if (flags & provider::flag::snapshot)
-        oss << "snapshot | ";
+        oss << "read_view | ";
     if (flags & provider::flag::implicit_deps)
         oss << "implicit_deps | ";
 

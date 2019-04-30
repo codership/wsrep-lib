@@ -143,6 +143,10 @@ namespace wsrep
             }
         }
 
+        enum wsrep::provider::status
+        assign_read_view(wsrep::ws_handle&, const wsrep::gtid*)
+            WSREP_OVERRIDE
+        { return wsrep::provider::success; }
         int append_key(wsrep::ws_handle&, const wsrep::key&)
             WSREP_OVERRIDE
         { return 0; }

@@ -138,6 +138,8 @@ namespace wsrep
                                  const wsrep::ws_meta& ws_meta,
                                  bool is_commit);
 
+        int assign_read_view(const wsrep::gtid* gtid);
+
         int append_key(const wsrep::key&);
 
         int append_data(const wsrep::const_buffer&);

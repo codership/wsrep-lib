@@ -46,6 +46,8 @@ namespace wsrep
 
         enum wsrep::provider::status run_applier(wsrep::high_priority_service*);
         int start_transaction(wsrep::ws_handle&) { return 0; }
+        enum wsrep::provider::status
+        assign_read_view(wsrep::ws_handle&, const wsrep::gtid*);
         int append_key(wsrep::ws_handle&, const wsrep::key&);
         enum wsrep::provider::status
         append_data(wsrep::ws_handle&, const wsrep::const_buffer&);

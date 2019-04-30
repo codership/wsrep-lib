@@ -690,6 +690,25 @@ wsrep::wsrep_provider_v26::run_applier(
     return map_return_value(wsrep_->recv(wsrep_, applier_ctx));
 }
 
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::assign_read_view(wsrep::ws_handle& ws_handle,
+                                            const wsrep::gtid* gtid)
+{
+    const wsrep_gtid_t* gtid_ptr(NULL);
+    wsrep_gtid_t tmp;
+
+    if (gtid)
+    {
+        ::memcpy(&tmp.uuid, gtid->id().data(), sizeof(tmp.uuid));
+        tmp.seqno = gtid->seqno().get();
+        gtid_ptr = &tmp;
+    }
+
+    mutable_ws_handle mwsh(ws_handle);
+    return map_return_value(wsrep_->assign_read_view(wsrep_, mwsh.native(),
+                                                     gtid_ptr));
+}
+
 int wsrep::wsrep_provider_v26::append_key(wsrep::ws_handle& ws_handle,
                                           const wsrep::key& key)
 {
@@ -714,7 +733,7 @@ int wsrep::wsrep_provider_v26::append_key(wsrep::ws_handle& ws_handle,
 
 enum wsrep::provider::status
 wsrep::wsrep_provider_v26::append_data(wsrep::ws_handle& ws_handle,
-                                           const wsrep::const_buffer& data)
+                                       const wsrep::const_buffer& data)
 {
     const wsrep_buf_t wsrep_buf = {data.data(), data.size()};
     mutable_ws_handle mwsh(ws_handle);

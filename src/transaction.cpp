@@ -208,6 +208,19 @@ int wsrep::transaction::prepare_for_ordering(
     return 0;
 }
 
+int wsrep::transaction::assign_read_view(const wsrep::gtid* const gtid)
+{
+    try
+    {
+        return provider().assign_read_view(ws_handle_, gtid);
+    }
+    catch (...)
+    {
+        wsrep::log_error() << "Failed to assign read view";
+        return 1;
+    }
+}
+
 int wsrep::transaction::append_key(const wsrep::key& key)
 {
     try

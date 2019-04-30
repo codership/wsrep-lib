@@ -271,6 +271,25 @@ namespace wsrep
         }
 
         /**
+         * Establish read view ID of the transaction.
+         *
+         * This method should be preferably called immediately before any
+         * first read or write operation in the transaction is performed,
+         * Then it can be called with default NULL parameter and will use
+         * the current last committed GTID.
+         * Alternatively it can be called at any time before commit with an
+         * explicit GTID that corresponds to transaction read view.
+         *
+         * @param gtid optional explicit GTID of the transaction read view.
+         */
+        int assign_read_view(const wsrep::gtid* const gtid = NULL)
+        {
+            assert(mode_ == m_local);
+            assert(state_ == s_exec);
+            return transaction_.assign_read_view(gtid);
+        }
+
+        /**
          * Append a key into transaction write set.
          */
         int append_key(const wsrep::key& key)

@@ -68,6 +68,9 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_1pc, T,
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
 
+    // Establish default read view
+    BOOST_REQUIRE(0 == cc.assign_read_view(NULL));
+
     // Verify that the commit can be succesfully executed in separate command
     BOOST_REQUIRE(cc.after_statement() == 0);
     cc.after_command_before_result();

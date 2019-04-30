@@ -274,6 +274,8 @@ namespace wsrep
         // Write set replication
         // TODO: Rename to assing_read_view()
         virtual int start_transaction(wsrep::ws_handle&) = 0;
+        virtual enum status assign_read_view(
+            wsrep::ws_handle&, const wsrep::gtid*) = 0;
         virtual int append_key(wsrep::ws_handle&, const wsrep::key&) = 0;
         virtual enum status append_data(
             wsrep::ws_handle&, const wsrep::const_buffer&) = 0;

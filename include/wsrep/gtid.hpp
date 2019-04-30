@@ -48,6 +48,13 @@ namespace wsrep
         {
             return undefined_;
         }
+        bool operator==(const gtid& other) const
+        {
+            return (
+                seqno_ == other.seqno_ &&
+                id_ == other.id_
+            );
+        }
     private:
         static const wsrep::gtid undefined_;
         wsrep::id id_;

@@ -788,13 +788,18 @@ wsrep::wsrep_provider_v26::commit_order_enter(
         wsrep_->commit_order_enter(wsrep_, cwsh.native(), cwsm.native()));
 }
 
-int wsrep::wsrep_provider_v26::commit_order_leave(
+int
+wsrep::wsrep_provider_v26::commit_order_leave(
     const wsrep::ws_handle& ws_handle,
-    const wsrep::ws_meta& ws_meta)
+    const wsrep::ws_meta& ws_meta,
+    const wsrep::mutable_buffer& err)
 {
     const_ws_handle cwsh(ws_handle);
     const_ws_meta cwsm(ws_meta);
-    return (wsrep_->commit_order_leave(wsrep_, cwsh.native(), cwsm.native(), 0) != WSREP_OK);
+    wsrep_buf_t const err_buf = { err.data(), err.size() };
+    int ret(wsrep_->commit_order_leave(
+         wsrep_, cwsh.native(), cwsm.native(), &err_buf) != WSREP_OK);
+    return ret;
 }
 
 int wsrep::wsrep_provider_v26::release(wsrep::ws_handle& ws_handle)
@@ -851,10 +856,12 @@ wsrep::wsrep_provider_v26::enter_toi(
 }
 
 enum wsrep::provider::status
-wsrep::wsrep_provider_v26::leave_toi(wsrep::client_id client_id)
+wsrep::wsrep_provider_v26::leave_toi(wsrep::client_id client_id,
+                                     const wsrep::mutable_buffer& err)
 {
+    const wsrep_buf_t err_buf = { err.data(), err.size() };
     return map_return_value(wsrep_->to_execute_end(
-                                wsrep_, client_id.get(), 0));
+                                wsrep_, client_id.get(), &err_buf));
 }
 
 std::pair<wsrep::gtid, enum wsrep::provider::status>

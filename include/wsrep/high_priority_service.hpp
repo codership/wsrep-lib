@@ -41,7 +41,7 @@ namespace wsrep
         virtual ~high_priority_service() { }
 
         int apply(const ws_handle& ws_handle, const ws_meta& ws_meta,
-                          const const_buffer& data)
+                  const const_buffer& data)
         {
             return server_state_.on_apply(*this, ws_handle, ws_meta, data);
         }
@@ -70,9 +70,13 @@ namespace wsrep
          * new transaction before applying a write set and must
          * either commit to make changes persistent or roll back.
          *
+         * @params ws_meta Write set meta data
+         * @params ws Write set buffer
+         * @params err Buffer to store error data
          */
-        virtual int apply_write_set(const wsrep::ws_meta&,
-                                    const wsrep::const_buffer&) = 0;
+        virtual int apply_write_set(const wsrep::ws_meta& ws_meta,
+                                    const wsrep::const_buffer& ws,
+                                    wsrep::mutable_buffer& err) = 0;
 
         /**
          * Append a fragment into fragment storage. This will be
@@ -141,9 +145,14 @@ namespace wsrep
          *
          * TOI operation is a standalone operation and should not
          * be executed as a part of a transaction.
+         *
+         * @params ws_meta Write set meta data
+         * @params ws Write set buffer
+         * @params err Buffer to store error data
          */
-        virtual int apply_toi(const wsrep::ws_meta&,
-                              const wsrep::const_buffer&) = 0;
+        virtual int apply_toi(const wsrep::ws_meta& ws_meta,
+                              const wsrep::const_buffer& ws,
+                              wsrep::mutable_buffer& err) = 0;
 
         /**
          * Actions to take after applying a write set was completed.
@@ -175,11 +184,19 @@ namespace wsrep
          *
          * @params ws_handle Write set handle
          * @params ws_meta Write set meta data
+         * @params err Optional applying error data buffer, may be modified
          *
          * @return Zero in case of success, non-zero on failure
          */
         virtual int log_dummy_write_set(const ws_handle& ws_handle,
-                                        const ws_meta& ws_meta) = 0;
+                                        const ws_meta& ws_meta,
+                                        wsrep::mutable_buffer& err) = 0;
+
+        /**
+         * Adopt (store) apply error description for further reporting
+         * to provider, source buffer may be modified.
+         */
+        virtual void adopt_apply_error(wsrep::mutable_buffer& err) = 0;
 
         virtual bool is_replaying() const = 0;
 
@@ -189,6 +206,7 @@ namespace wsrep
          * Debug facility to crash the server at given point.
          */
         virtual void debug_crash(const char* crash_point) = 0;
+
     protected:
         wsrep::server_state& server_state_;
         bool must_exit_;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2019 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -47,7 +47,8 @@ namespace wsrep
         { return client_state_->transaction(); }
         int adopt_transaction(const wsrep::transaction&) WSREP_OVERRIDE;
         int apply_write_set(const wsrep::ws_meta&,
-                            const wsrep::const_buffer&) WSREP_OVERRIDE;
+                            const wsrep::const_buffer&,
+                            wsrep::mutable_buffer&) WSREP_OVERRIDE;
         int append_fragment_and_commit(
             const wsrep::ws_handle&,
             const wsrep::ws_meta&,
@@ -59,21 +60,23 @@ namespace wsrep
             WSREP_OVERRIDE;
         int rollback(const wsrep::ws_handle&, const wsrep::ws_meta&) WSREP_OVERRIDE;
         int apply_toi(const wsrep::ws_meta&,
-                      const wsrep::const_buffer&) WSREP_OVERRIDE;
+                      const wsrep::const_buffer&,
+                      wsrep::mutable_buffer&) WSREP_OVERRIDE;
+        void adopt_apply_error(wsrep::mutable_buffer& err) WSREP_OVERRIDE;
         void after_apply() WSREP_OVERRIDE;
         void store_globals() WSREP_OVERRIDE { }
         void reset_globals() WSREP_OVERRIDE { }
         void switch_execution_context(wsrep::high_priority_service&)
             WSREP_OVERRIDE { }
         int log_dummy_write_set(const wsrep::ws_handle&,
-                                const wsrep::ws_meta&)
-            WSREP_OVERRIDE { return 0; }
+                                const wsrep::ws_meta&,
+                                wsrep::mutable_buffer&) WSREP_OVERRIDE;
         bool is_replaying() const WSREP_OVERRIDE { return replaying_; }
         void debug_crash(const char*) WSREP_OVERRIDE { /* Not in unit tests*/}
 
-        wsrep::mock_client_state* client_state()
+        wsrep::client_state& client_state()
         {
-            return client_state_;
+            return *client_state_;
         }
         bool do_2pc_;
         bool fail_next_applying_;

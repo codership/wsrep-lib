@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2019 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -38,13 +38,22 @@ namespace wsrep
             , size_(size)
         { }
 
+        const_buffer(const const_buffer& b)
+            : ptr_(b.ptr())
+            , size_(b.size())
+        { }
+
         const void* ptr() const { return ptr_; }
-        const void* data() const { return ptr_; }
+        const char* data() const { return static_cast<const char*>(ptr_); }
         size_t size() const { return size_; }
 
+        const_buffer& operator=(const const_buffer& b)
+        {
+            ptr_  = b.ptr();
+            size_ = b.size();
+            return *this;
+        }
     private:
-        // const_buffer(const const_buffer&);
-        // const_buffer& operator=(const const_buffer&);
         const void* ptr_;
         size_t size_;
     };
@@ -57,16 +66,36 @@ namespace wsrep
             : buffer_()
         { }
 
+        void resize(size_t s) { buffer_.resize(s); }
+
+        void clear()
+        {
+            // using swap to ensure deallocation
+            std::vector<char>().swap(buffer_);
+        }
+
         void push_back(const char* begin, const char* end)
         {
             buffer_.insert(buffer_.end(), begin, end);
         }
-        const char* data() const { return &buffer_[0]; }
+
+        template <class C> void push_back(const C& c)
+        {
+            std::copy(c.begin(), c.end(), std::back_inserter(buffer_));
+        }
+
         size_t size() const { return buffer_.size(); }
+        char* data() { return &buffer_[0]; }
+        const char* data() const { return &buffer_[0]; }
+
+        mutable_buffer& operator= (const mutable_buffer& other)
+        {
+            buffer_ = other.buffer_;
+            return *this;
+        }
     private:
         std::vector<char> buffer_;
     };
-
 }
 
 #endif // WSREP_BUFFER_HPP

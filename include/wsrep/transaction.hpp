@@ -27,6 +27,7 @@
 #include "streaming_context.hpp"
 #include "lock.hpp"
 #include "sr_key_set.hpp"
+#include "buffer.hpp"
 
 #include <cassert>
 #include <vector>
@@ -198,6 +199,12 @@ namespace wsrep
         { return streaming_context_; }
         wsrep::streaming_context& streaming_context()
         { return streaming_context_; }
+        void adopt_apply_error(wsrep::mutable_buffer& buf)
+        {
+            apply_error_buf_ = std::move(buf);
+        }
+        const wsrep::mutable_buffer& apply_error() const
+        { return apply_error_buf_; }
     private:
         transaction(const transaction&);
         transaction operator=(const transaction&);
@@ -214,6 +221,7 @@ namespace wsrep
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
         int append_sr_keys_for_commit();
+        int release_commit_order(wsrep::unique_lock<wsrep::mutex>&);
         void streaming_rollback(wsrep::unique_lock<wsrep::mutex>&);
         void clear_fragments();
         void cleanup();
@@ -240,6 +248,7 @@ namespace wsrep
         size_t fragments_certified_for_statement_;
         wsrep::streaming_context streaming_context_;
         wsrep::sr_key_set sr_keys_;
+        wsrep::mutable_buffer apply_error_buf_;
     };
 
     static inline const char* to_c_string(enum wsrep::transaction::state state)

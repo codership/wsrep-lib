@@ -107,6 +107,7 @@ wsrep::transaction::transaction(
     , fragments_certified_for_statement_()
     , streaming_context_()
     , sr_keys_()
+    , apply_error_buf_()
 { }
 
 
@@ -469,7 +470,8 @@ int wsrep::transaction::ordered_commit()
     assert(state() == s_committing);
     assert(ordered());
     client_service_.debug_sync("wsrep_before_commit_order_leave");
-    int ret(provider().commit_order_leave(ws_handle_, ws_meta_));
+    int ret(provider().commit_order_leave(ws_handle_, ws_meta_,
+                                          apply_error_buf_));
     client_service_.debug_sync("wsrep_after_commit_order_leave");
     // Should always succeed:
     // 1) If before commit before succeeds, the transaction handle
@@ -670,6 +672,16 @@ int wsrep::transaction::after_rollback()
     return 0;
 }
 
+int wsrep::transaction::release_commit_order(
+    wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    lock.unlock();
+    int ret(provider().commit_order_enter(ws_handle_, ws_meta_));
+    lock.lock();
+    return ret || provider().commit_order_leave(ws_handle_, ws_meta_,
+                                                apply_error_buf_);
+}
+
 int wsrep::transaction::after_statement()
 {
     int ret(0);
@@ -767,13 +779,7 @@ int wsrep::transaction::after_statement()
     {
         if (ordered())
         {
-            lock.unlock();
-            ret = provider().commit_order_enter(ws_handle_, ws_meta_);
-            lock.lock();
-            if (ret == 0)
-            {
-                provider().commit_order_leave(ws_handle_, ws_meta_);
-            }
+            ret = release_commit_order(lock);
         }
         provider().release(ws_handle_);
     }
@@ -795,25 +801,6 @@ void wsrep::transaction::after_applying()
     assert(state_ == s_executing ||
            state_ == s_committed ||
            state_ == s_aborted);
-
-    // We may enter here from either high priority applier or
-    // from fragment storage service. High priority applier
-    // should always have set up meta data for ordering, but
-    // fragment storage service operation may be rolled back
-    // before the fragment is ordered and certified.
-    // Therefore we need to check separately if the ordering has
-    // been done.
-    if (state_ == s_aborted && ordered())
-    {
-        lock.unlock();
-        int ret(provider().commit_order_enter(ws_handle_, ws_meta_));
-        lock.lock();
-        if (ret == 0)
-        {
-            provider().commit_order_leave(ws_handle_, ws_meta_);
-        }
-    }
-
     if (state_ != s_executing)
     {
         cleanup();
@@ -1581,6 +1568,7 @@ void wsrep::transaction::cleanup()
     sr_keys_.clear();
     streaming_context_.cleanup();
     client_service_.cleanup_transaction();
+    apply_error_buf_.clear();
     debug_log_state("cleanup_leave");
 }
 

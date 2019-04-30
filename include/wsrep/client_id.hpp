@@ -41,6 +41,10 @@ namespace wsrep
         {
             return (id_ < other.id_);
         }
+        bool operator==(const client_id& other) const
+        {
+            return (id_ == other.id_);
+        }
     private:
         type id_;
     };

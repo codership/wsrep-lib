@@ -64,7 +64,8 @@ namespace wsrep
         commit_order_enter(const wsrep::ws_handle&,
                            const wsrep::ws_meta&);
         int commit_order_leave(const wsrep::ws_handle&,
-                               const wsrep::ws_meta&);
+                               const wsrep::ws_meta&,
+                               const wsrep::mutable_buffer&);
         int release(wsrep::ws_handle&);
         enum wsrep::provider::status replay(const wsrep::ws_handle&,
                                             wsrep::high_priority_service*);
@@ -73,7 +74,8 @@ namespace wsrep
                                                const wsrep::const_buffer&,
                                                wsrep::ws_meta&,
                                                int);
-        enum wsrep::provider::status leave_toi(wsrep::client_id);
+        enum wsrep::provider::status leave_toi(wsrep::client_id,
+                                               const wsrep::mutable_buffer&);
         std::pair<wsrep::gtid, enum wsrep::provider::status>
         causal_read(int) const;
         enum wsrep::provider::status wait_for_gtid(const wsrep::gtid&, int) const;

@@ -299,10 +299,16 @@ void wsrep::client_state::disable_streaming()
 //                                 TOI                                      //
 //////////////////////////////////////////////////////////////////////////////
 
+void wsrep::client_state::enter_toi_common()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    toi_mode_ = mode_;
+    mode(lock, m_toi);
+}
 
-int wsrep::client_state::enter_toi(const wsrep::key_array& keys,
-                                   const wsrep::const_buffer& buffer,
-                                   int flags)
+int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
+                                         const wsrep::const_buffer& buffer,
+                                         int flags)
 {
     assert(state_ == s_exec);
     assert(mode_ == m_local);
@@ -311,9 +317,7 @@ int wsrep::client_state::enter_toi(const wsrep::key_array& keys,
     {
     case wsrep::provider::success:
     {
-        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-        toi_mode_ = mode_;
-        mode(lock, m_toi);
+        enter_toi_common();
         ret = 0;
         break;
     }
@@ -326,43 +330,37 @@ int wsrep::client_state::enter_toi(const wsrep::key_array& keys,
     return ret;
 }
 
-int wsrep::client_state::enter_toi(const wsrep::ws_meta& ws_meta)
+void wsrep::client_state::enter_toi_mode(const wsrep::ws_meta& ws_meta)
 {
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(mode_ == m_high_priority);
-    toi_mode_ = mode_;
-    mode(lock, m_toi);
+    enter_toi_common();
     toi_meta_ = ws_meta;
-    return 0;
 }
 
-int wsrep::client_state::leave_toi()
+void wsrep::client_state::leave_toi_common()
 {
-    int ret(0);
-    if (toi_mode_ == m_local)
-    {
-        switch (provider().leave_toi(id_))
-        {
-        case wsrep::provider::success:
-            break;
-        default:
-            assert(0);
-            override_error(wsrep::e_error_during_commit,
-                           wsrep::provider::error_unknown);
-            ret = 1;
-            break;
-        }
-    }
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     mode(lock, toi_mode_);
-    toi_mode_ = m_local;
+    toi_mode_ = m_undefined;
     if (toi_meta_.gtid().is_undefined() == false)
     {
         update_last_written_gtid(toi_meta_.gtid());
     }
     toi_meta_ = wsrep::ws_meta();
+}
 
-    return ret;
+int wsrep::client_state::leave_toi_local(const wsrep::mutable_buffer& err)
+{
+    assert(toi_mode_ == m_local);
+    leave_toi_common();
+
+    return (provider().leave_toi(id_, err) == provider::success ? 0 : 1);
+}
+
+void wsrep::client_state::leave_toi_mode()
+{
+    assert(toi_mode_ == m_high_priority);
+    leave_toi_common();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -449,7 +447,7 @@ void wsrep::client_state::update_last_written_gtid(const wsrep::gtid& gtid)
 {
     assert(last_written_gtid_.is_undefined() ||
            (last_written_gtid_.id() == gtid.id() &&
-            last_written_gtid_.seqno() < gtid.seqno()));
+            !(last_written_gtid_.seqno() > gtid.seqno())));
     last_written_gtid_ = gtid;
 }
 
@@ -513,12 +511,14 @@ void wsrep::client_state::mode(
     enum mode mode)
 {
     assert(lock.owns_lock());
+
     static const char allowed[n_modes_][n_modes_] =
-        {   /* l  h  t  r */
-            {  0, 1, 1, 1 }, /* local */
-            {  1, 0, 1, 0 }, /* high prio */
-            {  1, 1, 0, 0 }, /* toi */
-            {  1, 0, 0, 0 }  /* rsu */
+        {   /* u  l  h  t  r */
+            {  0, 0, 0, 0, 0 }, /* undefined */
+            {  0, 0, 1, 1, 1 }, /* local */
+            {  0, 1, 0, 1, 0 }, /* high prio */
+            {  0, 1, 1, 0, 0 }, /* toi */
+            {  0, 1, 0, 0, 0 }  /* rsu */
         };
     if (!allowed[mode_][mode])
     {

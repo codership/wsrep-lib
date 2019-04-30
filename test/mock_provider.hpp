@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2019 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -172,12 +172,15 @@ namespace wsrep
         }
 
         int commit_order_leave(const wsrep::ws_handle& ws_handle,
-                               const wsrep::ws_meta& ws_meta)
+                               const wsrep::ws_meta& ws_meta,
+                               const wsrep::mutable_buffer& err)
             WSREP_OVERRIDE
         {
             BOOST_REQUIRE(ws_handle.opaque());
             BOOST_REQUIRE(ws_meta.seqno().is_undefined() == false);
-            return commit_order_leave_result_;
+            return err.size() > 0 ?
+                   wsrep::provider::error_fatal :
+                   commit_order_leave_result_;
         }
 
         int release(wsrep::ws_handle& )
@@ -195,7 +198,8 @@ namespace wsrep
             wsrep::mock_high_priority_service& high_priority_service(
                 *static_cast<wsrep::mock_high_priority_service*>(hps));
             wsrep::mock_client_state& cc(
-                *high_priority_service.client_state());
+                static_cast<wsrep::mock_client_state&>(
+                    high_priority_service.client_state()));
             wsrep::high_priority_context high_priority_context(cc);
             const wsrep::transaction& tc(cc.transaction());
             wsrep::ws_meta ws_meta;
@@ -238,7 +242,8 @@ namespace wsrep
                                                int)
             WSREP_OVERRIDE
         { return wsrep::provider::success; }
-        enum wsrep::provider::status leave_toi(wsrep::client_id)
+        enum wsrep::provider::status leave_toi(wsrep::client_id,
+                                               const wsrep::mutable_buffer&)
             WSREP_OVERRIDE
         { return wsrep::provider::success; }
 

@@ -56,6 +56,14 @@ namespace wsrep
         wsrep::transaction_id transaction_id() const
         { return transaction_id_; }
         wsrep::client_id client_id() const { return client_id_; }
+        bool operator==(const stid& other) const
+        {
+            return (
+                server_id_ == other.server_id_ &&
+                transaction_id_ == other.transaction_id_ &&
+                client_id_ == other.client_id_
+            );
+        }
     private:
         wsrep::id server_id_;
         wsrep::transaction_id transaction_id_;
@@ -84,6 +92,13 @@ namespace wsrep
 
         void* opaque() const { return opaque_; }
 
+        bool operator==(const ws_handle& other) const
+        {
+            return (
+                transaction_id_ == other.transaction_id_ &&
+                opaque_ == other.opaque_
+            );
+        }
     private:
         wsrep::transaction_id transaction_id_;
         void* opaque_;
@@ -134,9 +149,21 @@ namespace wsrep
             return stid_.transaction_id();
         }
 
+        bool ordered() const { return !gtid_.is_undefined(); }
+
         wsrep::seqno depends_on() const { return depends_on_; }
 
         int flags() const { return flags_; }
+
+        bool operator==(const ws_meta& other) const
+        {
+            return (
+                gtid_ == other.gtid_ &&
+                stid_ == other.stid_ &&
+                depends_on_ == other.depends_on_ &&
+                flags_ == other.flags_
+            );
+        }
     private:
         wsrep::gtid gtid_;
         wsrep::stid stid_;
@@ -300,7 +327,8 @@ namespace wsrep
         virtual enum status commit_order_enter(const wsrep::ws_handle&,
                                                const wsrep::ws_meta&) = 0;
         virtual int commit_order_leave(const wsrep::ws_handle&,
-                                       const wsrep::ws_meta&) = 0;
+                                       const wsrep::ws_meta&,
+                                       const wsrep::mutable_buffer& err) = 0;
         virtual int release(wsrep::ws_handle&) = 0;
 
         /**
@@ -325,7 +353,8 @@ namespace wsrep
         /**
          * Leave total order isolation critical section
          */
-        virtual enum status leave_toi(wsrep::client_id) = 0;
+        virtual enum status leave_toi(wsrep::client_id,
+                                      const wsrep::mutable_buffer& err) = 0;
 
         /**
          * Perform a causal read on cluster.

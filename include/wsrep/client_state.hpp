@@ -90,6 +90,8 @@ namespace wsrep
          */
         enum mode
         {
+            /** undefined mode */
+            m_undefined,
             /** Locally operating client session. */
             m_local,
             /** High priority mode */
@@ -247,6 +249,8 @@ namespace wsrep
 
         /**
          * Perform cleanup after applying a transaction.
+         *
+         * @param err Applying error (empty for no error)
          */
         void after_applying()
         {
@@ -509,6 +513,15 @@ namespace wsrep
         }
 
         /**
+         * Adopt (store) transaction applying error for further processing.
+         */
+        void adopt_apply_error(wsrep::mutable_buffer& err)
+        {
+            assert(mode_ == m_high_priority);
+            transaction_.adopt_apply_error(err);
+        }
+
+        /**
          * Clone enough state from another transaction so that replaing will
          * be possible with a transaction contained in this client state.
          * Method after_replay() must be used to inject the state after
@@ -546,15 +559,15 @@ namespace wsrep
          *
          * @return Zero on success, non-zero otherwise.
          */
-        int enter_toi(const wsrep::key_array& key_array,
-                      const wsrep::const_buffer& buffer,
-                      int flags);
+        int enter_toi_local(const wsrep::key_array& key_array,
+                            const wsrep::const_buffer& buffer,
+                            int flags);
         /**
-         * Enter applying total order critical section.
+         * Enter applier TOI mode
          *
          * @param ws_meta Write set meta data
          */
-        int enter_toi(const wsrep::ws_meta& ws_meta);
+        void enter_toi_mode(const wsrep::ws_meta& ws_meta);
 
         /**
          * Return true if the client_state is under TOI operation.
@@ -573,10 +586,20 @@ namespace wsrep
         {
             return toi_mode_;
         }
+
         /**
          * Leave total order isolation critical section.
+         * (for local mode clients)
+         *
+         * @param err definition of the error that happened during the
+         *            execution of TOI operation (empty for no error)
          */
-        int leave_toi();
+        int leave_toi_local(const wsrep::mutable_buffer& err);
+
+        /**
+         * Leave applier TOI mode.
+         */
+        void leave_toi_mode();
 
         /**
          * Begin rolling schema upgrade operation.
@@ -770,7 +793,7 @@ namespace wsrep
             , client_service_(client_service)
             , id_(id)
             , mode_(mode)
-            , toi_mode_()
+            , toi_mode_(m_undefined)
             , state_(s_none)
             , state_hist_()
             , transaction_(*this)
@@ -803,6 +826,9 @@ namespace wsrep
         void override_error(enum wsrep::client_error error,
                             enum wsrep::provider::status status =
                             wsrep::provider::success);
+
+        void enter_toi_common();
+        void leave_toi_common();
 
         wsrep::thread::id owning_thread_id_;
         wsrep::thread::id current_thread_id_;
@@ -864,6 +890,7 @@ namespace wsrep
     {
         switch (mode)
         {
+        case wsrep::client_state::m_undefined: return "undefined";
         case wsrep::client_state::m_local: return "local";
         case wsrep::client_state::m_high_priority: return "high priority";
         case wsrep::client_state::m_toi: return "toi";

@@ -104,7 +104,7 @@ namespace wsrep
             m_nbo
         };
 
-        static const int n_modes_ = m_rsu + 1;
+        static const int n_modes_ = m_nbo + 1;
         /**
          * Client state enumeration.
          *
@@ -638,16 +638,44 @@ namespace wsrep
 
         /**
          * Begin non-blocking operation.
+         *
+         * The NBO operation is started by grabbing TOI critical
+         * section. The keys and buffer are certifed as in TOI
+         * operation. If the call fails due to error returned by
+         * the provider, the provider error code can be retrieved
+         * by current_error_status() call.
+         *
+         * @param keys Array of keys for NBO operation.
+         * @param buffer NBO write set
+         *
+         * @return Zero in case of success, non-zero in case of failure.
          */
-        int begin_nbo_phase_one(const wsrep::key_array&);
+        int begin_nbo_phase_one(const wsrep::key_array& keys,
+                                const wsrep::const_buffer& buffer);
 
         /**
-         * End non-blocking operation
+         * End non-blocking operation phase after aquiring required
+         * resources for operation.
          */
         int end_nbo_phase_one();
 
-        int begin_nbo_phase_two();
+        /**
+         * Begin non-blocking operation phase two. The keys argument
+         * passed to this call must contain the same keys which were
+         * passed to begin_nbo_phase_one().
+         *
+         * @todo Keys should be stored internally in client_state
+         *       so that they would not be required as an argument
+         *       here.
+         *
+         * @param keys Array of keys for non-blocking operation.
+         */
+        int begin_nbo_phase_two(const wsrep::key_array& keys);
 
+        /**
+         * End non-blocking operation phase two. This call will
+         * release TOI critical section and set the mode to m_local.
+         */
         int end_nbo_phase_two();
 
         /**

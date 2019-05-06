@@ -33,7 +33,11 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo,
     key.append_key_part("k1", 2);
     key.append_key_part("k2", 2);
     wsrep::key_array keys{key};
-    BOOST_REQUIRE(cc.begin_nbo_phase_one(keys) == 0);
+    std::string data("data");
+    BOOST_REQUIRE(cc.begin_nbo_phase_one(
+                      keys,
+                      wsrep::const_buffer(data.data(),
+                                          data.size())) == 0);
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_nbo);
     BOOST_REQUIRE(cc.in_toi());
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
@@ -45,7 +49,7 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo,
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
     // Second phase replicates the NBO end event and grabs TOI
     // again for finalizing the NBO.
-    BOOST_REQUIRE(cc.begin_nbo_phase_two() == 0);
+    BOOST_REQUIRE(cc.begin_nbo_phase_two(keys) == 0);
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_nbo);
     BOOST_REQUIRE(cc.in_toi());
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
@@ -55,4 +59,10 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo,
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_local);
     BOOST_REQUIRE(cc.in_toi() == false);
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
+
+    // There must have been two toi write sets, one with
+    // start transaction flag, another with commit flag.
+    BOOST_REQUIRE(sc.provider().toi_write_sets() == 2);
+    BOOST_REQUIRE(sc.provider().toi_start_transaction() == 1);
+    BOOST_REQUIRE(sc.provider().toi_commit() == 1);
 }

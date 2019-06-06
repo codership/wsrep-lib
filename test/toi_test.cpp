@@ -50,11 +50,6 @@ BOOST_FIXTURE_TEST_CASE(test_toi_mode,
 BOOST_FIXTURE_TEST_CASE(test_toi_applying,
                         applying_client_fixture)
 {
-    // Fixture opens a transaction, commit it first
-    BOOST_REQUIRE((cc.before_commit() || cc.ordered_commit() ||
-                   cc.after_commit()) == 0);
-    cc.after_applying();
-
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
     wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(2)),
                            wsrep::stid(sc.id(),

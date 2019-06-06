@@ -66,3 +66,8 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo,
     BOOST_REQUIRE(sc.provider().toi_start_transaction() == 1);
     BOOST_REQUIRE(sc.provider().toi_commit() == 1);
 }
+
+BOOST_FIXTURE_TEST_CASE(test_applying_nbo,
+                        applying_client_fixture)
+{
+}

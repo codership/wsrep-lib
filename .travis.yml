@@ -245,5 +245,5 @@ script:
             -DWSREP_LIB_WITH_DBSIM:BOOL=${DBSIM}
             -DWSREP_LIB_WITH_ASAN:BOOL=${ASAN}
   - make VERBOSE=1 -j 4
-  - make test
+  - make test ARGS=--verbose
 

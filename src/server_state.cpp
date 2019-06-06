@@ -463,8 +463,10 @@ static int apply_toi(wsrep::provider& provider,
     }
     else if (wsrep::starts_transaction(ws_meta.flags()))
     {
-        // NBO begin
-        throw wsrep::not_implemented_error();
+        provider.commit_order_enter(ws_handle, ws_meta);
+        int ret(high_priority_service.apply_nbo_begin(ws_meta, data));
+        provider.commit_order_leave(ws_handle, ws_meta);
+        return ret;
     }
     else if (wsrep::commits_transaction(ws_meta.flags()))
     {

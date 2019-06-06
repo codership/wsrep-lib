@@ -68,6 +68,13 @@ int db::high_priority_service::apply_toi(
     throw wsrep::not_implemented_error();
 }
 
+int db::high_priority_service::apply_nbo_begin(
+    const wsrep::ws_meta&,
+    const wsrep::const_buffer&)
+{
+    throw wsrep::not_implemented_error();
+}
+
 int db::high_priority_service::commit(const wsrep::ws_handle& ws_handle,
                                       const wsrep::ws_meta& ws_meta)
 {

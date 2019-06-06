@@ -998,6 +998,8 @@ BOOST_FIXTURE_TEST_CASE(
 BOOST_FIXTURE_TEST_CASE(transaction_1pc_applying,
                         applying_client_fixture)
 {
+    start_transaction(wsrep::transaction_id(1),
+                      wsrep::seqno(1));
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committing);
     BOOST_REQUIRE(cc.ordered_commit() == 0);

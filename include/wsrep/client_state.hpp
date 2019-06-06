@@ -756,6 +756,18 @@ namespace wsrep
         int end_nbo_phase_one();
 
         /**
+         * Enter in NBO mode. This method should be called when the
+         * applier launches the asynchronous process to perform the
+         * operation. The purpose of the call is to adjust
+         * the state and set write set meta data.
+         *
+         * @param ws_meta Write set meta data.
+         *
+         * @return Zero in case of success, non-zero on failure.
+         */
+        int enter_nbo_mode(const wsrep::ws_meta& ws_meta);
+
+        /**
          * Begin non-blocking operation phase two. The keys argument
          * passed to this call must contain the same keys which were
          * passed to begin_nbo_phase_one().

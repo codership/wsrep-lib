@@ -137,8 +137,12 @@ namespace
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
             BOOST_REQUIRE(cc.before_statement() == 0);
-            wsrep::ws_handle ws_handle(wsrep::transaction_id(1), (void*)1);
-            wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(1)),
+        }
+        void start_transaction(wsrep::transaction_id id,
+                               wsrep::seqno seqno)
+        {
+            wsrep::ws_handle ws_handle(id, (void*)1);
+            wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), seqno),
                                    wsrep::stid(sc.id(),
                                                wsrep::transaction_id(1),
                                                cc.id()),
@@ -150,6 +154,7 @@ namespace
             BOOST_REQUIRE(tc.certified() == true);
             BOOST_REQUIRE(tc.ordered() == true);
         }
+
         wsrep::mock_server_service server_service;
         wsrep::mock_server_state sc;
         wsrep::mock_client cc;

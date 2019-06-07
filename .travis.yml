@@ -3,13 +3,32 @@ language: cpp
 matrix:
   include:
     - os: linux
+      dist: trusty
+      name: "GCC 4.4 Debug"
+      addons:
+        apt:
+          packages:
+            - cmake
+            - gcc-4.4
+            - g++-4.4
+      env: MATRIX_EVAL="CC=gcc-4.4 CXX=g++-4.4 TYPE=Debug STRICT=OFF UNIT_TESTS=OFF ASAN=OFF DBSIM=OFF"
+    - os: linux
+      name: "GCC 4.4 RelWithDebInfo"
+      addons:
+        apt:
+          packages:
+            - cmake
+            - gcc-4.4
+            - g++-4.4
+      env: MATRIX_EVAL="CC=gcc-4.4 CXX=g++-4.4 TYPE=RelWithDebInfo STRICT=OFF UNIT_TESTS=OFF ASAN=OFF DBSIM=OFF"
+    - os: linux
       name: "GCC 4.8 Debug"
       addons:
         apt:
           packages:
             - cmake
             - libboost-test-dev
-      env: MATRIX_EVAL="TYPE=Debug STRICT=OFF ASAN=ON DBSIM=OFF"
+      env: MATRIX_EVAL="TYPE=Debug STRICT=OFF UNIT_TESTS=ON ASAN=ON DBSIM=OFF"
     - os: linux
       name: "GCC 4.8 RelWithDebInfo"
       addons:
@@ -17,7 +36,7 @@ matrix:
           packages:
             - cmake
             - libboost-test-dev
-      env: MATRIX_EVAL="TYPE=RelWithDebInfo STRICT=OFF ASAN=ON DBSIM=OFF"
+      env: MATRIX_EVAL="TYPE=RelWithDebInfo STRICT=OFF UNIT_TESTS=ON ASAN=ON DBSIM=OFF"
     - os: linux
       name: "GCC 5 Debug"
       addons:
@@ -31,7 +50,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=gcc-5 CXX=g++-5 TYPE=Debug STRICT=ON ASAN=OFF DBSIM=ON"
+      env: MATRIX_EVAL="CC=gcc-5 CXX=g++-5 TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
     - os: linux
       name: "GCC 5 RelWithDebInfo"
       addons:
@@ -45,7 +64,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=gcc-5 CXX=g++-5 TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=ON"
+      env: MATRIX_EVAL="CC=gcc-5 CXX=g++-5 TYPE=RelWithDebInfo STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
     - os: linux
       name: "GCC 6 Debug"
       addons:
@@ -59,7 +78,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=gcc-6 CXX=g++-6 TYPE=Debug STRICT=ON ASAN=OFF DBSIM=ON"
+      env: MATRIX_EVAL="CC=gcc-6 CXX=g++-6 TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
     - os: linux
       name: "GCC 6 RelWithDebInfo"
       addons:
@@ -73,7 +92,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=gcc-6 CXX=g++-6 TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=ON"
+      env: MATRIX_EVAL="CC=gcc-6 CXX=g++-6 TYPE=RelWithDebInfo STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
     - os: linux
       name: "GCC 7 Debug"
       addons:
@@ -87,7 +106,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=gcc-7 CXX=g++-7 TYPE=Debug STRICT=ON ASAN=OFF DBSIM=ON"
+      env: MATRIX_EVAL="CC=gcc-7 CXX=g++-7 TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
     - os: linux
       name: "GCC 7 RelWithDebInfo"
       addons:
@@ -101,7 +120,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=gcc-7 CXX=g++-7 TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=ON"
+      env: MATRIX_EVAL="CC=gcc-7 CXX=g++-7 TYPE=RelWithDebInfo STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
     - os: linux
       name: "Clang 3.6 Debug"
       addons:
@@ -116,7 +135,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=clang-3.6 CXX=clang++-3.6 TYPE=Debug STRICT=ON ASAN=OFF DBSIM=ON"
+      env: MATRIX_EVAL="CC=clang-3.6 CXX=clang++-3.6 TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
     - os: linux
       name: "Clang 3.6 RelWithDebInfo"
       addons:
@@ -131,7 +150,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=clang-3.6 CXX=clang++-3.6 TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=ON"
+      env: MATRIX_EVAL="CC=clang-3.6 CXX=clang++-3.6 TYPE=RelWithDebInfo STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
     - os: linux
       name: "Clang 4.0 Debug"
       addons:
@@ -146,7 +165,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=clang-4.0 CXX=clang++-4.0 TYPE=Debug STRICT=ON ASAN=OFF DBSIM=OFF"
+      env: MATRIX_EVAL="CC=clang-4.0 CXX=clang++-4.0 TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=OFF"
     - os: linux
       name: "Clang 4.0 RelWithDebInfo"
       addons:
@@ -161,7 +180,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=clang-4.0 CXX=clang++-4.0 TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=OFF"
+      env: MATRIX_EVAL="CC=clang-4.0 CXX=clang++-4.0 TYPE=RelWithDebInfo STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=OFF"
     - os: linux
       name: "Clang 5.0 Debug"
       addons:
@@ -176,7 +195,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=clang-5.0 CXX=clang++-5.0 TYPE=Debug STRICT=ON ASAN=OFF DBSIM=OFF"
+      env: MATRIX_EVAL="CC=clang-5.0 CXX=clang++-5.0 TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=OFF"
     - os: linux
       name: "Clang 5.0 RelWithDebInfo"
       addons:
@@ -207,7 +226,7 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=Debug STRICT=ON ASAN=OFF DBSIM=OFF"
+      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=OFF"
     - os: linux
       dist: xenial
       name: "Clang 7.0 RelWithDebInfo"
@@ -223,25 +242,25 @@ matrix:
             - libboost-program-options-dev
             - libboost-filesystem-dev
             - libboost-thread-dev
-      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=OFF"
+      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=RelWithDebInfo STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=OFF"
     - os: osx
       osx_image: xcode10.1
       name: "Xcode 10.1 Debug"
-      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=Debug STRICT=ON ASAN=OFF DBSIM=OFF"
+      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=OFF"
     - os: osx
       osx_image: xcode10.1
       name: "Xcode 10.1 RelWithDebInfo"
-      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=OFF"
+      env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=RelWithDebInfo STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=OFF"
 
 before_install:
   - eval ${MATRIX_EVAL}
 
 script:
-  - echo CC=${CC} CXX=${CXX} TYPE=${TYPE} STRICT=${STRICT} ASAN=${ASAN} DBSIM=${DBSIM}
+  - echo CC=${CC} CXX=${CXX} TYPE=${TYPE} STRICT=${STRICT} ${UNIT_TESTS} ASAN=${ASAN} DBSIM=${DBSIM}
   - cmake . -DCMAKE_BUILD_TYPE=${TYPE}
             -DWSREP_LIB_MAINTAINER_MODE:BOOL=ON
             -DWSREP_LIB_STRICT_BUILD_FLAGS:BOOL=${STRICT}
-            -DWSREP_LIB_WITH_UNIT_TESTS:BOOL=ON
+            -DWSREP_LIB_WITH_UNIT_TESTS:BOOL=${UNIT_TESTS}
             -DWSREP_LIB_WITH_DBSIM:BOOL=${DBSIM}
             -DWSREP_LIB_WITH_ASAN:BOOL=${ASAN}
   - make VERBOSE=1 -j 4

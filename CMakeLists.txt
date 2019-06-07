@@ -3,7 +3,28 @@
 #
 
 cmake_minimum_required (VERSION 2.8)
-project (wsrep-lib)
+
+# Parse version from version header file and store it into
+# WSREP_LIB_VERSION.
+file (READ "include/wsrep/version.hpp" ver)
+string(REGEX MATCH "WSREP_LIB_VERSION_MAJOR ([0-9]*)" _ ${ver})
+set(ver_major ${CMAKE_MATCH_1})
+file (READ "include/wsrep/version.hpp" ver)
+string(REGEX MATCH "WSREP_LIB_VERSION_MINOR ([0-9]*)" _ ${ver})
+set(ver_minor ${CMAKE_MATCH_1})
+file (READ "include/wsrep/version.hpp" ver)
+string(REGEX MATCH "WSREP_LIB_VERSION_PATCH ([0-9]*)" _ ${ver})
+set(ver_patch ${CMAKE_MATCH_1})
+set(WSREP_LIB_VERSION "${ver_major}.${ver_minor}.${ver_patch}")
+message(STATUS "Wsrep-lib version: ${WSREP_LIB_VERSION}")
+
+if (POLICY CMP0048)
+  cmake_policy(SET CMP0048 NEW)
+  project(wsrep-lib VERSION ${WSREP_LIB_VERSION})
+else()
+  project(wsrep-lib)
+endif()
+
 include(CheckIncludeFile)
 
 # Options

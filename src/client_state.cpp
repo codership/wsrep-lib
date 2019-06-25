@@ -499,6 +499,17 @@ int wsrep::client_state::end_nbo_phase_one()
     return ret;
 }
 
+int wsrep::client_state::enter_nbo_mode(const wsrep::ws_meta& ws_meta)
+{
+    assert(state_ == s_exec);
+    assert(mode_ == m_local);
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    toi_meta_ = ws_meta;
+    toi_mode_ = mode_;
+    mode(lock, m_nbo);
+    return 0;
+}
+
 int wsrep::client_state::begin_nbo_phase_two(const wsrep::key_array& keys)
 {
     assert(state_ == s_exec);

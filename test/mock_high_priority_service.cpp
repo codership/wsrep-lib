@@ -90,6 +90,32 @@ int wsrep::mock_high_priority_service::apply_toi(const wsrep::ws_meta&,
     return (fail_next_toi_ ? 1 : 0);
 }
 
+int wsrep::mock_high_priority_service::apply_nbo_begin(
+    const wsrep::ws_meta& ws_meta,
+    const wsrep::const_buffer&)
+{
+    const int nbo_begin_flags(wsrep::provider::flag::isolation |
+                              wsrep::provider::flag::start_transaction);
+    assert(ws_meta.flags() & nbo_begin_flags);
+    assert((ws_meta.flags() & ~nbo_begin_flags) == 0);
+
+    if (fail_next_toi_)
+    {
+        return 1;
+    }
+    else
+    {
+        nbo_cs_ = std::unique_ptr<wsrep::mock_client>(
+            new wsrep::mock_client(client_state_->server_state(),
+                                   wsrep::client_id(1),
+                                   wsrep::client_state::m_local));
+        nbo_cs_->open(wsrep::client_id(1));
+        nbo_cs_->before_command();
+        nbo_cs_->before_statement();
+        return nbo_cs_->enter_nbo_mode(ws_meta);
+    }
+}
+
 void wsrep::mock_high_priority_service::adopt_apply_error(
     wsrep::mutable_buffer& err)
 {

@@ -258,6 +258,8 @@ BOOST_FIXTURE_TEST_CASE(transaction_streaming_2pc_bf_abort_during_fragment_remov
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
     BOOST_REQUIRE(cc.after_statement());
     BOOST_REQUIRE(tc.active() == false);
+    wsrep_test::terminate_streaming_applier(sc, sc.id(),
+                                            wsrep::transaction_id(1));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

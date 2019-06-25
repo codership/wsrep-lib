@@ -43,3 +43,28 @@ void wsrep_test::bf_abort_provider(wsrep::mock_server_state& sc,
     sc.provider().bf_abort(bf_seqno, tc.id(), victim_seqno);
     (void)victim_seqno;
 }
+
+void wsrep_test::terminate_streaming_applier(
+    wsrep::mock_server_state& sc,
+    const wsrep::id& server_id,
+    wsrep::transaction_id transaction_id)
+{
+    // Note that all other arguments than server_id and
+    // transaction_id are chosen arbitrarily and it is hoped
+    // that the mock implementation does not freak out about it.
+    wsrep::mock_client mc(sc, wsrep::client_id(10),
+                          wsrep::client_state::m_high_priority);
+    mc.open(wsrep::client_id(10));
+    mc.before_command();
+    wsrep::mock_high_priority_service hps(sc, &mc, false);
+    wsrep::ws_handle ws_handle(transaction_id, (void*)(1));
+    wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("cluster1"),
+                                       wsrep::seqno(100)),
+                           wsrep::stid(server_id,
+                                       transaction_id,
+                                       wsrep::client_id(1)),
+                           wsrep::seqno(0),
+                           wsrep::provider::flag::rollback);
+    wsrep::const_buffer data(0, 0);
+    sc.on_apply(hps, ws_handle, ws_meta, data);
+}

@@ -43,4 +43,10 @@ namespace wsrep_test
     void bf_abort_provider(wsrep::mock_server_state& sc,
                            const wsrep::transaction& tc,
                            wsrep::seqno bf_seqno);
+
+    // Terminate streaming applier by applying rollback fragment.
+    void terminate_streaming_applier(
+        wsrep::mock_server_state& sc,
+        const wsrep::id& server_id,
+        wsrep::transaction_id transaction_id);
 }

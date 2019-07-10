@@ -71,6 +71,7 @@ static inline int resolve_return_error(bool const vote,
 
 static void
 discard_streaming_applier(wsrep::server_state& server_state,
+                          wsrep::high_priority_service& high_priority_service,
                           wsrep::high_priority_service* streaming_applier,
                           const wsrep::ws_meta& ws_meta)
 {
@@ -78,6 +79,7 @@ discard_streaming_applier(wsrep::server_state& server_state,
         ws_meta.server_id(), ws_meta.transaction_id());
     server_state.server_service().release_high_priority_service(
         streaming_applier);
+    high_priority_service.store_globals();
 }
 
 static int apply_fragment(wsrep::server_state& server_state,
@@ -135,7 +137,10 @@ static int apply_fragment(wsrep::server_state& server_state,
         }
         else
         {
-            discard_streaming_applier(server_state, streaming_applier,ws_meta);
+            discard_streaming_applier(server_state,
+                                      high_priority_service,
+                                      streaming_applier,
+                                      ws_meta);
             ret = resolve_return_error(err.size() > 0, ret, apply_err);
         }
     }
@@ -188,7 +193,8 @@ static int commit_fragment(wsrep::server_state& server_state,
 
     if (!ret)
     {
-        discard_streaming_applier(server_state, streaming_applier, ws_meta);
+        discard_streaming_applier(server_state, high_priority_service,
+                                  streaming_applier, ws_meta);
     }
 
     return ret;
@@ -227,7 +233,8 @@ static int rollback_fragment(wsrep::server_state& server_state,
 
     if (!ret)
     {
-        discard_streaming_applier(server_state, streaming_applier, ws_meta);
+        discard_streaming_applier(server_state, high_priority_service,
+                                  streaming_applier, ws_meta);
 
         if (adopt_error == 0)
         {
@@ -1282,7 +1289,7 @@ void wsrep::server_state::state(
             {  1,   0,   0,    1,    1,   0,   0,   1,   1}, /* cted */
             {  1,   1,   0,    0,    0,   1,   0,   0,   1}, /* jer */
             {  1,   0,   0,    1,    0,   0,   1,   1,   1}, /* jed */
-            {  1,   0,   0,    1,    0,   1,   0,   0,   1}, /* dor */
+            {  1,   0,   0,    1,    0,   1,   0,   1,   1}, /* dor */
             {  1,   0,   0,    1,    0,   1,   1,   0,   1}, /* sed */
             {  1,   0,   0,    0,    0,   0,   0,   0,   0}  /* ding */
         };
@@ -1438,6 +1445,7 @@ void wsrep::server_state::close_orphaned_sr_transactions(
 
             streaming_appliers_.erase(i++);
             server_service_.release_high_priority_service(streaming_applier);
+            high_priority_service.store_globals();
             wsrep::ws_meta ws_meta(
                 wsrep::gtid(),
                 wsrep::stid(server_id, transaction_id, wsrep::client_id()),
@@ -1478,6 +1486,7 @@ void wsrep::server_state::close_transactions_at_disconnect(
         }
         streaming_appliers_.erase(i++);
         server_service_.release_high_priority_service(streaming_applier);
+        high_priority_service.store_globals();
     }
     streaming_appliers_recovered_ = false;
 }

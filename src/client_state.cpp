@@ -36,8 +36,7 @@ void wsrep::client_state::open(wsrep::client_id id)
     assert(state_ == s_none);
     debug_log_state("open: enter");
     owning_thread_id_ = wsrep::this_thread::get_id();
-    current_thread_id_ = owning_thread_id_;
-    has_rollbacker_ = false;
+    rollbacker_active_ = false;
     sync_wait_gtid_ = wsrep::gtid::undefined();
     last_written_gtid_ = wsrep::gtid::undefined();
     state(lock, s_idle);
@@ -88,25 +87,30 @@ int wsrep::client_state::before_command()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("before_command: enter");
-    assert(state_ == s_idle);
-    if (transaction_.active() &&
-        server_state_.rollback_mode() == wsrep::server_state::rm_sync)
+    // If the state is s_exec, the processing thread has already grabbed
+    // control with wait_rollback_complete_and_acquire_ownership()
+    if (state_ != s_exec)
     {
-        /*
-         * has_rollbacker() returns false, when background rollback is over
-         */
-        while (has_rollbacker())
-        {
-            cond_.wait(lock);
-        }
+        assert(state_ == s_idle);
+        do_wait_rollback_complete_and_acquire_ownership(lock);
+        assert(state_ == s_exec);
     }
-    store_globals(); // Marks the control for this thread
-    state(lock, s_exec);
+    else
+    {
+        // This thread must have acquired control by other means,
+        // for example via wait_rollback_complete_and_acquire_ownership().
+        assert(wsrep::this_thread::get_id() == owning_thread_id_);
+    }
+
+    // If the transaction is active, it must be either executing,
+    // aborted as rolled back by rollbacker, or must_abort if the
+    // client thread gained control via
+    // wait_rollback_complete_and_acquire_ownership()
+    // just before BF abort happened.
     assert(transaction_.active() == false ||
            (transaction_.state() == wsrep::transaction::s_executing ||
             transaction_.state() == wsrep::transaction::s_aborted ||
-            (transaction_.state() == wsrep::transaction::s_must_abort &&
-             server_state_.rollback_mode() == wsrep::server_state::rm_async)));
+            transaction_.state() == wsrep::transaction::s_must_abort));
 
     if (transaction_.active())
     {
@@ -255,6 +259,33 @@ int wsrep::client_state::after_statement()
     }
     debug_log_state("after_statement: success");
     return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//                      Rollbacker synchronization                          //
+//////////////////////////////////////////////////////////////////////////////
+
+void wsrep::client_state::sync_rollback_complete()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    debug_log_state("sync_rollback_complete: enter");
+    assert(state_ == s_idle && mode_ == m_local &&
+           transaction_.state() == wsrep::transaction::s_aborted);
+    set_rollbacker_active(false);
+    cond_.notify_all();
+    debug_log_state("sync_rollback_complete: leave");
+}
+
+void wsrep::client_state::wait_rollback_complete_and_acquire_ownership()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    debug_log_state("wait_rollback_complete_and_acquire_ownership: enter");
+    if (state_ == s_idle)
+    {
+        do_wait_rollback_complete_and_acquire_ownership(lock);
+    }
+    assert(state_ == s_exec);
+    debug_log_state("wait_rollback_complete_and_acquire_ownership: leave");
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -443,6 +474,32 @@ int wsrep::client_state::sync_wait(int timeout)
 //                               Private                                     //
 ///////////////////////////////////////////////////////////////////////////////
 
+void wsrep::client_state::do_acquire_ownership(
+    wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED)
+{
+    assert(lock.owns_lock());
+    // Be strict about client state for clients in local mode. The
+    // owning_thread_id_ is used to detect bugs which are caused by
+    // more than one thread operating the client state at the time,
+    // for example thread handling the client session and background
+    // rollbacker.
+    assert(state_ == s_idle || mode_ != m_local);
+    owning_thread_id_ = wsrep::this_thread::get_id();
+}
+
+void wsrep::client_state::do_wait_rollback_complete_and_acquire_ownership(
+    wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    assert(lock.owns_lock());
+    assert(state_ == s_idle);
+    while (is_rollbacker_active())
+    {
+        cond_.wait(lock);
+    }
+    do_acquire_ownership(lock);
+    state(lock, s_exec);
+}
+
 void wsrep::client_state::update_last_written_gtid(const wsrep::gtid& gtid)
 {
     assert(last_written_gtid_.is_undefined() ||
@@ -468,19 +525,9 @@ void wsrep::client_state::state(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
     enum wsrep::client_state::state state)
 {
-    // For locally processing client states (local, toi, rsu)
-    // changing the state is allowed only from the owning thread.
-    // In high priority mode the processing thread however may
-    // change and we check only that store_globals() has been
-    // called by the current thread to gain ownership.
-    //
-    // Note that this check assumes that there is always a single
-    // thread per local client connection. This may not always
-    // hold and the sanity check mechanism may need to be revised.
-    assert((mode_ != m_high_priority &&
-            wsrep::this_thread::get_id() == owning_thread_id_) ||
-           (mode_ == m_high_priority &&
-            wsrep::this_thread::get_id() == current_thread_id_));
+    // Verify that the current thread has gained control to the
+    // connection by calling before_command()
+    assert(wsrep::this_thread::get_id() == owning_thread_id_);
     assert(lock.owns_lock());
     static const char allowed[state_max_][state_max_] =
         {
@@ -497,7 +544,6 @@ void wsrep::client_state::state(
                            << state_ << " -> " << state;
         assert(0);
     }
-
     state_hist_.push_back(state_);
     state_ = state;
     if (state_hist_.size() > 10)

@@ -906,7 +906,7 @@ bool wsrep::transaction::bf_abort(
             // between releasing the lock and before background
             // rollbacker gets control.
             state(lock, wsrep::transaction::s_aborting);
-            client_state_.set_rollbacker(true);
+            client_state_.set_rollbacker_active(true);
 
             if (client_state_.mode() == wsrep::client_state::m_high_priority)
             {
@@ -974,21 +974,12 @@ void wsrep::transaction::state(
                     << " -> " << to_string(next_state));
 
     assert(lock.owns_lock());
-    // BF aborter is allowed to change the state to must abort and
-    // further to aborting and aborted if the background rollbacker
-    // is launched.
-    //
-    // For high priority streaming applier threads the assertion must
-    // be relaxed to check only current thread id which indicates that
-    // the store_globals() has been called before processing of write set
-    // starts.
-    assert((client_state_.owning_thread_id_ == wsrep::this_thread::get_id() ||
-            next_state == s_must_abort ||
-            next_state == s_aborting ||
-            next_state == s_aborted)
-           ||
-           (client_state_.mode() == wsrep::client_state::m_high_priority &&
-            wsrep::this_thread::get_id() == client_state_.current_thread_id_));
+    // BF aborter is allowed to change the state without gaining control
+    // to the state if the next state is s_must_abort or s_aborting.
+    assert(client_state_.owning_thread_id_ == wsrep::this_thread::get_id() ||
+           next_state == s_must_abort ||
+           next_state == s_aborting);
+
     static const char allowed[n_states][n_states] =
         { /*  ex pr ce co oc ct cf ma ab ad mr re */
             { 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0}, /* ex */
@@ -1007,11 +998,9 @@ void wsrep::transaction::state(
 
     if (!allowed[state_][next_state])
     {
-        std::ostringstream os;
-        os << "unallowed state transition for transaction "
-           << id_ << ": " << wsrep::to_string(state_)
-           << " -> " << wsrep::to_string(next_state);
-        wsrep::log_warning() << os.str();
+        wsrep::log_debug() << "unallowed state transition for transaction "
+                           << id_ << ": " << wsrep::to_string(state_)
+                           << " -> " << wsrep::to_string(next_state);
         assert(0);
     }
 

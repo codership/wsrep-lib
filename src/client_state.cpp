@@ -75,11 +75,10 @@ void wsrep::client_state::override_error(enum wsrep::client_error error,
                                          enum wsrep::provider::status status)
 {
     assert(wsrep::this_thread::get_id() == owning_thread_id_);
-    if (current_error_ != wsrep::e_success &&
-        error == wsrep::e_success)
-    {
-        throw wsrep::runtime_error("Overriding error with success");
-    }
+    // Error state should not be cleared with success code without
+    // explicit reset_error() call.
+    assert(current_error_ == wsrep::e_success ||
+           error != wsrep::e_success);
     current_error_ = error;
     current_error_status_ = status;
 }
@@ -494,21 +493,18 @@ void wsrep::client_state::state(
             {  0,   1,   0,   0,     0}, /* result */
             {  1,   0,   0,   0,     0}  /* quit */
         };
-    if (allowed[state_][state])
+    if (!allowed[state_][state])
     {
-        state_hist_.push_back(state_);
-        state_ = state;
-        if (state_hist_.size() > 10)
-        {
-            state_hist_.erase(state_hist_.begin());
-        }
+        wsrep::log_debug() << "client_state: Unallowed state transition: "
+                           << state_ << " -> " << state;
+        assert(0);
     }
-    else
+
+    state_hist_.push_back(state_);
+    state_ = state;
+    if (state_hist_.size() > 10)
     {
-        std::ostringstream os;
-        os << "client_state: Unallowed state transition: "
-           << state_ << " -> " << state;
-        throw wsrep::runtime_error(os.str());
+        state_hist_.erase(state_hist_.begin());
     }
 }
 
@@ -524,16 +520,11 @@ void wsrep::client_state::mode(
             {  1, 1, 0, 0 }, /* toi */
             {  1, 0, 0, 0 }  /* rsu */
         };
-    if (allowed[mode_][mode])
+    if (!allowed[mode_][mode])
     {
-        mode_ = mode;
+        wsrep::log_debug() << "client_state: Unallowed mode transition: "
+                           << mode_ << " -> " << mode;
+        assert(0);
     }
-    else
-    {
-        std::ostringstream os;
-        os << "client_state: Unallowed mode transition: "
-           << mode_ << " -> " << mode;
-        throw wsrep::runtime_error(os.str());
-    }
-
+    mode_ = mode;
 }

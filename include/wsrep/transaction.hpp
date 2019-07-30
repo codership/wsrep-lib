@@ -124,22 +124,24 @@ namespace wsrep
 
         bool is_xa() const
         {
-            return client_service_.is_xa();
+            return !xid_.empty();
         }
 
-        bool is_xa_prepare() const
+        void assign_xid(const std::string& xid)
         {
-            return client_service_.is_xa_prepare();
+            assert(active());
+            assert(xid_.empty());
+            xid_ = xid;
         }
-
-        int restore_to_prepared_state();
-
-        int commit_or_rollback_by_xid(const std::string& xid, bool commit);
 
         const std::string xid() const
         {
-            return client_service_.xid();
+            return xid_;
         }
+
+        int restore_to_prepared_state(const std::string& xid);
+
+        int commit_or_rollback_by_xid(const std::string& xid, bool commit);
 
         bool pa_unsafe() const { return pa_unsafe_; }
         void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }
@@ -239,7 +241,7 @@ namespace wsrep
         // The call will adjust transaction state and set client_state
         // error status accordingly.
         bool abort_or_interrupt(wsrep::unique_lock<wsrep::mutex>&);
-        int streaming_step(wsrep::unique_lock<wsrep::mutex>&);
+        int streaming_step(wsrep::unique_lock<wsrep::mutex>&, bool force = false);
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
         int append_sr_keys_for_commit();
@@ -271,7 +273,7 @@ namespace wsrep
         wsrep::streaming_context streaming_context_;
         wsrep::sr_key_set sr_keys_;
         wsrep::mutable_buffer apply_error_buf_;
-        bool is_recovered_xa_;
+        std::string xid_;
     };
 
     static inline const char* to_c_string(enum wsrep::transaction::state state)

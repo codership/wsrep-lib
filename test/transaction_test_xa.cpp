@@ -8,13 +8,11 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
                         replicating_client_fixture_sync_rm)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
-    cc.is_xa_ = true;
+    cc.assign_xid("test xid");
 
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
-
-    cc.is_xa_prepare_ = true;
 
     BOOST_REQUIRE(cc.before_prepare() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_preparing);
@@ -28,8 +26,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
     BOOST_REQUIRE(sc.provider().start_fragments() == 1);
     BOOST_REQUIRE(sc.provider().fragments() == 1);
 
-    cc.is_xa_prepare_ = false;
-
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committing);
     BOOST_REQUIRE(cc.ordered_commit() == 0);
@@ -38,7 +34,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
     BOOST_REQUIRE(tc.certified());
     BOOST_REQUIRE(cc.after_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committed);
-    // XA PRERAPRE and XA COMMIT fragments
+    // XA PREPARE and XA COMMIT fragments
     BOOST_REQUIRE(sc.provider().fragments() == 2);
     BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
 
@@ -56,8 +52,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
 BOOST_FIXTURE_TEST_CASE(transaction_xa_applying,
                         applying_client_fixture)
 {
-    cc.is_xa_ = true;
-    cc.is_xa_prepare_ = true;
+    cc.assign_xid("test xid");
 
     BOOST_REQUIRE(cc.before_prepare() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_preparing);
@@ -66,8 +61,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_applying,
     BOOST_REQUIRE(tc.ws_meta().gtid().is_undefined() == false);
     BOOST_REQUIRE(cc.after_prepare() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_prepared);
-
-    cc.is_xa_prepare_ = false;
 
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committing);
@@ -92,7 +85,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_sr,
                         streaming_client_fixture_byte)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
-    cc.is_xa_ = true;
+    cc.assign_xid("test xid");
     cc.bytes_generated_ = 1;
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
@@ -103,8 +96,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_sr,
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
 
-    cc.is_xa_prepare_ = true;
-
     BOOST_REQUIRE(cc.before_prepare() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_preparing);
     BOOST_REQUIRE(tc.ordered() == false);
@@ -113,8 +104,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_sr,
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_prepared);
     // XA PREPARE fragment
     BOOST_REQUIRE(sc.provider().fragments() == 2);
-
-    cc.is_xa_prepare_ = false;
 
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committing);

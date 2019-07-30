@@ -62,8 +62,6 @@ namespace wsrep
             : wsrep::client_service()
             , is_autocommit_()
             , do_2pc_()
-            , is_xa_()
-            , is_xa_prepare_()
               // , fail_next_applying_()
               // , fail_next_toi_()
             , bf_abort_during_wait_()
@@ -131,21 +129,6 @@ namespace wsrep
 
         void cleanup_transaction() WSREP_OVERRIDE { }
 
-        bool is_xa() const WSREP_OVERRIDE
-        {
-            return is_xa_;
-        }
-
-        bool is_xa_prepare() const WSREP_OVERRIDE
-        {
-            return is_xa_prepare_;
-        }
-
-        std::string xid() const WSREP_OVERRIDE
-        {
-            return "";
-        }
-
         size_t bytes_generated() const WSREP_OVERRIDE
         {
             return bytes_generated_;
@@ -197,8 +180,6 @@ namespace wsrep
         //
         bool is_autocommit_;
         bool do_2pc_;
-        bool is_xa_;
-        bool is_xa_prepare_;
         // bool fail_next_applying_;
         // bool fail_next_toi_;
         bool bf_abort_during_wait_;

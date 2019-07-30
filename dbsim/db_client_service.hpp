@@ -44,18 +44,6 @@ namespace db
             return 0;
         }
         void cleanup_transaction() override { }
-        bool is_xa () const override
-        {
-            return false;
-        }
-        bool is_xa_prepare() const override
-        {
-            return false;
-        }
-        std::string xid() const override
-        {
-            return "";
-        }
         size_t bytes_generated() const override
         {
             return 0;

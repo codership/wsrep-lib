@@ -108,7 +108,7 @@ wsrep::transaction::transaction(
     , streaming_context_()
     , sr_keys_()
     , apply_error_buf_()
-    , is_recovered_xa_(false)
+    , xid_()
 { }
 
 
@@ -121,6 +121,7 @@ int wsrep::transaction::start_transaction(
 {
     debug_log_state("start_transaction enter");
     assert(active() == false);
+    assert(is_xa() == false);
     assert(flags() == 0);
     server_id_ = client_state_.server_state().id();
     id_ = id;
@@ -323,7 +324,10 @@ int wsrep::transaction::before_prepare(
         {
             if (is_xa())
             {
-                ret = streaming_step(lock);
+                // Force fragment replication on XA prepare
+                flags(flags() | wsrep::provider::flag::prepare);
+                const bool force_streaming_step = true;
+                ret = streaming_step(lock, force_streaming_step);
                 if (ret == 0)
                 {
                     assert(state() == s_executing);
@@ -568,7 +572,7 @@ int wsrep::transaction::after_commit()
         assert(client_state_.mode() == wsrep::client_state::m_local ||
                client_state_.mode() == wsrep::client_state::m_high_priority);
 
-        if (is_xa() || is_recovered_xa_)
+        if (is_xa())
         {
             // XA fragment removal happens here,
             // see comment in before_prepare
@@ -1036,7 +1040,7 @@ void wsrep::transaction::after_replay(const wsrep::transaction& other)
     clear_fragments();
 }
 
-int wsrep::transaction::restore_to_prepared_state()
+int wsrep::transaction::restore_to_prepared_state(const std::string& xid)
 {
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex_);
     assert(active());
@@ -1045,7 +1049,7 @@ int wsrep::transaction::restore_to_prepared_state()
     flags(flags() & ~wsrep::provider::flag::start_transaction);
     state(lock, s_certifying);
     state(lock, s_prepared);
-    is_recovered_xa_ = true;
+    xid_ = xid;
     return 0;
 }
 
@@ -1209,7 +1213,8 @@ bool wsrep::transaction::abort_or_interrupt(
     return false;
 }
 
-int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock)
+int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock,
+                                       bool force)
 {
     assert(lock.owns_lock());
     assert(streaming_context_.fragment_size() || is_xa());
@@ -1230,18 +1235,19 @@ int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock)
         break;
     }
 
-    if (streaming_context_.fragment_size_exceeded() || is_xa_prepare())
+    // Some statements have no effect. Do not atttempt to
+    // replicate a fragment if no data has been generated since
+    // last fragment replication.
+    // We use `force = true` on XA prepare: a fragment will be
+    // generated even if no data is pending replication.
+    if (bytes_to_replicate <= 0 && !force)
     {
-        // Some statements have no effect. Do not atttempt to
-        // replicate a fragment if no data has been generated since
-        // last fragment replication. A XA PREPARE statement generates a
-        // fragment even if no data is currently pending replication.
-        if (bytes_to_replicate <= 0 && !is_xa_prepare())
-        {
-            assert(bytes_to_replicate == 0);
-            return ret;
-        }
+        assert(bytes_to_replicate == 0);
+        return ret;
+    }
 
+    if (streaming_context_.fragment_size_exceeded() || force)
+    {
         streaming_context_.reset_unit_counter();
         ret = certify_fragment(lock);
     }
@@ -1303,11 +1309,6 @@ int wsrep::transaction::certify_fragment(
     if (implicit_deps())
     {
         flags(flags() | wsrep::provider::flag::implicit_deps);
-    }
-
-    if (is_xa_prepare())
-    {
-        flags(flags() | wsrep::provider::flag::prepare);
     }
 
     int ret(0);
@@ -1744,7 +1745,7 @@ void wsrep::transaction::cleanup()
     streaming_context_.cleanup();
     client_service_.cleanup_transaction();
     apply_error_buf_.clear();
-    is_recovered_xa_ = false;
+    xid_.clear();
     debug_log_state("cleanup_leave");
 }
 

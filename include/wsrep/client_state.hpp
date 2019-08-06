@@ -778,7 +778,7 @@ namespace wsrep
          *
          * @param keys Array of keys for non-blocking operation.
          */
-        int begin_nbo_phase_two(const wsrep::key_array& keys);
+        int begin_nbo_phase_two();
 
         /**
          * End non-blocking operation phase two. This call will
@@ -959,6 +959,7 @@ namespace wsrep
             , state_hist_()
             , transaction_(*this)
             , toi_meta_()
+            , nbo_meta_()
             , allow_dirty_reads_()
             , sync_wait_gtid_()
             , last_written_gtid_()
@@ -1009,6 +1010,7 @@ namespace wsrep
         std::vector<enum state> state_hist_;
         wsrep::transaction transaction_;
         wsrep::ws_meta toi_meta_;
+        wsrep::ws_meta nbo_meta_;
         bool allow_dirty_reads_;
         wsrep::gtid sync_wait_gtid_;
         wsrep::gtid last_written_gtid_;

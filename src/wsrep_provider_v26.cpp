@@ -210,10 +210,14 @@ namespace
             , trx_meta_()
             , flags_(flags)
         {
-          std::memcpy(trx_meta_.stid.node.data, ws_meta.server_id().data(),
-                      sizeof(trx_meta_.stid.node.data));
-          trx_meta_.stid.conn = ws_meta.client_id().get();
-          trx_meta_.stid.trx = ws_meta.transaction_id().get();
+            std::memcpy(trx_meta_.gtid.uuid.data, ws_meta.group_id().data(),
+                        sizeof(trx_meta_.gtid.uuid.data));
+            trx_meta_.gtid.seqno = seqno_to_native(ws_meta.seqno());
+            std::memcpy(trx_meta_.stid.node.data, ws_meta.server_id().data(),
+                        sizeof(trx_meta_.stid.node.data));
+            trx_meta_.stid.conn = ws_meta.client_id().get();
+            trx_meta_.stid.trx = ws_meta.transaction_id().get();
+            trx_meta_.depends_on = seqno_to_native(ws_meta.depends_on());
         }
 
         ~mutable_ws_meta()
@@ -887,7 +891,7 @@ wsrep::wsrep_provider_v26::enter_toi(
                                 wsrep_keys.data(),
                                 wsrep_keys.size(),
                                 &wsrep_buf,
-                                1,
+                                buffer.size() ? 1 : 0,
                                 mmeta.native_flags(),
                                 mmeta.native()));
 }

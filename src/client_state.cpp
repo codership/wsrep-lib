@@ -340,6 +340,7 @@ int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
                                          const wsrep::const_buffer& buffer,
                                          int flags)
 {
+    debug_log_state("enter_toi_local: enter");
     assert(state_ == s_exec);
     assert(mode_ == m_local);
     int ret;
@@ -357,14 +358,17 @@ int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
         ret = 1;
         break;
     }
+    debug_log_state("enter_toi_local: leave");
     return ret;
 }
 
 void wsrep::client_state::enter_toi_mode(const wsrep::ws_meta& ws_meta)
 {
+    debug_log_state("enter_toi_mode: enter");
     assert(mode_ == m_high_priority);
     enter_toi_common();
     toi_meta_ = ws_meta;
+    debug_log_state("enter_toi_mode: leave");
 }
 
 void wsrep::client_state::leave_toi_common()
@@ -381,16 +385,20 @@ void wsrep::client_state::leave_toi_common()
 
 int wsrep::client_state::leave_toi_local(const wsrep::mutable_buffer& err)
 {
+    debug_log_state("leave_toi_local: enter");
     assert(toi_mode_ == m_local);
     leave_toi_common();
 
+    debug_log_state("leave_toi_local: leave");
     return (provider().leave_toi(id_, err) == provider::success ? 0 : 1);
 }
 
 void wsrep::client_state::leave_toi_mode()
 {
+    debug_log_state("leave_toi_mode: enter");
     assert(toi_mode_ == m_high_priority);
     leave_toi_common();
+    debug_log_state("leave_toi_mode: leave");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -449,6 +457,7 @@ int wsrep::client_state::end_rsu()
 int wsrep::client_state::begin_nbo_phase_one(const wsrep::key_array& keys,
                                              const wsrep::const_buffer& buffer)
 {
+    debug_log_state("begin_nbo_phase_one: enter");
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state_ == s_exec);
     assert(mode_ == m_local);
@@ -464,20 +473,26 @@ int wsrep::client_state::begin_nbo_phase_one(const wsrep::key_array& keys,
             id_, keys, buffer, toi_meta_,
             wsrep::provider::flag::start_transaction));
     lock.lock();
+    int ret;
     switch (status)
     {
     case wsrep::provider::success:
         toi_mode_ = mode_;
         mode(lock, m_nbo);
-        return 0;
+        ret= 0;
+        break;
     default:
         current_error_status_ = status;
-        return 1;
+        ret= 1;
+        break;
     }
+    debug_log_state("begin_nbo_phase_one: leave");
+    return ret;
 }
 
 int wsrep::client_state::end_nbo_phase_one()
 {
+    debug_log_state("end_nbo_phase_one: enter");
     assert(state_ == s_exec);
     assert(mode_ == m_nbo);
     assert(in_toi());
@@ -495,7 +510,9 @@ int wsrep::client_state::end_nbo_phase_one()
         ret = 1;
         break;
     }
+    nbo_meta_ = toi_meta_;
     toi_meta_ = wsrep::ws_meta();
+    debug_log_state("end_nbo_phase_one: leave");
     return ret;
 }
 
@@ -510,27 +527,35 @@ int wsrep::client_state::enter_nbo_mode(const wsrep::ws_meta& ws_meta)
     return 0;
 }
 
-int wsrep::client_state::begin_nbo_phase_two(const wsrep::key_array& keys)
+int wsrep::client_state::begin_nbo_phase_two()
 {
+    debug_log_state("begin_nbo_phase_two: enter");
     assert(state_ == s_exec);
     assert(mode_ == m_nbo);
 
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     enum wsrep::provider::status status(
-        provider().enter_toi(id_, keys, wsrep::const_buffer(), toi_meta_,
+        provider().enter_toi(id_, wsrep::key_array(),
+                             wsrep::const_buffer(), nbo_meta_,
                              wsrep::provider::flag::commit));
+    int ret;
     switch (status)
     {
     case wsrep::provider::success:
-        return 0;
+        ret= 0;
+        break;
     default:
         current_error_status_ = status;
-        return 1;
+        ret= 1;
+        break;
     }
+    debug_log_state("begin_nbo_phase_two: leave");
+    return ret;
 }
 
 int wsrep::client_state::end_nbo_phase_two()
 {
+    debug_log_state("end_nbo_phase_two: enter");
     assert(state_ == s_exec);
     assert(mode_ == m_nbo);
     assert(in_toi());
@@ -549,7 +574,9 @@ int wsrep::client_state::end_nbo_phase_two()
         break;
     }
     toi_meta_ = wsrep::ws_meta();
+    nbo_meta_ = wsrep::ws_meta();
     mode(lock, m_local);
+    debug_log_state("end_nbo_phase_two: leave");
     return ret;
 }
 ///////////////////////////////////////////////////////////////////////////////

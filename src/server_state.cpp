@@ -461,6 +461,8 @@ static int apply_toi(wsrep::provider& provider,
     {
         // NBO end event is ignored here, both local and applied
         // have NBO end handled via local TOI calls.
+        provider.commit_order_enter(ws_handle, ws_meta);
+        provider.commit_order_leave(ws_handle, ws_meta);
         return 0;
     }
     else

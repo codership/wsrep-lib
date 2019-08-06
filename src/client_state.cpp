@@ -521,7 +521,7 @@ int wsrep::client_state::enter_nbo_mode(const wsrep::ws_meta& ws_meta)
     assert(state_ == s_exec);
     assert(mode_ == m_local);
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    toi_meta_ = ws_meta;
+    nbo_meta_ = ws_meta;
     toi_mode_ = mode_;
     mode(lock, m_nbo);
     return 0;
@@ -532,8 +532,13 @@ int wsrep::client_state::begin_nbo_phase_two()
     debug_log_state("begin_nbo_phase_two: enter");
     assert(state_ == s_exec);
     assert(mode_ == m_nbo);
+    assert(!in_toi());
 
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    // Note: nbo_meta_ is passed to enter_toi() as it is
+    // an input param containing gtid of NBO begin.
+    // Output stored in nbo_meta_ is copied to toi_meta_ for
+    // phase two end.
     enum wsrep::provider::status status(
         provider().enter_toi(id_, wsrep::key_array(),
                              wsrep::const_buffer(), nbo_meta_,
@@ -543,6 +548,7 @@ int wsrep::client_state::begin_nbo_phase_two()
     {
     case wsrep::provider::success:
         ret= 0;
+        toi_meta_ = nbo_meta_;
         break;
     default:
         current_error_status_ = status;
@@ -651,7 +657,8 @@ void wsrep::client_state::debug_log_state(const char* context) const
                     << "," << to_c_string(state_)
                     << "," << to_c_string(mode_)
                     << "," << wsrep::to_string(current_error_)
-                    << ")");
+                    << ",toi: " << toi_meta_.seqno()
+                    << ",nbo: " << nbo_meta_.seqno() << ")");
 }
 
 void wsrep::client_state::state(

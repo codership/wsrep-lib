@@ -459,8 +459,9 @@ static int apply_toi(wsrep::provider& provider,
     }
     else if (wsrep::commits_transaction(ws_meta.flags()))
     {
-        // NBO end
-        throw wsrep::not_implemented_error();
+        // NBO end event is ignored here, both local and applied
+        // have NBO end handled via local TOI calls.
+        return 0;
     }
     else
     {

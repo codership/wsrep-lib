@@ -1116,11 +1116,17 @@ void wsrep::server_state::start_streaming_client(
 void wsrep::server_state::convert_streaming_client_to_applier(
     wsrep::client_state* client_state)
 {
+    // create streaming_applier beforehand as server_state lock should
+    // not be held when calling server_service methods
+    wsrep::high_priority_service* streaming_applier(
+        server_service_.streaming_applier_service(
+            client_state->client_service()));
+
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-     WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
-                     wsrep::log::debug_level_server_state,
-                     "Convert streaming client to applier "
-                     << client_state->id());
+    WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                    wsrep::log::debug_level_server_state,
+                    "Convert streaming client to applier "
+                    << client_state->id());
     streaming_clients_map::iterator i(
         streaming_clients_.find(client_state->id()));
     assert(i != streaming_clients_.end());
@@ -1141,9 +1147,6 @@ void wsrep::server_state::convert_streaming_client_to_applier(
     // joining back to cluster.
     if (state(lock) != s_disconnected)
     {
-        wsrep::high_priority_service* streaming_applier(
-            server_service_.streaming_applier_service(
-                client_state->client_service()));
         if (streaming_applier->adopt_transaction(client_state->transaction()))
         {
             log_adopt_error(client_state->transaction());
@@ -1163,6 +1166,10 @@ void wsrep::server_state::convert_streaming_client_to_applier(
                                  << client_state->transaction().id();
             assert(0);
         }
+    }
+    else
+    {
+        server_service_.release_high_priority_service(streaming_applier);
     }
 }
 

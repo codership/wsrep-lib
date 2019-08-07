@@ -483,7 +483,13 @@ int wsrep::client_state::begin_nbo_phase_one(const wsrep::key_array& keys,
         ret= 0;
         break;
     default:
+        override_error(e_deadlock_error);
         current_error_status_ = status;
+        if (!toi_meta_.seqno().is_undefined())
+        {
+            provider().leave_toi(id_);
+        }
+        toi_meta_ = wsrep::ws_meta();
         ret= 1;
         break;
     }

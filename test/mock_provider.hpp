@@ -257,7 +257,7 @@ namespace wsrep
                 ++toi_start_transaction_;
             if (flags & wsrep::provider::flag::commit)
                 ++toi_commit_;
-            return wsrep::provider::success;
+            return certify_result_;
         }
 
         enum wsrep::provider::status leave_toi(wsrep::client_id,

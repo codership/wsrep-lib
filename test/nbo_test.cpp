@@ -49,7 +49,7 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo,
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
     // Second phase replicates the NBO end event and grabs TOI
     // again for finalizing the NBO.
-    BOOST_REQUIRE(cc.begin_nbo_phase_two(keys) == 0);
+    BOOST_REQUIRE(cc.begin_nbo_phase_two() == 0);
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_nbo);
     BOOST_REQUIRE(cc.in_toi());
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
@@ -65,6 +65,30 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo,
     BOOST_REQUIRE(sc.provider().toi_write_sets() == 2);
     BOOST_REQUIRE(sc.provider().toi_start_transaction() == 1);
     BOOST_REQUIRE(sc.provider().toi_commit() == 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(test_local_nbo_cert_failure,
+                        replicating_client_fixture_sync_rm)
+{
+    // NBO is executed in two consecutive TOI operations
+    BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_local);
+    // First phase certifies the write set and enters TOI
+    wsrep::key key(wsrep::key::exclusive);
+    key.append_key_part("k1", 2);
+    key.append_key_part("k2", 2);
+    wsrep::key_array keys{key};
+    std::string data("data");
+    sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
+    BOOST_REQUIRE(cc.begin_nbo_phase_one(
+                      keys,
+                      wsrep::const_buffer(data.data(),
+                                          data.size())) == 1);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    BOOST_REQUIRE(cc.current_error_status() ==
+                  wsrep::provider::error_certification_failed);
+    BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_local);
+    BOOST_REQUIRE(cc.in_toi() == false);
+    BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
 }
 
 // This test case operates through server_state object in order to
@@ -101,7 +125,7 @@ BOOST_FIXTURE_TEST_CASE(test_applying_nbo,
     key.append_key_part("k2", 2);
     wsrep::key_array keys{key};
     // Starting phase two should put nbo_cs in toi mode.
-    BOOST_REQUIRE(nbo_cs->begin_nbo_phase_two(keys) == 0);
+    BOOST_REQUIRE(nbo_cs->begin_nbo_phase_two() == 0);
     BOOST_REQUIRE(nbo_cs->mode() == wsrep::client_state::m_nbo);
     BOOST_REQUIRE(nbo_cs->in_toi());
     BOOST_REQUIRE(nbo_cs->toi_mode() == wsrep::client_state::m_local);

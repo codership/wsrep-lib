@@ -43,10 +43,11 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo,
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
     // After required resoureces have been grabbed, NBO leave should
     // end TOI but leave the client state in m_nbo.
-    BOOST_REQUIRE(cc.end_nbo_phase_one() == 0);
+    const wsrep::mutable_buffer err;
+    BOOST_REQUIRE(cc.end_nbo_phase_one(err) == 0);
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_nbo);
     BOOST_REQUIRE(cc.in_toi() == false);
-    BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
+    BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_undefined);
     // Second phase replicates the NBO end event and grabs TOI
     // again for finalizing the NBO.
     BOOST_REQUIRE(cc.begin_nbo_phase_two() == 0);
@@ -55,10 +56,10 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo,
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
     // End of NBO phase will leave TOI and put the client state back to
     // m_local
-    BOOST_REQUIRE(cc.end_nbo_phase_two() == 0);
+    BOOST_REQUIRE(cc.end_nbo_phase_two(err) == 0);
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_local);
     BOOST_REQUIRE(cc.in_toi() == false);
-    BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
+    BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_undefined);
 
     // There must have been two toi write sets, one with
     // start transaction flag, another with commit flag.
@@ -88,7 +89,7 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo_cert_failure,
                   wsrep::provider::error_certification_failed);
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_local);
     BOOST_REQUIRE(cc.in_toi() == false);
-    BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
+    BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_undefined);
 }
 
 // This test case operates through server_state object in order to
@@ -115,7 +116,8 @@ BOOST_FIXTURE_TEST_CASE(test_applying_nbo,
                                                   nbo_begin.size())) == 0);
     wsrep::mock_client* nbo_cs(hps.nbo_cs());
     BOOST_REQUIRE(nbo_cs);
-    BOOST_REQUIRE(nbo_cs->toi_mode() == wsrep::client_state::m_local);
+    // TODO(leandro): should applying side really be m_local here?
+    BOOST_REQUIRE(nbo_cs->toi_mode() == wsrep::client_state::m_undefined);
     BOOST_REQUIRE(nbo_cs->mode() == wsrep::client_state::m_nbo);
 
     // After this point the control is on local process and applier
@@ -131,10 +133,11 @@ BOOST_FIXTURE_TEST_CASE(test_applying_nbo,
     BOOST_REQUIRE(nbo_cs->toi_mode() == wsrep::client_state::m_local);
     // Ending phase two should make nbo_cs leave TOI mode and
     // return to m_local mode.
-    BOOST_REQUIRE(nbo_cs->end_nbo_phase_two() == 0);
+    const wsrep::mutable_buffer err;
+    BOOST_REQUIRE(nbo_cs->end_nbo_phase_two(err) == 0);
     BOOST_REQUIRE(nbo_cs->mode() == wsrep::client_state::m_local);
     BOOST_REQUIRE(nbo_cs->in_toi() == false);
-    BOOST_REQUIRE(nbo_cs->toi_mode() == wsrep::client_state::m_local);
+    BOOST_REQUIRE(nbo_cs->toi_mode() == wsrep::client_state::m_undefined);
 
     // There must have been one toi write set with commit flag.
     BOOST_REQUIRE(sc.provider().toi_write_sets() == 1);

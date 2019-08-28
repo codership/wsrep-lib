@@ -71,7 +71,8 @@ namespace wsrep
                       const wsrep::const_buffer&,
                       wsrep::mutable_buffer&) WSREP_OVERRIDE;
         int apply_nbo_begin(const wsrep::ws_meta&,
-                            const wsrep::const_buffer&) WSREP_OVERRIDE;
+                            const wsrep::const_buffer&,
+                            wsrep::mutable_buffer&) WSREP_OVERRIDE;
         void adopt_apply_error(wsrep::mutable_buffer& err) WSREP_OVERRIDE;
         void after_apply() WSREP_OVERRIDE;
         void store_globals() WSREP_OVERRIDE { }

@@ -173,12 +173,14 @@ namespace wsrep
          *
          * @param ws_meta Write set meta data.
          * @param data Buffer containing the command to execute.
+         * @params err Buffer to store error data
          *
          * @return Zero in case of success, non-zero if the asynchronous
          *         process could not be started.
          */
         virtual int apply_nbo_begin(const wsrep::ws_meta& ws_meta,
-                                    const wsrep::const_buffer& data) = 0;
+                                    const wsrep::const_buffer& data,
+                                    wsrep::mutable_buffer& err) = 0;
 
         /**
          * Actions to take after applying a write set was completed.

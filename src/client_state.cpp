@@ -462,7 +462,7 @@ int wsrep::client_state::begin_nbo_phase_one(const wsrep::key_array& keys,
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state_ == s_exec);
     assert(mode_ == m_local);
-    assert(toi_mode_ == m_local);
+    assert(toi_mode_ == m_undefined);
 
     /**
      * @todo Implement retrying if the call fails due to certification
@@ -487,7 +487,9 @@ int wsrep::client_state::begin_nbo_phase_one(const wsrep::key_array& keys,
         current_error_status_ = status;
         if (!toi_meta_.seqno().is_undefined())
         {
-            provider().leave_toi(id_);
+            // TODO(leandro): do we need to pass sth here? is leave_toi necessary here? enter_toi_local doesn't do it.
+            wsrep::mutable_buffer err;
+            provider().leave_toi(id_, err);
         }
         toi_meta_ = wsrep::ws_meta();
         ret= 1;
@@ -497,14 +499,14 @@ int wsrep::client_state::begin_nbo_phase_one(const wsrep::key_array& keys,
     return ret;
 }
 
-int wsrep::client_state::end_nbo_phase_one()
+int wsrep::client_state::end_nbo_phase_one(const wsrep::mutable_buffer& err)
 {
     debug_log_state("end_nbo_phase_one: enter");
     assert(state_ == s_exec);
     assert(mode_ == m_nbo);
     assert(in_toi());
 
-    enum wsrep::provider::status status(provider().leave_toi(id_));
+    enum wsrep::provider::status status(provider().leave_toi(id_, err));
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     int ret;
     switch (status)
@@ -519,6 +521,7 @@ int wsrep::client_state::end_nbo_phase_one()
     }
     nbo_meta_ = toi_meta_;
     toi_meta_ = wsrep::ws_meta();
+    toi_mode_ = m_undefined;
     debug_log_state("end_nbo_phase_one: leave");
     return ret;
 }
@@ -527,9 +530,9 @@ int wsrep::client_state::enter_nbo_mode(const wsrep::ws_meta& ws_meta)
 {
     assert(state_ == s_exec);
     assert(mode_ == m_local);
+    assert(toi_mode_ == m_undefined);
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     nbo_meta_ = ws_meta;
-    toi_mode_ = mode_;
     mode(lock, m_nbo);
     return 0;
 }
@@ -539,6 +542,7 @@ int wsrep::client_state::begin_nbo_phase_two()
     debug_log_state("begin_nbo_phase_two: enter");
     assert(state_ == s_exec);
     assert(mode_ == m_nbo);
+    assert(toi_mode_ == m_undefined);
     assert(!in_toi());
 
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
@@ -556,6 +560,7 @@ int wsrep::client_state::begin_nbo_phase_two()
     case wsrep::provider::success:
         ret= 0;
         toi_meta_ = nbo_meta_;
+        toi_mode_ = m_local;
         break;
     default:
         current_error_status_ = status;
@@ -566,14 +571,15 @@ int wsrep::client_state::begin_nbo_phase_two()
     return ret;
 }
 
-int wsrep::client_state::end_nbo_phase_two()
+int wsrep::client_state::end_nbo_phase_two(const wsrep::mutable_buffer& err)
 {
     debug_log_state("end_nbo_phase_two: enter");
     assert(state_ == s_exec);
     assert(mode_ == m_nbo);
+    assert(toi_mode_ == m_local);
     assert(in_toi());
     enum wsrep::provider::status status(
-        provider().leave_toi(id_));
+        provider().leave_toi(id_, err));
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     int ret;
     switch (status)
@@ -587,6 +593,7 @@ int wsrep::client_state::end_nbo_phase_two()
         break;
     }
     toi_meta_ = wsrep::ws_meta();
+    toi_mode_ = m_undefined;
     nbo_meta_ = wsrep::ws_meta();
     mode(lock, m_local);
     debug_log_state("end_nbo_phase_two: leave");

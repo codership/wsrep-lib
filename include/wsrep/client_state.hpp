@@ -752,8 +752,11 @@ namespace wsrep
         /**
          * End non-blocking operation phase after aquiring required
          * resources for operation.
+         *
+         * @param err definition of the error that happened during the
+         *            execution of phase one (empty for no error)
          */
-        int end_nbo_phase_one();
+        int end_nbo_phase_one(const wsrep::mutable_buffer& err);
 
         /**
          * Enter in NBO mode. This method should be called when the
@@ -771,20 +774,17 @@ namespace wsrep
          * Begin non-blocking operation phase two. The keys argument
          * passed to this call must contain the same keys which were
          * passed to begin_nbo_phase_one().
-         *
-         * @todo Keys should be stored internally in client_state
-         *       so that they would not be required as an argument
-         *       here.
-         *
-         * @param keys Array of keys for non-blocking operation.
          */
         int begin_nbo_phase_two();
 
         /**
          * End non-blocking operation phase two. This call will
          * release TOI critical section and set the mode to m_local.
+         *
+         * @param err definition of the error that happened during the
+         *            execution of phase two (empty for no error)
          */
-        int end_nbo_phase_two();
+        int end_nbo_phase_two(const wsrep::mutable_buffer& err);
 
         /**
          * Get reference to the client mutex.

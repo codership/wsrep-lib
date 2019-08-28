@@ -98,7 +98,8 @@ int wsrep::mock_high_priority_service::apply_toi(const wsrep::ws_meta&,
 
 int wsrep::mock_high_priority_service::apply_nbo_begin(
     const wsrep::ws_meta& ws_meta,
-    const wsrep::const_buffer&)
+    const wsrep::const_buffer&,
+    wsrep::mutable_buffer&)
 {
     const int nbo_begin_flags(wsrep::provider::flag::isolation |
                               wsrep::provider::flag::start_transaction);

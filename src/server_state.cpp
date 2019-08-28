@@ -453,8 +453,9 @@ static int apply_toi(wsrep::provider& provider,
     else if (wsrep::starts_transaction(ws_meta.flags()))
     {
         provider.commit_order_enter(ws_handle, ws_meta);
-        int ret(high_priority_service.apply_nbo_begin(ws_meta, data));
-        provider.commit_order_leave(ws_handle, ws_meta);
+        wsrep::mutable_buffer err;
+        int ret(high_priority_service.apply_nbo_begin(ws_meta, data, err));
+        provider.commit_order_leave(ws_handle, ws_meta, err);
         return ret;
     }
     else if (wsrep::commits_transaction(ws_meta.flags()))
@@ -462,7 +463,8 @@ static int apply_toi(wsrep::provider& provider,
         // NBO end event is ignored here, both local and applied
         // have NBO end handled via local TOI calls.
         provider.commit_order_enter(ws_handle, ws_meta);
-        provider.commit_order_leave(ws_handle, ws_meta);
+        wsrep::mutable_buffer err;
+        provider.commit_order_leave(ws_handle, ws_meta, err);
         return 0;
     }
     else

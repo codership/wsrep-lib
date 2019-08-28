@@ -48,7 +48,8 @@ namespace db
         int rollback(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
         int apply_toi(const wsrep::ws_meta&, const wsrep::const_buffer&,
                       wsrep::mutable_buffer&) override;
-        int apply_nbo_begin(const wsrep::ws_meta&, const wsrep::const_buffer&)
+        int apply_nbo_begin(const wsrep::ws_meta&, const wsrep::const_buffer&,
+                            wsrep::mutable_buffer&)
             override;
         void adopt_apply_error(wsrep::mutable_buffer&) override;
         virtual void after_apply() override;

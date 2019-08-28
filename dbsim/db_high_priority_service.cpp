@@ -65,7 +65,8 @@ int db::high_priority_service::apply_toi(
 
 int db::high_priority_service::apply_nbo_begin(
     const wsrep::ws_meta&,
-    const wsrep::const_buffer&)
+    const wsrep::const_buffer&,
+    wsrep::mutable_buffer&)
 {
     throw wsrep::not_implemented_error();
 }

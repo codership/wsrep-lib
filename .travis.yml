@@ -13,6 +13,7 @@ matrix:
             - g++-4.4
       env: MATRIX_EVAL="CC=gcc-4.4 CXX=g++-4.4 TYPE=Debug STRICT=OFF UNIT_TESTS=OFF ASAN=OFF DBSIM=OFF"
     - os: linux
+      dist: trusty
       name: "GCC 4.4 RelWithDebInfo"
       addons:
         apt:
@@ -22,6 +23,7 @@ matrix:
             - g++-4.4
       env: MATRIX_EVAL="CC=gcc-4.4 CXX=g++-4.4 TYPE=RelWithDebInfo STRICT=OFF UNIT_TESTS=OFF ASAN=OFF DBSIM=OFF"
     - os: linux
+      dist: trusty
       name: "GCC 4.8 Debug"
       addons:
         apt:
@@ -30,6 +32,7 @@ matrix:
             - libboost-test-dev
       env: MATRIX_EVAL="TYPE=Debug STRICT=OFF UNIT_TESTS=ON ASAN=ON DBSIM=OFF"
     - os: linux
+      dist: trusty
       name: "GCC 4.8 RelWithDebInfo"
       addons:
         apt:
@@ -122,6 +125,7 @@ matrix:
             - libboost-thread-dev
       env: MATRIX_EVAL="CC=gcc-7 CXX=g++-7 TYPE=RelWithDebInfo STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
     - os: linux
+      dist: trusty
       name: "Clang 3.6 Debug"
       addons:
         apt:
@@ -137,6 +141,7 @@ matrix:
             - libboost-thread-dev
       env: MATRIX_EVAL="CC=clang-3.6 CXX=clang++-3.6 TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
     - os: linux
+      dist: trusty
       name: "Clang 3.6 RelWithDebInfo"
       addons:
         apt:
@@ -157,7 +162,6 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-4.0
           packages:
             - clang-4.0
             - cmake
@@ -172,7 +176,6 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-4.0
           packages:
             - clang-4.0
             - cmake
@@ -187,7 +190,6 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-5.0
           packages:
             - clang-5.0
             - cmake
@@ -202,7 +204,6 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-5.0
           packages:
             - clang-5.0
             - cmake
@@ -212,7 +213,6 @@ matrix:
             - libboost-thread-dev
       env: MATRIX_EVAL="CC=clang-5.0 CXX=clang++-5.0 TYPE=RelWithDebInfo STRICT=ON ASAN=OFF DBSIM=OFF"
     - os: linux
-      dist: xenial
       name: "Clang 7.0 Debug"
       addons:
         apt:
@@ -228,7 +228,6 @@ matrix:
             - libboost-thread-dev
       env: MATRIX_EVAL="CC=clang CXX=clang++ TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=OFF"
     - os: linux
-      dist: xenial
       name: "Clang 7.0 RelWithDebInfo"
       addons:
         apt:

@@ -1170,6 +1170,7 @@ void wsrep::server_state::convert_streaming_client_to_applier(
     else
     {
         server_service_.release_high_priority_service(streaming_applier);
+        client_state->client_service().store_globals();
     }
 }
 

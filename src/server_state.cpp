@@ -454,9 +454,9 @@ static int apply_toi(wsrep::provider& provider,
     {
         provider.commit_order_enter(ws_handle, ws_meta);
         wsrep::mutable_buffer err;
-        int ret(high_priority_service.apply_nbo_begin(ws_meta, data, err));
-        provider.commit_order_leave(ws_handle, ws_meta, err);
-        return ret;
+        int const apply_err(high_priority_service.apply_nbo_begin(ws_meta, data, err));
+        int const vote_err(provider.commit_order_leave(ws_handle, ws_meta, err));
+        return resolve_return_error(err.size() > 0, vote_err, apply_err);
     }
     else if (wsrep::commits_transaction(ws_meta.flags()))
     {

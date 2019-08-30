@@ -116,7 +116,6 @@ BOOST_FIXTURE_TEST_CASE(test_applying_nbo,
                                                   nbo_begin.size())) == 0);
     wsrep::mock_client* nbo_cs(hps.nbo_cs());
     BOOST_REQUIRE(nbo_cs);
-    // TODO(leandro): should applying side really be m_local here?
     BOOST_REQUIRE(nbo_cs->toi_mode() == wsrep::client_state::m_undefined);
     BOOST_REQUIRE(nbo_cs->mode() == wsrep::client_state::m_nbo);
 

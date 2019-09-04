@@ -101,8 +101,9 @@ int wsrep::mock_high_priority_service::apply_nbo_begin(
     const wsrep::const_buffer&,
     wsrep::mutable_buffer&)
 {
-    const int nbo_begin_flags(wsrep::provider::flag::isolation |
-                              wsrep::provider::flag::start_transaction);
+    const int nbo_begin_flags __attribute__((unused))
+        (wsrep::provider::flag::isolation |
+         wsrep::provider::flag::start_transaction);
     assert(ws_meta.flags() & nbo_begin_flags);
     assert((ws_meta.flags() & ~nbo_begin_flags) == 0);
 

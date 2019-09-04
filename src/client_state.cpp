@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2019 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -339,7 +339,7 @@ void wsrep::client_state::enter_toi_common(
 
 int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
                                          const wsrep::const_buffer& buffer,
-                                         std::chrono::time_point<std::chrono::steady_clock> wait_until)
+                                         wsrep::chrono::time_point<wsrep::chrono::steady_clock> wait_until)
 {
     debug_log_state("enter_toi_local: enter");
     assert(state_ == s_exec);
@@ -359,7 +359,7 @@ int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
     }
     while (status == wsrep::provider::error_certification_failed &&
            wait_until.time_since_epoch().count() &&
-           wait_until < std::chrono::steady_clock::now() &&
+           wait_until < wsrep::chrono::steady_clock::now() &&
            not client_service_.interrupted(lock));
 
     switch (status)
@@ -476,7 +476,7 @@ int wsrep::client_state::end_rsu()
 int wsrep::client_state::begin_nbo_phase_one(
     const wsrep::key_array& keys,
     const wsrep::const_buffer& buffer,
-    std::chrono::time_point<std::chrono::steady_clock> wait_until)
+    wsrep::chrono::time_point<wsrep::chrono::steady_clock> wait_until)
 {
     debug_log_state("begin_nbo_phase_one: enter");
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
@@ -495,7 +495,7 @@ int wsrep::client_state::begin_nbo_phase_one(
     }
     while (status == wsrep::provider::error_certification_failed &&
            wait_until.time_since_epoch().count() &&
-           wait_until < std::chrono::steady_clock::now() &&
+           wait_until < wsrep::chrono::steady_clock::now() &&
            not client_service_.interrupted(lock));
     int ret;
     switch (status)

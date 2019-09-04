@@ -43,6 +43,8 @@
 #include "thread.hpp"
 #include "xid.hpp"
 
+#include <chrono>
+
 namespace wsrep
 {
     class server_state;

@@ -19,8 +19,8 @@
 
 /** @file chrono.hpp
  *
- * Type definitions to work around differences in <chrono> implementation
- * differences between C++11 compatible and ancient compilers.
+ * Type definitions to work around GCC 4.4 incompatibilities with
+ * C++11 chrono.
  */
 
 #ifndef WSREP_CHRONO_HPP
@@ -30,17 +30,11 @@
 
 namespace wsrep
 {
-    namespace chrono
-    {
+    /* wsrep::clock - clock type compatible with std::chrono::steady_clock. */
 #if defined(__GNUG__) && (__GNUC__ == 4 && __GNUC_MINOR__ == 4)
-        template <typename T>
-        using time_point = std::chrono::time_point<T>;
-        using steady_clock = std::chrono::monotonic_clock;
+    typedef std::chrono::monotonic_clock clock;
 #else
-        template <typename T>
-        using time_point = std::chrono::time_point<T>;
-        using steady_clock = std::chrono::steady_clock;
-    }
+    using clock = std::chrono::steady_clock;
 #endif // defined(__GNUG__) && (__GNUC__ == 4 && __GNUC_MINOR__ == 4)
 
 }

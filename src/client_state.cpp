@@ -330,26 +330,44 @@ void wsrep::client_state::disable_streaming()
 //                                 TOI                                      //
 //////////////////////////////////////////////////////////////////////////////
 
-void wsrep::client_state::enter_toi_common()
+void wsrep::client_state::enter_toi_common(
+    wsrep::unique_lock<wsrep::mutex>& lock)
 {
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    assert(lock.owns_lock());
     toi_mode_ = mode_;
     mode(lock, m_toi);
 }
 
 int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
                                          const wsrep::const_buffer& buffer,
-                                         int flags)
+                                         std::chrono::time_point<std::chrono::steady_clock> wait_until)
 {
     debug_log_state("enter_toi_local: enter");
     assert(state_ == s_exec);
     assert(mode_ == m_local);
     int ret;
-    switch (provider().enter_toi(id_, keys, buffer, toi_meta_, flags))
+
+    enum wsrep::provider::status status;
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    // Poll until timeout expires or the client is interrupted.
+    do
+    {
+        lock.unlock();
+        status = provider().enter_toi(id_, keys, buffer, toi_meta_,
+                                      wsrep::provider::flag::start_transaction |
+                                      wsrep::provider::flag::commit);
+        lock.lock();
+    }
+    while (status == wsrep::provider::error_certification_failed &&
+           wait_until.time_since_epoch().count() &&
+           wait_until < std::chrono::steady_clock::now() &&
+           not client_service_.interrupted(lock));
+
+    switch (status)
     {
     case wsrep::provider::success:
     {
-        enter_toi_common();
+        enter_toi_common(lock);
         ret = 0;
         break;
     }
@@ -366,8 +384,9 @@ int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
 void wsrep::client_state::enter_toi_mode(const wsrep::ws_meta& ws_meta)
 {
     debug_log_state("enter_toi_mode: enter");
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(mode_ == m_high_priority);
-    enter_toi_common();
+    enter_toi_common(lock);
     toi_meta_ = ws_meta;
     debug_log_state("enter_toi_mode: leave");
 }
@@ -455,8 +474,10 @@ int wsrep::client_state::end_rsu()
 //                                 NBO                                       //
 ///////////////////////////////////////////////////////////////////////////////
 
-int wsrep::client_state::begin_nbo_phase_one(const wsrep::key_array& keys,
-                                             const wsrep::const_buffer& buffer)
+int wsrep::client_state::begin_nbo_phase_one(
+    const wsrep::key_array& keys,
+    const wsrep::const_buffer& buffer,
+    std::chrono::time_point<std::chrono::steady_clock> wait_until)
 {
     debug_log_state("begin_nbo_phase_one: enter");
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
@@ -464,16 +485,19 @@ int wsrep::client_state::begin_nbo_phase_one(const wsrep::key_array& keys,
     assert(mode_ == m_local);
     assert(toi_mode_ == m_undefined);
 
-    /**
-     * @todo Implement retrying if the call fails due to certification
-     * failure.
-     */
-    lock.unlock();
-    enum wsrep::provider::status status(
-        provider().enter_toi(
-            id_, keys, buffer, toi_meta_,
-            wsrep::provider::flag::start_transaction));
-    lock.lock();
+    enum wsrep::provider::status status;
+    // Poll until timeout expires or the client is interrupted.
+    do
+    {
+        lock.unlock();
+        status = provider().enter_toi(id_, keys, buffer, toi_meta_,
+                                      wsrep::provider::flag::start_transaction);
+        lock.lock();
+    }
+    while (status == wsrep::provider::error_certification_failed &&
+           wait_until.time_since_epoch().count() &&
+           wait_until < std::chrono::steady_clock::now() &&
+           not client_service_.interrupted(lock));
     int ret;
     switch (status)
     {

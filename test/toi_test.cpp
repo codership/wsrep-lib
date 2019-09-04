@@ -33,9 +33,7 @@ BOOST_FIXTURE_TEST_CASE(test_toi_mode,
     key.append_key_part("k2", 2);
     wsrep::key_array keys{key};
     wsrep::const_buffer buf("toi", 3);
-    BOOST_REQUIRE(cc.enter_toi_local(keys, buf,
-                                     wsrep::provider::flag::start_transaction |
-                                     wsrep::provider::flag::commit) == 0);
+    BOOST_REQUIRE(cc.enter_toi_local(keys, buf) == 0);
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_toi);
     BOOST_REQUIRE(cc.in_toi());
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);

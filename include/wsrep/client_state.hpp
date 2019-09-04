@@ -667,21 +667,25 @@ namespace wsrep
         /** @{*/
 
         /**
-         * Enter total order isolation critical section.
+         * Enter total order isolation critical section. If the wait_until
+         * is given non-default value, the operation is retried until
+         * successful, the given time point is reached or the client is
+         * interupted.
          *
          * @param key_array Array of keys
          * @param buffer Buffer containing the action to execute inside
          *               total order isolation section
          * @param flags  Provider flags for TOI operation
-         * @todo Flags argument is not necessary for TOI operation,
-         *       they should always have start_transaction | commit
-         *       when passed to provider.
+         * @param wait_until Time point to wait until for successful
+         *                   certification.
          *
          * @return Zero on success, non-zero otherwise.
          */
-        int enter_toi_local(const wsrep::key_array& key_array,
-                            const wsrep::const_buffer& buffer,
-                            int flags);
+        int enter_toi_local(
+            const wsrep::key_array& key_array,
+            const wsrep::const_buffer& buffer,
+            std::chrono::time_point<std::chrono::steady_clock>
+            wait_until = std::chrono::time_point<std::chrono::steady_clock>());
         /**
          * Enter applier TOI mode
          *
@@ -743,13 +747,20 @@ namespace wsrep
          * the provider, the provider error code can be retrieved
          * by current_error_status() call.
          *
+         * If the wait_until is given non-default value, the operation is
+         * retried until successful, the given time point is reached or the
+         * client is interupted.
+         *
          * @param keys Array of keys for NBO operation.
          * @param buffer NBO write set
-         *
+         * @param wait_until Time point to wait until for successful certification.
          * @return Zero in case of success, non-zero in case of failure.
          */
-        int begin_nbo_phase_one(const wsrep::key_array& keys,
-                                const wsrep::const_buffer& buffer);
+        int begin_nbo_phase_one(
+            const wsrep::key_array& keys,
+            const wsrep::const_buffer& buffer,
+            std::chrono::time_point<std::chrono::steady_clock>
+            wait_until = std::chrono::time_point<std::chrono::steady_clock>());
 
         /**
          * End non-blocking operation phase after aquiring required
@@ -996,7 +1007,7 @@ namespace wsrep
                             enum wsrep::provider::status status =
                             wsrep::provider::success);
 
-        void enter_toi_common();
+        void enter_toi_common(wsrep::unique_lock<wsrep::mutex>&);
         void leave_toi_common();
 
         wsrep::thread::id owning_thread_id_;

@@ -340,7 +340,7 @@ void wsrep::client_state::enter_toi_common(
 
 int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
                                          const wsrep::const_buffer& buffer,
-                                         wsrep::chrono::time_point<wsrep::chrono::steady_clock> wait_until)
+                                         std::chrono::time_point<wsrep::clock> wait_until)
 {
     debug_log_state("enter_toi_local: enter");
     assert(state_ == s_exec);
@@ -360,7 +360,7 @@ int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
     }
     while (status == wsrep::provider::error_certification_failed &&
            wait_until.time_since_epoch().count() &&
-           wait_until < wsrep::chrono::steady_clock::now() &&
+           wait_until < wsrep::clock::now() &&
            not client_service_.interrupted(lock));
 
     switch (status)
@@ -477,7 +477,7 @@ int wsrep::client_state::end_rsu()
 int wsrep::client_state::begin_nbo_phase_one(
     const wsrep::key_array& keys,
     const wsrep::const_buffer& buffer,
-    wsrep::chrono::time_point<wsrep::chrono::steady_clock> wait_until)
+    std::chrono::time_point<wsrep::clock> wait_until)
 {
     debug_log_state("begin_nbo_phase_one: enter");
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
@@ -496,7 +496,7 @@ int wsrep::client_state::begin_nbo_phase_one(
     }
     while (status == wsrep::provider::error_certification_failed &&
            wait_until.time_since_epoch().count() &&
-           wait_until < wsrep::chrono::steady_clock::now() &&
+           wait_until < wsrep::clock::now() &&
            not client_service_.interrupted(lock));
     int ret;
     switch (status)

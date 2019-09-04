@@ -683,9 +683,9 @@ namespace wsrep
         int enter_toi_local(
             const wsrep::key_array& key_array,
             const wsrep::const_buffer& buffer,
-            wsrep::chrono::time_point<wsrep::chrono::steady_clock>
+            std::chrono::time_point<wsrep::clock>
             wait_until =
-            wsrep::chrono::time_point<wsrep::chrono::steady_clock>());
+            std::chrono::time_point<wsrep::clock>());
         /**
          * Enter applier TOI mode
          *
@@ -759,9 +759,9 @@ namespace wsrep
         int begin_nbo_phase_one(
             const wsrep::key_array& keys,
             const wsrep::const_buffer& buffer,
-            wsrep::chrono::time_point<wsrep::chrono::steady_clock>
+            std::chrono::time_point<wsrep::clock>
             wait_until =
-            wsrep::chrono::time_point<wsrep::chrono::steady_clock>());
+            std::chrono::time_point<wsrep::clock>());
 
         /**
          * End non-blocking operation phase after aquiring required

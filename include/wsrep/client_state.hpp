@@ -912,6 +912,15 @@ namespace wsrep
                             enum wsrep::provider::status status =
                             wsrep::provider::success);
 
+        // Poll provider::enter_toi() until return status from provider
+        // does not indicate certification failure, timeout expires
+        // or client is interrupted.
+        enum wsrep::provider::status
+        poll_enter_toi(wsrep::unique_lock<wsrep::mutex>& lock,
+                       const wsrep::key_array& keys,
+                       const wsrep::const_buffer& buffer,
+                       int flags,
+                       std::chrono::time_point<wsrep::clock> wait_until);
         void enter_toi_common(wsrep::unique_lock<wsrep::mutex>&);
         void leave_toi_common();
 

@@ -24,7 +24,7 @@
  */
 
 #ifndef WSREP_CHRONO_HPP
-#define WSREP_CHORNO_HPP
+#define WSREP_CHRONO_HPP
 
 #include <chrono>
 

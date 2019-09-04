@@ -42,6 +42,8 @@
 #include "buffer.hpp"
 #include "thread.hpp"
 
+#include <chrono>
+
 namespace wsrep
 {
     class server_state;

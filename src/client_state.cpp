@@ -515,8 +515,7 @@ int wsrep::client_state::begin_nbo_phase_one(
         ret= 0;
         break;
     default:
-        override_error(e_deadlock_error);
-        current_error_status_ = status;
+        override_error(e_deadlock_error, status);
         if (!toi_meta_.seqno().is_undefined())
         {
             // TODO(leandro): do we need to pass sth here? is leave_toi necessary here? enter_toi_local doesn't do it.
@@ -547,7 +546,7 @@ int wsrep::client_state::end_nbo_phase_one(const wsrep::mutable_buffer& err)
         ret = 0;
         break;
     default:
-        current_error_status_ = status;
+        override_error(e_error_during_commit, status);
         ret = 1;
         break;
     }
@@ -595,7 +594,11 @@ int wsrep::client_state::begin_nbo_phase_two()
         toi_mode_ = m_local;
         break;
     default:
-        current_error_status_ = status;
+        override_error(e_error_during_commit, status);
+        // Failed to grab TOI for completing NBO in order. This means that
+        // the operation cannot be ended in total order, so we end the
+        // NBO mode and let the DBMS to deal with the error.
+        mode(lock, m_local);
         ret= 1;
         break;
     }
@@ -620,7 +623,7 @@ int wsrep::client_state::end_nbo_phase_two(const wsrep::mutable_buffer& err)
         ret = 0;
         break;
     default:
-        current_error_status_ = status;
+        override_error(e_error_during_commit, status);
         ret = 1;
         break;
     }

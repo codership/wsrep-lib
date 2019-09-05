@@ -343,6 +343,20 @@ wsrep::client_state::poll_enter_toi(
     {
         lock.unlock();
         status = provider().enter_toi(id_, keys, buffer, toi_meta_, flags);
+        if (status != wsrep::provider::success &&
+            not toi_meta_.gtid().is_undefined())
+        {
+            // Successfully entered TOI, but the provider reported failure.
+            // This may happen for example if certification fails.
+            // Leave TOI before proceeding.
+            if (provider().leave_toi(id_, wsrep::mutable_buffer()))
+            {
+                wsrep::log_warning()
+                    << "Failed to leave TOI after failure in "
+                    << "poll_enter_toi()";
+            }
+            toi_meta_ = wsrep::ws_meta();
+        }
         if (status == wsrep::provider::error_certification_failed)
         {
             ::usleep(100000);

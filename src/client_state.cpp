@@ -338,6 +338,12 @@ wsrep::client_state::poll_enter_toi(
     int flags,
     std::chrono::time_point<wsrep::clock> wait_until)
 {
+    WSREP_LOG_DEBUG(debug_log_level(),
+                    wsrep::log::debug_level_client_state,
+                    "poll_enter_toi: "
+                    << flags
+                    << ","
+                    << wait_until.time_since_epoch().count());
     enum wsrep::provider::status status;
     do
     {
@@ -365,8 +371,9 @@ wsrep::client_state::poll_enter_toi(
     }
     while (status == wsrep::provider::error_certification_failed &&
            wait_until.time_since_epoch().count() &&
-           wait_until < wsrep::clock::now() &&
+           wsrep::clock::now() < wait_until &&
            not client_service_.interrupted(lock));
+    /** @todo should report timeout error if wait times out */
     return status;
 }
 
@@ -404,7 +411,7 @@ int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
     }
     default:
         override_error(wsrep::e_error_during_commit,
-                       wsrep::provider::error_certification_failed);
+                       status);
         ret = 1;
         break;
     }
@@ -722,6 +729,7 @@ void wsrep::client_state::debug_log_state(const char* context) const
                     << "," << to_c_string(state_)
                     << "," << to_c_string(mode_)
                     << "," << wsrep::to_string(current_error_)
+                    << "," << current_error_status_
                     << ",toi: " << toi_meta_.seqno()
                     << ",nbo: " << nbo_meta_.seqno() << ")");
 }

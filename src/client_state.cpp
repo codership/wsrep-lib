@@ -511,6 +511,7 @@ int wsrep::client_state::begin_nbo_phase_one(
     std::chrono::time_point<wsrep::clock> wait_until)
 {
     debug_log_state("begin_nbo_phase_one: enter");
+    debug_log_keys(keys);
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(state_ == s_exec);
     assert(mode_ == m_local);
@@ -582,9 +583,10 @@ int wsrep::client_state::enter_nbo_mode(const wsrep::ws_meta& ws_meta)
     return 0;
 }
 
-int wsrep::client_state::begin_nbo_phase_two()
+int wsrep::client_state::begin_nbo_phase_two(const wsrep::key_array& keys)
 {
     debug_log_state("begin_nbo_phase_two: enter");
+    debug_log_keys(keys);
     assert(state_ == s_exec);
     assert(mode_ == m_nbo);
     assert(toi_mode_ == m_undefined);
@@ -596,7 +598,7 @@ int wsrep::client_state::begin_nbo_phase_two()
     // Output stored in nbo_meta_ is copied to toi_meta_ for
     // phase two end.
     enum wsrep::provider::status status(
-        provider().enter_toi(id_, wsrep::key_array(),
+        provider().enter_toi(id_, keys,
                              wsrep::const_buffer(), nbo_meta_,
                              wsrep::provider::flag::commit));
     int ret;
@@ -722,6 +724,18 @@ void wsrep::client_state::debug_log_state(const char* context) const
                     << "," << wsrep::to_string(current_error_)
                     << ",toi: " << toi_meta_.seqno()
                     << ",nbo: " << nbo_meta_.seqno() << ")");
+}
+
+void wsrep::client_state::debug_log_keys(const wsrep::key_array& keys) const
+{
+    for (const auto& k : keys)
+    {
+        WSREP_LOG_DEBUG(debug_log_level(),
+                        wsrep::log::debug_level_client_state,
+                        "TOI keys: "
+                        << " id: " << id_
+                        << "key: " << k);
+    }
 }
 
 void wsrep::client_state::state(

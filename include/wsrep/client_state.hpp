@@ -788,8 +788,10 @@ namespace wsrep
          * Begin non-blocking operation phase two. The keys argument
          * passed to this call must contain the same keys which were
          * passed to begin_nbo_phase_one().
+         *
+         * @param keys Key array.
          */
-        int begin_nbo_phase_two();
+        int begin_nbo_phase_two(const wsrep::key_array& keys);
 
         /**
          * End non-blocking operation phase two. This call will
@@ -998,6 +1000,7 @@ namespace wsrep
             wsrep::unique_lock<wsrep::mutex>& lock);
         void update_last_written_gtid(const wsrep::gtid&);
         void debug_log_state(const char*) const;
+        void debug_log_keys(const wsrep::key_array& keys) const;
         void state(wsrep::unique_lock<wsrep::mutex>& lock, enum state state);
         void mode(wsrep::unique_lock<wsrep::mutex>& lock, enum mode mode);
 

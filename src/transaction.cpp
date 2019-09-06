@@ -1790,7 +1790,7 @@ void wsrep::transaction::debug_log_state(
         << "");
 }
 
-void wsrep::transaction::debug_log_key_append(const wsrep::key& key)
+void wsrep::transaction::debug_log_key_append(const wsrep::key& key) const
 {
     WSREP_LOG_DEBUG(client_state_.debug_log_level(),
                     wsrep::log::debug_level_transaction,

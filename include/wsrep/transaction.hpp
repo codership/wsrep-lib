@@ -251,7 +251,7 @@ namespace wsrep
         void clear_fragments();
         void cleanup();
         void debug_log_state(const char*) const;
-        void debug_log_key_append(const wsrep::key& key);
+        void debug_log_key_append(const wsrep::key& key) const;
 
         wsrep::server_service& server_service_;
         wsrep::client_service& client_service_;

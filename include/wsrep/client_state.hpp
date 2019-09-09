@@ -790,8 +790,13 @@ namespace wsrep
          * passed to begin_nbo_phase_one().
          *
          * @param keys Key array.
+         * @param wait_until Time point to wait until for entering TOI for
+         *                   phase two.
          */
-        int begin_nbo_phase_two(const wsrep::key_array& keys);
+        int begin_nbo_phase_two(const wsrep::key_array& keys,
+                                std::chrono::time_point<wsrep::clock>
+                                wait_until =
+                                std::chrono::time_point<wsrep::clock>());
 
         /**
          * End non-blocking operation phase two. This call will
@@ -1018,6 +1023,7 @@ namespace wsrep
         poll_enter_toi(wsrep::unique_lock<wsrep::mutex>& lock,
                        const wsrep::key_array& keys,
                        const wsrep::const_buffer& buffer,
+                       wsrep::ws_meta& meta,
                        int flags,
                        std::chrono::time_point<wsrep::clock> wait_until);
         void enter_toi_common(wsrep::unique_lock<wsrep::mutex>&);

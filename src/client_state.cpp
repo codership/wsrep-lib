@@ -415,12 +415,22 @@ int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
         ret = 0;
         break;
     }
+    case wsrep::provider::error_certification_failed:
+        override_error(e_deadlock_error, status);
+        ret = 1;
+        break;
     default:
-        override_error(wsrep::e_error_during_commit,
-                       status);
+        override_error(e_error_during_commit, status);
         ret = 1;
         break;
     }
+
+    if (ret && !toi_meta_.seqno().is_undefined())
+    {
+        wsrep::mutable_buffer err;
+        provider().leave_toi(id_, err);
+    }
+
     debug_log_state("enter_toi_local: leave");
     return ret;
 }
@@ -543,18 +553,22 @@ int wsrep::client_state::begin_nbo_phase_one(
         mode(lock, m_nbo);
         ret= 0;
         break;
-    default:
+    case wsrep::provider::error_certification_failed:
         override_error(e_deadlock_error, status);
-        if (!toi_meta_.seqno().is_undefined())
-        {
-            // TODO(leandro): do we need to pass sth here? is leave_toi necessary here? enter_toi_local doesn't do it.
-            wsrep::mutable_buffer err;
-            provider().leave_toi(id_, err);
-        }
-        toi_meta_ = wsrep::ws_meta();
-        ret= 1;
+        ret = 1;
+        break;
+    default:
+        override_error(e_error_during_commit, status);
+        ret = 1;
         break;
     }
+
+    if (ret && !toi_meta_.seqno().is_undefined())
+    {
+        wsrep::mutable_buffer err;
+        provider().leave_toi(id_, err);
+    }
+
     debug_log_state("begin_nbo_phase_one: leave");
     return ret;
 }
@@ -637,6 +651,9 @@ int wsrep::client_state::begin_nbo_phase_two(
         ret= 1;
         break;
     }
+
+    // TODO(leandro): should we check for defined toi_meta_ on error and call leave_toi?
+
     debug_log_state("begin_nbo_phase_two: leave");
     return ret;
 }

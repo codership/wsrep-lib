@@ -335,6 +335,7 @@ wsrep::client_state::poll_enter_toi(
     wsrep::unique_lock<wsrep::mutex>& lock,
     const wsrep::key_array& keys,
     const wsrep::const_buffer& buffer,
+    wsrep::ws_meta& meta,
     int flags,
     std::chrono::time_point<wsrep::clock> wait_until)
 {
@@ -348,7 +349,7 @@ wsrep::client_state::poll_enter_toi(
     do
     {
         lock.unlock();
-        status = provider().enter_toi(id_, keys, buffer, toi_meta_, flags);
+        status = provider().enter_toi(id_, keys, buffer, meta, flags);
         if (status != wsrep::provider::success &&
             not toi_meta_.gtid().is_undefined())
         {
@@ -363,13 +364,15 @@ wsrep::client_state::poll_enter_toi(
             }
             toi_meta_ = wsrep::ws_meta();
         }
-        if (status == wsrep::provider::error_certification_failed)
+        if (status == wsrep::provider::error_certification_failed ||
+            status == wsrep::provider::error_connection_failed)
         {
             ::usleep(100000);
         }
         lock.lock();
     }
-    while (status == wsrep::provider::error_certification_failed &&
+    while ((status == wsrep::provider::error_certification_failed ||
+            status == wsrep::provider::error_connection_failed) &&
            wait_until.time_since_epoch().count() &&
            wsrep::clock::now() < wait_until &&
            not client_service_.interrupted(lock));
@@ -398,6 +401,7 @@ int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
 
     auto const status(poll_enter_toi(
                           lock, keys, buffer,
+                          toi_meta_,
                           wsrep::provider::flag::start_transaction |
                           wsrep::provider::flag::commit,
                           wait_until));
@@ -527,6 +531,7 @@ int wsrep::client_state::begin_nbo_phase_one(
     int ret;
     auto const status(poll_enter_toi(
                           lock, keys, buffer,
+                          toi_meta_,
                           wsrep::provider::flag::start_transaction,
                           wait_until));
     switch (status)
@@ -590,7 +595,9 @@ int wsrep::client_state::enter_nbo_mode(const wsrep::ws_meta& ws_meta)
     return 0;
 }
 
-int wsrep::client_state::begin_nbo_phase_two(const wsrep::key_array& keys)
+int wsrep::client_state::begin_nbo_phase_two(
+    const wsrep::key_array& keys,
+    std::chrono::time_point<wsrep::clock> wait_until)
 {
     debug_log_state("begin_nbo_phase_two: enter");
     debug_log_keys(keys);
@@ -605,9 +612,11 @@ int wsrep::client_state::begin_nbo_phase_two(const wsrep::key_array& keys)
     // Output stored in nbo_meta_ is copied to toi_meta_ for
     // phase two end.
     enum wsrep::provider::status status(
-        provider().enter_toi(id_, keys,
-                             wsrep::const_buffer(), nbo_meta_,
-                             wsrep::provider::flag::commit));
+        poll_enter_toi(lock, keys,
+                       wsrep::const_buffer(),
+                       nbo_meta_,
+                       wsrep::provider::flag::commit,
+                       wait_until));
     int ret;
     switch (status)
     {

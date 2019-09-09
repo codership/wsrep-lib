@@ -223,7 +223,8 @@ namespace wsrep
             error_size_exceeded,
             /** Connectivity to cluster lost */
             error_connection_failed,
-            /** Internal provider failure, provider must be reinitialized */
+            /** Internal provider failure or provider was closed,
+                provider must be reinitialized */
             error_provider_failed,
             /** Fatal error, server must abort */
             error_fatal,

@@ -187,6 +187,7 @@ void wsrep::client_state::after_command_after_result()
     else if (transaction_.active() == false)
     {
         current_error_ = wsrep::e_success;
+        current_error_status_ = wsrep::provider::success;
     }
     sync_wait_gtid_ = wsrep::gtid::undefined();
     state(lock, s_idle);
@@ -632,6 +633,7 @@ int wsrep::client_state::begin_nbo_phase_two(
         // the operation cannot be ended in total order, so we end the
         // NBO mode and let the DBMS to deal with the error.
         mode(lock, m_local);
+        nbo_meta_ = wsrep::ws_meta();
         ret= 1;
         break;
     }

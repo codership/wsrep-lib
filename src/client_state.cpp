@@ -338,7 +338,8 @@ wsrep::client_state::poll_enter_toi(
     const wsrep::const_buffer& buffer,
     wsrep::ws_meta& meta,
     int flags,
-    std::chrono::time_point<wsrep::clock> wait_until)
+    std::chrono::time_point<wsrep::clock> wait_until,
+    bool& timed_out)
 {
     WSREP_LOG_DEBUG(debug_log_level(),
                     wsrep::log::debug_level_client_state,
@@ -347,6 +348,7 @@ wsrep::client_state::poll_enter_toi(
                     << ","
                     << wait_until.time_since_epoch().count());
     enum wsrep::provider::status status;
+    timed_out = false;
     do
     {
         lock.unlock();
@@ -371,13 +373,13 @@ wsrep::client_state::poll_enter_toi(
             ::usleep(100000);
         }
         lock.lock();
+        timed_out = !(wait_until.time_since_epoch().count() &&
+                      wsrep::clock::now() < wait_until);
     }
     while ((status == wsrep::provider::error_certification_failed ||
             status == wsrep::provider::error_connection_failed) &&
-           wait_until.time_since_epoch().count() &&
-           wsrep::clock::now() < wait_until &&
+           not timed_out &&
            not client_service_.interrupted(lock));
-    /** @todo should report timeout error if wait times out */
     return status;
 }
 
@@ -400,12 +402,14 @@ int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
 
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
 
+    bool timed_out;
     auto const status(poll_enter_toi(
                           lock, keys, buffer,
                           toi_meta_,
                           wsrep::provider::flag::start_transaction |
                           wsrep::provider::flag::commit,
-                          wait_until));
+                          wait_until,
+                          timed_out));
     switch (status)
     {
     case wsrep::provider::success:
@@ -419,7 +423,11 @@ int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
         ret = 1;
         break;
     default:
-        override_error(e_error_during_commit, status);
+        if (timed_out) {
+            override_error(e_timeout_error);
+        } else {
+            override_error(e_error_during_commit, status);
+        }
         ret = 1;
         break;
     }
@@ -540,11 +548,13 @@ int wsrep::client_state::begin_nbo_phase_one(
     assert(toi_mode_ == m_undefined);
 
     int ret;
+    bool timed_out;
     auto const status(poll_enter_toi(
                           lock, keys, buffer,
                           toi_meta_,
                           wsrep::provider::flag::start_transaction,
-                          wait_until));
+                          wait_until,
+                          timed_out));
     switch (status)
     {
     case wsrep::provider::success:
@@ -557,7 +567,11 @@ int wsrep::client_state::begin_nbo_phase_one(
         ret = 1;
         break;
     default:
-        override_error(e_error_during_commit, status);
+        if (timed_out) {
+            override_error(e_timeout_error);
+        } else {
+            override_error(e_error_during_commit, status);
+        }
         ret = 1;
         break;
     }
@@ -626,12 +640,14 @@ int wsrep::client_state::begin_nbo_phase_two(
     // an input param containing gtid of NBO begin.
     // Output stored in nbo_meta_ is copied to toi_meta_ for
     // phase two end.
+    bool timed_out;
     enum wsrep::provider::status status(
         poll_enter_toi(lock, keys,
                        wsrep::const_buffer(),
                        nbo_meta_,
                        wsrep::provider::flag::commit,
-                       wait_until));
+                       wait_until,
+                       timed_out));
     int ret;
     switch (status)
     {
@@ -641,7 +657,11 @@ int wsrep::client_state::begin_nbo_phase_two(
         toi_mode_ = m_local;
         break;
     default:
-        override_error(e_error_during_commit, status);
+        if (timed_out) {
+            override_error(e_timeout_error);
+        } else {
+            override_error(e_error_during_commit, status);
+        }
         // Failed to grab TOI for completing NBO in order. This means that
         // the operation cannot be ended in total order, so we end the
         // NBO mode and let the DBMS to deal with the error.

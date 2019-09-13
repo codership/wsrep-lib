@@ -1025,7 +1025,8 @@ namespace wsrep
                        const wsrep::const_buffer& buffer,
                        wsrep::ws_meta& meta,
                        int flags,
-                       std::chrono::time_point<wsrep::clock> wait_until);
+                       std::chrono::time_point<wsrep::clock> wait_until,
+                       bool& timed_out);
         void enter_toi_common(wsrep::unique_lock<wsrep::mutex>&);
         void leave_toi_common();
 

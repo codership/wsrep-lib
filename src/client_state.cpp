@@ -432,12 +432,6 @@ int wsrep::client_state::enter_toi_local(const wsrep::key_array& keys,
         break;
     }
 
-    if (ret && !toi_meta_.seqno().is_undefined())
-    {
-        wsrep::mutable_buffer err;
-        provider().leave_toi(id_, err);
-    }
-
     debug_log_state("enter_toi_local: leave");
     return ret;
 }
@@ -670,8 +664,6 @@ int wsrep::client_state::begin_nbo_phase_two(
         ret= 1;
         break;
     }
-
-    // TODO(leandro): should we check for defined toi_meta_ on error and call leave_toi?
 
     debug_log_state("begin_nbo_phase_two: leave");
     return ret;

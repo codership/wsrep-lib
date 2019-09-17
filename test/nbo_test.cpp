@@ -50,7 +50,7 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo,
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_undefined);
     // Second phase replicates the NBO end event and grabs TOI
     // again for finalizing the NBO.
-    BOOST_REQUIRE(cc.begin_nbo_phase_two(keys) == 0);
+    BOOST_REQUIRE(cc.begin_nbo_phase_two(keys, false) == 0);
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_nbo);
     BOOST_REQUIRE(cc.in_toi());
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_local);
@@ -126,7 +126,7 @@ BOOST_FIXTURE_TEST_CASE(test_applying_nbo,
     key.append_key_part("k2", 2);
     wsrep::key_array keys{key};
     // Starting phase two should put nbo_cs in toi mode.
-    BOOST_REQUIRE(nbo_cs->begin_nbo_phase_two(keys) == 0);
+    BOOST_REQUIRE(nbo_cs->begin_nbo_phase_two(keys, false) == 0);
     BOOST_REQUIRE(nbo_cs->mode() == wsrep::client_state::m_nbo);
     BOOST_REQUIRE(nbo_cs->in_toi());
     BOOST_REQUIRE(nbo_cs->toi_mode() == wsrep::client_state::m_local);

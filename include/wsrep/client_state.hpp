@@ -694,12 +694,10 @@ namespace wsrep
          * passed to begin_nbo_phase_one().
          *
          * @param keys Key array.
-         * @param has_error True if client thread has errored.
          * @param wait_until Time point to wait until for entering TOI for
          *                   phase two.
          */
         int begin_nbo_phase_two(const wsrep::key_array& keys,
-                                bool has_error,
                                 std::chrono::time_point<wsrep::clock>
                                 wait_until =
                                 std::chrono::time_point<wsrep::clock>());

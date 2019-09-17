@@ -615,7 +615,6 @@ int wsrep::client_state::enter_nbo_mode(const wsrep::ws_meta& ws_meta)
 
 int wsrep::client_state::begin_nbo_phase_two(
     const wsrep::key_array& keys,
-    bool has_error,
     std::chrono::time_point<wsrep::clock> wait_until)
 {
     debug_log_state("begin_nbo_phase_two: enter");
@@ -647,12 +646,7 @@ int wsrep::client_state::begin_nbo_phase_two(
         toi_mode_ = m_local;
         break;
     case wsrep::provider::error_provider_failed:
-        // If the thread has already errored on the DBMS side, we
-        // don't override the error so the original one can be reported.
-        if (!has_error)
-        {
-            override_error(e_interrupted_error, status);
-        }
+        override_error(e_interrupted_error, status);
         ret= 1;
         break;
     default:

@@ -789,7 +789,6 @@ namespace wsrep
          * passed to this call must contain the same keys which were
          * passed to begin_nbo_phase_one().
          *
-         *
          * If the wait_until is given non-default value, the operation is
          * retried until successful, the given time point is reached or the
          * client is interrupted.

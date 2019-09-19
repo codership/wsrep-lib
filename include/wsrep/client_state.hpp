@@ -573,7 +573,7 @@ namespace wsrep
          * Enter total order isolation critical section. If the wait_until
          * is given non-default value, the operation is retried until
          * successful, the given time point is reached or the client is
-         * interupted.
+         * interrupted.
          *
          * @param key_array Array of keys
          * @param buffer Buffer containing the action to execute inside
@@ -653,7 +653,7 @@ namespace wsrep
          *
          * If the wait_until is given non-default value, the operation is
          * retried until successful, the given time point is reached or the
-         * client is interupted.
+         * client is interrupted.
          *
          * @param keys Array of keys for NBO operation.
          * @param buffer NBO write set
@@ -692,6 +692,11 @@ namespace wsrep
          * Begin non-blocking operation phase two. The keys argument
          * passed to this call must contain the same keys which were
          * passed to begin_nbo_phase_one().
+         *
+         *
+         * If the wait_until is given non-default value, the operation is
+         * retried until successful, the given time point is reached or the
+         * client is interrupted.
          *
          * @param keys Key array.
          * @param wait_until Time point to wait until for entering TOI for

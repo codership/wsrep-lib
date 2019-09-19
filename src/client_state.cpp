@@ -370,7 +370,7 @@ wsrep::client_state::poll_enter_toi(
         if (status == wsrep::provider::error_certification_failed ||
             status == wsrep::provider::error_connection_failed)
         {
-            ::usleep(100000);
+            ::usleep(300000);
         }
         lock.lock();
         timed_out = !(wait_until.time_since_epoch().count() &&
@@ -810,10 +810,8 @@ void wsrep::client_state::state(
         };
     if (!allowed[state_][state])
     {
-        std::ostringstream os;
-        os << "client_state: Unallowed state transition: "
-           << state_ << " -> " << state;
-        wsrep::log_warning() << os.str();
+        wsrep::log_warning() << "client_state: Unallowed state transition: "
+                             << state_ << " -> " << state;
         assert(0);
     }
     state_hist_.push_back(state_);
@@ -842,10 +840,8 @@ void wsrep::client_state::mode(
         };
     if (!allowed[mode_][mode])
     {
-        std::ostringstream os;
-        os << "client_state: Unallowed mode transition: "
-           << mode_ << " -> " << mode;
-        wsrep::log_warning() << os.str();
+        wsrep::log_warning() << "client_state: Unallowed mode transition: "
+                             << mode_ << " -> " << mode;
         assert(0);
     }
     mode_ = mode;

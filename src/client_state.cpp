@@ -350,12 +350,14 @@ wsrep::client_state::poll_enter_toi(
                     << wait_until.time_since_epoch().count());
     enum wsrep::provider::status status;
     timed_out = false;
+    wsrep::ws_meta poll_meta; // tmp var for polling, as enter_toi may clear meta arg on errors
     do
     {
         lock.unlock();
-        status = provider().enter_toi(id_, keys, buffer, meta, flags);
+        poll_meta = meta;
+        status = provider().enter_toi(id_, keys, buffer, poll_meta, flags);
         if (status != wsrep::provider::success &&
-            not toi_meta_.gtid().is_undefined())
+            not poll_meta.gtid().is_undefined())
         {
             // Successfully entered TOI, but the provider reported failure.
             // This may happen for example if certification fails.
@@ -366,7 +368,7 @@ wsrep::client_state::poll_enter_toi(
                     << "Failed to leave TOI after failure in "
                     << "poll_enter_toi()";
             }
-            toi_meta_ = wsrep::ws_meta();
+            poll_meta = wsrep::ws_meta();
         }
         if (status == wsrep::provider::error_certification_failed ||
             status == wsrep::provider::error_connection_failed)
@@ -381,6 +383,7 @@ wsrep::client_state::poll_enter_toi(
             status == wsrep::provider::error_connection_failed) &&
            not timed_out &&
            not client_service_.interrupted(lock));
+    meta = poll_meta;
     return status;
 }
 

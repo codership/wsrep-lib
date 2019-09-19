@@ -782,13 +782,13 @@ void wsrep::client_state::debug_log_state(const char* context) const
 
 void wsrep::client_state::debug_log_keys(const wsrep::key_array& keys) const
 {
-    for (const auto& k : keys)
+    for (size_t i(0); i < keys.size(); ++i)
     {
         WSREP_LOG_DEBUG(debug_log_level(),
                         wsrep::log::debug_level_client_state,
                         "TOI keys: "
                         << " id: " << id_
-                        << "key: " << k);
+                        << "key: " << keys[i]);
     }
 }
 

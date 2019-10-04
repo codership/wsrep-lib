@@ -34,6 +34,12 @@
 #include <vector>
 #include <ostream>
 
+/**
+ * Empty provider magic. If none provider is passed to make_provider(),
+ * a dummy provider is loaded.
+ */
+#define WSREP_LIB_PROVIDER_NONE "none"
+
 namespace wsrep
 {
     class server_state;
@@ -404,14 +410,6 @@ namespace wsrep
          * Return pointer to native provider handle.
          */
         virtual void* native() const = 0;
-
-
-        /**
-         * Empty provider magic. If none provider is passed to make_provider(),
-         * a dummy provider is loaded.
-         */
-        static WSREP_CONSTEXPR_OR_INLINE
-        const char* none() { return "none"; }
 
         /**
          * Create a new provider.

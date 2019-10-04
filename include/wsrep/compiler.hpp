@@ -31,8 +31,6 @@
 #define WSREP_UNUSED __attribute__((unused))
 #if __cplusplus >= 201103L
 #define WSREP_OVERRIDE override
-#define WSREP_CONSTEXPR_OR_INLINE constexpr
 #else
 #define WSREP_OVERRIDE
-#define WSREP_CONSTEXPR_OR_INLINE inline
 #endif // __cplusplus >= 201103L

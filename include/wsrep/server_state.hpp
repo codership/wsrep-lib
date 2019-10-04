@@ -95,6 +95,13 @@
 #include <string>
 #include <map>
 
+/**
+ * Magic string to tell provider to engage into trivial (empty)
+ * state transfer. No data will be passed, but the node shall be
+ * considered joined.
+ */
+#define WSREP_LIB_SST_TRIVIAL "trivial"
+
 namespace wsrep
 {
     // Forward declarations
@@ -178,14 +185,6 @@ namespace wsrep
             /** Synchronous rollback mode */
             rm_sync
         };
-
-        /**
-         * Magic string to tell provider to engage into trivial (empty)
-         * state transfer. No data will be passed, but the node shall be
-         * considered joined.
-         */
-        static WSREP_CONSTEXPR_OR_INLINE
-        const char* sst_trivial() { return "trivial"; };
 
         virtual ~server_state();
 

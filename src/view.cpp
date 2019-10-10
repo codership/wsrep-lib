@@ -27,7 +27,7 @@ int wsrep::view::member_index(const wsrep::id& member_id) const
     {
         if (i->id() == member_id)
         {
-            return (i - members_.begin());
+            return static_cast<int>(i - members_.begin());
         }
     }
     return -1;

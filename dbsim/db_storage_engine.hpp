@@ -27,6 +27,7 @@
 
 #include <atomic>
 #include <unordered_set>
+#include <random>
 
 namespace db
 {
@@ -41,6 +42,8 @@ namespace db
             , bf_aborts_()
             , position_()
             , view_()
+            , random_device_()
+            , random_engine_(random_device_())
         { }
 
         class transaction
@@ -80,6 +83,8 @@ namespace db
         std::atomic<long long> bf_aborts_;
         wsrep::gtid position_;
         wsrep::view view_;
+        std::random_device random_device_;
+        std::default_random_engine random_engine_;
     };
 }
 

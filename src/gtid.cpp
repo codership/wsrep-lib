@@ -50,5 +50,5 @@ ssize_t wsrep::gtid_print_to_c_str(
         return -ENOBUFS;
     }
     std::strncpy(buf, os.str().c_str(), os.str().size());
-    return os.str().size();
+    return static_cast<ssize_t>(os.str().size());
 }

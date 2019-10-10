@@ -61,8 +61,9 @@ void db::storage_engine::transaction::rollback()
 
 void db::storage_engine::bf_abort_some(const wsrep::transaction& txc)
 {
+    std::uniform_int_distribution<size_t> uniform_dist(0, alg_freq_);
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    if (alg_freq_ && (std::rand() % alg_freq_) == 0)
+    if (alg_freq_ && uniform_dist(random_engine_) == 0)
     {
         if (transactions_.empty() == false)
         {

@@ -21,6 +21,7 @@
 #define WSREP_CLIENT_ID_HPP
 
 #include <ostream>
+#include <limits>
 
 namespace wsrep
 {
@@ -29,14 +30,14 @@ namespace wsrep
     public:
         typedef unsigned long long type;
         client_id()
-            : id_(-1)
+            : id_(std::numeric_limits<type>::max())
         { }
         template <typename I>
         explicit client_id(I id)
             : id_(static_cast<type>(id))
         { }
         type get() const { return id_; }
-        static type undefined() { return -1; }
+        static type undefined() { return std::numeric_limits<type>::max(); }
         bool operator<(const client_id& other) const
         {
             return (id_ < other.id_);

@@ -34,6 +34,8 @@ db::client::client(db::server& server,
     , client_state_(mutex_, cond_, server_state_, client_service_, client_id, mode)
     , client_service_(*this)
     , se_trx_(server.storage_engine())
+    , random_device_()
+    , random_engine_(random_device_())
     , stats_()
 { }
 
@@ -109,7 +111,8 @@ void db::client::run_one_transaction()
             // wsrep::log_debug() << "Generate write set";
             assert(transaction.active());
             assert(err == 0);
-            int data(std::rand() % params_.n_rows);
+            std::uniform_int_distribution<size_t> uniform_dist(0, params_.n_rows);
+            const size_t data(uniform_dist(random_engine_));
             std::ostringstream os;
             os << data;
             wsrep::key key(wsrep::key::exclusive);
@@ -172,6 +175,6 @@ void db::client::report_progress(size_t i) const
     {
         wsrep::log_info() << "client: " << client_state_.id().get()
                           << " transactions: " << i
-                          << " " << 100*double(i)/params_.n_transactions << "%";
+                          << " " << 100*double(i)/double(params_.n_transactions) << "%";
     }
 }

@@ -1410,8 +1410,4 @@ BOOST_AUTO_TEST_CASE(transaction_state_strings)
     BOOST_REQUIRE(
         wsrep::to_string(
             wsrep::transaction::s_replaying) == "replaying");
-    BOOST_REQUIRE(
-        wsrep::to_string(
-            static_cast<enum wsrep::transaction::state>(0xff)) == "unknown");
-
 }

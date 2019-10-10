@@ -97,7 +97,7 @@ namespace wsrep
         wsrep::view::status status() const
         { return status_; }
 
-        ssize_t capabilities() const
+        int capabilities() const
         { return capabilities_; }
 
         ssize_t own_index() const

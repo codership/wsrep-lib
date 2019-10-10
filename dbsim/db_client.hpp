@@ -28,6 +28,8 @@
 #include "db_client_service.hpp"
 #include "db_high_priority_service.hpp"
 
+#include <random>
+
 namespace db
 {
     class server;
@@ -77,6 +79,8 @@ namespace db
         db::client_state client_state_;
         db::client_service client_service_;
         db::storage_engine::transaction se_trx_;
+        std::random_device random_device_;
+        std::default_random_engine random_engine_;
         struct stats stats_;
     };
 }

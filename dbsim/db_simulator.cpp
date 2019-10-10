@@ -89,7 +89,7 @@ std::string db::simulator::stats() const
        << "\n"
        << "Seconds: " << duration
        << " \n"
-       << "Transactions per second: " << transactions/duration
+       << "Transactions per second: " << double(transactions)/double(duration)
        << "\n"
        << "BF aborts: "
        << bf_aborts

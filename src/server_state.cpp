@@ -824,8 +824,8 @@ void wsrep::server_state::on_connect(const wsrep::view& view)
         throw wsrep::runtime_error(os.str());
     }
 
-    if (id_.is_undefined() == false &&
-        id_ != view.members()[view.own_index()].id())
+    const size_t own_index(static_cast<size_t>(view.own_index()));
+    if (id_.is_undefined() == false && id_ != view.members()[own_index].id())
     {
         std::ostringstream os;
         os << "Connection in connected state.\n"
@@ -840,7 +840,7 @@ void wsrep::server_state::on_connect(const wsrep::view& view)
     }
     else
     {
-        id_ = view.members()[view.own_index()].id();
+        id_ = view.members()[own_index].id();
     }
 
     wsrep::log_info() << "Server "

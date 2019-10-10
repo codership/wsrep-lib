@@ -318,8 +318,6 @@ BOOST_AUTO_TEST_CASE(server_state_state_strings)
                       wsrep::server_state::s_synced) == "synced");
     BOOST_REQUIRE(wsrep::to_string(
                       wsrep::server_state::s_disconnecting) == "disconnecting");
-    BOOST_REQUIRE(wsrep::to_string(
-                      static_cast<enum wsrep::server_state::state>(0xff)) == "unknown");
 }
 
 ///////////////////////////////////////////////////////////////////////////////

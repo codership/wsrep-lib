@@ -51,8 +51,8 @@ wsrep::id::id(const std::string& str)
 std::ostream& wsrep::operator<<(std::ostream& os, const wsrep::id& id)
 {
     const char* ptr(static_cast<const char*>(id.data()));
-    ssize_t size(id.size());
-    if (std::count_if(ptr, ptr + size, ::isalnum) == size)
+    size_t size(id.size());
+    if (static_cast<size_t>(std::count_if(ptr, ptr + size, ::isalnum)) == size)
     {
         return (os << std::string(ptr, size));
     }

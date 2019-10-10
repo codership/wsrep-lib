@@ -21,6 +21,7 @@
 #define WSREP_TRANSACTION_ID_HPP
 
 #include <iostream>
+#include <limits>
 
 namespace wsrep
 {
@@ -31,7 +32,7 @@ namespace wsrep
 
 
         transaction_id()
-            : id_(-1)
+            : id_(std::numeric_limits<type>::max())
         { }
 
         template <typename I>

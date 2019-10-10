@@ -1781,7 +1781,6 @@ void wsrep::transaction::debug_log_state(
         << ", sr_rb: " << streaming_context_.rolled_back()
         << "\n    own: " << (client_state_.owning_thread_id_ == wsrep::this_thread::get_id())
         << " thread_id: " << client_state_.owning_thread_id_
-        << "\n query: " << client_service_.query()
         << "");
 }
 

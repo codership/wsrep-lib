@@ -33,7 +33,6 @@ namespace db
     public:
         client_service(db::client& client);
 
-        std::string query() const override { return ""; }
         bool interrupted(wsrep::unique_lock<wsrep::mutex>&)
             const override
         { return false; }

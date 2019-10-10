@@ -40,8 +40,6 @@ namespace wsrep
         client_service() { }
         virtual ~client_service() { }
 
-        virtual std::string query() const = 0;
-
         /**
          * Return true if the current transaction has been interrupted
          * by the DBMS. The lock which is passed to interrupted call

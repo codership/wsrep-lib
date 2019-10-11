@@ -25,6 +25,7 @@
 #include "buffer.hpp"
 #include "client_id.hpp"
 #include "transaction_id.hpp"
+#include "compiler.hpp"
 
 #include <cassert>
 #include <cstring>
@@ -32,6 +33,12 @@
 #include <string>
 #include <vector>
 #include <ostream>
+
+/**
+ * Empty provider magic. If none provider is passed to make_provider(),
+ * a dummy provider is loaded.
+ */
+#define WSREP_LIB_PROVIDER_NONE "none"
 
 namespace wsrep
 {

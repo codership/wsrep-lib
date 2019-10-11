@@ -20,8 +20,6 @@
 #ifndef WSREP_SEQNO_HPP
 #define WSREP_SEQNO_HPP
 
-#include "exception.hpp"
-
 #include <iosfwd>
 
 namespace wsrep
@@ -33,6 +31,8 @@ namespace wsrep
     class seqno
     {
     public:
+        typedef long long native_type;
+
         seqno()
             : seqno_(-1)
         { }
@@ -77,8 +77,9 @@ namespace wsrep
             return (*this + seqno(other));
         }
         static seqno undefined() { return seqno(-1); }
+
     private:
-        long long seqno_;
+        native_type seqno_;
     };
 
     std::ostream& operator<<(std::ostream& os, wsrep::seqno seqno);

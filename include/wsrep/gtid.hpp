@@ -22,8 +22,15 @@
 
 #include "id.hpp"
 #include "seqno.hpp"
+#include "compiler.hpp"
 
 #include <iosfwd>
+
+/**
+ * Minimum number of bytes guaratneed to store GTID string representation,
+ * terminating '\0' not included (36 + 1 + 20).
+ */
+#define WSREP_LIB_GTID_C_STR_LEN 57
 
 namespace wsrep
 {
@@ -62,22 +69,34 @@ namespace wsrep
     };
 
     /**
+     * Scan a GTID from C string.
+     *
+     * @param buf Buffer containing the string
+     * @param len Length of buffer
+     * @param[out] gtid Gtid to be printed to
+     *
+     * @return Number of bytes scanned, negative value on error.
+     */
+    ssize_t scan_from_c_str(const char* buf, size_t buf_len,
+                            wsrep::gtid& gtid);
+
+    /**
      * Print a GTID into character buffer.
      * @param buf Pointer to the beginning of the buffer
      * @param buf_len Buffer length
      *
      * @return Number of characters printed or negative value for error
      */
-    ssize_t gtid_print_to_c_str(const wsrep::gtid&, char* buf, size_t buf_len);
+    ssize_t print_to_c_str(const wsrep::gtid&, char* buf, size_t buf_len);
+
     /**
-     * Return minimum number of bytes guaranteed to store GTID string
-     * representation, terminating '\0' not included (36 + 1 + 20)
+     * Overload for ostream operator<<.
      */
-    static inline size_t gtid_c_str_len()
-    {
-        return 57;
-    }
     std::ostream& operator<<(std::ostream&, const wsrep::gtid&);
+
+    /**
+     * Overload for istream operator>>.
+     */
     std::istream& operator>>(std::istream&, wsrep::gtid&);
 }
 

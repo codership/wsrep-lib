@@ -42,10 +42,11 @@ namespace wsrep
     class id
     {
     public:
+        typedef struct native_type { unsigned char buf[16]; } native_type;
         /**
          * Default constructor. Constructs an empty identifier.
          */
-        id() : data_() { std::memset(data_, 0, sizeof(data_)); }
+        id() : data_() { std::memset(data_.buf, 0, sizeof(data_.buf)); }
 
         /**
          * Construct from string. The input string may contain either
@@ -62,24 +63,24 @@ namespace wsrep
             {
                 throw wsrep::runtime_error("Too long identifier");
             }
-            std::memset(data_, 0, sizeof(data_));
-            std::memcpy(data_, data, size);
+            std::memset(data_.buf, 0, sizeof(data_.buf));
+            std::memcpy(data_.buf, data, size);
         }
 
         bool operator<(const id& other) const
         {
-            return (std::memcmp(data_, other.data_, sizeof(data_)) < 0);
+            return (std::memcmp(data_.buf, other.data_.buf, sizeof(data_.buf)) < 0);
         }
 
         bool operator==(const id& other) const
         {
-            return (std::memcmp(data_, other.data_, sizeof(data_)) == 0);
+            return (std::memcmp(data_.buf, other.data_.buf, sizeof(data_.buf)) == 0);
         }
         bool operator!=(const id& other) const
         {
             return !(*this == other);
         }
-        const void* data() const { return data_; }
+        const void* data() const { return data_.buf; }
 
         size_t size() const { return sizeof(data_); }
 
@@ -94,7 +95,7 @@ namespace wsrep
         }
     private:
         static const wsrep::id undefined_;
-        unsigned char data_[16];
+        native_type data_;
     };
 
     std::ostream& operator<<(std::ostream&, const wsrep::id& id);

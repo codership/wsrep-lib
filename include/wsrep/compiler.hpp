@@ -20,7 +20,12 @@
 
 /** @file compiler.hpp
  *
- * Compiler specific options.
+ * Compiler specific macro definitions.
+ *
+ * WSREP_OVERRIDE - Set to "override" if the compiler supports it, otherwise
+ *                  left empty.
+ * WSREP_CONSTEXPR_OR_INLINE - Set to "constexpr" if the compiler supports it,
+ *                             otherwise "inline".
  */
 
 #define WSREP_UNUSED __attribute__((unused))

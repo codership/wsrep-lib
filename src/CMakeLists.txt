@@ -15,5 +15,6 @@ add_library(wsrep-lib
   server_state.cpp
   thread.cpp
   transaction.cpp
+  uuid.cpp
   wsrep_provider_v26.cpp)
 target_link_libraries(wsrep-lib wsrep_api_v26 pthread dl)

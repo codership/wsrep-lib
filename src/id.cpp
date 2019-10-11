@@ -18,7 +18,7 @@
  */
 
 #include "wsrep/id.hpp"
-#include <wsrep_api.h>
+#include "uuid.hpp"
 
 #include <cctype>
 #include <sstream>
@@ -29,15 +29,17 @@ const wsrep::id wsrep::id::undefined_ = wsrep::id();
 wsrep::id::id(const std::string& str)
     :  data_()
 {
-    wsrep_uuid_t wsrep_uuid;
-    if (wsrep_uuid_scan(str.c_str(), str.size(), &wsrep_uuid) ==
-        WSREP_UUID_STR_LEN)
+    wsrep::uuid_t wsrep_uuid;
+
+    if (str.size() == WSREP_LIB_UUID_STR_LEN &&
+        wsrep::uuid_scan(str.c_str(), str.size(), &wsrep_uuid) ==
+        WSREP_LIB_UUID_STR_LEN)
     {
-        std::memcpy(data_, wsrep_uuid.data, sizeof(data_));
+        std::memcpy(data_.buf, wsrep_uuid.data, sizeof(data_.buf));
     }
     else if (str.size() <= 16)
     {
-        std::memcpy(data_, str.c_str(), str.size());
+        std::memcpy(data_.buf, str.c_str(), str.size());
     }
     else
     {
@@ -58,14 +60,14 @@ std::ostream& wsrep::operator<<(std::ostream& os, const wsrep::id& id)
     }
     else
     {
-        char uuid_str[WSREP_UUID_STR_LEN + 1];
-        wsrep_uuid_t uuid;
+        char uuid_str[WSREP_LIB_UUID_STR_LEN + 1];
+        wsrep::uuid_t uuid;
         std::memcpy(uuid.data, ptr, sizeof(uuid.data));
-        if (wsrep_uuid_print(&uuid, uuid_str, sizeof(uuid_str)) < 0)
+        if (wsrep::uuid_print(&uuid, uuid_str, sizeof(uuid_str)) < 0)
         {
             throw wsrep::runtime_error("Could not print uuid");
         }
-        uuid_str[WSREP_UUID_STR_LEN] = '\0';
+        uuid_str[WSREP_LIB_UUID_STR_LEN] = '\0';
         return (os << uuid_str);
     }
 }

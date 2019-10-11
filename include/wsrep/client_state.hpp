@@ -307,12 +307,37 @@ namespace wsrep
 
         /**
          * Append a key into transaction write set.
+         *
+         * @param key Key to be appended
+         *
+         * @return Zero on success, non-zero on failure.
          */
         int append_key(const wsrep::key& key)
         {
             assert(mode_ == m_local);
             assert(state_ == s_exec);
             return transaction_.append_key(key);
+        }
+
+        /**
+         * Append keys in key_array into transaction write set.
+         *
+         * @param keys Array of keys to be appended
+         *
+         * @return Zero in case of success, non-zero on failure.
+         */
+        int append_keys(const wsrep::key_array& keys)
+        {
+            assert(mode_ == m_local || mode_ == m_toi);
+            assert(state_ == s_exec);
+            for (auto i(keys.begin()); i != keys.end(); ++i)
+            {
+                if (transaction_.append_key(*i))
+                {
+                    return 1;
+                }
+            }
+            return 0;
         }
 
         /**

@@ -66,11 +66,15 @@ wsrep::provider* wsrep::provider::make_provider(
     const std::string& provider_options,
     const wsrep::provider::services& services)
 {
-    auto dlh(load_library(provider_spec));
-    if (dlh == 0) return 0;
-    int api_ver(get_api_version(dlh.get()));
-    if (api_ver == 0) return 0;
-    wsrep::log_info() << "Found provider with API version " << api_ver;
+    int api_ver(26); // Use ver 26 by default if dummy provider is loaded.
+    if (provider_spec != WSREP_LIB_PROVIDER_NONE)
+    {
+        auto dlh(load_library(provider_spec));
+        if (dlh == 0) return 0;
+        api_ver = get_api_version(dlh.get());
+        if (api_ver == 0) return 0;
+        wsrep::log_info() << "Found provider with API version " << api_ver;
+    }
     try
     {
         switch (api_ver)

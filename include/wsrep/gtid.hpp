@@ -80,14 +80,41 @@ namespace wsrep
     ssize_t scan_from_c_str(const char* buf, size_t buf_len,
                             wsrep::gtid& gtid);
 
+    /*
+     * Deprecated version of the above for backwards compatibility.
+     * Will be removed when all the superprojects have been updated.
+     */
+    static inline ssize_t gtid_scan_from_c_str(const char* buf, size_t buf_len,
+                                               wsrep::gtid& gtid)
+    {
+        return scan_from_c_str(buf, buf_len, gtid);
+    }
+
     /**
      * Print a GTID into character buffer.
+     *
+     * @param gtid GTID to be printed.
      * @param buf Pointer to the beginning of the buffer
      * @param buf_len Buffer length
      *
      * @return Number of characters printed or negative value for error
      */
-    ssize_t print_to_c_str(const wsrep::gtid&, char* buf, size_t buf_len);
+    ssize_t print_to_c_str(const wsrep::gtid& gtid, char* buf, size_t buf_len);
+
+    /*
+     * Deprecated version of the above for backwards compatibility.
+     * Will be removed when all the superprojects have been updated.
+     */
+    static inline ssize_t gtid_print_to_c_str(const wsrep::gtid& gtid,
+                                              char* buf, size_t buf_len)
+    {
+        return print_to_c_str(gtid, buf, buf_len);
+    }
+
+    /**
+     * Return minimum number of chars required to store any GTID.
+     */
+    static inline size_t gtid_c_str_len() { return WSREP_LIB_GTID_C_STR_LEN; }
 
     /**
      * Overload for ostream operator<<.

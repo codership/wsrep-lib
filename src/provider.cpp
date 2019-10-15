@@ -19,46 +19,12 @@
 
 #include "wsrep/provider.hpp"
 #include "wsrep/logger.hpp"
-#include "wsrep/compiler.hpp"
 
 #include "wsrep_provider_v26.hpp"
 
 #include <dlfcn.h>
 #include <memory>
 
-struct dlh_deleter
-{
-    void operator()(void* dlh)
-    {
-        dlclose(dlh);
-    }
-};
-
-std::unique_ptr<void, dlh_deleter>
-load_library(const std::string& provider_spec)
-{
-    void* ret(dlopen(provider_spec.c_str(), RTLD_NOW | RTLD_LOCAL));
-    if (ret == 0)
-    {
-        wsrep::log_error() << "Failed to load library " << provider_spec;
-    }
-    return std::unique_ptr<void, dlh_deleter>(ret);
-}
-
-static int get_api_version(void* dlh)
-{
-    const char** version(reinterpret_cast<const char**>(
-                             dlsym(dlh, "wsrep_interface_version")));
-    if (version == 0)
-    {
-        wsrep::log_error() << "Failed to read interface version";
-        return 0;
-    }
-    std::istringstream is(*version);
-    int ret;
-    is >> ret;
-    return ret;
-}
 
 wsrep::provider* wsrep::provider::make_provider(
     wsrep::server_state& server_state,
@@ -66,26 +32,10 @@ wsrep::provider* wsrep::provider::make_provider(
     const std::string& provider_options,
     const wsrep::provider::services& services)
 {
-    int api_ver(26); // Use ver 26 by default if dummy provider is loaded.
-    if (provider_spec != WSREP_LIB_PROVIDER_NONE)
-    {
-        auto dlh(load_library(provider_spec));
-        if (dlh == 0) return 0;
-        api_ver = get_api_version(dlh.get());
-        if (api_ver == 0) return 0;
-        wsrep::log_info() << "Found provider with API version " << api_ver;
-    }
     try
     {
-        switch (api_ver)
-        {
-        case 26:
-            return new wsrep::wsrep_provider_v26(
-                server_state, provider_options, provider_spec, services);
-        default:
-            wsrep::log_error() << "Unimplemented wsrep-API version "
-                               << api_ver;
-        }
+        return new wsrep::wsrep_provider_v26(
+            server_state, provider_options, provider_spec, services);
     }
     catch (const wsrep::runtime_error& e)
     {

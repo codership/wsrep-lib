@@ -550,22 +550,39 @@ namespace wsrep
         }
 
         /**
-         * Terminate transaction with the given xid
+         * Commit transaction with the given xid
          *
-         * Sends a commit or rollback fragment to terminate a
-         * transaction with the given xid. For the fragment to be
-         * sent, a streaming applier for the transaction must exist
-         * and the transaction must be in prepared state.
+         * Sends a commit fragment to terminate the transaction with
+         * the given xid. For the fragment to be sent, a streaming
+         * applier for the transaction must exist, and the transaction
+         * must be in prepared state.
          *
-         * @param xid the xid of the the transaction to terminate
-         * @param commit whether to send a commmit or rollback fragment
+         * @param xid the xid of the the transaction to commit
          *
          * @return Zero on success, non-zero on error. In case of error
          *         the client_state's current_error is set
          */
-        int commit_or_rollback_by_xid(const std::string& xid, bool commit)
+        int commit_by_xid(const std::string& xid)
         {
-            return transaction_.commit_or_rollback_by_xid(xid, commit);
+            return transaction_.commit_or_rollback_by_xid(xid, true);
+        }
+
+        /**
+         * Rollback transaction with the given xid
+         *
+         * Sends a rollback fragment to terminate the transaction with
+         * the given xid. For the fragment to be sent, a streaming
+         * applier for the transaction must exist, and the transaction
+         * must be in prepared state.
+         *
+         * @param xid the xid of the the transaction to commit
+         *
+         * @return Zero on success, non-zero on error. In case of error
+         *         the client_state's current_error is set
+         */
+        int rollback_by_xid(const std::string& xid)
+        {
+            return transaction_.commit_or_rollback_by_xid(xid, false);
         }
 
         //

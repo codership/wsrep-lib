@@ -41,6 +41,7 @@
 #include "lock.hpp"
 #include "buffer.hpp"
 #include "thread.hpp"
+#include "xid.hpp"
 
 namespace wsrep
 {
@@ -533,7 +534,7 @@ namespace wsrep
          *
          * @param xid transaction id
          */
-        void assign_xid(const std::string& xid)
+        void assign_xid(const wsrep::xid& xid)
         {
             transaction_.assign_xid(xid);
         }
@@ -544,7 +545,7 @@ namespace wsrep
          * The purpose of this method is to restore transaction state
          * during recovery of a prepared XA transaction.
          */
-        int restore_xid(std::string& xid)
+        int restore_xid(const wsrep::xid& xid)
         {
             return transaction_.restore_to_prepared_state(xid);
         }
@@ -562,7 +563,7 @@ namespace wsrep
          * @return Zero on success, non-zero on error. In case of error
          *         the client_state's current_error is set
          */
-        int commit_by_xid(const std::string& xid)
+        int commit_by_xid(const wsrep::xid& xid)
         {
             return transaction_.commit_or_rollback_by_xid(xid, true);
         }
@@ -580,7 +581,7 @@ namespace wsrep
          * @return Zero on success, non-zero on error. In case of error
          *         the client_state's current_error is set
          */
-        int rollback_by_xid(const std::string& xid)
+        int rollback_by_xid(const wsrep::xid& xid)
         {
             return transaction_.commit_or_rollback_by_xid(xid, false);
         }

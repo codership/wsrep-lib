@@ -32,6 +32,7 @@
 #include "transaction_id.hpp"
 #include "id.hpp"
 #include "buffer.hpp"
+#include "xid.hpp"
 
 namespace wsrep
 {
@@ -64,7 +65,7 @@ namespace wsrep
                                     wsrep::transaction_id client_id,
                                     int flags,
                                     const wsrep::const_buffer& data,
-                                    const std::string& xid) = 0;
+                                    const wsrep::xid& xid) = 0;
 
         /**
          * Update fragment meta data after certification process.

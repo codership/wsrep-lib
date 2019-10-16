@@ -130,7 +130,7 @@ static int apply_fragment(wsrep::server_state& server_state,
         if (!apply_err)
         {
             high_priority_service.debug_crash("crash_apply_cb_before_append_frag");
-            const std::string xid(streaming_applier->transaction().xid());
+            const wsrep::xid xid(streaming_applier->transaction().xid());
             ret = high_priority_service.append_fragment_and_commit(
                 ws_handle, ws_meta, data, xid);
             high_priority_service.debug_crash("crash_apply_cb_after_append_frag");
@@ -1258,7 +1258,7 @@ wsrep::high_priority_service* wsrep::server_state::find_streaming_applier(
 }
 
 wsrep::high_priority_service* wsrep::server_state::find_streaming_applier(
-    const std::string& xid) const
+    const wsrep::xid& xid) const
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     streaming_appliers_map::const_iterator i(streaming_appliers_.begin());

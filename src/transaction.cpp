@@ -1040,7 +1040,7 @@ void wsrep::transaction::after_replay(const wsrep::transaction& other)
     clear_fragments();
 }
 
-int wsrep::transaction::restore_to_prepared_state(const std::string& xid)
+int wsrep::transaction::restore_to_prepared_state(const wsrep::xid& xid)
 {
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex_);
     assert(active());
@@ -1053,7 +1053,7 @@ int wsrep::transaction::restore_to_prepared_state(const std::string& xid)
     return 0;
 }
 
-int wsrep::transaction::commit_or_rollback_by_xid(const std::string& xid,
+int wsrep::transaction::commit_or_rollback_by_xid(const wsrep::xid& xid,
                                                   bool commit)
 {
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex_);

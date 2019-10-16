@@ -29,6 +29,7 @@
 #include "sr_key_set.hpp"
 #include "buffer.hpp"
 #include "client_service.hpp"
+#include "xid.hpp"
 
 #include <cassert>
 #include <vector>
@@ -127,21 +128,21 @@ namespace wsrep
             return !xid_.empty();
         }
 
-        void assign_xid(const std::string& xid)
+        void assign_xid(const wsrep::xid& xid)
         {
             assert(active());
             assert(xid_.empty());
             xid_ = xid;
         }
 
-        const std::string xid() const
+        const wsrep::xid xid() const
         {
             return xid_;
         }
 
-        int restore_to_prepared_state(const std::string& xid);
+        int restore_to_prepared_state(const wsrep::xid& xid);
 
-        int commit_or_rollback_by_xid(const std::string& xid, bool commit);
+        int commit_or_rollback_by_xid(const wsrep::xid& xid, bool commit);
 
         bool pa_unsafe() const { return pa_unsafe_; }
         void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }
@@ -273,7 +274,7 @@ namespace wsrep
         wsrep::streaming_context streaming_context_;
         wsrep::sr_key_set sr_keys_;
         wsrep::mutable_buffer apply_error_buf_;
-        std::string xid_;
+        wsrep::xid xid_;
     };
 
     static inline const char* to_c_string(enum wsrep::transaction::state state)

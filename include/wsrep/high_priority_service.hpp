@@ -24,6 +24,7 @@
 #ifndef WSREP_HIGH_PRIORITY_SERVICE_HPP
 #define WSREP_HIGH_PRIORITY_SERVICE_HPP
 
+#include "xid.hpp"
 #include "server_state.hpp"
 
 namespace wsrep
@@ -97,7 +98,7 @@ namespace wsrep
             const wsrep::ws_handle& ws_handle,
             const wsrep::ws_meta& ws_meta,
             const wsrep::const_buffer& data,
-            const std::string& xid) = 0;
+            const wsrep::xid& xid) = 0;
 
         /**
          * Remove fragments belonging to streaming transaction.

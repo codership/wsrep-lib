@@ -90,6 +90,7 @@
 #include "logger.hpp"
 #include "provider.hpp"
 #include "compiler.hpp"
+#include "xid.hpp"
 
 #include <vector>
 #include <string>
@@ -268,7 +269,7 @@ namespace wsrep
          * Find a streaming applier matching xid
          */
         wsrep::high_priority_service* find_streaming_applier(
-            const std::string& xid) const;
+            const wsrep::xid& xid) const;
 
         /**
          * Load WSRep provider.

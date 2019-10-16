@@ -40,7 +40,7 @@ class mock_server_state;
                             wsrep::transaction_id,
                             int,
                             const wsrep::const_buffer&,
-                            const std::string&) WSREP_OVERRIDE
+                            const wsrep::xid&) WSREP_OVERRIDE
         { return 0; }
 
         int update_fragment_meta(const wsrep::ws_meta&) WSREP_OVERRIDE

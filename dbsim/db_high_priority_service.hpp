@@ -42,7 +42,7 @@ namespace db
             const wsrep::ws_handle&,
             const wsrep::ws_meta&,
             const wsrep::const_buffer&,
-            const std::string&) override
+            const wsrep::xid&) override
         { return 0; }
         int remove_fragments(const wsrep::ws_meta&) override
         { return 0; }

@@ -1067,9 +1067,15 @@ int wsrep::transaction::commit_or_rollback_by_xid(const wsrep::xid& xid,
         return 1;
     }
 
-    int flags(commit ?
-              wsrep::provider::flag::commit :
-              wsrep::provider::flag::rollback);
+    int flags(0);
+    if (commit)
+    {
+        flags = wsrep::provider::flag::commit;
+    }
+    else
+    {
+        flags = wsrep::provider::flag::rollback;
+    }
     flags = flags | wsrep::provider::flag::pa_unsafe;
     wsrep::stid stid(sa->transaction().server_id(),
                      sa->transaction().id(),

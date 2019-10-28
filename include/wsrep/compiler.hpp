@@ -37,13 +37,17 @@
  */
 
 
+#if __cplusplus >= 201103L && !(__GNUC__ == 4 && __GNUG_MINOR__ < 8)
+#define WSREP_NORETURN [[noreturn]]
+#else
+#define WSREP_NORETURN __attribute__((noreturn))
+#endif // __cplusplus >= 201103L && !(__GNUC__ == 4 && __GNUG_MINOR__ < 8)
+
 #if __cplusplus >= 201103L
 #define WSREP_NOEXCEPT noexcept
-#define WSREP_NORETURN [[noreturn]]
 #define WSREP_OVERRIDE override
 #else
 #define WSREP_NOEXCEPT
-#define WSREP_NORETURN __attribute__((noreturn))
 #define WSREP_OVERRIDE
 #endif // __cplusplus >= 201103L
 #define WSREP_UNUSED __attribute__((unused))

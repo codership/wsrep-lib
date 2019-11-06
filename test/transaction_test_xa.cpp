@@ -52,6 +52,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
 BOOST_FIXTURE_TEST_CASE(transaction_xa_applying,
                         applying_client_fixture)
 {
+    start_transaction(wsrep::transaction_id(1), wsrep::seqno(1));
     cc.assign_xid("test xid");
 
     BOOST_REQUIRE(cc.before_prepare() == 0);

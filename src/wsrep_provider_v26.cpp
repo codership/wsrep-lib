@@ -884,7 +884,7 @@ wsrep::wsrep_provider_v26::enter_toi(
     return map_return_value(wsrep_->to_execute_start(
                                 wsrep_,
                                 client_id.get(),
-                                &wsrep_keys[0],
+                                wsrep_keys.data(),
                                 wsrep_keys.size(),
                                 &wsrep_buf,
                                 1,

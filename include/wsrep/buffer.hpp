@@ -85,8 +85,26 @@ namespace wsrep
         }
 
         size_t size() const { return buffer_.size(); }
-        char* data() { return &buffer_[0]; }
-        const char* data() const { return &buffer_[0]; }
+
+        /**
+         * Return pointer to underlying data array. The returned pointer
+         * may or may not be null in case of empty buffer, it is up to
+         * user to check the size of the array before dereferencing the
+         * pointer.
+         *
+         * @return Pointer to underlying data array.
+         */
+        char* data() { return buffer_.data(); }
+
+        /**
+         * Return const pointer to underlying data array. The returned pointer
+         * may or may not be null in case of empty buffer, it is up to
+         * user to check the size of the array before dereferencing the
+         * pointer.
+         *
+         * @return Const pointer to underlying data array.
+         */
+        const char* data() const { return buffer_.data(); }
 
         mutable_buffer& operator= (const mutable_buffer& other)
         {

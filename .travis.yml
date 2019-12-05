@@ -148,6 +148,62 @@ matrix:
             - libboost-thread-dev
       env: MATRIX_EVAL="CC=gcc-7 CXX=g++-7 TYPE=RelWithDebInfo STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
     - os: linux
+      name: "GCC 8 Debug"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-8
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=gcc-8 CXX=g++-8 TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
+    - os: linux
+      name: "GCC 8 RelWithDebInfo"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-8
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=gcc-8 CXX=g++-8 TYPE=RelWithDebInfo STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
+    - os: linux
+      name: "GCC 9 Debug"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-9
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=gcc-9 CXX=g++-9 TYPE=Debug STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
+    - os: linux
+      name: "GCC 9 RelWithDebInfo"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-9
+            - cmake
+            - libboost-test-dev
+            - libboost-program-options-dev
+            - libboost-filesystem-dev
+            - libboost-thread-dev
+      env: MATRIX_EVAL="CC=gcc-9 CXX=g++-9 TYPE=RelWithDebInfo STRICT=ON UNIT_TESTS=ON ASAN=OFF DBSIM=ON"
+    - os: linux
       dist: trusty
       name: "Clang 3.6 Debug"
       addons:

@@ -615,3 +615,37 @@ BOOST_FIXTURE_TEST_CASE(
     ss.resume_and_resync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
 }
+
+/////////////////////////////////////////////////////////////////////////////
+//                               Disconnect                                //
+/////////////////////////////////////////////////////////////////////////////
+
+BOOST_FIXTURE_TEST_CASE(
+    server_state_disconnect,
+    sst_first_server_fixture)
+{
+    bootstrap();
+    ss.disconnect();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnecting);
+    final_view();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
+}
+
+// This test case verifies that the disconnect can be initiated
+// concurrently by several callers. This may happen in failure situations
+// where provider shutdown causes cascading failures and the failing operations
+// try to disconnect the provider.
+BOOST_FIXTURE_TEST_CASE(
+    server_state_disconnect_twice,
+    sst_first_server_fixture)
+{
+    bootstrap();
+    ss.disconnect();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnecting);
+    ss.disconnect();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnecting);
+    final_view();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
+    ss.disconnect();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
+}

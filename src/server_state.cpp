@@ -524,6 +524,15 @@ int wsrep::server_state::disconnect()
 {
     {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        // In case of failure situations which are caused by provider
+        // being shut down some failing operation may also try to shut
+        // down the replication. Check the state here and
+        // return success if the provider disconnect is already in progress
+        // or has completed.
+        if (state(lock) == s_disconnecting || state(lock) == s_disconnected)
+        {
+            return 0;
+        }
         state(lock, s_disconnecting);
         interrupt_state_waiters(lock);
     }

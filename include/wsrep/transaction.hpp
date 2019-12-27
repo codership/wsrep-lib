@@ -199,8 +199,6 @@ namespace wsrep
 
         void clone_for_replay(const wsrep::transaction& other);
 
-        void after_replay(const wsrep::transaction& other);
-
         bool bf_aborted() const
         {
             return (bf_abort_client_state_ != 0);
@@ -248,6 +246,7 @@ namespace wsrep
         int append_sr_keys_for_commit();
         int release_commit_order(wsrep::unique_lock<wsrep::mutex>&);
         void streaming_rollback(wsrep::unique_lock<wsrep::mutex>&);
+        int replay(wsrep::unique_lock<wsrep::mutex>&);
         void clear_fragments();
         void cleanup();
         void debug_log_state(const char*) const;

@@ -640,8 +640,6 @@ namespace wsrep
         /**
          * Clone enough state from another transaction so that replaing will
          * be possible with a transaction contained in this client state.
-         * Method after_replay() must be used to inject the state after
-         * replaying back to this client state.
          *
          * @param transaction Transaction which is to be replied in this
          *                    client state
@@ -650,16 +648,6 @@ namespace wsrep
         {
             // assert(mode_ == m_high_priority);
             transaction_.clone_for_replay(transaction);
-        }
-
-        /**
-         * Copy state from another transaction context after replay.
-         *
-         * @param transaction Transaction which was used for replaying.
-         */
-        void after_replay(const wsrep::transaction& transaction)
-        {
-            transaction_.after_replay(transaction);
         }
 
         /** @name Non-transactional operations */

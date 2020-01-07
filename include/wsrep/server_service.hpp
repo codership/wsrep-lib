@@ -180,6 +180,18 @@ namespace wsrep
          */
         virtual wsrep::gtid get_position(
             wsrep::client_service& client_service) = 0;
+
+        /**
+         * Set the current replication position of the server
+         * storage.
+         *
+         * @param client_service Reference to client_service
+         * @param gtid Reference to position to be set
+         */
+        virtual void set_position(
+            wsrep::client_service& client_service,
+            const wsrep::gtid& gtid) = 0;
+
         /**
          * Log a state change event.
          *

@@ -758,8 +758,13 @@ int wsrep::transaction::release_commit_order(
     lock.unlock();
     int ret(provider().commit_order_enter(ws_handle_, ws_meta_));
     lock.lock();
-    return ret || provider().commit_order_leave(ws_handle_, ws_meta_,
-                                                apply_error_buf_);
+    if (!ret)
+    {
+        server_service_.set_position(client_service_, ws_meta_.gtid());
+        ret = provider().commit_order_leave(ws_handle_, ws_meta_,
+                                            apply_error_buf_);
+    }
+    return ret;
 }
 
 int wsrep::transaction::after_statement()

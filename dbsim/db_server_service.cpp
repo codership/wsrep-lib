@@ -144,6 +144,12 @@ wsrep::gtid db::server_service::get_position(wsrep::client_service&)
     return server_.storage_engine().get_position();
 }
 
+void db::server_service::set_position(wsrep::client_service&,
+                                      const wsrep::gtid& gtid)
+{
+    return server_.storage_engine().store_position(gtid);
+}
+
 void db::server_service::log_state_change(
     enum wsrep::server_state::state prev_state,
     enum wsrep::server_state::state current_state)

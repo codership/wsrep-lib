@@ -156,6 +156,13 @@ namespace wsrep
         {
             return position_;
         }
+
+        void set_position(wsrep::client_service&,
+                          const wsrep::gtid& gtid) WSREP_OVERRIDE
+        {
+            position_ = gtid;
+        }
+
         void log_state_change(enum wsrep::server_state::state,
                               enum wsrep::server_state::state)
             WSREP_OVERRIDE

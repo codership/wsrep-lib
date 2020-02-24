@@ -180,15 +180,6 @@ namespace wsrep
          */
         virtual void debug_crash(const char* crash_point) = 0;
     };
-
-    /**
-     * Debug callback methods. These methods are called only in
-     * builds that have WITH_DEBUG defined.
-     */
-    class client_debug_callback
-    {
-    public:
-    };
 }
 
 #endif // WSREP_CLIENT_SERVICE_HPP

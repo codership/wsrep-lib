@@ -987,7 +987,6 @@ namespace wsrep
 
         friend class client_state_switch;
         friend class high_priority_context;
-        friend class client_toi_mode;
         friend class transaction;
 
         void do_acquire_ownership(wsrep::unique_lock<wsrep::mutex>& lock);
@@ -1122,31 +1121,6 @@ namespace wsrep
         wsrep::client_state& client_;
         enum wsrep::client_state::mode orig_mode_;
     };
-
-    /**
-     *
-     */
-    class client_toi_mode
-    {
-    public:
-        client_toi_mode(wsrep::client_state& client)
-            : client_(client)
-            , orig_mode_(client.mode_)
-        {
-            wsrep::unique_lock<wsrep::mutex> lock(client.mutex_);
-            client.mode(lock, wsrep::client_state::m_toi);
-        }
-        ~client_toi_mode()
-        {
-            wsrep::unique_lock<wsrep::mutex> lock(client_.mutex_);
-            assert(client_.mode() == wsrep::client_state::m_toi);
-            client_.mode(lock, orig_mode_);
-        }
-    private:
-        wsrep::client_state& client_;
-        enum wsrep::client_state::mode orig_mode_;
-    };
-
 }
 
 #endif // WSREP_CLIENT_STATE_HPP

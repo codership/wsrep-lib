@@ -962,7 +962,7 @@ bool wsrep::transaction::bf_abort(
                 WSREP_LOG_DEBUG(client_state_.debug_log_level(),
                                 wsrep::log::debug_level_transaction,
                                 "Seqno " << bf_seqno
-                                << " succesfully BF aborted " << id_
+                                << " successfully BF aborted " << id_
                                 << " victim_seqno " << victim_seqno);
                 bf_abort_state_ = state_at_enter;
                 state(lock, s_must_abort);
@@ -1733,8 +1733,8 @@ int wsrep::transaction::certify_commit(
         client_state_.override_error(wsrep::e_error_during_commit, cert_ret);
         break;
     case wsrep::provider::error_bf_abort:
-        // Transaction was replicated succesfully and it was either
-        // certified succesfully or the result of certifying is not
+        // Transaction was replicated successfully and it was either
+        // certified successfully or the result of certifying is not
         // yet known. Therefore the transaction must roll back
         // and go through replay either to replay and commit the whole
         // transaction or to determine failed certification status.

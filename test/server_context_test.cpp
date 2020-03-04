@@ -452,7 +452,7 @@ BOOST_FIXTURE_TEST_CASE(
 }
 
 // Error or shutdown happens during catchup phase after receiving
-// SST succesfully.
+// SST successfully.
 BOOST_FIXTURE_TEST_CASE(
     server_state_sst_first_error_on_joined,
     sst_first_server_fixture)

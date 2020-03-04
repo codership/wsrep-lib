@@ -93,7 +93,7 @@ namespace wsrep
         { return (ws_meta_.seqno().is_undefined() == false); }
 
         /**
-         * Return true if any fragments have been succesfully certified
+         * Return true if any fragments have been successfully certified
          * for the transaction.
          */
         bool is_streaming() const
@@ -104,7 +104,7 @@ namespace wsrep
         /**
          * Return number of fragments certified for current statement.
          *
-         * This counts fragments which have been succesfully certified
+         * This counts fragments which have been successfully certified
          * since the construction of object or last after_statement()
          * call.
          *

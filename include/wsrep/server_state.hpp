@@ -163,7 +163,7 @@ namespace wsrep
             s_connected,
             /** Server is receiving SST */
             s_joiner,
-            /** Server has received SST succesfully but has not synced
+            /** Server has received SST successfully but has not synced
               with rest of the cluster yet. */
             s_joined,
             /** Server is donating state snapshot transfer */

@@ -231,7 +231,7 @@ namespace wsrep
          * @param gtid A GTID denoting the current replication position
          * @param bypass Boolean bypass flag.
          *
-         * @return Zero if the SST transfer was succesfully started,
+         * @return Zero if the SST transfer was successfully started,
          *         non-zero otherwise.
          */
         virtual int start_sst(const std::string& sst_request,

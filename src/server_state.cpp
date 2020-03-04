@@ -600,7 +600,7 @@ wsrep::seqno wsrep::server_state::desync_and_pause()
         // Desync may give transient error if the provider cannot
         // communicate with the rest of the cluster. However, this
         // error can be tolerated because if the provider can be
-        // paused succesfully below.
+        // paused successfully below.
         WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
                         wsrep::log::debug_level_server_state,
                         "Failed to desync server before pause");
@@ -753,7 +753,7 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
                  * logged view. */
                 std::ostringstream msg;
                 msg << "SST script passed bogus GTID: " << gtid
-                    << ". Preceeding view GTID: " << v.state_id();
+                    << ". Preceding view GTID: " << v.state_id();
                 throw wsrep::runtime_error(msg.str());
             }
 

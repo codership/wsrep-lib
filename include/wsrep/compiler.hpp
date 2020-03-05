@@ -32,8 +32,10 @@
  *                  it, otherwise "__attribute__((noreturn))".
  * WSREP_OVERRIDE - Set to "override" if the compiler supports it, otherwise
  *                  left empty.
- * WSREP_UNUSED - Can be used to mark variables which may be present in
- *                debug builds but not in release builds.
+ * WSREP_UNUSED   - Can be used to mark variables which may be present in
+ *                  debug builds but not in release builds.
+ * WSREP_WARN_UNUSED_RESULT - Mark function or methods so that a warning is
+ *                            raised if its return value is unused.
  */
 
 
@@ -51,3 +53,4 @@
 #define WSREP_OVERRIDE
 #endif // __cplusplus >= 201103L
 #define WSREP_UNUSED __attribute__((unused))
+#define WSREP_WARN_UNUSED_RESULT __attribute__((warn_unused_result))

@@ -75,8 +75,14 @@ discard_streaming_applier(wsrep::server_state& server_state,
                           wsrep::high_priority_service* streaming_applier,
                           const wsrep::ws_meta& ws_meta)
 {
-    server_state.stop_streaming_applier(
-        ws_meta.server_id(), ws_meta.transaction_id());
+    if (!server_state.stop_streaming_applier(
+            ws_meta.server_id(), ws_meta.transaction_id()))
+    {
+        wsrep::log_warning() << "Failed to stop streaming applier for "
+                             << ws_meta.server_id() << ":"
+                             << ws_meta.transaction_id();
+        assert(0);
+    }
     server_state.server_service().release_high_priority_service(
         streaming_applier);
     high_priority_service.store_globals();
@@ -242,8 +248,9 @@ static int rollback_fragment(wsrep::server_state& server_state,
 
     if (!ret)
     {
-        discard_streaming_applier(server_state, high_priority_service,
-                                  streaming_applier, ws_meta);
+        server_state.server_service().release_high_priority_service(
+            streaming_applier);
+        high_priority_service.store_globals();
 
         if (adopt_error == 0)
         {
@@ -286,23 +293,27 @@ static int apply_write_set(wsrep::server_state& server_state,
         else
         {
             wsrep::high_priority_service* sa(
-                server_state.find_streaming_applier(
+                server_state.stop_streaming_applier(
                     ws_meta.server_id(), ws_meta.transaction_id()));
             if (sa == 0)
             {
-                // It is a known limitation that galera provider
-                // cannot always determine if certification test
-                // for interrupted transaction will pass or fail
-                // (see comments in transaction::certify_fragment()).
-                // As a consequence, unnecessary rollback fragments
-                // may be delivered here. The message below has
-                // been intentionally turned into a debug message,
-                // rather than warning.
-                 WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
-                                 wsrep::log::debug_level_server_state,
-                                 "Could not find applier context for "
-                                 << ws_meta.server_id()
-                                 << ": " << ws_meta.transaction_id());
+                // We might end up here for two reasons:
+                // 1) The SR transaction was BF aborted by TOI, and the
+                //    corresponding streaming applier has already been
+                //    stopped by rollbacker.
+                // 2) It is a known limitation that galera provider
+                //    cannot always determine if certification test
+                //    for interrupted transaction will pass or fail
+                //    (see comments in transaction::certify_fragment()).
+                //    As a consequence, unnecessary rollback fragments
+                //    may be delivered here.
+                // The message below has been intentionally turned into
+                // a debug message, rather than warning.
+                WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
+                                wsrep::log::debug_level_server_state,
+                                "Could not find applier context for "
+                                << ws_meta.server_id()
+                                << ": " << ws_meta.transaction_id());
                 ret = high_priority_service.log_dummy_write_set(
                     ws_handle, ws_meta, no_error);
             }
@@ -1255,24 +1266,20 @@ void wsrep::server_state::start_streaming_applier(
     }
 }
 
-void wsrep::server_state::stop_streaming_applier(
+wsrep::high_priority_service* wsrep::server_state::stop_streaming_applier(
     const wsrep::id& server_id,
     const wsrep::transaction_id& transaction_id)
 {
+    wsrep::high_priority_service* sa(0);
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     streaming_appliers_map::iterator i(
         streaming_appliers_.find(std::make_pair(server_id, transaction_id)));
-    assert(i != streaming_appliers_.end());
-    if (i == streaming_appliers_.end())
-    {
-        wsrep::log_warning() << "Could not find streaming applier for "
-                             << server_id << ":" << transaction_id;
-    }
-    else
-    {
+    if (i != streaming_appliers_.end()) {
+        sa = i->second;
         streaming_appliers_.erase(i);
         cond_.notify_all();
     }
+    return sa;
 }
 
 wsrep::high_priority_service* wsrep::server_state::find_streaming_applier(

@@ -255,8 +255,19 @@ namespace wsrep
             const wsrep::transaction_id&,
             wsrep::high_priority_service*);
 
-        void stop_streaming_applier(
-            const wsrep::id&, const wsrep::transaction_id&);
+        /**
+         * Stop the streaming applier matching server server and transaction ids
+         *
+         * If a corresponding streaming applier is found, it is stopped,
+         * and returned to the caller.
+         *
+         * @return pointer to the stopped streaming applier
+         *         nullptr if the streaming applier was already stopped
+         */
+        WSREP_WARN_UNUSED_RESULT
+        wsrep::high_priority_service* stop_streaming_applier(
+            const wsrep::id&,
+            const wsrep::transaction_id&);
 
         /**
          * Find a streaming applier matching server and transaction ids

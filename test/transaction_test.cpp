@@ -1170,7 +1170,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_rollback,
     BOOST_REQUIRE(hps);
     hps->rollback(wsrep::ws_handle(), wsrep::ws_meta());
     hps->after_apply();
-    sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
+    BOOST_REQUIRE(sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1)));
     server_service.release_high_priority_service(hps);
 }
 
@@ -1217,7 +1217,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_cert_fail_non_commit,
     BOOST_REQUIRE(hps);
     hps->rollback(wsrep::ws_handle(), wsrep::ws_meta());
     hps->after_apply();
-    sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
+    BOOST_REQUIRE(sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1)));
     server_service.release_high_priority_service(hps);
 }
 
@@ -1248,7 +1248,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_cert_fail_commit,
     BOOST_REQUIRE(hps);
     hps->rollback(wsrep::ws_handle(), wsrep::ws_meta());
     hps->after_apply();
-    sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
+    BOOST_REQUIRE(sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1)));
     server_service.release_high_priority_service(hps);
 }
 
@@ -1405,7 +1405,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_statement_streaming_cert_fail,
     BOOST_REQUIRE(hps);
     hps->rollback(wsrep::ws_handle(), wsrep::ws_meta());
     hps->after_apply();
-    sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
+    BOOST_REQUIRE(sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1)));
     server_service.release_high_priority_service(hps);
 }
 

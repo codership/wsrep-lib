@@ -917,8 +917,6 @@ bool wsrep::transaction::bf_abort(
                                 "Seqno " << bf_seqno
                                 << " succesfully BF aborted " << id_
                                 << " victim_seqno " << victim_seqno);
-                bf_abort_state_ = state_at_enter;
-                state(lock, s_must_abort);
                 ret = true;
                 break;
             default:
@@ -943,7 +941,26 @@ bool wsrep::transaction::bf_abort(
 
     if (ret)
     {
+        if (is_streaming() &&
+            client_state_.mode() == wsrep::client_state::m_high_priority)
+        {
+            lock.unlock();
+            if (!client_state_.server_state().stop_streaming_applier(
+                    server_id_, id_))
+            {
+                // Streaming applier was already stopped, this happens
+                // if a rollback fragment has already been delivered.
+                // See rollback fragment processing in server_state.
+                lock.lock();
+                return false;
+            }
+            lock.lock();
+        }
+
+        bf_abort_state_ = state_at_enter;
         bf_abort_client_state_ = client_state_.state();
+        state(lock, s_must_abort);
+
         // If the transaction is in executing state, we must initiate
         // streaming rollback to ensure that the rollback fragment gets
         // replicated before the victim starts to roll back and release locks.
@@ -966,20 +983,11 @@ bool wsrep::transaction::bf_abort(
         {
             // We need to change the state to aborting under the
             // lock protection to avoid a race between client thread,
-            // otherwise it could happend that the client gains control
+            // otherwise it could happen that the client gains control
             // between releasing the lock and before background
             // rollbacker gets control.
             state(lock, wsrep::transaction::s_aborting);
             client_state_.set_rollbacker_active(true);
-
-            if (client_state_.mode() == wsrep::client_state::m_high_priority)
-            {
-                lock.unlock();
-                client_state_.server_state().stop_streaming_applier(
-                    server_id_, id_);
-                lock.lock();
-            }
-
             lock.unlock();
             server_service_.background_rollback(client_state_);
         }
@@ -1792,7 +1800,7 @@ void wsrep::transaction::debug_log_state(
         << ", mode: " << wsrep::to_c_string(client_state_.mode())
         << "\n    trx_id: " << int64_t(id_.get())
         << ", seqno: " << ws_meta_.seqno().get()
-        << ", flags: " << flags()
+        << ", flags: " << flags() << " (" << flags_to_string(flags()) << ")"
         << "\n"
         << "    state: " << wsrep::to_c_string(state_)
         << ", bfa_state: " << wsrep::to_c_string(bf_abort_state_)

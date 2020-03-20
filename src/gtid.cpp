@@ -61,19 +61,19 @@ ssize_t wsrep::scan_from_c_str(
 {
     std::istringstream is(std::string(buf, buf_len));
     is >> gtid;
-    // Whole string was consumed without failures
-    if (is && is.eof())
-    {
-        return static_cast<ssize_t>(buf_len);
-    }
     // Some failure occurred
     if (!is)
     {
         return -EINVAL;
     }
+    // Whole string was consumed without failures
+    if (is.eof())
+    {
+        return static_cast<ssize_t>(buf_len);
+    }
     // The string was not consumed completely, return current position
     // of the istream.
-    return is.tellg();
+    return static_cast<ssize_t>(is.tellg());
 }
 
 ssize_t wsrep::print_to_c_str(

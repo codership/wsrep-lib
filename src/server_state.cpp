@@ -1297,6 +1297,7 @@ wsrep::high_priority_service* wsrep::server_state::find_streaming_applier(
         {
             return sa;
         }
+        i++;
     }
     return NULL;
 }
@@ -1425,6 +1426,19 @@ void wsrep::server_state::recover_streaming_appliers_if_not_recovered(
     streaming_appliers_recovered_ = true;
 }
 
+class transaction_state_cmp
+{
+public:
+    transaction_state_cmp(const enum wsrep::transaction::state s) : state_(s)
+    { }
+    bool operator()(std::pair<const wsrep::client_id, wsrep::client_state*>& vt) const
+    {
+        return vt.second->transaction().state() == state_;
+    }
+private:
+    enum wsrep::transaction::state state_;
+};
+
 void wsrep::server_state::close_orphaned_sr_transactions(
     wsrep::unique_lock<wsrep::mutex>& lock,
     wsrep::high_priority_service& high_priority_service)
@@ -1445,9 +1459,13 @@ void wsrep::server_state::close_orphaned_sr_transactions(
 
     if (current_view_.own_index() == -1 || equal_consecutive_views)
     {
-        while (streaming_clients_.empty() == false)
+        streaming_clients_map::iterator i;
+        transaction_state_cmp prepared_state_cmp(wsrep::transaction::s_prepared);
+        while ((i = std::find_if_not(streaming_clients_.begin(),
+                                     streaming_clients_.end(),
+                                     prepared_state_cmp))
+               != streaming_clients_.end())
         {
-            streaming_clients_map::iterator i(streaming_clients_.begin());
             wsrep::client_id client_id(i->first);
             wsrep::transaction_id transaction_id(i->second->transaction().id());
             // It is safe to unlock the server state temporarily here.

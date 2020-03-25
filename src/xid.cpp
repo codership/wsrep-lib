@@ -22,10 +22,10 @@
 
 std::string wsrep::to_string(const wsrep::xid& xid)
 {
-    return xid.xid_;
+    return std::string(xid.data_.data(), xid.data_.size());
 }
 
 std::ostream& wsrep::operator<<(std::ostream& os, const wsrep::xid& xid)
 {
-    return os << xid.xid_;
+    return os << to_string(xid);
 }

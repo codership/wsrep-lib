@@ -326,6 +326,8 @@ int wsrep::transaction::before_prepare(
             {
                 // Force fragment replication on XA prepare
                 flags(flags() | wsrep::provider::flag::prepare);
+                flags(flags() | wsrep::provider::flag::pa_unsafe);
+                append_sr_keys_for_commit();
                 const bool force_streaming_step = true;
                 ret = streaming_step(lock, force_streaming_step);
                 if (ret == 0)
@@ -423,15 +425,27 @@ int wsrep::transaction::before_commit()
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_local:
-        if (state() == s_prepared)
+        if (is_xa() &&
+            (state() == s_prepared || state() == s_executing))
         {
-            assert(is_xa());
-            ret = certify_commit(lock);
-            assert((ret == 0 && state() == s_committing) ||
-                   (state() == s_must_abort ||
-                    state() == s_must_replay ||
-                    state() == s_cert_failed ||
-                    state() == s_prepared));
+            ret = 0;
+            if (state() == s_executing)
+            {
+                // XA COMMIT in one phase
+                // This optimization is not supported...
+                // fall back to prepare + commit
+                ret = before_prepare(lock) || after_prepare(lock);
+            }
+            if (!ret)
+            {
+                assert(state() == s_prepared);
+                ret = certify_commit(lock);
+                assert((ret == 0 && state() == s_committing) ||
+                       (state() == s_must_abort ||
+                        state() == s_must_replay ||
+                        state() == s_cert_failed ||
+                        state() == s_prepared));
+            }
         }
         else if (state() == s_executing)
         {
@@ -1084,6 +1098,20 @@ int wsrep::transaction::commit_or_rollback_by_xid(const wsrep::xid& xid,
     }
 }
 
+void wsrep::transaction::xa_detach()
+{
+  assert(state() == s_prepared);
+  wsrep::server_state& server_state(client_state_.server_state());
+  server_state.convert_streaming_client_to_applier(&client_state_);
+  client_service_.cleanup_transaction();
+  wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex_);
+  streaming_context_.cleanup();
+  state(lock, s_aborting);
+  state(lock, s_aborted);
+  provider().release(ws_handle_);
+  cleanup();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                 Private                                    //
 ////////////////////////////////////////////////////////////////////////////////
@@ -1470,7 +1498,7 @@ int wsrep::transaction::certify_commit(
     state(lock, s_certifying);
     lock.unlock();
 
-    if (is_streaming())
+    if (is_streaming() && !is_xa())
     {
         append_sr_keys_for_commit();
         flags(flags() | wsrep::provider::flag::pa_unsafe);

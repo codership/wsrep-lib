@@ -66,6 +66,10 @@ namespace wsrep
             : buffer_()
         { }
 
+        mutable_buffer(const mutable_buffer& b)
+            : buffer_(b.buffer_)
+        { }
+
         void resize(size_t s) { buffer_.resize(s); }
 
         void clear()
@@ -110,6 +114,11 @@ namespace wsrep
         {
             buffer_ = other.buffer_;
             return *this;
+        }
+
+        bool operator==(const mutable_buffer& other) const
+        {
+          return buffer_ == other.buffer_;
         }
     private:
         std::vector<char> buffer_;

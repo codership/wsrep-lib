@@ -589,6 +589,21 @@ namespace wsrep
             return transaction_.commit_or_rollback_by_xid(xid, false);
         }
 
+        /**
+         * Detach a prepared XA transaction
+         *
+         * This method cleans up a local XA transaction in prepared state
+         * and converts it to high priority mode.
+         * This can be used to handle the case where the client of a XA
+         * transaction disconnects, and the transaction must not rollback.
+         * After this call, a different client may later attempt to terminate
+         * the transaction by calling method commit_by_xid() or rollback_by_xid().
+         */
+        void xa_detach()
+        {
+            transaction_.xa_detach();
+        }
+
         //
         // BF aborting
         //

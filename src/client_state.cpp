@@ -50,7 +50,9 @@ void wsrep::client_state::close()
     debug_log_state("close: enter");
     state(lock, s_quitting);
     lock.unlock();
-    if (transaction_.active())
+    if (transaction_.active() &&
+        (mode_ != m_local ||
+         transaction_.state() != wsrep::transaction::s_prepared))
     {
         client_service_.bf_rollback();
         transaction_.after_statement();

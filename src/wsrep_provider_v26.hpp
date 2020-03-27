@@ -82,9 +82,9 @@ namespace wsrep
         causal_read(int) const;
         enum wsrep::provider::status wait_for_gtid(const wsrep::gtid&, int) const;
         wsrep::gtid last_committed_gtid() const;
-        int sst_sent(const wsrep::gtid&,int);
-        int sst_received(const wsrep::gtid& gtid, int);
-        int enc_set_key(const wsrep::const_buffer& key);
+        enum wsrep::provider::status sst_sent(const wsrep::gtid&, int);
+        enum wsrep::provider::status sst_received(const wsrep::gtid& gtid, int);
+        enum wsrep::provider::status enc_set_key(const wsrep::const_buffer& key);
         std::vector<status_variable> status() const;
         void reset_status();
         std::string options() const;

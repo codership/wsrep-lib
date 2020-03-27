@@ -186,16 +186,7 @@ namespace wsrep
 
     std::string flags_to_string(int flags);
 
-    static inline
-    std::ostream& operator<<(std::ostream& os, const wsrep::ws_meta& ws_meta)
-    {
-        os << "gtid: " << ws_meta.gtid()
-           << " server_id: " << ws_meta.server_id()
-           << " client_id: " << ws_meta.client_id()
-           << " trx_id: " << ws_meta.transaction_id()
-           << " flags: " << ws_meta.flags() << " (" << wsrep::flags_to_string(ws_meta.flags()) << ")";
-        return os;
-    }
+    std::ostream& operator<<(std::ostream& os, const wsrep::ws_meta& ws_meta);
 
     // Abstract interface for provider implementations
     class provider
@@ -249,6 +240,8 @@ namespace wsrep
             /** Unknown error code from the provider */
             error_unknown
         };
+
+        static std::string to_string(enum status);
 
         struct flag
         {
@@ -385,9 +378,9 @@ namespace wsrep
          * Return last committed GTID.
          */
         virtual wsrep::gtid last_committed_gtid() const = 0;
-        virtual int sst_sent(const wsrep::gtid&, int) = 0;
-        virtual int sst_received(const wsrep::gtid&, int) = 0;
-        virtual int enc_set_key(const wsrep::const_buffer& key) = 0;
+        virtual enum status sst_sent(const wsrep::gtid&, int) = 0;
+        virtual enum status sst_received(const wsrep::gtid&, int) = 0;
+        virtual enum status enc_set_key(const wsrep::const_buffer& key) = 0;
         virtual std::vector<status_variable> status() const = 0;
         virtual void reset_status() = 0;
 

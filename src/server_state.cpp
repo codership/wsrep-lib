@@ -684,10 +684,12 @@ void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     state(lock, s_joined);
     lock.unlock();
-    if (provider().sst_sent(gtid, error))
+    enum provider::status const retval(provider().sst_sent(gtid, error));
+    if (retval != provider::success)
     {
-        server_service_.log_message(wsrep::log::warning,
-                                    "Provider sst_sent() returned an error");
+        std::string msg("wsrep::sst_sent() returned an error: ");
+        msg += wsrep::provider::to_string(retval);
+        server_service_.log_message(wsrep::log::warning, msg.c_str());
     }
 }
 
@@ -776,9 +778,12 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
         lock.unlock();
     }
 
-    if (provider().sst_received(gtid, error))
+    enum provider::status const retval(provider().sst_received(gtid, error));
+    if (retval != provider::success)
     {
-        throw wsrep::runtime_error("wsrep::sst_received() failed");
+        std::string msg("wsrep::sst_received() failed: ");
+        msg += wsrep::provider::to_string(retval);
+        throw wsrep::runtime_error(msg);
     }
 }
 
@@ -826,8 +831,15 @@ wsrep::server_state::set_encryption_key(std::vector<unsigned char>& key)
     encryption_key_ = key;
     if (state_ != s_disconnected)
     {
-        return provider_->enc_set_key(wsrep::const_buffer(encryption_key_.data(),
-                                                          encryption_key_.size()));
+        wsrep::const_buffer const key(encryption_key_.data(),
+                                      encryption_key_.size());
+        enum provider::status const retval(provider_->enc_set_key(key));
+        if (retval != provider::success)
+        {
+            wsrep::log_error() << "Failed to set encryption key: "
+                               << provider::to_string(retval);
+            return 1;
+        }
     }
     return 0;
 }

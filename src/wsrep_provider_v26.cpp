@@ -37,6 +37,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <cstring> // strerror()
 
 namespace
 {
@@ -71,6 +72,11 @@ namespace
         case WSREP_NOT_ALLOWED:
             return wsrep::provider::error_not_allowed;
         }
+
+        wsrep::log_warning() << "Unexpected value for wsrep_status_t: "
+                             << status << " ("
+                             << (status < 0 ? strerror(-status) : "") << ')';
+
         return wsrep::provider::error_unknown;
     }
 
@@ -661,9 +667,12 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
         if (key.size())
         {
             wsrep::const_buffer const_key(key.data(), key.size());
-            if(enc_set_key(const_key))
+            enum status const retval(enc_set_key(const_key));
+            if (retval != success)
             {
-                throw wsrep::runtime_error("Failed to set encryption key");
+                std::string msg("Failed to set encryption key: ");
+                msg += to_string(retval);
+                throw wsrep::runtime_error(msg);
             }
         }
     }
@@ -941,40 +950,31 @@ wsrep::gtid wsrep::wsrep_provider_v26::last_committed_gtid() const
         wsrep::seqno(wsrep_gtid.seqno));
 }
 
-int wsrep::wsrep_provider_v26::sst_sent(const wsrep::gtid& gtid, int err)
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::sst_sent(const wsrep::gtid& gtid, int err)
 {
     wsrep_gtid_t wsrep_gtid;
     std::memcpy(wsrep_gtid.uuid.data, gtid.id().data(),
                 sizeof(wsrep_gtid.uuid.data));
     wsrep_gtid.seqno = gtid.seqno().get();
-    if (wsrep_->sst_sent(wsrep_, &wsrep_gtid, err) != WSREP_OK)
-    {
-        return 1;
-    }
-    return 0;
+    return map_return_value(wsrep_->sst_sent(wsrep_, &wsrep_gtid, err));
 }
 
-int wsrep::wsrep_provider_v26::sst_received(const wsrep::gtid& gtid, int err)
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::sst_received(const wsrep::gtid& gtid, int err)
 {
     wsrep_gtid_t wsrep_gtid;
     std::memcpy(wsrep_gtid.uuid.data, gtid.id().data(),
                 sizeof(wsrep_gtid.uuid.data));
     wsrep_gtid.seqno = gtid.seqno().get();
-    if (wsrep_->sst_received(wsrep_, &wsrep_gtid, 0, err) != WSREP_OK)
-    {
-        return 1;
-    }
-    return 0;
+    return map_return_value(wsrep_->sst_received(wsrep_, &wsrep_gtid, 0, err));
 }
 
-int wsrep::wsrep_provider_v26::enc_set_key(const wsrep::const_buffer& key)
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::enc_set_key(const wsrep::const_buffer& key)
 {
     wsrep_enc_key_t enc_key = {key.data(), key.size()};
-    if (wsrep_->enc_set_key(wsrep_, &enc_key) != WSREP_OK)
-    {
-        return 1;
-    }
-    return 0;
+    return map_return_value(wsrep_->enc_set_key(wsrep_, &enc_key));
 }
 
 std::vector<wsrep::provider::status_variable>

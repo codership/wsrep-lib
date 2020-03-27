@@ -276,11 +276,16 @@ namespace wsrep
         { return wsrep::provider::success; }
         wsrep::gtid last_committed_gtid() const WSREP_OVERRIDE
         { return wsrep::gtid(); }
-        int sst_sent(const wsrep::gtid&, int) WSREP_OVERRIDE { return 0; }
-        int sst_received(const wsrep::gtid&, int) WSREP_OVERRIDE { return 0; }
+        enum wsrep::provider::status sst_sent(const wsrep::gtid&, int)
+            WSREP_OVERRIDE
+        { return wsrep::provider::success; }
+        enum wsrep::provider::status sst_received(const wsrep::gtid&, int)
+            WSREP_OVERRIDE
+        { return wsrep::provider::success; }
 
-        int enc_set_key(const wsrep::const_buffer&) WSREP_OVERRIDE 
-        { return 0; }
+        enum wsrep::provider::status enc_set_key(const wsrep::const_buffer&)
+            WSREP_OVERRIDE
+        { return wsrep::provider::success; }
 
         std::vector<status_variable> status() const WSREP_OVERRIDE
         {

@@ -469,6 +469,12 @@ namespace wsrep
         void resume_and_resync();
 
         /**
+         * True if server has issued and active desync and pause in one go,
+         * false otherwise.
+         */
+        bool desynced_on_pause() const { return desynced_on_pause_; }
+
+        /**
          * Prepares server state for SST.
          *
          * @return String containing a SST request

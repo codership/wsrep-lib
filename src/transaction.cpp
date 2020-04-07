@@ -528,6 +528,7 @@ int wsrep::transaction::ordered_commit()
     assert(state() == s_committing);
     assert(ordered());
     client_service_.debug_sync("wsrep_before_commit_order_leave");
+    server_service_.set_position(client_service_, ws_meta_.gtid());
     int ret(provider().commit_order_leave(ws_handle_, ws_meta_,
                                           apply_error_buf_));
     client_service_.debug_sync("wsrep_after_commit_order_leave");

@@ -125,7 +125,7 @@ namespace
     template <class Key> static inline size_t get_key_index(const Key* key)
     {
         size_t index(reinterpret_cast<const size_t>(key) - 1);
-        assert(index >= 0 && index < key_vec.size());
+        assert(index < key_vec.size());
         return index;
     }
 

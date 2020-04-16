@@ -639,7 +639,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     init_args.sst_donate_cb = &sst_donate_cb;
     init_args.synced_cb = &synced_cb;
 
-    if (wsrep_load(provider_spec.c_str(), &wsrep_, 0))
+    if (wsrep_load(provider_spec.c_str(), &wsrep_, logger_cb))
     {
         throw wsrep::runtime_error("Failed to load wsrep library");
     }

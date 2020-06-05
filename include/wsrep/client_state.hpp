@@ -604,6 +604,23 @@ namespace wsrep
             transaction_.xa_detach();
         }
 
+        /**
+         * Replay a XA transaction
+         *
+         * Replay a XA transaction that is in s_idle state.
+         * This may happen if the transaction is BF aborted
+         * between prepare and commit.
+         * Since the victim is idle, this method can be called
+         * by the BF aborter or the backround rollbacker.
+         */
+        void xa_replay()
+        {
+            assert(mode_ == m_local);
+            assert(state_ == s_idle);
+            wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+            transaction_.xa_replay(lock);
+        }
+
         //
         // BF aborting
         //

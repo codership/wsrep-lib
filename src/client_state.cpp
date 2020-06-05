@@ -133,16 +133,25 @@ int wsrep::client_state::before_command()
         }
         else if (transaction_.state() == wsrep::transaction::s_aborted)
         {
-            // Transaction was rolled back either just before sending result
-            // to the client, or after client_state become idle.
-            // Clean up the transaction and return error.
-            override_error(wsrep::e_deadlock_error);
-            lock.unlock();
-            (void)transaction_.after_statement();
-            lock.lock();
-            assert(transaction_.active() == false);
-            debug_log_state("before_command: error");
-            return 1;
+            // Transaction was rolled back either just before sending
+            // result to the client, or after client_state become idle.
+            if (transaction_.is_xa())
+            {
+                // Client will rollback explicitly, return error.
+                debug_log_state("before_command: error");
+                return 1;
+            }
+            else
+            {
+                // Clean up the transaction and return error.
+                override_error(wsrep::e_deadlock_error);
+                lock.unlock();
+                (void)transaction_.after_statement();
+                lock.lock();
+                assert(transaction_.active() == false);
+                debug_log_state("before_command: error");
+                return 1;
+            }
         }
     }
     debug_log_state("before_command: success");

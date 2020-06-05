@@ -146,6 +146,8 @@ namespace wsrep
 
         void xa_detach();
 
+        int xa_replay(wsrep::unique_lock<wsrep::mutex>&);
+
         bool pa_unsafe() const { return pa_unsafe_; }
         void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }
 

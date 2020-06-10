@@ -823,7 +823,6 @@ int wsrep::transaction::release_commit_order(
 int wsrep::transaction::after_statement()
 {
     int ret(0);
-    client_service_.debug_sync("wsrep_after_statement_enter");
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("after_statement_enter");
     assert(client_state_.mode() == wsrep::client_state::m_local);

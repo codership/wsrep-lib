@@ -67,6 +67,10 @@ db::params db::parse_args(int argc, char** argv)
          "number of transactions run by a client")
         ("rows", po::value<size_t>(&params.n_rows),
          "number of rows per table")
+        ("max-data-size", po::value<size_t>(&params.max_data_size),
+         "maximum size of data payload (default 8)")
+        ("random-data-size", po::value<bool>(&params.random_data_size),
+         "randomized payload data size (default 0)")
         ("alg-freq", po::value<size_t>(&params.alg_freq),
          "ALG frequency")
         ("sync-wait", po::value<bool>(&params.sync_wait),

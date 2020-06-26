@@ -31,6 +31,8 @@ namespace db
         size_t n_clients;
         size_t n_transactions;
         size_t n_rows;
+        size_t max_data_size; // Maximum size of write set data payload.
+        bool random_data_size; // If true, randomize data payload size.
         size_t alg_freq;
         bool sync_wait;
         std::string topology;
@@ -45,6 +47,8 @@ namespace db
             , n_clients(0)
             , n_transactions(0)
             , n_rows(1000)
+            , max_data_size(8)
+            , random_data_size(false)
             , alg_freq(0)
             , sync_wait(false)
             , topology()

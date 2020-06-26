@@ -1108,6 +1108,7 @@ int wsrep::transaction::restore_to_prepared_state(const wsrep::xid& xid)
 int wsrep::transaction::commit_or_rollback_by_xid(const wsrep::xid& xid,
                                                   bool commit)
 {
+    debug_log_state("commit_or_rollback_by_xid enter");
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex_);
     wsrep::server_state& server_state(client_state_.server_state());
     wsrep::high_priority_service* sa(server_state.find_streaming_applier(xid));
@@ -1140,6 +1141,7 @@ int wsrep::transaction::commit_or_rollback_by_xid(const wsrep::xid& xid,
                            flags,
                            meta));
 
+    int ret;
     if (cert_ret == wsrep::provider::success)
     {
         if (commit)
@@ -1153,7 +1155,7 @@ int wsrep::transaction::commit_or_rollback_by_xid(const wsrep::xid& xid,
             state(lock, s_aborting);
             state(lock, s_aborted);
         }
-        return 0;
+        ret = 0;
     }
     else
     {
@@ -1162,8 +1164,10 @@ int wsrep::transaction::commit_or_rollback_by_xid(const wsrep::xid& xid,
         wsrep::log_error() << "Failed to commit_or_rollback_by_xid,"
                            << " xid: " << xid
                            << " error: " << cert_ret;
-        return 1;
+        ret = 1;
     }
+    debug_log_state("commit_or_rollback_by_xid leave");
+    return ret;
 }
 
 void wsrep::transaction::xa_detach()

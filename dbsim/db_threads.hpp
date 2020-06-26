@@ -28,7 +28,7 @@ namespace db
     class ti : public wsrep::thread_service
     {
     public:
-        ti() { }
+        ti();
         int before_init() override;
         int after_init() override;
 
@@ -41,7 +41,6 @@ namespace db
         int detach(wsrep::thread_service::thread*) WSREP_NOEXCEPT override;
         int equal(wsrep::thread_service::thread*,
                   wsrep::thread_service::thread*) WSREP_NOEXCEPT override;
-        void exit(wsrep::thread_service::thread*, void*) WSREP_NOEXCEPT override;
         int join(wsrep::thread_service::thread*, void**) WSREP_NOEXCEPT override;
         wsrep::thread_service::thread* self() WSREP_NOEXCEPT override;
         int setschedparam(wsrep::thread_service::thread*, int,

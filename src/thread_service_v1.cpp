@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Codership Oy <info@codership.com>
+ * Copyright (C) 2019-2020 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -18,6 +18,7 @@
  */
 
 #include "thread_service_v1.hpp"
+#include "service_helpers.hpp"
 
 #include "wsrep/thread_service.hpp"
 #include "wsrep/logger.hpp"
@@ -36,6 +37,7 @@ namespace wsrep_thread_service_v1
     // Pointer to thread service implementation provided by
     // the application.
     static wsrep::thread_service* thread_service_impl{ 0 };
+    static std::atomic<size_t> use_count;
 
     static const wsrep_thread_key_t* thread_key_create_cb(const char* name)
     {
@@ -236,50 +238,48 @@ namespace wsrep_thread_service_v1
 
 int wsrep::thread_service_v1_probe(void* dlh)
 {
-   typedef int (*init_fn)(wsrep_thread_service_v1_t*);
-    union {
-        init_fn dlfun;
-        void* obj;
-    } alias;
-    // Clear previous errors
-    (void)dlerror();
-    alias.obj = dlsym(dlh, WSREP_THREAD_SERVICE_INIT_FUNC);
-    if (alias.obj)
+    typedef int (*init_fn)(wsrep_thread_service_v1_t*);
+    typedef void (*deinit_fn)();
+    if (wsrep_impl::service_probe<init_fn>(
+            dlh, WSREP_THREAD_SERVICE_INIT_FUNC_V1, "thread service v1") ||
+        wsrep_impl::service_probe<deinit_fn>(
+            dlh, WSREP_THREAD_SERVICE_DEINIT_FUNC_V1, "thread service v1"))
     {
-        wsrep::log_info()
-            << "Found support for thread service v1 from provider";
-        return 0;
+        wsrep::log_warning() << "Provider does not support thread service v1";
+        return 1;
     }
-    else
-    {
-        wsrep::log_info() << "Thread service v1 not found from provider: "
-                          << dlerror();
-        return ENOTSUP;
-    }
-
+    return 0;
 }
 
 int wsrep::thread_service_v1_init(void* dlh,
                                   wsrep::thread_service* thread_service)
 {
     if (not (dlh && thread_service)) return EINVAL;
-
     typedef int (*init_fn)(wsrep_thread_service_v1_t*);
-    union {
-        init_fn dlfun;
-        void* obj;
-    } alias;
-    alias.obj = dlsym(dlh, WSREP_THREAD_SERVICE_INIT_FUNC);
-    if (alias.obj)
+    wsrep_thread_service_v1::thread_service_impl = thread_service;
+    int ret(0);
+    if ((ret = wsrep_impl::service_init<init_fn>(
+             dlh, WSREP_THREAD_SERVICE_INIT_FUNC_V1,
+             &wsrep_thread_service_v1::thread_service_callbacks,
+             "thread service v1")))
     {
-        wsrep::log_info() << "Initializing process instrumentation";
-        wsrep_thread_service_v1::thread_service_impl = thread_service;
-        return (*alias.dlfun)(&wsrep_thread_service_v1::thread_service_callbacks);
+        wsrep_thread_service_v1::thread_service_impl = 0;
     }
     else
     {
-        wsrep::log_info()
-            << "Provider does not support process instrumentation";
-        return ENOTSUP;
+        ++wsrep_thread_service_v1::use_count;
+    }
+    return ret;
+}
+
+void wsrep::thread_service_v1_deinit(void* dlh)
+{
+    typedef int (*deinit_fn)();
+    wsrep_impl::service_deinit<deinit_fn>(
+        dlh, WSREP_THREAD_SERVICE_DEINIT_FUNC_V1, "thread service v1");
+    --wsrep_thread_service_v1::use_count;
+    if (wsrep_thread_service_v1::use_count == 0)
+    {
+        wsrep_thread_service_v1::thread_service_impl = 0;
     }
 }

@@ -45,6 +45,8 @@ namespace wsrep
     class server_state;
     class high_priority_service;
     class thread_service;
+    class tls_service;
+
     class stid
     {
     public:
@@ -419,8 +421,10 @@ namespace wsrep
         struct services
         {
             wsrep::thread_service* thread_service;
+            wsrep::tls_service* tls_service;
             services()
                 : thread_service()
+                , tls_service()
             {
             }
         };

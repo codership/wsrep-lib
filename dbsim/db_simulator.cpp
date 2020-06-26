@@ -20,6 +20,7 @@
 #include "db_simulator.hpp"
 #include "db_client.hpp"
 #include "db_threads.hpp"
+#include "db_tls.hpp"
 
 #include "wsrep/logger.hpp"
 
@@ -27,6 +28,7 @@
 #include <sstream>
 
 static db::ti thread_instrumentation;
+static db::tls tls_service;
 
 void db::simulator::run()
 {
@@ -36,6 +38,7 @@ void db::simulator::run()
     std::cout << "Results:\n";
     std::cout << stats() << std::endl;
     std::cout << db::ti::stats() << std::endl;
+    std::cout << db::tls::stats() << std::endl;
 }
 
 void db::simulator::sst(db::server& server,
@@ -114,6 +117,7 @@ void db::simulator::start()
 {
     thread_instrumentation.level(params_.thread_instrumentation);
     thread_instrumentation.cond_checks(params_.cond_checks);
+    tls_service.init(params_.tls_service);
     wsrep::log_info() << "Provider: " << params_.wsrep_provider;
 
     std::string cluster_address(build_cluster_address());
@@ -149,6 +153,9 @@ void db::simulator::start()
         services.thread_service = params_.thread_instrumentation
                                       ? &thread_instrumentation
                                       : nullptr;
+        services.tls_service = params_.tls_service
+            ? &tls_service
+            : nullptr;
         if (server.server_state().load_provider(params_.wsrep_provider,
                                                 server_options, services))
         {

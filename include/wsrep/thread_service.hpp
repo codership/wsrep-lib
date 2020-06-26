@@ -28,6 +28,9 @@
  * condition variables.
  */
 
+#ifndef WSREP_THREAD_SERVICE_HPP
+#define WSREP_THREAD_SERVICE_HPP
+
 #include <cstddef> // size_t
 #include "compiler.hpp"
 
@@ -41,13 +44,14 @@ namespace wsrep
     {
     public:
 
+        thread_service() : exit() { }
         virtual ~thread_service() { }
-        class thread_key { };
-        class thread { };
-        class mutex_key { };
-        class mutex { };
-        class cond_key { };
-        class cond { };
+        struct thread_key { };
+        struct thread { };
+        struct mutex_key { };
+        struct mutex { };
+        struct cond_key { };
+        struct cond { };
 
         /**
          * Method will be called before library side thread
@@ -69,7 +73,12 @@ namespace wsrep
             = 0;
         virtual int detach(thread*) WSREP_NOEXCEPT = 0;
         virtual int equal(thread*, thread*) WSREP_NOEXCEPT = 0;
-        WSREP_NORETURN virtual void exit(thread*, void* retval) WSREP_NOEXCEPT = 0;
+
+        /*
+         * This unlike others is a function pointer to
+         * avoid having C++ methods on thread exit codepath.
+         */
+        WSREP_NORETURN void (*exit)(thread*, void* retval);
         virtual int join(thread*, void** retval) WSREP_NOEXCEPT = 0;
         virtual thread* self() WSREP_NOEXCEPT = 0;
         virtual int setschedparam(thread*, int,
@@ -98,3 +107,5 @@ namespace wsrep
         virtual int broadcast(cond*) WSREP_NOEXCEPT = 0;
     };
 } // namespace wsrep
+
+#endif // WSREP_THREAD_SERVICE_HPP

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Codership Oy <info@codership.com>
+ * Copyright (C) 2020 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -17,12 +17,12 @@
  * along with wsrep-lib.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef WSREP_THREAD_SERVICE_V1_HPP
-#define WSREP_THREAD_SERVICE_V1_HPP
+#ifndef WSREP_TLS_SERVICE_V1_HPP
+#define WSREP_TLS_SERVICE_V1_HPP
 
 namespace wsrep
 {
-    class thread_service;
+    class tls_service;
     /**
      * Probe thread_service_v1 support in loaded library.
      *
@@ -30,26 +30,25 @@ namespace wsrep
      *
      * @return Zero on success, non-zero system error code on failure.
      */
-    int thread_service_v1_probe(void *dlh);
+    int tls_service_v1_probe(void *dlh);
 
     /**
-     * Initialize the thread service.
+     * Initialize TLS service.
      *
      * @param dlh Handle returned by dlopen().
      * @params thread_service Pointer to wsrep::thread_service implementation.
      *
      * @return Zero on success, non-zero system error code on failure.
      */
-    int thread_service_v1_init(void* dlh,
-                               wsrep::thread_service* thread_service);
+    int tls_service_v1_init(void* dlh,
+                            wsrep::tls_service* thread_service);
 
     /**
-     * Deinitialize the thread service.
+     * Deinitialize TLS service.
      *
-     * @params dlh Handler returned by dlopen().
+     * @param dlh Handler returned by dlopen().
      */
-    void thread_service_v1_deinit(void* dlh);
-
+    void tls_service_v1_deinit(void* dlh);
 }
 
-#endif // WSREP_THREAD_SERVICE_V1_HPP
+#endif // WSREP_TLS_SERVICE_V1_HPP

@@ -30,7 +30,8 @@ namespace wsrep
     class wsrep_provider_v26 : public wsrep::provider
     {
     public:
-
+        void init_services(const wsrep::provider::services& services);
+        void deinit_services();
         wsrep_provider_v26(wsrep::server_state&, const std::string&,
                            const std::string&,
                            const wsrep::provider::services& services);
@@ -107,6 +108,7 @@ namespace wsrep
         wsrep_provider_v26(const wsrep_provider_v26&);
         wsrep_provider_v26& operator=(const wsrep_provider_v26);
         struct wsrep_st* wsrep_;
+        services services_enabled_;
     };
 }
 

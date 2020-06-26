@@ -26,8 +26,10 @@
 #include "wsrep/exception.hpp"
 #include "wsrep/logger.hpp"
 #include "wsrep/thread_service.hpp"
+#include "wsrep/tls_service.hpp"
 
 #include "thread_service_v1.hpp"
+#include "tls_service_v1.hpp"
 #include "v26/wsrep_api.h"
 
 
@@ -592,7 +594,7 @@ namespace
         if (wsrep::thread_service_v1_probe(dlh))
         {
             // No support in library.
-            return 0;
+            return 1;
         }
         else
         {
@@ -610,6 +612,58 @@ namespace
         }
         return 0;
     }
+
+    static void deinit_thread_service(void* dlh)
+    {
+        // assert(not wsrep::thread_service_v1_probe(dlh));
+        wsrep::thread_service_v1_deinit(dlh);
+    }
+
+    static int init_tls_service(void* dlh,
+                                wsrep::tls_service* tls_service)
+    {
+        assert(tls_service);
+        if (not wsrep::tls_service_v1_probe(dlh))
+        {
+            return wsrep::tls_service_v1_init(dlh, tls_service);
+        }
+        return 1;
+    }
+
+    static void deinit_tls_service(void* dlh)
+    {
+        // assert(not wsrep::tls_service_v1_probe(dlh));
+        wsrep::tls_service_v1_deinit(dlh);
+    }
+}
+
+void wsrep::wsrep_provider_v26::init_services(
+    const wsrep::provider::services& services)
+{
+    if (services.thread_service)
+    {
+        if (init_thread_service(wsrep_->dlh, services.thread_service))
+        {
+            throw wsrep::runtime_error("Failed to initialize thread service");
+        }
+        services_enabled_.thread_service = services.thread_service;
+    }
+    if (services.tls_service)
+    {
+        if (init_tls_service(wsrep_->dlh, services.tls_service))
+        {
+            throw wsrep::runtime_error("Failed to initialze TLS service");
+        }
+        services_enabled_.tls_service = services.tls_service;
+    }
+}
+
+void wsrep::wsrep_provider_v26::deinit_services()
+{
+    if (services_enabled_.tls_service)
+        deinit_tls_service(wsrep_->dlh);
+    if (services_enabled_.thread_service)
+        deinit_thread_service(wsrep_->dlh);
 }
 
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
@@ -619,6 +673,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     const wsrep::provider::services& services)
     : provider(server_state)
     , wsrep_()
+    , services_enabled_()
 {
     wsrep_gtid_t state_id;
     bool encryption_enabled = server_state.encryption_service() &&
@@ -653,11 +708,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
         throw wsrep::runtime_error("Failed to load wsrep library");
     }
 
-    if (services.thread_service &&
-        init_thread_service(wsrep_->dlh, services.thread_service))
-    {
-        throw wsrep::runtime_error("Failed to initialize thread service");
-    }
+    init_services(services);
 
     if (wsrep_->init(wsrep_, &init_args) != WSREP_OK)
     {
@@ -683,6 +734,8 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
 
 wsrep::wsrep_provider_v26::~wsrep_provider_v26()
 {
+    wsrep_->free(wsrep_);
+    deinit_services();
     wsrep_unload(wsrep_);
 }
 

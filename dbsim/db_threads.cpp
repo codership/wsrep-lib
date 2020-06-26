@@ -35,6 +35,7 @@
 #include <unordered_map>
 #include <vector>
 
+extern "C" { static void* start_thread(void* args_ptr); }
 namespace
 {
     struct ti_obj
@@ -186,7 +187,6 @@ namespace
         }
     };
 
-    void* thread_start_fn(void* args_ptr);
 
     class ti_thread : public ti_obj
     {
@@ -209,7 +209,7 @@ namespace
         int run(void* (*fn)(void *), void* args)
         {
             auto ta(new thread_args{this, fn, args});
-            return pthread_create(&th_, nullptr, thread_start_fn, ta);
+            return pthread_create(&th_, nullptr, start_thread, ta);
         }
 
         int detach()
@@ -253,24 +253,6 @@ namespace
         void* retval_;
         bool detached_;
     };
-
-    void* thread_start_fn(void* args_ptr)
-    {
-        thread_args* ta(reinterpret_cast<thread_args*>(args_ptr));
-        ti_thread* thread = reinterpret_cast<ti_thread*>(ta->this_thread);
-        pthread_setspecific(this_thread_key, thread);
-        void* (*fn)(void*) = ta->fn;
-        void* args = ta->args;
-        delete ta;
-        void* ret((*fn)(args));
-        pthread_setspecific(this_thread_key, nullptr);
-
-        // If we end here the thread returned instead of calling
-        // pthread_exit()
-        if (thread->detached())
-            delete thread;
-        return ret;
-    }
 
     class ti_mutex : public ti_obj
     {
@@ -482,6 +464,42 @@ int db::ti::after_init()
 //                               Thread                                     //
 //////////////////////////////////////////////////////////////////////////////
 
+extern "C"
+{
+static void* start_thread(void* args_ptr)
+{
+    thread_args* ta(reinterpret_cast<thread_args*>(args_ptr));
+    ti_thread* thread = reinterpret_cast<ti_thread*>(ta->this_thread);
+    pthread_setspecific(this_thread_key, thread);
+    void* (*fn)(void*) = ta->fn;
+    void* args = ta->args;
+    delete ta;
+    void* ret = (*fn)(args);
+    pthread_setspecific(this_thread_key, nullptr);
+    // If we end here the thread returned instead of calling
+    // pthread_exit()
+    if (thread->detached())
+        delete thread;
+    return ret;
+}
+
+WSREP_NORETURN
+static void exit_thread(wsrep::thread_service::thread* thread, void* retval)
+{
+    pthread_setspecific(this_thread_key, nullptr);
+    ti_thread* th(reinterpret_cast<ti_thread*>(thread));
+    th->retval(retval);
+    if (th->detached())
+        delete th;
+    pthread_exit(retval);
+}
+} // extern "C"
+
+db::ti::ti()
+{
+    thread_service::exit = exit_thread;
+}
+
 const wsrep::thread_service::thread_key*
 db::ti::create_thread_key(const char* name) WSREP_NOEXCEPT
 {
@@ -511,15 +529,6 @@ int db::ti::create_thread(const wsrep::thread_service::thread_key* key,
 int db::ti::detach(wsrep::thread_service::thread* thread) WSREP_NOEXCEPT
 {
     return reinterpret_cast<ti_thread*>(thread)->detach();
-}
-
-void db::ti::exit(wsrep::thread_service::thread* thread, void* retval) WSREP_NOEXCEPT
-{
-    ti_thread* th(reinterpret_cast<ti_thread*>(thread));
-    th->retval(retval);
-    if (th->detached())
-        delete th;
-    pthread_exit(retval);
 }
 
 int db::ti::equal(wsrep::thread_service::thread* thread_1,

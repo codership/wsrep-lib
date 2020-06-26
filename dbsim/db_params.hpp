@@ -42,6 +42,7 @@ namespace db
         int fast_exit;
         int thread_instrumentation;
         bool cond_checks;
+        int tls_service;
         params()
             : n_servers(0)
             , n_clients(0)
@@ -58,6 +59,7 @@ namespace db
             , fast_exit(0)
             , thread_instrumentation()
             , cond_checks()
+            , tls_service()
         { }
     };
 

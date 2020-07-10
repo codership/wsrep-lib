@@ -453,48 +453,22 @@ int wsrep::transaction::before_commit()
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_local:
-        if (is_xa())
-        {
-            ret = 0;
-            if (state() == s_executing)
-            {
-                // XA COMMIT in one phase
-                // This optimization is not supported...
-                // fall back to prepare + commit
-                ret = before_prepare(lock) || after_prepare(lock);
-            }
-            else if (state() == s_must_abort)
-            {
-                assert(is_streaming());
-                client_service_.will_replay();
-                state(lock, s_must_replay);
-                ret = 1;
-            }
-            if (!ret)
-            {
-                assert(state() == s_prepared);
-                ret = certify_commit(lock);
-                assert((ret == 0 && state() == s_committing) ||
-                       (state() == s_must_abort ||
-                        state() == s_must_replay ||
-                        state() == s_cert_failed ||
-                        state() == s_prepared));
-            }
-        }
-        else if (state() == s_executing)
+        if (state() == s_executing)
         {
             ret = before_prepare(lock) || after_prepare(lock);
-            assert((ret == 0 && state() == s_committing)
+            assert((ret == 0 &&
+                    (state() == s_committing || state() == s_prepared))
                    ||
                    (state() == s_must_abort ||
                     state() == s_must_replay ||
                     state() == s_cert_failed ||
                     state() == s_aborted));
         }
-        else if (state() != s_committing)
+        else if (state() != s_committing && state() != s_prepared)
         {
             assert(state() == s_must_abort);
-            if (certified())
+            if (certified() ||
+                (is_xa() && is_streaming()))
             {
                 client_service_.will_replay();
                 state(lock, s_must_replay);
@@ -509,6 +483,18 @@ int wsrep::transaction::before_commit()
             // 2PC commit, prepare was done before
             ret = 0;
         }
+
+        if (ret == 0 && state() == s_prepared)
+        {
+            assert(state() == s_prepared);
+            ret = certify_commit(lock);
+            assert((ret == 0 && state() == s_committing) ||
+                   (state() == s_must_abort ||
+                    state() == s_must_replay ||
+                    state() == s_cert_failed ||
+                    state() == s_prepared));
+        }
+
         if (ret == 0)
         {
             assert(certified());

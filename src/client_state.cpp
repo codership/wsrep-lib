@@ -117,8 +117,6 @@ int wsrep::client_state::before_command()
     {
         if (transaction_.state() == wsrep::transaction::s_must_abort)
         {
-            assert(server_state_.rollback_mode() ==
-                   wsrep::server_state::rm_async);
             override_error(wsrep::e_deadlock_error);
             lock.unlock();
             client_service_.bf_rollback();

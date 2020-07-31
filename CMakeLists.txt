@@ -26,6 +26,7 @@ else()
 endif()
 
 include(CheckIncludeFile)
+include(CheckLibraryExists)
 
 # Options
 
@@ -92,6 +93,14 @@ endif()
 # Set up include directories
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/wsrep-API")
+
+# Find libraries.
+CHECK_LIBRARY_EXISTS(dl dlopen "" WSREP_LIB_HAVE_LIBDL)
+if (WSREP_LIB_HAVE_LIBDL)
+  set(WSREP_LIB_LIBDL "dl")
+else()
+  set(WSREP_LIB_LIBDL "")
+endif()
 
 if (WSREP_LIB_WITH_UNIT_TESTS)
   find_package(Boost 1.54.0 REQUIRED

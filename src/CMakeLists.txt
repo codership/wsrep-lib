@@ -19,4 +19,4 @@ add_library(wsrep-lib
   transaction.cpp
   uuid.cpp
   wsrep_provider_v26.cpp)
-target_link_libraries(wsrep-lib wsrep_api_v26 pthread dl)
+target_link_libraries(wsrep-lib wsrep_api_v26 pthread ${WSREP_LIB_LIBDL})

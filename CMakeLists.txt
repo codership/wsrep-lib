@@ -139,7 +139,7 @@ if (WSREP_LIB_WITH_TSAN)
 endif()
 
 add_custom_target(coverage_report
-  lcov --capture --directory src --directory test --directory dbsim --directory include --output lcov.info --no-external
+  lcov --base-directory ${CMAKE_CURRENT_SOURCE_DIR} --capture --directory ${CMAKE_CURRENT_BINARY_DIR} --output lcov.info --no-external --quiet
   COMMAND genhtml --output-directory coverage_report lcov.info)
 
 

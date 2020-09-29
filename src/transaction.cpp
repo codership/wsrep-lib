@@ -29,6 +29,8 @@
 #include <sstream>
 #include <memory>
 
+#include <cassert>
+
 namespace
 {
     class storage_service_deleter

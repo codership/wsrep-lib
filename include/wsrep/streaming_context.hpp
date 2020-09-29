@@ -20,6 +20,7 @@
 #ifndef WSREP_STREAMING_CONTEXT_HPP
 #define WSREP_STREAMING_CONTEXT_HPP
 
+#include "assert.hpp"
 #include "compiler.hpp"
 #include "logger.hpp"
 #include "seqno.hpp"
@@ -84,7 +85,7 @@ namespace wsrep
                             wsrep::log::debug_level_streaming,
                             "Enabling streaming: "
                             << fragment_unit << " " << fragment_size);
-            assert(fragment_size > 0);
+            WSREP_ASSERT(fragment_size > 0);
             fragment_unit_ = fragment_unit;
             fragment_size_ = fragment_size;
         }
@@ -131,7 +132,7 @@ namespace wsrep
 
         void rolled_back(wsrep::transaction_id id)
         {
-            assert(rollback_replicated_for_ == wsrep::transaction_id::undefined());
+            WSREP_ASSERT(rollback_replicated_for_ == wsrep::transaction_id::undefined());
             rollback_replicated_for_ = id;
         }
 
@@ -193,8 +194,8 @@ namespace wsrep
 
         void check_fragment_seqno(wsrep::seqno seqno WSREP_UNUSED)
         {
-            assert(seqno.is_undefined() == false);
-            assert(fragments_.empty() || fragments_.back() < seqno);
+            WSREP_ASSERT(seqno.is_undefined() == false);
+            WSREP_ASSERT(fragments_.empty() || fragments_.back() < seqno);
         }
 
         size_t fragments_certified_;

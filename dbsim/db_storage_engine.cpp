@@ -33,7 +33,7 @@ void db::storage_engine::transaction::start(db::client* cc)
 void db::storage_engine::transaction::apply(
     const wsrep::transaction& transaction)
 {
-    assert(cc_);
+    WSREP_ASSERT(cc_);
     se_.bf_abort_some(transaction);
 }
 

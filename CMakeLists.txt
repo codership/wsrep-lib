@@ -84,6 +84,7 @@ endif()
 # Enable extra libstdc++ assertions with debug build.
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_definitions("-D_GLIBCXX_ASSERTIONS")
+  add_definitions("-DWSREP_LIB_HAVE_DEBUG")
 else()
   # Make sure that NDEBUG is enabled in release builds even
   # if the parent project does not define it.

@@ -20,6 +20,8 @@
 #ifndef WSREP_SR_KEY_SET_HPP
 #define WSREP_SR_KEY_SET_HPP
 
+#include "assert.hpp"
+
 #include <set>
 #include <map>
 
@@ -36,7 +38,7 @@ namespace wsrep
 
         void insert(const wsrep::key& key)
         {
-            assert(key.size() >= 2);
+            WSREP_ASSERT(key.size() >= 2);
             if (key.size() < 2)
             {
                 throw wsrep::runtime_error("Invalid key size");

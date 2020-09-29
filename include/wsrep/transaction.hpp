@@ -211,7 +211,6 @@ namespace wsrep
 
         int flags() const
         {
-            WSREP_ASSERT(0);
             return flags_;
         }
 

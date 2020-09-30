@@ -1429,9 +1429,10 @@ void wsrep::server_state::recover_streaming_appliers_if_not_recovered(
 class transaction_state_cmp
 {
 public:
-    transaction_state_cmp(const enum wsrep::transaction::state s) : state_(s)
-    { }
-    bool operator()(std::pair<const wsrep::client_id, wsrep::client_state*>& vt) const
+    transaction_state_cmp(const enum wsrep::transaction::state s)
+        : state_(s) { }
+    bool operator()(const std::pair<wsrep::client_id,
+                    wsrep::client_state*>& vt) const
     {
         return vt.second->transaction().state() == state_;
     }

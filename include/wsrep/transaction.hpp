@@ -128,12 +128,7 @@ namespace wsrep
             return !xid_.is_null();
         }
 
-        void assign_xid(const wsrep::xid& xid)
-        {
-            assert(active());
-            assert(!is_xa());
-            xid_ = xid;
-        }
+        void assign_xid(const wsrep::xid& xid);
 
         const wsrep::xid& xid() const
         {

@@ -1071,6 +1071,13 @@ void wsrep::transaction::clone_for_replay(const wsrep::transaction& other)
     state_ = s_replaying;
 }
 
+void wsrep::transaction::assign_xid(const wsrep::xid& xid)
+{
+    assert(active());
+    assert(!is_xa());
+    xid_ = xid;
+}
+
 int wsrep::transaction::restore_to_prepared_state(const wsrep::xid& xid)
 {
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex_);

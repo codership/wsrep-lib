@@ -37,6 +37,10 @@ int wsrep::mock_high_priority_service::adopt_transaction(
     const wsrep::transaction& transaction)
 {
     client_state_->adopt_transaction(transaction);
+    if (transaction.state() == wsrep::transaction::s_prepared)
+    {
+        client_state_->restore_xid(transaction.xid());
+    }
     return 0;
 }
 

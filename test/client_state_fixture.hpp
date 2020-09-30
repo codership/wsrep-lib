@@ -51,6 +51,35 @@ namespace
         const wsrep::transaction& tc;
     };
 
+    struct replicating_two_clients_fixture_sync_rm
+    {
+        replicating_two_clients_fixture_sync_rm()
+            : server_service(sc)
+            , sc("s1", wsrep::server_state::rm_sync, server_service)
+            , cc1(sc, wsrep::client_id(1),
+                  wsrep::client_state::m_local)
+            , cc2(sc, wsrep::client_id(2),
+                  wsrep::client_state::m_local)
+            , tc(cc1.transaction())
+        {
+            sc.mock_connect();
+            cc1.open(cc1.id());
+            BOOST_REQUIRE(cc1.before_command() == 0);
+            BOOST_REQUIRE(cc1.before_statement() == 0);
+            cc2.open(cc2.id());
+            BOOST_REQUIRE(cc2.before_command() == 0);
+            BOOST_REQUIRE(cc2.before_statement() == 0);
+            // Verify initial state
+            BOOST_REQUIRE(tc.active() == false);
+            BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+        }
+        wsrep::mock_server_service server_service;
+        wsrep::mock_server_state sc;
+        wsrep::mock_client cc1;
+        wsrep::mock_client cc2;
+        const wsrep::transaction& tc;
+    };
+
     struct replicating_client_fixture_async_rm
     {
         replicating_client_fixture_async_rm()

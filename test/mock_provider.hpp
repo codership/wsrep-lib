@@ -104,7 +104,6 @@ namespace wsrep
             }
             if (rolls_back_transaction(flags))
             {
-                assert(0);
                 ++rollback_fragments_;
             }
 

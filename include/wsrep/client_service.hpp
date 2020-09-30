@@ -184,13 +184,13 @@ namespace wsrep
          */
         virtual enum wsrep::provider::status commit_by_xid() = 0;
 
-        /*
-          Returns true if the client has an ongoing XA transaction.
-          This method is used to determine when to cleanup the
-          corresponding wsrep-lib transaction object.
-          This method should return false when the XA transaction
-          is over, and the wsrep-lib transaction object can be
-          cleaned up.
+        /**
+         * Returns true if the client has an ongoing XA transaction.
+         * This method is used to determine when to cleanup the
+         * corresponding wsrep-lib transaction object.
+         * This method should return false when the XA transaction
+         * is over, and the wsrep-lib transaction object can be
+         * cleaned up.
          */
         virtual bool is_explicit_xa() = 0;
 

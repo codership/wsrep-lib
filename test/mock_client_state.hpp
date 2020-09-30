@@ -74,6 +74,7 @@ namespace wsrep
             , client_state_(client_state)
             , will_replay_called_()
             , replays_()
+            , unordered_replays_()
             , aborts_()
         { }
 
@@ -108,6 +109,7 @@ namespace wsrep
 
         enum wsrep::provider::status replay_unordered() WSREP_OVERRIDE
         {
+            unordered_replays_++;
             return wsrep::provider::success;
         }
 
@@ -221,11 +223,13 @@ namespace wsrep
         //
         bool will_replay_called() const { return will_replay_called_; }
         size_t replays() const { return replays_; }
+        size_t unordered_replays() const { return unordered_replays_; }
         size_t aborts() const { return aborts_; }
     private:
         wsrep::mock_client_state& client_state_;
         bool will_replay_called_;
         size_t replays_;
+        size_t unordered_replays_;
         size_t aborts_;
     };
 

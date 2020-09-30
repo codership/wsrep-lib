@@ -2,7 +2,7 @@
 #include <iostream>
 
 //
-// Test a succesful XA transaction lifecycle
+// Test a successful XA transaction lifecycle
 //
 BOOST_FIXTURE_TEST_CASE(transaction_xa,
                         replicating_client_fixture_sync_rm)
@@ -49,7 +49,89 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
 
 
 //
-// Test a succesful XA transaction lifecycle (applying side)
+// Test detaching of XA transactions
+//
+BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_commit_by_xid,
+                        replicating_two_clients_fixture_sync_rm)
+{
+    wsrep::xid xid(1, 1, 1, "id");
+
+    cc1.start_transaction(wsrep::transaction_id(1));
+    cc1.assign_xid(xid);
+    cc1.before_prepare();
+    cc1.after_prepare();
+    BOOST_REQUIRE(sc.provider().fragments() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
+
+    cc1.xa_detach();
+
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
+    BOOST_REQUIRE(sc.find_streaming_applier(xid));
+    BOOST_REQUIRE(cc1.after_statement() == 0);
+
+    cc2.start_transaction(wsrep::transaction_id(2));
+    cc2.assign_xid(xid);
+    BOOST_REQUIRE(cc2.client_state::commit_by_xid(xid) == 0);
+    BOOST_REQUIRE(cc2.after_statement() == 0);
+    BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_rollback_by_xid,
+                        replicating_two_clients_fixture_sync_rm)
+{
+    wsrep::xid xid(1, 1, 1, "id");
+
+    cc1.start_transaction(wsrep::transaction_id(1));
+    cc1.assign_xid(xid);
+    cc1.before_prepare();
+    cc1.after_prepare();
+    BOOST_REQUIRE(sc.provider().fragments() == 1);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
+
+    cc1.xa_detach();
+
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
+    BOOST_REQUIRE(sc.find_streaming_applier(xid));
+    BOOST_REQUIRE(cc1.after_statement() == 0);
+
+    cc2.start_transaction(wsrep::transaction_id(2));
+    cc2.assign_xid(xid);
+    BOOST_REQUIRE(cc2.rollback_by_xid(xid) == 0);
+    BOOST_REQUIRE(cc2.after_statement() == 0);
+    BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
+}
+
+
+//
+// Test XA replay
+//
+BOOST_FIXTURE_TEST_CASE(transaction_xa_replay,
+                        replicating_client_fixture_sync_rm)
+{
+    wsrep::xid xid(1, 1, 1, "id");
+
+    cc.start_transaction(wsrep::transaction_id(1));
+    cc.assign_xid(xid);
+    cc.before_prepare();
+    cc.after_prepare();
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.state() == wsrep::client_state::s_idle);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_prepared);
+    wsrep_test::bf_abort_unordered(cc);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
+
+    // this is normally done by rollbacker
+    cc.xa_replay();
+    cc.sync_rollback_complete();
+
+    BOOST_REQUIRE(cc.unordered_replays() == 1);
+    BOOST_REQUIRE(sc.find_streaming_applier(sc.id(),
+                                            wsrep::transaction_id(1)));
+}
+
+//
+// Test a successful XA transaction lifecycle (applying side)
 //
 BOOST_FIXTURE_TEST_CASE(transaction_xa_applying,
                         applying_client_fixture)
@@ -84,7 +166,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_applying,
 ///////////////////////////////////////////////////////////////////////////////
 
 //
-// Test a succesful XA transaction lifecycle
+// Test a successful XA transaction lifecycle
 //
 BOOST_FIXTURE_TEST_CASE(transaction_xa_sr,
                         streaming_client_fixture_byte)

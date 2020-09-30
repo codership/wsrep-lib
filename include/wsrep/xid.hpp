@@ -22,6 +22,7 @@
 
 #include <iosfwd>
 #include "buffer.hpp"
+#include "exception.hpp"
 
 namespace wsrep
 {
@@ -42,6 +43,10 @@ namespace wsrep
             , bqual_len_(bqual_len)
             , data_()
         {
+            if (gtrid_len_ > 64 || bqual_len_ > 64)
+            {
+                throw wsrep::runtime_error("maximum wsrep::xid size exceeded");
+            }
             const long len = gtrid_len_ + bqual_len_;
             if (len > 0)
             {
@@ -64,6 +69,8 @@ namespace wsrep
         void clear()
         {
             format_id_ = -1;
+            gtrid_len_ = 0;
+            bqual_len_ = 0;
             data_.clear();
         }
 

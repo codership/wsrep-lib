@@ -66,7 +66,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_commit_by_xid,
     cc1.xa_detach();
 
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
-    BOOST_REQUIRE(sc.find_streaming_applier(xid));
     BOOST_REQUIRE(cc1.after_statement() == 0);
 
     cc2.start_transaction(wsrep::transaction_id(2));
@@ -74,6 +73,16 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_commit_by_xid,
     BOOST_REQUIRE(cc2.client_state::commit_by_xid(xid) == 0);
     BOOST_REQUIRE(cc2.after_statement() == 0);
     BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
+
+    // xa_detach() creates a streaming applier, clean it up
+    wsrep::mock_high_priority_service* hps(
+        static_cast<wsrep::mock_high_priority_service*>(
+            sc.find_streaming_applier(xid)));
+    BOOST_REQUIRE(hps);
+    hps->rollback(wsrep::ws_handle(), wsrep::ws_meta());
+    hps->after_apply();
+    sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
+    server_service.release_high_priority_service(hps);
 }
 
 BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_rollback_by_xid,
@@ -91,7 +100,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_rollback_by_xid,
     cc1.xa_detach();
 
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
-    BOOST_REQUIRE(sc.find_streaming_applier(xid));
     BOOST_REQUIRE(cc1.after_statement() == 0);
 
     cc2.start_transaction(wsrep::transaction_id(2));
@@ -99,6 +107,16 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_rollback_by_xid,
     BOOST_REQUIRE(cc2.rollback_by_xid(xid) == 0);
     BOOST_REQUIRE(cc2.after_statement() == 0);
     BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
+
+    // xa_detach() creates a streaming applier, clean it up
+    wsrep::mock_high_priority_service* hps(
+        static_cast<wsrep::mock_high_priority_service*>(
+            sc.find_streaming_applier(xid)));
+    BOOST_REQUIRE(hps);
+    hps->rollback(wsrep::ws_handle(), wsrep::ws_meta());
+    hps->after_apply();
+    sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
+    server_service.release_high_priority_service(hps);
 }
 
 
@@ -126,8 +144,16 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_replay,
     cc.sync_rollback_complete();
 
     BOOST_REQUIRE(cc.unordered_replays() == 1);
-    BOOST_REQUIRE(sc.find_streaming_applier(sc.id(),
-                                            wsrep::transaction_id(1)));
+
+    // xa_replay() createa a streaming applier, clean it up
+    wsrep::mock_high_priority_service* hps(
+        static_cast<wsrep::mock_high_priority_service*>(
+            sc.find_streaming_applier(sc.id(), wsrep::transaction_id(1))));
+    BOOST_REQUIRE(hps);
+    hps->rollback(wsrep::ws_handle(), wsrep::ws_meta());
+    hps->after_apply();
+    sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
+    server_service.release_high_priority_service(hps);
 }
 
 //

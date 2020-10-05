@@ -21,6 +21,7 @@
 #ifndef WSREP_TRANSACTION_HPP
 #define WSREP_TRANSACTION_HPP
 
+#include "assert.hpp"
 #include "provider.hpp"
 #include "server_state.hpp"
 #include "transaction_id.hpp"
@@ -31,7 +32,6 @@
 #include "client_service.hpp"
 #include "xid.hpp"
 
-#include <cassert>
 #include <vector>
 
 namespace wsrep
@@ -130,8 +130,8 @@ namespace wsrep
 
         void assign_xid(const wsrep::xid& xid)
         {
-            assert(active());
-            assert(xid_.empty());
+            WSREP_ASSERT(active());
+            WSREP_ASSERT(xid_.empty());
             xid_ = xid;
         }
 

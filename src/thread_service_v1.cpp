@@ -24,6 +24,7 @@
 #include "v26/wsrep_thread_service.h"
 
 #include <dlfcn.h>
+#include <cassert>
 #include <cerrno>
 
 namespace wsrep_thread_service_v1

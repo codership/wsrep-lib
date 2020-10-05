@@ -25,6 +25,8 @@
 #include <sstream>
 #include <iostream>
 
+#include <cassert>
+
 wsrep::provider& wsrep::client_state::provider() const
 {
     return server_state_.provider();

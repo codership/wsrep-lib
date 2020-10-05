@@ -20,9 +20,8 @@
 #ifndef WSREP_LOCK_HPP
 #define WSREP_LOCK_HPP
 
+#include "assert.hpp"
 #include "mutex.hpp"
-
-#include <cassert>
 
 namespace wsrep
 {
@@ -48,13 +47,13 @@ namespace wsrep
         void lock()
         {
             mutex_.lock();
-            assert(locked_ == false);
+            WSREP_ASSERT(locked_ == false);
             locked_ = true;
         }
 
         void unlock()
         {
-            assert(locked_);
+            WSREP_ASSERT(locked_);
             locked_ = false;
             mutex_.unlock();
         }

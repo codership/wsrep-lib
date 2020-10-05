@@ -24,6 +24,7 @@
 
 #include <dlfcn.h>
 #include <memory>
+#include <cassert>
 
 wsrep::provider* wsrep::provider::make_provider(
     wsrep::server_state& server_state,

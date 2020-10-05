@@ -82,6 +82,7 @@
 #ifndef WSREP_SERVER_STATE_HPP
 #define WSREP_SERVER_STATE_HPP
 
+#include "assert.hpp"
 #include "mutex.hpp"
 #include "condition_variable.hpp"
 #include "id.hpp"
@@ -553,7 +554,7 @@ namespace wsrep
         enum state state(wsrep::unique_lock<wsrep::mutex>&
                          lock WSREP_UNUSED) const
         {
-            assert(lock.owns_lock());
+            WSREP_ASSERT(lock.owns_lock());
             return state_;
         }
 

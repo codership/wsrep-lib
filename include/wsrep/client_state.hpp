@@ -31,6 +31,7 @@
 #ifndef WSREP_CLIENT_STATE_HPP
 #define WSREP_CLIENT_STATE_HPP
 
+#include "assert.hpp"
 #include "server_state.hpp"
 #include "server_service.hpp"
 #include "provider.hpp"
@@ -166,7 +167,7 @@ namespace wsrep
          */
         virtual ~client_state()
         {
-            assert(transaction_.active() == false);
+            WSREP_ASSERT(transaction_.active() == false);
         }
 
         /** @name Client session handling */
@@ -270,7 +271,7 @@ namespace wsrep
          */
         void after_applying()
         {
-            assert(mode_ == m_high_priority);
+            WSREP_ASSERT(mode_ == m_high_priority);
             transaction_.after_applying();
         }
 
@@ -286,7 +287,7 @@ namespace wsrep
         int start_transaction(const wsrep::transaction_id& id)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            assert(state_ == s_exec);
+            WSREP_ASSERT(state_ == s_exec);
             return transaction_.start_transaction(id);
         }
 
@@ -304,8 +305,8 @@ namespace wsrep
          */
         int assign_read_view(const wsrep::gtid* const gtid = NULL)
         {
-            assert(mode_ == m_local);
-            assert(state_ == s_exec);
+            WSREP_ASSERT(mode_ == m_local);
+            WSREP_ASSERT(state_ == s_exec);
             return transaction_.assign_read_view(gtid);
         }
 
@@ -318,8 +319,8 @@ namespace wsrep
          */
         int append_key(const wsrep::key& key)
         {
-            assert(mode_ == m_local);
-            assert(state_ == s_exec);
+            WSREP_ASSERT(mode_ == m_local);
+            WSREP_ASSERT(state_ == s_exec);
             return transaction_.append_key(key);
         }
 
@@ -332,8 +333,8 @@ namespace wsrep
          */
         int append_keys(const wsrep::key_array& keys)
         {
-            assert(mode_ == m_local || mode_ == m_toi);
-            assert(state_ == s_exec);
+            WSREP_ASSERT(mode_ == m_local || mode_ == m_toi);
+            WSREP_ASSERT(state_ == s_exec);
             for (auto i(keys.begin()); i != keys.end(); ++i)
             {
                 if (transaction_.append_key(*i))
@@ -349,8 +350,8 @@ namespace wsrep
          */
         int append_data(const wsrep::const_buffer& data)
         {
-            assert(mode_ == m_local);
-            assert(state_ == s_exec);
+            WSREP_ASSERT(mode_ == m_local);
+            WSREP_ASSERT(state_ == s_exec);
             return transaction_.append_data(data);
         }
 
@@ -363,8 +364,8 @@ namespace wsrep
          */
         int after_row()
         {
-            assert(mode_ == m_local);
-            assert(state_ == s_exec);
+            WSREP_ASSERT(mode_ == m_local);
+            WSREP_ASSERT(state_ == s_exec);
             return (transaction_.streaming_context().fragment_size() ?
                     transaction_.after_row() : 0);
         }
@@ -403,7 +404,7 @@ namespace wsrep
 
         void fragment_applied(wsrep::seqno seqno)
         {
-            assert(mode_ == m_high_priority);
+            WSREP_ASSERT(mode_ == m_high_priority);
             transaction_.fragment_applied(seqno);
         }
 
@@ -423,7 +424,7 @@ namespace wsrep
                                  const wsrep::ws_meta& ws_meta,
                                  bool is_commit)
         {
-            assert(state_ == s_exec);
+            WSREP_ASSERT(state_ == s_exec);
             return transaction_.prepare_for_ordering(
                 ws_handle, ws_meta, is_commit);
         }
@@ -435,15 +436,15 @@ namespace wsrep
                               const wsrep::ws_meta& meta)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            assert(owning_thread_id_ == wsrep::this_thread::get_id());
-            assert(mode_ == m_high_priority);
+            WSREP_ASSERT(owning_thread_id_ == wsrep::this_thread::get_id());
+            WSREP_ASSERT(mode_ == m_high_priority);
             return transaction_.start_transaction(wsh, meta);
         }
 
         int next_fragment(const wsrep::ws_meta& meta)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            assert(mode_ == m_high_priority);
+            WSREP_ASSERT(mode_ == m_high_priority);
             return transaction_.next_fragment(meta);
         }
 
@@ -452,44 +453,44 @@ namespace wsrep
         int before_prepare()
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            assert(owning_thread_id_ == wsrep::this_thread::get_id());
-            assert(state_ == s_exec);
+            WSREP_ASSERT(owning_thread_id_ == wsrep::this_thread::get_id());
+            WSREP_ASSERT(state_ == s_exec);
             return transaction_.before_prepare(lock);
         }
 
         int after_prepare()
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            assert(owning_thread_id_ == wsrep::this_thread::get_id());
-            assert(state_ == s_exec);
+            WSREP_ASSERT(owning_thread_id_ == wsrep::this_thread::get_id());
+            WSREP_ASSERT(state_ == s_exec);
             return transaction_.after_prepare(lock);
         }
 
         int before_commit()
         {
-            assert(owning_thread_id_ == wsrep::this_thread::get_id());
-            assert(state_ == s_exec || mode_ == m_local);
+            WSREP_ASSERT(owning_thread_id_ == wsrep::this_thread::get_id());
+            WSREP_ASSERT(state_ == s_exec || mode_ == m_local);
             return transaction_.before_commit();
         }
 
         int ordered_commit()
         {
-            assert(owning_thread_id_ == wsrep::this_thread::get_id());
-            assert(state_ == s_exec || mode_ == m_local);
+            WSREP_ASSERT(owning_thread_id_ == wsrep::this_thread::get_id());
+            WSREP_ASSERT(state_ == s_exec || mode_ == m_local);
             return transaction_.ordered_commit();
         }
 
         int after_commit()
         {
-            assert(owning_thread_id_ == wsrep::this_thread::get_id());
-            assert(state_ == s_exec || mode_ == m_local);
+            WSREP_ASSERT(owning_thread_id_ == wsrep::this_thread::get_id());
+            WSREP_ASSERT(state_ == s_exec || mode_ == m_local);
             return transaction_.after_commit();
         }
         /** @} */
         int before_rollback()
         {
-            assert(owning_thread_id_ == wsrep::this_thread::get_id());
-            assert(state_ == s_idle ||
+            WSREP_ASSERT(owning_thread_id_ == wsrep::this_thread::get_id());
+            WSREP_ASSERT(state_ == s_idle ||
                    state_ == s_exec ||
                    state_ == s_result ||
                    state_ == s_quitting);
@@ -498,8 +499,8 @@ namespace wsrep
 
         int after_rollback()
         {
-            assert(owning_thread_id_ == wsrep::this_thread::get_id());
-            assert(state_ == s_idle ||
+            WSREP_ASSERT(owning_thread_id_ == wsrep::this_thread::get_id());
+            WSREP_ASSERT(state_ == s_idle ||
                    state_ == s_exec ||
                    state_ == s_result ||
                    state_ == s_quitting);
@@ -600,7 +601,7 @@ namespace wsrep
         int bf_abort(wsrep::seqno bf_seqno)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            assert(mode_ == m_local || transaction_.is_streaming());
+            WSREP_ASSERT(mode_ == m_local || transaction_.is_streaming());
             return transaction_.bf_abort(lock, bf_seqno);
         }
         /**
@@ -611,7 +612,7 @@ namespace wsrep
         int total_order_bf_abort(wsrep::seqno bf_seqno)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-            assert(mode_ == m_local || transaction_.is_streaming());
+            WSREP_ASSERT(mode_ == m_local || transaction_.is_streaming());
             return transaction_.total_order_bf_abort(lock, bf_seqno);
         }
 
@@ -624,7 +625,7 @@ namespace wsrep
          */
         void adopt_transaction(const wsrep::transaction& transaction)
         {
-            assert(mode_ == m_high_priority);
+            WSREP_ASSERT(mode_ == m_high_priority);
             transaction_.adopt(transaction);
         }
 
@@ -633,7 +634,7 @@ namespace wsrep
          */
         void adopt_apply_error(wsrep::mutable_buffer& err)
         {
-            assert(mode_ == m_high_priority);
+            WSREP_ASSERT(mode_ == m_high_priority);
             transaction_.adopt_apply_error(err);
         }
 
@@ -646,7 +647,7 @@ namespace wsrep
          */
         void clone_transaction_for_replay(const wsrep::transaction& transaction)
         {
-            // assert(mode_ == m_high_priority);
+            // WSREP_ASSERT(mode_ == m_high_priority);
             transaction_.clone_for_replay(transaction);
         }
 
@@ -1115,7 +1116,7 @@ namespace wsrep
         virtual ~high_priority_context()
         {
             wsrep::unique_lock<wsrep::mutex> lock(client_.mutex_);
-            assert(client_.mode() == wsrep::client_state::m_high_priority);
+            WSREP_ASSERT(client_.mode() == wsrep::client_state::m_high_priority);
             client_.mode(lock, orig_mode_);
         }
     private:
@@ -1139,7 +1140,7 @@ namespace wsrep
         ~client_toi_mode()
         {
             wsrep::unique_lock<wsrep::mutex> lock(client_.mutex_);
-            assert(client_.mode() == wsrep::client_state::m_toi);
+            WSREP_ASSERT(client_.mode() == wsrep::client_state::m_toi);
             client_.mode(lock, orig_mode_);
         }
     private:

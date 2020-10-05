@@ -21,6 +21,8 @@
 #include "db_high_priority_service.hpp"
 #include "db_client.hpp"
 
+#include <cassert>
+
 db::client_service::client_service(db::client& client)
     : wsrep::client_service()
     , client_(client)

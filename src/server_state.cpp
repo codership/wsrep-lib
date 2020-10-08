@@ -216,12 +216,14 @@ static int rollback_fragment(wsrep::server_state& server_state,
                              const wsrep::ws_meta& ws_meta)
 {
     int ret(0);
-    // Adopts transaction state and starts a transaction for
-    // high priority service
-    int adopt_error;
-    bool remove_fragments(false);
-    if ((adopt_error = high_priority_service.adopt_transaction(
-             streaming_applier->transaction())))
+    int adopt_error(0);
+    bool const remove_fragments(streaming_applier->transaction().
+                                streaming_context().fragments().size() > 0);
+    // If fragment removal is needed, adopt transaction state
+    // and start a transaction for it.
+    if (remove_fragments &&
+        (adopt_error = high_priority_service.adopt_transaction(
+          streaming_applier->transaction())))
     {
         log_adopt_error(streaming_applier->transaction());
     }
@@ -234,8 +236,6 @@ static int rollback_fragment(wsrep::server_state& server_state,
             high_priority_service, *streaming_applier);
         // Streaming applier rolls back out of order. Fragment
         // removal grabs commit order below.
-        remove_fragments = streaming_applier->transaction().
-                           streaming_context().fragments().size() > 0;
         ret = streaming_applier->rollback(wsrep::ws_handle(), wsrep::ws_meta());
         ret = ret || (streaming_applier->after_apply(), 0);
     }

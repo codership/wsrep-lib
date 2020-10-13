@@ -841,7 +841,9 @@ int wsrep::transaction::after_statement()
         {
             ret = release_commit_order(lock);
         }
+        lock.unlock();
         provider().release(ws_handle_);
+        lock.lock();
     }
 
     if (state() != s_executing && state() != s_prepared)

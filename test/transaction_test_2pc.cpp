@@ -94,6 +94,7 @@ BOOST_FIXTURE_TEST_CASE(
     wsrep_test::bf_abort_ordered(cc);
     BOOST_REQUIRE(cc.after_prepare());
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
+    BOOST_REQUIRE(cc.will_replay_called() == true);
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
     BOOST_REQUIRE(cc.after_rollback() == 0);
@@ -124,6 +125,7 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_abort);
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
+    BOOST_REQUIRE(cc.will_replay_called() == true);
     BOOST_REQUIRE(cc.after_rollback() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
     BOOST_REQUIRE(cc.after_statement() == 0);
@@ -152,6 +154,7 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_abort);
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
+    BOOST_REQUIRE(cc.will_replay_called() == true);
     BOOST_REQUIRE(tc.certified() == true);
     BOOST_REQUIRE(tc.ordered() == true);
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -183,6 +186,7 @@ BOOST_FIXTURE_TEST_CASE(
     sc.provider().commit_order_enter_result_ = wsrep::provider::error_bf_abort;
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
+    BOOST_REQUIRE(cc.will_replay_called() == true);
     BOOST_REQUIRE(tc.certified() == true);
     BOOST_REQUIRE(tc.ordered() == true);
     sc.provider().commit_order_enter_result_ = wsrep::provider::success;

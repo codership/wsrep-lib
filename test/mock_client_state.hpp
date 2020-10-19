@@ -72,6 +72,7 @@ namespace wsrep
             , sync_point_action_()
             , bytes_generated_()
             , client_state_(client_state)
+            , will_replay_called_()
             , replays_()
             , aborts_()
         { }
@@ -98,10 +99,11 @@ namespace wsrep
                 return 0;
             }
         }
-        void will_replay() WSREP_OVERRIDE { }
 
-        enum wsrep::provider::status
-        replay() WSREP_OVERRIDE;
+        void will_replay() WSREP_OVERRIDE { will_replay_called_ = true; }
+
+        enum wsrep::provider::status replay() WSREP_OVERRIDE;
+
         void wait_for_replayers(
             wsrep::unique_lock<wsrep::mutex>& lock)
             WSREP_OVERRIDE
@@ -195,10 +197,12 @@ namespace wsrep
         //
         // Verifying the state
         //
+        bool will_replay_called() const { return will_replay_called_; }
         size_t replays() const { return replays_; }
         size_t aborts() const { return aborts_; }
     private:
         wsrep::mock_client_state& client_state_;
+        bool will_replay_called_;
         size_t replays_;
         size_t aborts_;
     };

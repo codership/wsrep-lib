@@ -1142,6 +1142,11 @@ void wsrep::transaction::state(
         state_hist_.erase(state_hist_.begin());
     }
     state_ = next_state;
+
+    if (state_ == s_must_replay)
+    {
+        client_service_.will_replay();
+    }
 }
 
 bool wsrep::transaction::abort_or_interrupt(
@@ -1531,7 +1536,6 @@ int wsrep::transaction::certify_commit(
             // We got BF aborted after succesful certification
             // and before acquiring client state lock. The trasaction
             // must be replayed.
-            client_service_.will_replay();
             state(lock, s_must_replay);
             break;
         default:
@@ -1557,7 +1561,6 @@ int wsrep::transaction::certify_commit(
         // yet known. Therefore the transaction must roll back
         // and go through replay either to replay and commit the whole
         // transaction or to determine failed certification status.
-        client_service_.will_replay();
         if (state() != s_must_abort)
         {
             state(lock, s_must_abort);

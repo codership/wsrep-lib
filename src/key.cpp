@@ -39,6 +39,20 @@ namespace
     }
 }
 
+std::ostream& wsrep::operator<<(std::ostream& os,
+                                enum wsrep::key::type key_type)
+{
+    switch (key_type)
+    {
+    case wsrep::key::shared: os << "shared"; break;
+    case wsrep::key::reference: os << "reference"; break;
+    case wsrep::key::update: os << "update"; break;
+    case wsrep::key::exclusive: os << "exclusive"; break;
+    default: os << "unknown"; break;
+    }
+    return os;
+}
+
 std::ostream& wsrep::operator<<(std::ostream& os, const wsrep::key& key)
 {
     os << "type: " << key.type();

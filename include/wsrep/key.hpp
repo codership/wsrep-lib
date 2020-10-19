@@ -89,6 +89,7 @@ namespace wsrep
 
     typedef std::vector<wsrep::key> key_array;
 
+    std::ostream& operator<<(std::ostream&, enum wsrep::key::type);
     std::ostream& operator<<(std::ostream&, const wsrep::key&);
 }
 

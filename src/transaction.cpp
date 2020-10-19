@@ -1821,5 +1821,5 @@ void wsrep::transaction::debug_log_key_append(const wsrep::key& key) const
                     "key_append: "
                     << "trx_id: "
                     << int64_t(id().get())
-                    << " append key: " << key);
+                    << " append key:\n" << key);
 }

@@ -27,6 +27,7 @@ endif()
 
 include(CheckIncludeFile)
 include(CheckLibraryExists)
+include(CheckCXXCompilerFlag)
 
 # Options
 
@@ -72,6 +73,10 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wconversion")
 # CXX flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Woverloaded-virtual -Wconversion -g")
+check_cxx_compiler_flag("-Wsuggest-override" HAVE_SUGGEST_OVERRIDE)
+if (HAVE_SUGGEST_OVERRIDE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
+endif()
 
 if (WSREP_LIB_STRICT_BUILD_FLAGS)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Weffc++")

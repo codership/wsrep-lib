@@ -422,7 +422,6 @@ int wsrep::transaction::after_prepare(
         if (state() == s_must_abort)
         {
             assert(client_state_.mode() == wsrep::client_state::m_local);
-            client_service_.will_replay();
             state(lock, s_must_replay);
             ret = 1;
         }
@@ -470,7 +469,6 @@ int wsrep::transaction::before_commit()
             if (certified() ||
                 (is_xa() && is_streaming()))
             {
-                client_service_.will_replay();
                 state(lock, s_must_replay);
             }
             else
@@ -509,7 +507,6 @@ int wsrep::transaction::before_commit()
             case wsrep::provider::success:
                 break;
             case wsrep::provider::error_bf_abort:
-                client_service_.will_replay();
                 if (state() != s_must_abort)
                 {
                     state(lock, s_must_abort);
@@ -695,7 +692,6 @@ int wsrep::transaction::before_rollback()
         case s_must_abort:
             if (certified())
             {
-                client_service_.will_replay();
                 state(lock, s_must_replay);
             }
             else
@@ -1023,7 +1019,6 @@ bool wsrep::transaction::bf_abort(
             // rollbacker gets control.
             if (is_xa() && state_at_enter == s_prepared)
             {
-                client_service_.will_replay();
                 state(lock, s_must_replay);
                 client_state_.set_rollbacker_active(true);
             }
@@ -1642,7 +1637,6 @@ int wsrep::transaction::certify_commit(
     {
         if (is_xa() && state() == s_must_abort)
         {
-            client_service_.will_replay();
             state(lock, s_must_replay);
         }
         return 1;
@@ -1768,7 +1762,6 @@ int wsrep::transaction::certify_commit(
         {
             if (is_xa())
             {
-                client_service_.will_replay();
                 state(lock, s_must_replay);
             }
             client_state_.override_error(wsrep::e_deadlock_error);

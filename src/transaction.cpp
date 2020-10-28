@@ -484,7 +484,6 @@ int wsrep::transaction::before_commit()
 
         if (ret == 0 && state() == s_prepared)
         {
-            assert(state() == s_prepared);
             ret = certify_commit(lock);
             assert((ret == 0 && state() == s_committing) ||
                    (state() == s_must_abort ||

@@ -1071,6 +1071,176 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(tc.active() == false);
 }
 
+//
+// Test before_command() with keep_command_error param
+// Failure free case is not affected by keep_command_error
+//
+BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_keep_error, T,
+                                 replicating_fixtures, T)
+{
+    wsrep::mock_client& cc(T::cc);
+    const wsrep::transaction& tc(T::tc);
+
+    cc.start_transaction(wsrep::transaction_id(1));
+    BOOST_REQUIRE(tc.active());
+    cc.after_statement();
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+
+    bool keep_command_error(true);
+    BOOST_REQUIRE(cc.before_command(keep_command_error) == 0);
+    BOOST_REQUIRE(tc.active());
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+
+    keep_command_error = false;
+    BOOST_REQUIRE(cc.before_command(keep_command_error) == 0);
+    BOOST_REQUIRE(cc.before_statement() == 0);
+    BOOST_REQUIRE(cc.before_commit() == 0);
+    BOOST_REQUIRE(cc.ordered_commit() == 0);
+    BOOST_REQUIRE(cc.after_commit() == 0);
+    cc.after_statement();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
+//
+// Test before_command() with keep_command_error param
+// BF abort while idle
+//
+BOOST_FIXTURE_TEST_CASE(transaction_keep_error_bf_idle_sync_rm,
+                        replicating_client_fixture_sync_rm)
+{
+    cc.start_transaction(wsrep::transaction_id(1));
+    cc.after_statement();
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+
+    BOOST_REQUIRE(cc.state() == wsrep::client_state::s_idle);
+    wsrep_test::bf_abort_unordered(cc);
+    cc.sync_rollback_complete();
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
+
+    bool keep_command_error(true);
+    BOOST_REQUIRE(cc.before_command(keep_command_error) == 0);
+    BOOST_REQUIRE(tc.active());
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+
+    keep_command_error = false;
+    BOOST_REQUIRE(cc.before_command(keep_command_error) == 1);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
+//
+// Test before_command() with keep_command_error param
+// BF abort after ownership is acquired and before before_command()
+//
+BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_keep_error_bf_after_ownership, T,
+                                 replicating_fixtures, T)
+{
+    wsrep::mock_client& cc(T::cc);
+    const wsrep::transaction& tc(T::tc);
+
+    cc.start_transaction(wsrep::transaction_id(1));
+    cc.after_statement();
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+
+    cc.wait_rollback_complete_and_acquire_ownership();
+    wsrep_test::bf_abort_unordered(cc);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_abort);
+
+    bool keep_command_error(true);
+    BOOST_REQUIRE(cc.before_command(keep_command_error) == 0);
+    BOOST_REQUIRE(tc.active());
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+
+    keep_command_error = false;
+    BOOST_REQUIRE(cc.before_command(keep_command_error) == 1);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
+//
+// Test before_command() with keep_command_error param
+// BF abort right after before_command()
+//
+BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_keep_error_bf_after_before_command, T,
+                                 replicating_fixtures, T)
+{
+    wsrep::mock_client& cc(T::cc);
+    const wsrep::transaction& tc(T::tc);
+
+    cc.start_transaction(wsrep::transaction_id(1));
+    cc.after_statement();
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+
+    bool keep_command_error(true);
+    BOOST_REQUIRE(cc.before_command(keep_command_error) == 0);
+    BOOST_REQUIRE(tc.active());
+
+    wsrep_test::bf_abort_unordered(cc);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_abort);
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+
+    keep_command_error = false;
+    BOOST_REQUIRE(cc.before_command(keep_command_error) == 1);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
+//
+// Test before_command() with keep_command_error param
+// BF abort right after after_command_before_result()
+//
+BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_keep_error_bf_after_after_command_before_result, T,
+                                 replicating_fixtures, T)
+{
+    wsrep::mock_client& cc(T::cc);
+    const wsrep::transaction& tc(T::tc);
+
+    cc.start_transaction(wsrep::transaction_id(1));
+    cc.after_statement();
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+
+    bool keep_command_error(true);
+    BOOST_REQUIRE(cc.before_command(keep_command_error) == 0);
+    BOOST_REQUIRE(tc.active());
+
+    cc.after_command_before_result();
+
+    wsrep_test::bf_abort_unordered(cc);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_abort);
+
+    cc.after_command_after_result();
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+
+    keep_command_error = false;
+    BOOST_REQUIRE(cc.before_command(keep_command_error) == 1);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
 BOOST_FIXTURE_TEST_CASE(transaction_1pc_applying,
                         applying_client_fixture)
 {

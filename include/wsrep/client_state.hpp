@@ -202,14 +202,38 @@ namespace wsrep
          * received from DBMS client starts.
          *
          * This method will wait until the possible synchronous
-         * rollback for associated transaction has finished.
+         * rollback for associated transaction has finished unless
+         * wait_rollback_complete_and_acquire_ownership() has been
+         * called before.
+         *
          * The method has a side effect of changing the client
          * context state to executing.
+         *
+         * The value set by keep_command_error has an effect on
+         * how before_command() behaves when it is entered after
+         * background rollback has been processed:
+         *
+         * - If keep_command_error is set true, the current error
+         *   is set and success will be returned.
+         * - If keep_command_error is set false, the transaction is
+         *   cleaned up and the return value will be non-zero to
+         *   indicate error.
+         *
+         * @param keep_command_error Make client state to preserve error
+         *        state in command hooks.
+         *        This is needed if a current command is not supposed to
+         *        return an error status to the client and the protocol must
+         *        advance until the next client command to return error status.
          *
          * @return Zero in case of success, non-zero in case of the
          *         associated transaction was BF aborted.
          */
-        int before_command();
+        int before_command(bool keep_command_error);
+
+        int before_command()
+        {
+            return before_command(false);
+        }
 
         /**
          * This method should be called before returning
@@ -1013,6 +1037,7 @@ namespace wsrep
             , debug_log_level_(0)
             , current_error_(wsrep::e_success)
             , current_error_status_(wsrep::provider::success)
+            , keep_command_error_()
         { }
 
     private:
@@ -1075,6 +1100,7 @@ namespace wsrep
         int debug_log_level_;
         enum wsrep::client_error current_error_;
         enum wsrep::provider::status current_error_status_;
+        bool keep_command_error_;
 
         /**
          * Marks external rollbacker thread for the client

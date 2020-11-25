@@ -1,0 +1,163 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          # GCC/G++
+          - os: ubuntu-16.04
+            CC: gcc
+            version: "4.8"
+            type: Debug
+          - os: ubuntu-16.04
+            CC: gcc
+            version: "4.8"
+            type: Release
+          - os: ubuntu-16.04
+            CC: gcc
+            version: "5"
+            type: Debug
+          - os: ubuntu-16.04
+            CC: gcc
+            version: "5"
+            type: Release
+          - os: ubuntu-18.04
+            CC: gcc
+            version: "6"
+            type: Debug
+          - os: ubuntu-18.04
+            CC: gcc
+            version: "6"
+            type: Release
+          - os: ubuntu-18.04
+            CC: gcc
+            version: "7"
+            type: Debug
+          - os: ubuntu-18.04
+            CC: gcc
+            version: "7"
+            type: Release
+          - os: ubuntu-18.04
+            CC: gcc
+            version: "8"
+            type: Debug
+          - os: ubuntu-18.04
+            CC: gcc
+            version: "8"
+            type: Release
+          - os: ubuntu-20.04
+            CC: gcc
+            version: "9"
+            type: Debug
+          - os: ubuntu-20.04
+            CC: gcc
+            version: "9"
+            type: Release
+          - os: ubuntu-20.04
+            CC: gcc
+            version: "10"
+            type: Debug
+          - os: ubuntu-20.04
+            CC: gcc
+            version: "10"
+            type: Release
+          # Clang
+          - os: ubuntu-18.04
+            CC: clang
+            version: "6.0"
+            type: Debug
+          - os: ubuntu-18.04
+            CC: clang
+            version: "6.0"
+            type: Release
+          - os: ubuntu-20.04
+            CC: clang
+            version: "10"
+            type: Debug
+          - os: ubuntu-20.04
+            CC: clang
+            version: "10"
+            type: Release
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Checkout submodules
+      uses: textbook/git-checkout-submodule-action@master
+
+    - name: Install compiler
+      run: |
+        sudo apt-get install -y ${{ matrix.config.CC }}-${{ matrix.config.version }}
+        if [ ${{ matrix.config.CC }} == "gcc" ]
+        then
+          sudo apt-get install -y g++-${{ matrix.config.version }}
+        fi
+
+    - name: Install build dependencies
+      run: sudo apt-get install -y libboost-filesystem-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev ccache
+
+    # See https://cristianadam.eu/20200113/speeding-up-c-plus-plus-github-actions-using-ccache/
+    - name: Prepare ccache timestamp
+      id: ccache_cache_timestamp
+      shell: cmake -P {0}
+      run: |
+        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+        message("::set-output name=timestamp::${current_date}")
+
+    - name: Configure ccache
+      uses: actions/cache@v2
+      with:
+        path: ~/.ccache
+        key: ${{ matrix.config.os }}-${{ matrix.config.CC }}-${{ matrix.config.version }}-${{ matrix.config.type }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+        restore-keys: ${{ matrix.config.os }}-${{ matrix.config.CC }}-${{ matrix.config.version }}-${{ matrix.config.type }}-ccache-
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: Configure CMake
+      # Use a bash shell so we can use the same syntax for environment variable
+      # access regardless of the host operating system
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: |
+        export CC="ccache ${{ matrix.config.CC }}-${{ matrix.config.version }}"
+        if [ ${{ matrix.config.CC }} == "gcc" ]
+        then
+          export CXX="ccache g++-${{ matrix.config.version }}"
+        else
+          export CXX="ccache clang++-${{ matrix.config.version }}"
+        fi
+        if [ ${{ matrix.config.version }} == "4.8" ]
+        then
+          STRICT=OFF
+          DBSIM=OFF
+        else
+          STRICT=ON
+          DBSIM=ON
+        fi
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=${{ matrix.config.type }} \
+          -DWSREP_LIB_MAINTAINER_MODE:BOOL=ON \
+          -DWSREP_LIB_STRICT_BUILD_FLAGS:BOOL=$STRICT \
+          -DWSREP_LIB_WITH_DBSIM:BOOL=$DBSIM \
+          -DWSREP_LIB_WITH_ASAN:BOOL=ON .
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: |
+        make -j3 VERBOSE=1
+        ccache -s
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: ctest -C ${{ matrix.config.type }}

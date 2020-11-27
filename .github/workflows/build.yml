@@ -160,4 +160,4 @@ jobs:
     - name: Test
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: ctest -C ${{ matrix.config.type }}
+      run: ctest -C ${{ matrix.config.type }} --output-on-failure

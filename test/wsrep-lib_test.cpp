@@ -44,9 +44,10 @@ static std::string debug_log_level;
 
 
 static void log_fn(wsrep::log::level level,
+                   const char* pfx,
                    const char* msg)
 {
-    log_file << wsrep::log::to_c_string(level) << ": " << msg << std::endl;
+    log_file << wsrep::log::to_c_string(level) << " " << pfx << msg << std::endl;
 }
 
 static bool parse_arg(const std::string& arg)

@@ -42,7 +42,8 @@ namespace wsrep
             debug,
             info,
             warning,
-            error
+            error,
+            unknown
         };
 
         enum debug_level
@@ -55,8 +56,12 @@ namespace wsrep
 
         /**
          * Signature for user defined logger callback function.
+         *
+         * @param pfx optional internally defined prefix for the message
+         * @param msg message to log
          */
-        typedef void (*logger_fn_type)(level, const char*);
+        typedef void (*logger_fn_type)(level l,
+                                       const char* pfx, const char* msg);
 
         static const char* to_c_string(enum level level)
         {
@@ -66,11 +71,12 @@ namespace wsrep
             case info:    return "info";
             case warning: return "warning";
             case error:   return "error";
+            case unknown: break;
             };
             return "unknown";
         }
 
-        log(enum wsrep::log::level level, const char* prefix = "")
+        log(enum wsrep::log::level level, const char* prefix = "L:")
             : level_(level)
             , prefix_(prefix)
             , oss_()
@@ -80,12 +86,12 @@ namespace wsrep
         {
             if (logger_fn_)
             {
-                logger_fn_(level_, oss_.str().c_str());
+                logger_fn_(level_, prefix_, oss_.str().c_str());
             }
             else
             {
                 wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-                os_ << prefix_ << ": " << oss_.str() << std::endl;
+                os_ << prefix_ << oss_.str() << std::endl;
             }
         }
 

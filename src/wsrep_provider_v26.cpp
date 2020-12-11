@@ -564,22 +564,25 @@ namespace
 
     void logger_cb(wsrep_log_level_t level, const char* msg)
     {
+        static const char* const pfx("P:"); // "provider"
+        wsrep::log::level ll(wsrep::log::unknown);
         switch (level)
         {
         case WSREP_LOG_FATAL:
         case WSREP_LOG_ERROR:
-            wsrep::log_error() << msg;
+            ll = wsrep::log::error;
             break;
         case WSREP_LOG_WARN:
-            wsrep::log_warning() << msg;
+            ll = wsrep::log::warning;
             break;
         case WSREP_LOG_INFO:
-            wsrep::log_info() <<  msg;
+            ll = wsrep::log::info;
             break;
         case WSREP_LOG_DEBUG:
-            wsrep::log_debug() << msg;
+            ll = wsrep::log::debug;
             break;
         }
+        wsrep::log(ll, pfx) << msg;
     }
 
     static int init_thread_service(void* dlh,

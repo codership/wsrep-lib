@@ -74,7 +74,7 @@ namespace wsrep
         {
             if (pthread_cond_wait(
                     &cond_,
-                    reinterpret_cast<pthread_mutex_t*>(lock.mutex().native())))
+                    reinterpret_cast<pthread_mutex_t*>(lock.mutex()->native())))
             {
                 throw wsrep::runtime_error("Cond wait failed");
             }

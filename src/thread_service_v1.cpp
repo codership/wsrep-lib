@@ -23,6 +23,7 @@
 #include "wsrep/logger.hpp"
 #include "v26/wsrep_thread_service.h"
 
+#include <cassert>
 #include <dlfcn.h>
 #include <cerrno>
 

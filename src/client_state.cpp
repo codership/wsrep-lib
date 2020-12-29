@@ -69,6 +69,11 @@ void wsrep::client_state::close()
 void wsrep::client_state::cleanup()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    cleanup(lock);
+}
+
+void wsrep::client_state::cleanup(wsrep::unique_lock<wsrep::mutex>& lock)
+{
     debug_log_state("cleanup: enter");
     state(lock, s_none);
     debug_log_state("cleanup: leave");

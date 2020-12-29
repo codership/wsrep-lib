@@ -193,6 +193,13 @@ namespace wsrep
          * The state is changed to s_none.
          */
         void cleanup();
+
+        /**
+         * Overload of cleanup() method which takes lock as argument.
+         * This method does not release the lock during execution, but
+         * the lock is needed for debug build sanity checks.
+         */
+        void cleanup(wsrep::unique_lock<wsrep::mutex>& lock);
         /** @} */
 
         /** @name Client command handling */

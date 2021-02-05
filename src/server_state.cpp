@@ -87,11 +87,14 @@ static int apply_fragment(wsrep::server_state& server_state,
                           wsrep::high_priority_service* streaming_applier,
                           const wsrep::ws_handle& ws_handle,
                           const wsrep::ws_meta& ws_meta,
-                          const wsrep::const_buffer& data)
+                          const wsrep::const_buffer& data, int line)
 {
     int ret(0);
     int apply_err;
     wsrep::mutable_buffer err;
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "server_state: apply_fragment, line = " << line;
+#endif /* DEBUG_SR_SPEEDUP */
     {
         wsrep::high_priority_switch sw(high_priority_service,
                                        *streaming_applier);
@@ -357,7 +360,7 @@ static int apply_write_set(wsrep::server_state& server_state,
                              sa,
                              ws_handle,
                              ws_meta,
-                             data);
+                             data, __LINE__);
     }
     else if (ws_meta.flags() == 0 || wsrep::prepares_transaction(ws_meta.flags()))
     {
@@ -386,7 +389,7 @@ static int apply_write_set(wsrep::server_state& server_state,
                                  sa,
                                  ws_handle,
                                  ws_meta,
-                                 data);
+                                 data, __LINE__);
         }
     }
     else if (wsrep::commits_transaction(ws_meta.flags()))
@@ -1145,6 +1148,10 @@ void wsrep::server_state::start_streaming_client(
     WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
                     wsrep::log::debug_level_server_state,
                     "Start streaming client: " << client_state->id());
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "server_state: start_streaming_client";
+#endif /* DEBUG_SR_SPEEDUP */
+
     if (streaming_clients_.insert(
             std::make_pair(client_state->id(), client_state)).second == false)
     {
@@ -1246,6 +1253,9 @@ void wsrep::server_state::start_streaming_applier(
     wsrep::high_priority_service* sa)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+#ifdef DEBUG_SR_SPEEDUP2
+    wsrep::log_warning() << "start_streaming_applier";
+#endif /* DEBUG_SR_SPEEDUP2 */
     if (streaming_appliers_.insert(
             std::make_pair(std::make_pair(server_id, transaction_id),
                            sa)).second == false)

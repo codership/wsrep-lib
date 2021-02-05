@@ -50,6 +50,21 @@ option(WSREP_LIB_WITH_COVERAGE "Compile with coverage instrumentation" OFF)
 option(WSREP_LIB_STRICT_BUILD_FLAGS "Compile with strict build flags" OFF)
 option(WSREP_LIB_MAINTAINER_MODE "Fail compilation on any warnings" OFF)
 
+#
+#  Option for WSREP's Streaming Replication speedup
+#
+option(WITH_WSREP_SR_SPEEDUP "WSREP's Streaming Replication speedup" ON)
+#option(WITH_WSREP_SR_SPEEDUP "WSREP's Streaming Replication speedup" OFF)
+## add_definitions(-DWITH_WSREP_SR_SPEEDUP_CHECK)
+#option(WITH_WSREP_SR_SPEEDUP_TIME "Timing for Streaming Replication speedup" ON)
+if (WITH_WSREP_SR_SPEEDUP)
+  ADD_DEFINITIONS(-DWITH_WSREP_SR_SPEEDUP)
+  ADD_DEFINITIONS(-DDEBUG_SR_SPEEDUP)
+#  ADD_DEFINITIONS(-DWITH_WSREP_SR_SPEEDUP_REPLAY)
+#  ADD_DEFINITIONS(-DDEBUG_SR_SPEEDUP_REPLAY)
+endif()
+
+
 # Compiler options
 
 # Set std to C++0x/C++11 if superproject has not set standard yet

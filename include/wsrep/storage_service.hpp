@@ -65,8 +65,12 @@ namespace wsrep
                                     wsrep::transaction_id client_id,
                                     int flags,
                                     const wsrep::const_buffer& data,
+#ifdef WITH_WSREP_SR_SPEEDUP_REPLAY
+				    size_t offset,
+                                    const wsrep::xid& xid, void * current_thd) = 0;
+#else
                                     const wsrep::xid& xid) = 0;
-
+#endif /* WITH_WSREP_SR_SPEEDUP_REPLAY */
         /**
          * Update fragment meta data after certification process.
          */

@@ -11,6 +11,7 @@ add_library(wsrep-lib
   key.cpp
   logger.cpp
   provider.cpp
+  provider_options.cpp
   seqno.cpp
   view.cpp
   server_state.cpp
@@ -22,5 +23,6 @@ add_library(wsrep-lib
   uuid.cpp
   reporter.cpp
   allowlist_service_v1.cpp
-  wsrep_provider_v26.cpp)
+  wsrep_provider_v26.cpp
+  config_service_v1.cpp)
 target_link_libraries(wsrep-lib wsrep_api_v26 pthread ${WSREP_LIB_LIBDL})

@@ -1628,7 +1628,9 @@ int wsrep::transaction::certify_fragment(
                 // and the rollback process.
                 storage_service.rollback(wsrep::ws_handle(), wsrep::ws_meta());
                 ret = 1;
-                error = wsrep::e_deadlock_error;
+                error = (cert_ret == wsrep::provider::error_size_exceeded ?
+                         wsrep::e_size_exceeded_error :
+                         wsrep::e_deadlock_error);
                 break;
             }
         }

@@ -20,6 +20,8 @@
 #ifndef WSREP_MOCK_PROVIDER_HPP
 #define WSREP_MOCK_PROVIDER_HPP
 
+#include "mock_high_priority_service.hpp"
+
 #include "wsrep/provider.hpp"
 #include "wsrep/logger.hpp"
 #include "wsrep/buffer.hpp"
@@ -47,6 +49,7 @@ namespace wsrep
             , replay_result_()
             , group_id_("1")
             , server_id_("1")
+            , options_()
             , group_seqno_(0)
             , bf_abort_map_()
             , start_fragments_()
@@ -291,15 +294,15 @@ namespace wsrep
             return std::vector<status_variable>();
         }
         void reset_status() WSREP_OVERRIDE { }
-        std::string options() const WSREP_OVERRIDE { return ""; }
-        enum wsrep::provider::status options(const std::string&)
+        std::string options() const WSREP_OVERRIDE { return options_; }
+        enum wsrep::provider::status options(const std::string& options)
             WSREP_OVERRIDE
-        { return wsrep::provider::success; }
+        { options_ = options; return wsrep::provider::success; }
         std::string name() const WSREP_OVERRIDE { return "mock"; }
         std::string version() const WSREP_OVERRIDE { return "0.0"; }
         std::string vendor() const WSREP_OVERRIDE { return "mock"; }
         void* native() const WSREP_OVERRIDE { return 0; }
-
+        std::unique_ptr<wsrep::tls_context> make_tls_context(wsrep::provider_options&) override;
         //
         // Methods to modify mock state
         //
@@ -341,6 +344,7 @@ namespace wsrep
     private:
         wsrep::id group_id_;
         wsrep::id server_id_;
+        std::string options_;
         long long group_seqno_;
         bf_abort_map bf_abort_map_;
         size_t start_fragments_;

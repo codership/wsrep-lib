@@ -104,6 +104,7 @@ namespace wsrep
         std::string version() const WSREP_OVERRIDE;
         std::string vendor() const WSREP_OVERRIDE;
         void* native() const WSREP_OVERRIDE;
+        std::unique_ptr<tls_context> make_tls_context(wsrep::provider_options&) WSREP_OVERRIDE;
     private:
         wsrep_provider_v26(const wsrep_provider_v26&);
         wsrep_provider_v26& operator=(const wsrep_provider_v26);

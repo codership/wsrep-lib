@@ -9,10 +9,13 @@ set(TEST_SOURCES
   mock_storage_service.cpp
   test_utils.cpp
   buffer_test.cpp
+  galera_tls_context_test.cpp
   gtid_test.cpp
   id_test.cpp
+  mock_provider.cpp
   nbo_test.cpp
   rsu_test.cpp
+  provider_options_test.cpp
   server_context_test.cpp
   toi_test.cpp
   transaction_test.cpp

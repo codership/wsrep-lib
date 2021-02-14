@@ -18,6 +18,7 @@
  */
 
 #include "wsrep_provider_v26.hpp"
+#include "galera_tls_context.hpp"
 
 #include "wsrep/encryption_service.hpp"
 #include "wsrep/server_state.hpp"
@@ -1065,4 +1066,11 @@ std::string wsrep::wsrep_provider_v26::vendor() const
 void* wsrep::wsrep_provider_v26::native() const
 {
     return wsrep_;
+}
+
+std::unique_ptr<wsrep::tls_context> wsrep::wsrep_provider_v26::make_tls_context(
+    wsrep::provider_options& provider_options)
+{
+    return std::unique_ptr<wsrep::tls_context>(
+        new wsrep::galera_tls_context(provider_options));
 }

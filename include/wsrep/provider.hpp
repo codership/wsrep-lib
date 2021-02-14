@@ -30,6 +30,7 @@
 #include <cassert>
 #include <cstring>
 
+#include <memory>
 #include <string>
 #include <vector>
 #include <ostream>
@@ -44,7 +45,9 @@ namespace wsrep
 {
     class server_state;
     class high_priority_service;
+    class provider_options;
     class thread_service;
+    class tls_context;
     class stid
     {
     public:
@@ -436,6 +439,11 @@ namespace wsrep
                                        const std::string& provider_options,
                                        const wsrep::provider::services& services
                                        = wsrep::provider::services());
+
+        /**
+         * Create a new TLS context.
+         */
+        virtual std::unique_ptr<tls_context> make_tls_context(wsrep::provider_options&) = 0;
 
     protected:
         wsrep::server_state& server_state_;

@@ -5,12 +5,14 @@
 add_library(wsrep-lib
   client_state.cpp
   exception.cpp
+  galera_tls_context.cpp
   gtid.cpp
   id.cpp
   xid.cpp
   key.cpp
   logger.cpp
   provider.cpp
+  provider_options.cpp
   seqno.cpp
   view.cpp
   server_state.cpp

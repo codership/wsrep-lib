@@ -214,6 +214,12 @@ void wsrep::transaction::fragment_applied(wsrep::seqno seqno)
 {
     assert(active());
     streaming_context_.applied(seqno);
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "wsrep::transaction::fragment_applied: "
+		      << "SR context = " << (void *)&streaming_context_
+		      << ", size = " << streaming_context_.fragments_stored()
+		      << ", seqno = " << seqno.get();
+#endif /* DEBUG_SR_SPEEDUP */
 }
 
 int wsrep::transaction::prepare_for_ordering(
@@ -1299,6 +1305,24 @@ int wsrep::transaction::xa_replay(wsrep::unique_lock<wsrep::mutex>& lock)
     return ret;
 }
 
+#ifdef WITH_WSREP_SR_SPEEDUP
+int wsrep::transaction::set_fragments_from_table()
+{
+    scoped_storage_service<storage_service_deleter>
+        sr_scope(
+            client_service_,
+            server_service_.storage_service(client_service_),
+            storage_service_deleter(server_service_));
+    wsrep::storage_service& storage_service(
+        sr_scope.storage_service());
+    
+    int rcode = storage_service.set_fragments_from_table();
+
+    return (rcode);
+}
+#endif /* WITH_WSREP_SR_SPEEDUP */
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                 Private                                    //
 ////////////////////////////////////////////////////////////////////////////////
@@ -1634,6 +1658,7 @@ int wsrep::transaction::certify_fragment(
                 else
                 {
                     streaming_context_.stored(sr_ws_meta.seqno());
+
                 }
                 client_service_.debug_crash(
                     "crash_replicate_fragment_success");

@@ -82,6 +82,10 @@ namespace wsrep
          */
         virtual int remove_fragments() = 0;
 
+#ifdef WITH_WSREP_SR_SPEEDUP
+	int set_fragments_from_table() {return 0;};
+#endif /* WITH_WSREP_SR_SPEEDUP */
+
         /**
          * Commit the transaction.
          */

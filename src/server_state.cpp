@@ -99,6 +99,10 @@ static int apply_fragment(wsrep::server_state& server_state,
         wsrep::high_priority_switch sw(high_priority_service,
                                        *streaming_applier);
         apply_err = streaming_applier->apply_write_set(ws_meta, data, err);
+#ifdef DEBUG_SR_SPEEDUP
+	wsrep::log_info() << "server_state: apply_fragment, line = "
+			  << __LINE__ << ", apply_err = " << apply_err;
+#endif /* DEBUG_SR_SPEEDUP */
         if (!apply_err)
         {
             assert(err.size() == 0);
@@ -127,7 +131,10 @@ static int apply_fragment(wsrep::server_state& server_state,
             }
         }
     }
-
+#ifdef DEBUG_SR_SPEEDUP
+	wsrep::log_info() << "server_state: apply_fragment, line = "
+			  << __LINE__ << ", ret = " << ret;
+#endif /* DEBUG_SR_SPEEDUP */
     if (!ret)
     {
         if (!apply_err)

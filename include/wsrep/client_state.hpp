@@ -926,7 +926,16 @@ namespace wsrep
         {
             return transaction_;
         }
-
+#ifdef WITH_WSREP_SR_SPEEDUP
+        /**
+         * Return a reference to the transaction associated
+         * with the client state.
+         */
+        wsrep::transaction& transaction()
+        {
+            return transaction_;
+        }
+#endif /* WITH_WSREP_SR_SPEEDUP */
         const wsrep::ws_meta& toi_meta() const
         {
             return toi_meta_;

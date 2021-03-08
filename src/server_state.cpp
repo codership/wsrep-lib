@@ -1260,9 +1260,10 @@ void wsrep::server_state::start_streaming_applier(
     wsrep::high_priority_service* sa)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-#ifdef DEBUG_SR_SPEEDUP2
-    wsrep::log_warning() << "start_streaming_applier";
-#endif /* DEBUG_SR_SPEEDUP2 */
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "start_streaming_applier: wsrep_trx_id = "
+		      << transaction_id;
+#endif /* DEBUG_SR_SPEEDUP */
     if (streaming_appliers_.insert(
             std::make_pair(std::make_pair(server_id, transaction_id),
                            sa)).second == false)

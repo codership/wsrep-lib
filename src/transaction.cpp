@@ -1320,6 +1320,16 @@ int wsrep::transaction::set_fragments_from_table()
 
     return (rcode);
 }
+
+void *wsrep::transaction::get_binlog_cache()
+{
+	void *cache = client_service_.get_binlog_cache();
+
+	assert(cache);
+	
+	return (cache);
+}
+
 #endif /* WITH_WSREP_SR_SPEEDUP */
 
 
@@ -1611,7 +1621,7 @@ int wsrep::transaction::certify_fragment(
                 wsrep::const_buffer(data.data(), data.size()),
 #ifdef WITH_WSREP_SR_SPEEDUP_REPLAY
 		log_position - data.size(),
-                xid(), current_thd))
+                xid(), get_binlog_cache()))
 #else
                 xid()))
 #endif /* WITH_WSREP_SR_SPEEDUP_REPLAY */

@@ -144,8 +144,14 @@ namespace wsrep
          *
          * @return Zero in case of success, non-zero in case of failure
          */
+#ifdef WITH_WSREP_SR_SPEEDUP
+        virtual int rollback(const wsrep::ws_handle& ws_handle,
+                             const wsrep::ws_meta& ws_meta,
+			     bool skip_rollback = false) = 0;
+#else
         virtual int rollback(const wsrep::ws_handle& ws_handle,
                              const wsrep::ws_meta& ws_meta) = 0;
+#endif /* WITH_WSREP_SR_SPEEDUP */
 
         /**
          * Apply a TOI operation.

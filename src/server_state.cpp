@@ -1577,6 +1577,9 @@ void wsrep::server_state::close_orphaned_sr_transactions(
 void wsrep::server_state::close_transactions_at_disconnect(
     wsrep::high_priority_service& high_priority_service)
 {
+#ifdef DEBUG_SR_SPEEDUP	
+        wsrep::log_info() << __FUNCTION__ << "(" << __LINE__ << ")";
+#endif /* DEBUG_SR_SPEEDUP	 */
     // Close streaming applier without removing fragments
     // from fragment storage. When the server is started again,
     // it must be able to recover ongoing streaming transactions.
@@ -1587,9 +1590,19 @@ void wsrep::server_state::close_transactions_at_disconnect(
         {
             wsrep::high_priority_switch sw(high_priority_service,
                                            *streaming_applier);
-            streaming_applier->rollback(
-                wsrep::ws_handle(), wsrep::ws_meta());
-            streaming_applier->after_apply();
+#ifdef DEBUG_SR_SPEEDUP	
+	    wsrep::log_info() << __FUNCTION__ << "(" << __LINE__
+			      << ") skipped rollback for wsrep::trx = "
+			      << streaming_applier->transaction().id();
+#endif /* DEBUG_SR_SPEEDUP	 */
+#ifdef WITH_WSREP_SR_SPEEDUP
+	    streaming_applier->rollback(
+		    wsrep::ws_handle(), wsrep::ws_meta(), true);
+#else
+	    streaming_applier->rollback(
+		    wsrep::ws_handle(), wsrep::ws_meta());
+#endif /* WITH_WSREP_SR_SPEEDUP */
+	    streaming_applier->after_apply();
         }
         streaming_appliers_.erase(i++);
         server_service_.release_high_priority_service(streaming_applier);

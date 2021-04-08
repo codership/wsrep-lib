@@ -554,6 +554,7 @@ int wsrep::client_state::end_rsu()
     }
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     mode(lock, toi_mode_);
+    toi_mode_ = m_undefined;
     return ret;
 }
 

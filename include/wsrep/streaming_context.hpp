@@ -189,6 +189,17 @@ namespace wsrep
             unit_counter_ = 0;
             log_position_ = 0;
         }
+#ifdef WITH_WSREP_SR_SPEEDUP
+      void set_sr_store(int store_type)
+      {
+        sr_store_ = store_type;
+      }
+      
+      int get_sr_store() const
+      {
+        return (sr_store_);
+      }
+#endif /* WITH_WSREP_SR_SPEEDUP */
     private:
 
         void check_fragment_seqno(wsrep::seqno seqno WSREP_UNUSED)
@@ -204,6 +215,9 @@ namespace wsrep
         size_t fragment_size_;
         size_t unit_counter_;
         size_t log_position_;
+#ifdef WITH_WSREP_SR_SPEEDUP
+        int sr_store_; 
+#endif /* WITH_WSREP_SR_SPEEDUP */
     };
 }
 

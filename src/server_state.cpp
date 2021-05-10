@@ -92,6 +92,10 @@ static int apply_fragment(wsrep::server_state& server_state,
     int ret(0);
     int apply_err;
     wsrep::mutable_buffer err;
+#ifdef WITH_WSREP_SR_SPEEDUP
+    int sr_store = streaming_applier->transaction().streaming_context().
+		    get_sr_store();
+#endif /* WITH_WSREP_SR_SPEEDUP */
 #ifdef DEBUG_SR_SPEEDUP
     wsrep::log_info() << "server_state: apply_fragment, line = " << line;
 #endif /* DEBUG_SR_SPEEDUP */
@@ -101,7 +105,10 @@ static int apply_fragment(wsrep::server_state& server_state,
         apply_err = streaming_applier->apply_write_set(ws_meta, data, err);
 #ifdef DEBUG_SR_SPEEDUP
 	wsrep::log_info() << "server_state: apply_fragment, line = "
-			  << __LINE__ << ", apply_err = " << apply_err;
+			  << __LINE__ << ", apply_err = " << apply_err
+			  << ", sr_store = "
+			  << streaming_applier->transaction(
+			      ).streaming_context().get_sr_store();
 #endif /* DEBUG_SR_SPEEDUP */
         if (!apply_err)
         {
@@ -142,7 +149,11 @@ static int apply_fragment(wsrep::server_state& server_state,
             high_priority_service.debug_crash("crash_apply_cb_before_append_frag");
             const wsrep::xid xid(streaming_applier->transaction().xid());
             ret = high_priority_service.append_fragment_and_commit(
-                ws_handle, ws_meta, data, xid);
+#ifdef WITH_WSREP_SR_SPEEDUP
+		    ws_handle, ws_meta, data, sr_store, xid);
+#else
+		    ws_handle, ws_meta, data, xid);
+#endif /* WITH_WSREP_SR_SPEEDUP */
             high_priority_service.debug_crash("crash_apply_cb_after_append_frag");
             ret = ret || (high_priority_service.after_apply(), 0);
         }

@@ -65,13 +65,14 @@ namespace wsrep
                                     wsrep::transaction_id client_id,
                                     int flags,
                                     const wsrep::const_buffer& data,
-#ifdef WITH_WSREP_SR_SPEEDUP_REPLAY
+#ifdef WITH_WSREP_SR_SPEEDUP
+				    int sr_store,
 				    size_t offset,
                                     const wsrep::xid& xid,
 				    void *binlog_cache) = 0;
 #else
                                     const wsrep::xid& xid) = 0;
-#endif /* WITH_WSREP_SR_SPEEDUP_REPLAY */
+#endif /* WITH_WSREP_SR_SPEEDUP */
         /**
          * Update fragment meta data after certification process.
          */
@@ -82,8 +83,8 @@ namespace wsrep
          * adopted a transaction prior this call.
          */
         virtual int remove_fragments() = 0;
-
 #ifdef WITH_WSREP_SR_SPEEDUP
+
 	int set_fragments_from_table() {return 0;};
 #endif /* WITH_WSREP_SR_SPEEDUP */
 

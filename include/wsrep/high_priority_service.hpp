@@ -98,6 +98,9 @@ namespace wsrep
             const wsrep::ws_handle& ws_handle,
             const wsrep::ws_meta& ws_meta,
             const wsrep::const_buffer& data,
+#ifdef WITH_WSREP_SR_SPEEDUP
+	    int sr_store,
+#endif /* WITH_WSREP_SR_SPEEDUP */
             const wsrep::xid& xid) = 0;
 
         /**

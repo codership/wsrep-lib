@@ -143,9 +143,14 @@ namespace wsrep
 
         int xa_replay(wsrep::unique_lock<wsrep::mutex>&);
 
-        bool pa_unsafe() const { return pa_unsafe_; }
-        void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }
-
+        bool pa_unsafe() const { return (flags() & wsrep::provider::flag::pa_unsafe); }
+        void pa_unsafe(bool pa_unsafe) {
+          if (pa_unsafe) {
+            flags(flags() | wsrep::provider::flag::pa_unsafe);
+          } else {
+            flags(flags() & ~wsrep::provider::flag::pa_unsafe);
+          }
+        }
         bool implicit_deps() const { return implicit_deps_; }
         void implicit_deps(bool implicit) { implicit_deps_ = implicit; }
 
@@ -265,7 +270,6 @@ namespace wsrep
         wsrep::ws_handle ws_handle_;
         wsrep::ws_meta ws_meta_;
         int flags_;
-        bool pa_unsafe_;
         bool implicit_deps_;
         bool certified_;
         size_t fragments_certified_for_statement_;

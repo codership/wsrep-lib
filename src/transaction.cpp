@@ -101,7 +101,6 @@ wsrep::transaction::transaction(
     , ws_handle_()
     , ws_meta_()
     , flags_()
-    , pa_unsafe_(false)
     , implicit_deps_(false)
     , certified_(false)
     , fragments_certified_for_statement_()
@@ -326,7 +325,7 @@ int wsrep::transaction::before_prepare(
             {
                 // Force fragment replication on XA prepare
                 flags(flags() | wsrep::provider::flag::prepare);
-                flags(flags() | wsrep::provider::flag::pa_unsafe);
+                pa_unsafe(true);
                 append_sr_keys_for_commit();
                 const bool force_streaming_step = true;
                 ret = streaming_step(lock, force_streaming_step);
@@ -1116,7 +1115,7 @@ int wsrep::transaction::commit_or_rollback_by_xid(const wsrep::xid& xid,
     {
         flags = wsrep::provider::flag::rollback;
     }
-    flags = flags | wsrep::provider::flag::pa_unsafe;
+    pa_unsafe(true);
     wsrep::stid stid(sa->transaction().server_id(),
                      sa->transaction().id(),
                      client_state_.id());
@@ -1650,7 +1649,7 @@ int wsrep::transaction::certify_commit(
         {
             append_sr_keys_for_commit();
         }
-        flags(flags() | wsrep::provider::flag::pa_unsafe);
+        pa_unsafe(true);
     }
 
     if (implicit_deps())
@@ -1956,7 +1955,6 @@ void wsrep::transaction::cleanup()
     ws_meta_ = wsrep::ws_meta();
     flags_ = 0;
     certified_ = false;
-    pa_unsafe_ = false;
     implicit_deps_ = false;
     sr_keys_.clear();
     streaming_context_.cleanup();

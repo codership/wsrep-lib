@@ -98,6 +98,9 @@ namespace wsrep
             const wsrep::ws_handle& ws_handle,
             const wsrep::ws_meta& ws_meta,
             const wsrep::const_buffer& data,
+#ifdef WITH_WSREP_SR_SPEEDUP
+	    int sr_store,
+#endif /* WITH_WSREP_SR_SPEEDUP */
             const wsrep::xid& xid) = 0;
 
         /**
@@ -144,8 +147,14 @@ namespace wsrep
          *
          * @return Zero in case of success, non-zero in case of failure
          */
+#ifdef WITH_WSREP_SR_SPEEDUP
+        virtual int rollback(const wsrep::ws_handle& ws_handle,
+                             const wsrep::ws_meta& ws_meta,
+			     bool skip_rollback = false) = 0;
+#else
         virtual int rollback(const wsrep::ws_handle& ws_handle,
                              const wsrep::ws_meta& ws_meta) = 0;
+#endif /* WITH_WSREP_SR_SPEEDUP */
 
         /**
          * Apply a TOI operation.

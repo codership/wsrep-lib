@@ -217,6 +217,14 @@ namespace wsrep
          * been enabled.
          */
         virtual void debug_crash(const char* crash_point) = 0;
+#ifdef WITH_WSREP_SR_SPEEDUP
+
+	/**
+	 * Return the binlog cache for the currently execution
+	 * transaction or a NULL pointer if no such cache exists.
+	 */
+	virtual void *get_binlog_cache() = 0;
+#endif /* WITH_WSREP_SR_SPEEDUP */
     };
 }
 

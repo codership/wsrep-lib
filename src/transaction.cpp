@@ -29,6 +29,12 @@
 #include <sstream>
 #include <memory>
 
+#ifdef WITH_WSREP_SR_SPEEDUP
+extern void *wsrep_get_current_thd();
+extern int fragment_cache_remove_transaction(
+    const wsrep::id&, wsrep::transaction_id);
+#endif /* WITH_WSREP_SR_SPEEDUP */
+
 namespace
 {
     class storage_service_deleter
@@ -129,6 +135,10 @@ int wsrep::transaction::start_transaction(
     state_hist_.clear();
     ws_handle_ = wsrep::ws_handle(id);
     flags(wsrep::provider::flag::start_transaction);
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "wsrep::transaction::" << __FUNCTION__
+                      << ": id = " << id.get();
+#endif /* DEBUG_SR_SPEEDUP */
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_high_priority:
@@ -175,6 +185,10 @@ int wsrep::transaction::start_transaction(
         certified_ = true;
     }
     debug_log_state("start_transaction leave");
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "wsrep::transaction::" << __FUNCTION__
+                      << ": id = " << id().get();
+#endif /* DEBUG_SR_SPEEDUP */
     return 0;
 }
 
@@ -202,6 +216,12 @@ void wsrep::transaction::fragment_applied(wsrep::seqno seqno)
 {
     assert(active());
     streaming_context_.applied(seqno);
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "wsrep::transaction::fragment_applied: "
+		      << "SR context = " << (void *)&streaming_context_
+		      << ", size = " << streaming_context_.fragments_stored()
+		      << ", seqno = " << seqno.get();
+#endif /* DEBUG_SR_SPEEDUP */
 }
 
 int wsrep::transaction::prepare_for_ordering(
@@ -250,6 +270,9 @@ int wsrep::transaction::append_key(const wsrep::key& key)
 
 int wsrep::transaction::append_data(const wsrep::const_buffer& data)
 {
+#ifdef DEBUG_SR_SPEEDUP
+  wsrep::log_info() << __FUNCTION__ << ": size = " << data.size();
+#endif /* DEBUG_SR_SPEEDUP */
 
     return provider().append_data(ws_handle_, data);
 }
@@ -262,6 +285,9 @@ int wsrep::transaction::after_row()
     if (streaming_context_.fragment_size() &&
         streaming_context_.fragment_unit() != streaming_context::statement)
     {
+#ifdef DEBUG_SR_SPEEDUP
+      wsrep::log_info() << __FUNCTION__;
+#endif /* DEBUG_SR_SPEEDUP */
         ret = streaming_step(lock);
     }
     debug_log_state("after_row_leave");
@@ -304,6 +330,10 @@ int wsrep::transaction::before_prepare(
                 // Note: we can't remove fragments here for XA,
                 // the transaction has already issued XA END and
                 // is in IDLE state, no more changes allowed!
+#ifdef DEBUG_SR_SPEEDUP
+                wsrep::log_info() << "before remove_fragments, line = "
+                                  << __LINE__;
+#endif /* DEBUG_SR_SPEEDUP */
                 ret = client_service_.remove_fragments();
                 if (ret)
                 {
@@ -329,6 +359,9 @@ int wsrep::transaction::before_prepare(
                 flags(flags() | wsrep::provider::flag::pa_unsafe);
                 append_sr_keys_for_commit();
                 const bool force_streaming_step = true;
+#ifdef DEBUG_SR_SPEEDUP
+                wsrep::log_info() << __FUNCTION__ << ", line = " << __LINE__;
+#endif /* DEBUG_SR_SPEEDUP */
                 ret = streaming_step(lock, force_streaming_step);
                 if (ret == 0)
                 {
@@ -339,6 +372,10 @@ int wsrep::transaction::before_prepare(
             else
             {
                 ret = certify_commit(lock);
+#ifdef DEBUG_SR_SPEEDUP
+		wsrep::log_info() << "after certify_commit(): line = "
+				  << __LINE__ << ", ret = " << ret;
+#endif /* DEBUG_SR_SPEEDUP */
             }
 
             assert((ret == 0 && state() == s_preparing) ||
@@ -485,6 +522,10 @@ int wsrep::transaction::before_commit()
         if (ret == 0 && state() == s_prepared)
         {
             ret = certify_commit(lock);
+#ifdef DEBUG_SR_SPEEDUP
+	    wsrep::log_info() << "after certify_commit(): line = "
+			      << __LINE__;
+#endif /* DEBUG_SR_SPEEDUP */
             assert((ret == 0 && state() == s_committing) ||
                    (state() == s_must_abort ||
                     state() == s_must_replay ||
@@ -589,6 +630,10 @@ int wsrep::transaction::ordered_commit()
     {
         state(lock, s_ordered_commit);
     }
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "wsrep::transaction::" << __FUNCTION__
+                      << ": id = " << id().get() << ", --> " << ret;
+#endif /* DEBUG_SR_SPEEDUP */
     debug_log_state("ordered_commit_leave");
     return ret;
 }
@@ -619,7 +664,11 @@ int wsrep::transaction::after_commit()
             wsrep::storage_service& storage_service(
                 sr_scope.storage_service());
             storage_service.adopt_transaction(*this);
-            storage_service.remove_fragments();
+#ifdef DEBUG_SR_SPEEDUP
+	    wsrep::log_info() << "before remove_fragments, line = "
+			      << __LINE__;
+#endif /* DEBUG_SR_SPEEDUP */
+	    storage_service.remove_fragments();
             storage_service.commit(wsrep::ws_handle(), wsrep::ws_meta());
             lock.lock();
         }
@@ -654,6 +703,10 @@ int wsrep::transaction::after_commit()
 
 int wsrep::transaction::before_rollback()
 {
+#ifdef DEBUG_SR_SPEEDUP
+  wsrep::log_info() << "BEGIN: wsrep::transaction::before_rollback: id = "
+                    << id().get();
+#endif /* DEBUG_SR_SPEEDUP */
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("before_rollback_enter");
     assert(state() == s_executing ||
@@ -736,11 +789,18 @@ int wsrep::transaction::before_rollback()
     }
 
     debug_log_state("before_rollback_leave");
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "END: wsrep::transaction::before_rollback";
+#endif /* DEBUG_SR_SPEEDUP */
     return 0;
 }
 
 int wsrep::transaction::after_rollback()
 {
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "BEGIN: wsrep::transaction::after_rollback: id = "
+                      << id().get();
+#endif /* DEBUG_SR_SPEEDUP */
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("after_rollback_enter");
     assert(state() == s_aborting ||
@@ -759,7 +819,11 @@ int wsrep::transaction::after_rollback()
             wsrep::storage_service& storage_service(
                 sr_scope.storage_service());
             storage_service.adopt_transaction(*this);
-            storage_service.remove_fragments();
+#ifdef DEBUG_SR_SPEEDUP
+	    wsrep::log_info() << "before remove_fragments, line = "
+			      << __LINE__;
+#endif /* DEBUG_SR_SPEEDUP */
+	    storage_service.remove_fragments();
             storage_service.commit(wsrep::ws_handle(), wsrep::ws_meta());
         }
         lock.lock();
@@ -783,6 +847,9 @@ int wsrep::transaction::after_rollback()
     // releasing the commit ordering critical section should be
     // also postponed until all resources have been released.
     debug_log_state("after_rollback_leave");
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "END: wsrep::transaction::after_rollback";
+#endif /* DEBUG_SR_SPEEDUP */
     return 0;
 }
 
@@ -819,6 +886,9 @@ int wsrep::transaction::after_statement()
         streaming_context_.fragment_size() &&
         streaming_context_.fragment_unit() == streaming_context::statement)
     {
+#ifdef DEBUG_SR_SPEEDUP
+	wsrep::log_info() << __FUNCTION__ << ", line = " << __LINE__;
+#endif /* DEBUG_SR_SPEEDUP */
         ret = streaming_step(lock);
     }
 
@@ -1237,6 +1307,34 @@ int wsrep::transaction::xa_replay(wsrep::unique_lock<wsrep::mutex>& lock)
     return ret;
 }
 
+#ifdef WITH_WSREP_SR_SPEEDUP
+int wsrep::transaction::set_fragments_from_table()
+{
+    scoped_storage_service<storage_service_deleter>
+        sr_scope(
+            client_service_,
+            server_service_.storage_service(client_service_),
+            storage_service_deleter(server_service_));
+    wsrep::storage_service& storage_service(
+        sr_scope.storage_service());
+
+    int rcode = storage_service.set_fragments_from_table();
+
+    return (rcode);
+}
+
+void *wsrep::transaction::get_binlog_cache()
+{
+	void *cache = client_service_.get_binlog_cache();
+
+	assert(cache);
+
+	return (cache);
+}
+
+#endif /* WITH_WSREP_SR_SPEEDUP */
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                 Private                                    //
 ////////////////////////////////////////////////////////////////////////////////
@@ -1345,6 +1443,14 @@ int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock,
     assert(lock.owns_lock());
     assert(streaming_context_.fragment_size() || is_xa());
 
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << __FUNCTION__
+		      << ": bytes_generated = "
+		      << client_service_.bytes_generated()
+		      << ", log_position = "
+		      << streaming_context_.log_position();
+
+#endif /* DEBUG_SR_SPEEDUP */
     if (client_service_.bytes_generated() <
         streaming_context_.log_position())
     {
@@ -1388,6 +1494,10 @@ int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock,
     if (streaming_context_.fragment_size_exceeded() || force)
     {
         streaming_context_.reset_unit_counter();
+#ifdef DEBUG_SR_SPEEDUP
+        wsrep::log_info() << __FUNCTION__ << ": bytes_to_replicate = "
+			  << bytes_to_replicate;
+#endif /* DEBUG_SR_SPEEDUP */
         ret = certify_fragment(lock);
     }
 
@@ -1397,6 +1507,9 @@ int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock,
 int wsrep::transaction::certify_fragment(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "BEGIN certify_fragment";
+#endif /* DEBUG_SR_SPEEDUP */
     assert(lock.owns_lock());
 
     assert(client_state_.mode() == wsrep::client_state::m_local);
@@ -1424,6 +1537,15 @@ int wsrep::transaction::certify_fragment(
     }
     streaming_context_.set_log_position(log_position);
 
+#ifdef WITH_WSREP_SR_SPEEDUP
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "certify_fragment, line = " << __LINE__
+		      << ", log_position = " << log_position
+		      << ", data size = " << data.size()
+                      << ", wsrep_get_current_thd() = "
+                      << wsrep_get_current_thd();
+#endif /* DEBUG_SR_SPEEDUP */
+#endif /* WITH_WSREP_SR_SPEEDUP */
     if (data.size() == 0)
     {
         wsrep::log_warning() << "Attempt to replicate empty data buffer";
@@ -1432,6 +1554,9 @@ int wsrep::transaction::certify_fragment(
         return 0;
     }
 
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "certify_fragment, line = " << __LINE__;
+#endif /* DEBUG_SR_SPEEDUP */
     if (provider().append_data(ws_handle_,
                                wsrep::const_buffer(data.data(), data.size())))
     {
@@ -1440,6 +1565,9 @@ int wsrep::transaction::certify_fragment(
         client_state_.override_error(wsrep::e_error_during_commit);
         return 1;
     }
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "certify_fragment, line = " << __LINE__;
+#endif /* DEBUG_SR_SPEEDUP */
 
     if (is_xa())
     {
@@ -1490,12 +1618,20 @@ int wsrep::transaction::certify_fragment(
                 id(),
                 flags(),
                 wsrep::const_buffer(data.data(), data.size()),
+#ifdef WITH_WSREP_SR_SPEEDUP
+		streaming_context_.get_sr_store(),
+		log_position - data.size(),
+                xid(), get_binlog_cache()))
+#else
                 xid()))
+#endif /* WITH_WSREP_SR_SPEEDUP */
         {
             ret = 1;
             error = wsrep::e_append_fragment_error;
         }
-
+#ifdef DEBUG_SR_SPEEDUP
+	wsrep::log_info() << "certify_fragment, line = " << __LINE__;
+#endif /* DEBUG_SR_SPEEDUP */
         if (ret == 0)
         {
             client_service_.debug_crash(
@@ -1620,6 +1756,9 @@ int wsrep::transaction::certify_fragment(
         state(lock, s_executing);
         flags(flags() & ~wsrep::provider::flag::start_transaction);
     }
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "END certify_fragment";
+#endif /* DEBUG_SR_SPEEDUP */
     return ret;
 }
 
@@ -1630,6 +1769,9 @@ int wsrep::transaction::certify_commit(
     assert(active());
     client_service_.wait_for_replayers(lock);
 
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "BEGIN certify_commit";
+#endif /* DEBUG_SR_SPEEDUP */
     assert(lock.owns_lock());
 
     if (abort_or_interrupt(lock))
@@ -1805,6 +1947,11 @@ int wsrep::transaction::certify_commit(
         break;
     }
 
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "END certify_commit: trx_id = "
+		      << id().get()
+		      << ", cert_ret = " << cert_ret;
+#endif /* DEBUG_SR_SPEEDUP */
     return ret;
 }
 
@@ -1831,6 +1978,9 @@ int wsrep::transaction::append_sr_keys_for_commit()
 
 void wsrep::transaction::streaming_rollback(wsrep::unique_lock<wsrep::mutex>& lock)
 {
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "BEGIN: wsrep::transaction::streaming_rollback";
+#endif /* DEBUG_SR_SPEEDUP */
     debug_log_state("streaming_rollback enter");
     assert(state_ != s_must_replay);
     assert(is_streaming());
@@ -1874,6 +2024,9 @@ void wsrep::transaction::streaming_rollback(wsrep::unique_lock<wsrep::mutex>& lo
         }
     }
     debug_log_state("streaming_rollback leave");
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "END: wsrep::transaction::streaming_rollback";
+#endif /* DEBUG_SR_SPEEDUP */
 }
 
 int wsrep::transaction::replay(wsrep::unique_lock<wsrep::mutex>& lock)
@@ -1904,6 +2057,10 @@ int wsrep::transaction::replay(wsrep::unique_lock<wsrep::mutex>& lock)
         }
         if (is_streaming())
         {
+#ifdef DEBUG_SR_SPEEDUP
+	    wsrep::log_info() << "before clear_fragments, line = "
+			      << __LINE__;
+#endif /* DEBUG_SR_SPEEDUP */
             clear_fragments();
         }
         provider().release(ws_handle_);
@@ -1913,6 +2070,10 @@ int wsrep::transaction::replay(wsrep::unique_lock<wsrep::mutex>& lock)
             wsrep::e_deadlock_error);
         if (is_streaming())
         {
+#ifdef DEBUG_SR_SPEEDUP
+	    wsrep::log_info() << "before remove_fragments, line = "
+			      << __LINE__;
+#endif /* DEBUG_SR_SPEEDUP */
             client_service_.remove_fragments();
             clear_fragments();
         }
@@ -1932,7 +2093,14 @@ int wsrep::transaction::replay(wsrep::unique_lock<wsrep::mutex>& lock)
 
 void wsrep::transaction::clear_fragments()
 {
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << "END: wsrep::transaction::clear_fragments: id = "
+		      << id_ << ", server = |" << server_id_ << "|";
+#endif /* DEBUG_SR_SPEEDUP */
     streaming_context_.cleanup();
+#ifdef WITH_WSREP_SR_SPEEDUP
+    fragment_cache_remove_transaction(server_id_, id_);
+#endif /* WITH_WSREP_SR_SPEEDUP */
 }
 
 void wsrep::transaction::cleanup()

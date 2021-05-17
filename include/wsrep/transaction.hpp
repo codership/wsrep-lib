@@ -142,6 +142,10 @@ namespace wsrep
         void xa_detach();
 
         int xa_replay(wsrep::unique_lock<wsrep::mutex>&);
+#ifdef WITH_WSREP_SR_SPEEDUP
+	int set_fragments_from_table();
+	void *get_binlog_cache();
+#endif /* WITH_WSREP_SR_SPEEDUP */
 
         bool pa_unsafe() const { return pa_unsafe_; }
         void pa_unsafe(bool pa_unsafe) { pa_unsafe_ = pa_unsafe; }

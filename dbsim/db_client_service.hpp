@@ -89,6 +89,19 @@ namespace db
 
         void debug_sync(const char*) override { }
         void debug_crash(const char*) override { }
+
+        void *get_binlog_cache() override
+        {
+            return (NULL);
+        }
+
+        int fragment_cache_remove_transaction(
+            const wsrep::id&,
+            wsrep::transaction_id) override
+        {
+            return (0);
+        }
+
     private:
         db::client& client_;
         wsrep::client_state& client_state_;

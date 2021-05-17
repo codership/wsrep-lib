@@ -40,12 +40,16 @@ class mock_server_state;
                             wsrep::transaction_id,
                             int,
                             const wsrep::const_buffer&,
-                            const wsrep::xid&) WSREP_OVERRIDE
+                            int,
+                            size_t,
+                            const wsrep::xid&,
+                            void *) WSREP_OVERRIDE
         { return 0; }
 
         int update_fragment_meta(const wsrep::ws_meta&) WSREP_OVERRIDE
         { return 0; }
         int remove_fragments() WSREP_OVERRIDE { return 0; }
+        int set_fragments_from_table() WSREP_OVERRIDE { return 0; }
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&)
             WSREP_OVERRIDE;
 

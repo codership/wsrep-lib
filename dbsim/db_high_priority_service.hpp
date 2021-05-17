@@ -42,12 +42,14 @@ namespace db
             const wsrep::ws_handle&,
             const wsrep::ws_meta&,
             const wsrep::const_buffer&,
+            int,
             const wsrep::xid&) override
         { return 0; }
         int remove_fragments(const wsrep::ws_meta&) override
         { return 0; }
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
-        int rollback(const wsrep::ws_handle&, const wsrep::ws_meta&) override;
+      int rollback(const wsrep::ws_handle&, const wsrep::ws_meta&,
+                   bool skip_rollback = false) override;
         int apply_toi(const wsrep::ws_meta&, const wsrep::const_buffer&,
                       wsrep::mutable_buffer&) override;
         int apply_nbo_begin(const wsrep::ws_meta&, const wsrep::const_buffer&,

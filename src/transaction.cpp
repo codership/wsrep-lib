@@ -109,6 +109,7 @@ wsrep::transaction::transaction(
     , apply_error_buf_()
     , xid_()
     , streaming_rollback_in_progress_(false)
+    , sr_state_(sr_state_none)
 { }
 
 
@@ -126,6 +127,7 @@ int wsrep::transaction::start_transaction(
     server_id_ = client_state_.server_state().id();
     id_ = id;
     state_ = s_executing;
+    sr_state_ = sr_state_none;
     state_hist_.clear();
     ws_handle_ = wsrep::ws_handle(id);
     flags(wsrep::provider::flag::start_transaction);
@@ -631,7 +633,7 @@ int wsrep::transaction::after_commit()
             client_state_.server_state_.stop_streaming_client(&client_state_);
             lock.lock();
         }
-        streaming_context_.cleanup();
+        clear_fragments();
     }
 
     switch (client_state_.mode())
@@ -768,7 +770,7 @@ int wsrep::transaction::after_rollback()
 
     if (is_streaming() && state() != s_must_replay)
     {
-        streaming_context_.cleanup();
+        clear_fragments();
     }
 
     if (state() == s_aborting)
@@ -1280,6 +1282,26 @@ int wsrep::transaction::xa_replay_commit(wsrep::unique_lock<wsrep::mutex>& lock)
     return ret;
 }
 
+int wsrep::transaction::fragment_cache_remove_transaction(
+        const wsrep::id& server_id, wsrep::transaction_id transaction_id)
+{
+    int rcode = client_service_.fragment_cache_remove_transaction(
+        server_id, transaction_id);
+
+    return (rcode);
+}
+
+void *wsrep::transaction::get_binlog_cache()
+{
+        void *cache = client_service_.get_binlog_cache();
+
+        assert(cache);
+
+        return (cache);
+}
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                 Private                                    //
 ////////////////////////////////////////////////////////////////////////////////
@@ -1446,6 +1468,8 @@ int wsrep::transaction::certify_fragment(
     assert(streaming_context_.rolled_back() == false ||
            state() == s_must_abort);
 
+    int sr_store = streaming_context_.get_sr_store();
+
     client_service_.wait_for_replayers(lock);
     if (abort_or_interrupt(lock))
     {
@@ -1549,12 +1573,22 @@ int wsrep::transaction::certify_fragment(
 
         if (ret == 0 &&
             (storage_service.start_transaction(ws_handle_) ||
-             storage_service.append_fragment(
-                 server_id,
-                 id(),
-                 flags(),
-                 wsrep::const_buffer(data.data(), data.size()),
-                 xid())))
+             (sr_store == 0 ?
+              storage_service.append_fragment(
+                      server_id,
+                      id(),
+                      flags(),
+                      wsrep::const_buffer(data.data(), data.size()),
+                      0, 0, xid(), nullptr)
+              :
+              storage_service.append_fragment(
+                      server_id,
+                      id(),
+                      flags(),
+                      wsrep::const_buffer(data.data(), data.size()),
+                      streaming_context_.get_sr_store(),
+                      log_position - data.size(),
+                      xid(), get_binlog_cache()))))
         {
             ret = 1;
             error = wsrep::e_append_fragment_error;
@@ -1685,6 +1719,10 @@ int wsrep::transaction::certify_fragment(
         flags(flags() & ~wsrep::provider::flag::start_transaction);
         flags(flags() & ~wsrep::provider::flag::pa_unsafe);
     }
+    if (sr_store != 0) {
+        require_sr_xid();
+    }
+
     return ret;
 }
 
@@ -2015,6 +2053,7 @@ int wsrep::transaction::replay(wsrep::unique_lock<wsrep::mutex>& lock)
         if (is_streaming())
         {
             streaming_context_.cleanup();
+            clear_fragments();
         }
         provider().release(ws_handle_);
         break;
@@ -2024,7 +2063,7 @@ int wsrep::transaction::replay(wsrep::unique_lock<wsrep::mutex>& lock)
         if (is_streaming())
         {
             client_service_.remove_fragments();
-            streaming_context_.cleanup();
+            clear_fragments();
         }
         state(lock, s_aborted);
         ret = 1;
@@ -2038,6 +2077,12 @@ int wsrep::transaction::replay(wsrep::unique_lock<wsrep::mutex>& lock)
                     wsrep::log::debug_level_transaction,
                     "replay returned" << replay_ret);
     return ret;
+}
+
+void wsrep::transaction::clear_fragments()
+{
+    streaming_context_.cleanup();
+    fragment_cache_remove_transaction(server_id_, id_);
 }
 
 void wsrep::transaction::cleanup()

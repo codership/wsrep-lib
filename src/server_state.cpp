@@ -92,6 +92,8 @@ static int apply_fragment(wsrep::server_state& server_state,
     int ret(0);
     int apply_err;
     wsrep::mutable_buffer err;
+    int sr_store = streaming_applier->transaction().streaming_context().
+                   get_sr_store();
     {
         wsrep::high_priority_switch sw(high_priority_service,
                                        *streaming_applier);
@@ -132,7 +134,7 @@ static int apply_fragment(wsrep::server_state& server_state,
             high_priority_service.debug_crash("crash_apply_cb_before_append_frag");
             const wsrep::xid xid(streaming_applier->transaction().xid());
             ret = high_priority_service.append_fragment_and_commit(
-                ws_handle, ws_meta, data, xid);
+                ws_handle, ws_meta, data, sr_store, xid);
             high_priority_service.debug_crash("crash_apply_cb_after_append_frag");
             ret = ret || (high_priority_service.after_apply(), 0);
         }
@@ -1553,8 +1555,10 @@ void wsrep::server_state::close_transactions_at_disconnect(
         {
             wsrep::high_priority_switch sw(high_priority_service,
                                            *streaming_applier);
+            int sr_store = streaming_applier->transaction().streaming_context().
+                           get_sr_store();
             streaming_applier->rollback(
-                wsrep::ws_handle(), wsrep::ws_meta());
+                    wsrep::ws_handle(), wsrep::ws_meta(), sr_store != 0);
             streaming_applier->after_apply();
         }
         streaming_appliers_.erase(i++);

@@ -1618,6 +1618,7 @@ int wsrep::transaction::certify_fragment(
         assert(state_ == s_certifying);
         state(lock, s_executing);
         flags(flags() & ~wsrep::provider::flag::start_transaction);
+        flags(flags() & ~wsrep::provider::flag::pa_unsafe);
     }
     return ret;
 }

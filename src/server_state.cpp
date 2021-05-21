@@ -359,7 +359,8 @@ static int apply_write_set(wsrep::server_state& server_state,
                              ws_meta,
                              data);
     }
-    else if (ws_meta.flags() == 0 || wsrep::prepares_transaction(ws_meta.flags()))
+    else if (ws_meta.flags() == 0 || ws_meta.flags() == wsrep::provider::flag::pa_unsafe ||
+             wsrep::prepares_transaction(ws_meta.flags()))
     {
         wsrep::high_priority_service* sa(
             server_state.find_streaming_applier(

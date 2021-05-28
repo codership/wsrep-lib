@@ -137,7 +137,8 @@ int wsrep::transaction::start_transaction(
     flags(wsrep::provider::flag::start_transaction);
 #ifdef DEBUG_SR_SPEEDUP
     wsrep::log_info() << "wsrep::transaction::" << __FUNCTION__
-                      << ": id = " << id.get();
+                      << ": id = " << id.get()
+		      << ", opaque = " << (void *)ws_handle_.opaque();
 #endif /* DEBUG_SR_SPEEDUP */
     switch (client_state_.mode())
     {
@@ -187,7 +188,8 @@ int wsrep::transaction::start_transaction(
     debug_log_state("start_transaction leave");
 #ifdef DEBUG_SR_SPEEDUP
     wsrep::log_info() << "wsrep::transaction::" << __FUNCTION__
-                      << ": id = " << id().get();
+                      << ": id = " << id().get()
+		      << ", opaque = " << (void *)ws_handle_.opaque();
 #endif /* DEBUG_SR_SPEEDUP */
     return 0;
 }
@@ -475,6 +477,11 @@ int wsrep::transaction::before_commit()
 {
     int ret(1);
 
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << __FUNCTION__ << "(" << __LINE__
+		      << "): trx_id = " << ws_handle_.transaction_id().get()
+		      << ", opaque = " << ws_handle_.opaque();
+#endif /* DEBUG_SR_SPEEDUP */
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("before_commit_enter");
     assert(client_state_.mode() != wsrep::client_state::m_toi);

@@ -278,6 +278,14 @@ namespace wsrep
                                            1,
                                            members);
                 server_state::on_connect(bootstrap_view);
+                server_state::initialized();
+                wsrep::mock_client cs(*this, wsrep::client_id(0),
+                                      wsrep::client_state::m_high_priority);
+                wsrep::mock_high_priority_service hps(*this, &cs, false);
+                server_state::on_view(bootstrap_view, &hps);
+                BOOST_REQUIRE(state() == wsrep::server_state::s_joined);
+                server_state::on_sync();
+                BOOST_REQUIRE(state() == wsrep::server_state::s_synced);
             }
             else
             {

@@ -92,10 +92,13 @@
 #include "compiler.hpp"
 #include "xid.hpp"
 
+#include <atomic>
 #include <deque>
 #include <vector>
 #include <string>
 #include <map>
+#include <string>
+#include <vector>
 
 /**
  * Magic string to tell provider to engage into trivial (empty)
@@ -686,7 +689,7 @@ namespace wsrep
         mutable std::vector<int> state_waiters_;
         bool bootstrap_;
         const wsrep::gtid initial_position_;
-        bool init_initialized_;
+        std::atomic<bool> init_initialized_;
         bool init_synced_;
         wsrep::gtid sst_gtid_;
         size_t desync_count_;

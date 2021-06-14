@@ -10,3 +10,6 @@ dbsim/dbsim
 src/libwsrep-lib.a
 test/wsrep-lib_test
 wsrep-API/libwsrep_api_v26.a
+
+# Gcov generated files
+*.dgcov

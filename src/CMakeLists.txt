@@ -17,6 +17,7 @@ add_library(wsrep-lib
   thread.cpp
   thread_service_v1.cpp
   tls_service_v1.cpp
+  ps_service_v1.cpp
   transaction.cpp
   uuid.cpp
   wsrep_provider_v26.cpp)

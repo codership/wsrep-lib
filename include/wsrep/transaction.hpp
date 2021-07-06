@@ -251,7 +251,6 @@ namespace wsrep
         int release_commit_order(wsrep::unique_lock<wsrep::mutex>&);
         void streaming_rollback(wsrep::unique_lock<wsrep::mutex>&);
         int replay(wsrep::unique_lock<wsrep::mutex>&);
-        void clear_fragments();
         void cleanup();
         void debug_log_state(const char*) const;
         void debug_log_key_append(const wsrep::key& key) const;

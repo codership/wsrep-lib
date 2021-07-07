@@ -27,9 +27,11 @@
 #include "wsrep/logger.hpp"
 #include "wsrep/thread_service.hpp"
 #include "wsrep/tls_service.hpp"
+#include "wsrep/ps_service.hpp"
 
 #include "thread_service_v1.hpp"
 #include "tls_service_v1.hpp"
+#include "ps_service_v1.hpp"
 #include "v26/wsrep_api.h"
 
 
@@ -635,6 +637,22 @@ namespace
         // assert(not wsrep::tls_service_v1_probe(dlh));
         wsrep::tls_service_v1_deinit(dlh);
     }
+
+    static int init_ps_service(void* dlh,
+                               wsrep::ps_service* ps_service)
+    {
+        assert(ps_service);
+        if (! wsrep::ps_service_v1_probe(dlh))
+        {
+            return wsrep::ps_service_v1_init(dlh, ps_service);
+        }
+        return 1;
+    }
+
+    static void deinit_ps_service(void* dlh)
+    {
+        wsrep::ps_service_v1_deinit(dlh);
+    }
 }
 
 void wsrep::wsrep_provider_v26::init_services(
@@ -656,10 +674,20 @@ void wsrep::wsrep_provider_v26::init_services(
         }
         services_enabled_.tls_service = services.tls_service;
     }
+    if (services.ps_service)
+    {
+        if (init_ps_service(wsrep_->dlh, services.ps_service))
+        {
+            throw wsrep::runtime_error("Failed to initialze PS service");
+        }
+        services_enabled_.ps_service = services.ps_service;
+    }
 }
 
 void wsrep::wsrep_provider_v26::deinit_services()
 {
+    if (services_enabled_.ps_service)
+        deinit_ps_service(wsrep_->dlh);
     if (services_enabled_.tls_service)
         deinit_tls_service(wsrep_->dlh);
     if (services_enabled_.thread_service)

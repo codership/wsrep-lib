@@ -145,6 +145,44 @@ namespace wsrep
 #ifdef WITH_WSREP_SR_SPEEDUP
 	int set_fragments_from_table();
 	void *get_binlog_cache();
+        /* state of Streaming Replication Speedup feature for the
+           transaction. This describes the relationship of this WSREP
+           transaction and the underlying InnoDB transaction.
+        */
+        enum sr_state
+        {
+            /* this is not an SR Speedup transaction */
+            sr_state_none,
+            /* this is an SR Speedup transaction, but SR XID is not set
+               for the underlying InnoDB transaction
+             */
+            sr_state_require_xid,
+            /* this is an SR Speedup transaction, and SR XID is set
+               for the underlying InnoDB transaction
+             */
+            sr_state_xid_set
+        };
+        static const int n_sr_states = sr_state_xid_set + 1;
+        enum sr_state sr_state() const
+        { return sr_state_; }
+        void require_sr_xid()
+        {
+          if (sr_state_ == sr_state_none) {
+            sr_state_ = sr_state_require_xid;
+          }
+        }
+        void sr_xid_was_set()
+        {
+          sr_state_ = sr_state_xid_set;
+        }
+        bool sr_xid_is_required()
+        {
+          return sr_state_ == sr_state_require_xid;
+        }
+        bool sr_xid_is_set()
+        {
+          return sr_state_ == sr_state_xid_set;
+        }
 #endif /* WITH_WSREP_SR_SPEEDUP */
 
         bool pa_unsafe() const { return pa_unsafe_; }
@@ -277,6 +315,9 @@ namespace wsrep
         wsrep::sr_key_set sr_keys_;
         wsrep::mutable_buffer apply_error_buf_;
         wsrep::xid xid_;
+#ifdef WITH_WSREP_SR_SPEEDUP
+        enum sr_state sr_state_;
+#endif /* WITH_WSREP_SR_SPEEDUP */
     };
 
     static inline const char* to_c_string(enum wsrep::transaction::state state)

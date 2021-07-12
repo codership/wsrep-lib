@@ -685,6 +685,9 @@ int wsrep::server_state::start_sst(const std::string& sst_request,
     state(lock, s_donor);
     int ret(0);
     lock.unlock();
+#ifdef DEBUG_SR_SPEEDUP
+    wsrep::log_info() << __FUNCTION__ << "(" << __LINE__ << ")";
+#endif /* DEBUG_SR_SPEEDUP */
     if (server_service_.start_sst(sst_request, gtid, bypass))
     {
         lock.lock();

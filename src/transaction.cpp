@@ -132,6 +132,9 @@ int wsrep::transaction::start_transaction(
     server_id_ = client_state_.server_state().id();
     id_ = id;
     state_ = s_executing;
+#ifdef WITH_WSREP_SR_SPEEDUP
+    sr_state_ = sr_state_none;
+#endif /* WITH_WSREP_SR_SPEEDUP */
     state_hist_.clear();
     ws_handle_ = wsrep::ws_handle(id);
     flags(wsrep::provider::flag::start_transaction);
@@ -1764,8 +1767,14 @@ int wsrep::transaction::certify_fragment(
         flags(flags() & ~wsrep::provider::flag::start_transaction);
     }
 #ifdef DEBUG_SR_SPEEDUP
-    wsrep::log_info() << "END certify_fragment";
+    wsrep::log_info() << "END certify_fragment: "
+                      << "wsrep_get_current_thd() = "
+                      << wsrep_get_current_thd()
+                      << ", sr_state = " << (int)sr_state();
 #endif /* DEBUG_SR_SPEEDUP */
+#ifdef WITH_WSREP_SR_SPEEDUP
+    require_sr_xid();
+#endif /* WITH_WSREP_SR_SPEEDUP */
     return ret;
 }
 

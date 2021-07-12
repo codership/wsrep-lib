@@ -220,7 +220,7 @@ namespace wsrep
 #ifdef WITH_WSREP_SR_SPEEDUP
 
 	/**
-	 * Return the binlog cache for the currently execution
+	 * Return the binlog cache for the currently executing
 	 * transaction or a NULL pointer if no such cache exists.
 	 */
 	virtual void *get_binlog_cache() = 0;

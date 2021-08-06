@@ -2,7 +2,8 @@
 # Copyright (C) 2018 Codership Oy <info@codership.com>
 #
 
-add_executable(wsrep-lib_test
+
+set(TEST_SOURCES
   mock_client_state.cpp
   mock_high_priority_service.cpp
   mock_storage_service.cpp
@@ -21,6 +22,14 @@ add_executable(wsrep-lib_test
   xid_test.cpp
   wsrep-lib_test.cpp
   )
+
+if (WSREP_LIB_WITH_UNIT_TESTS_EXTRA)
+  set(TEST_SOURCES ${TEST_SOURCES}
+    reporter_test.cpp
+    )
+endif()
+
+add_executable(wsrep-lib_test ${TEST_SOURCES})
 
 target_link_libraries(wsrep-lib_test wsrep-lib)
 

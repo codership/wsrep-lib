@@ -24,10 +24,52 @@
 #include "db_simulator.hpp"
 
 #include "wsrep/logger.hpp"
+#include "wsrep/reporter.hpp"
+
+#include <ostream>
+#include <cstdio>
+
+static wsrep::default_mutex logger_mtx;
+static wsrep::reporter* reporter = nullptr;
+
+static void
+logger_fn(wsrep::log::level l, const char* pfx, const char* msg)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(logger_mtx);
+
+    struct timespec time;
+    clock_gettime(CLOCK_REALTIME, &time);
+
+    time_t const tt(time.tv_sec);
+    struct tm    date;
+    localtime_r(&tt, &date);
+
+    char date_str[85] = { '\0', };
+    snprintf(date_str, sizeof(date_str) - 1,
+             "%04d-%02d-%02d %02d:%02d:%02d.%03d",
+             date.tm_year + 1900, date.tm_mon + 1, date.tm_mday,
+             date.tm_hour, date.tm_min, date.tm_sec, (int)time.tv_nsec/1000000);
+
+#define LOG_STR date_str << pfx << wsrep::log::to_c_string(l) << msg
+    if (l >= wsrep::log::error && reporter)
+    {
+        std::ostringstream os;
+        os << LOG_STR;
+        std::cerr << os.str() << std::endl;
+        auto const tstamp(double(time.tv_sec) + double(time.tv_nsec)*1.0e-9);
+        reporter->report_log_msg(wsrep::reporter::error, os.str(), tstamp);
+    }
+    else
+    {
+        std::cerr << LOG_STR << std::endl;
+    }
+#undef LOG_STR
+}
 
 db::server::server(simulator& simulator,
                    const std::string& name,
-                   const std::string& address)
+                   const std::string& address,
+                   const std::string& status_file)
     : simulator_(simulator)
     , storage_engine_(simulator_.params())
     , mutex_()
@@ -40,7 +82,15 @@ db::server::server(simulator& simulator,
     , appliers_()
     , clients_()
     , client_threads_()
-{ }
+{
+    wsrep::log::logger_fn(logger_fn);
+    reporter = new wsrep::reporter(mutex_, status_file, 3);
+}
+
+db::server::~server()
+{
+    delete reporter;
+}
 
 void db::server::applier_thread()
 {
@@ -129,3 +179,9 @@ wsrep::high_priority_service* db::server::streaming_applier_service()
     throw wsrep::not_implemented_error();
 }
 
+void db::server::log_state_change(enum wsrep::server_state::state from,
+                                  enum wsrep::server_state::state to)
+{
+    wsrep::log_info() << "State changed " << from << " -> " << to;
+    if (reporter) reporter->report_state(to, 0);
+}

@@ -38,6 +38,7 @@ namespace db
         std::string topology;
         std::string wsrep_provider;
         std::string wsrep_provider_options;
+        std::string status_file;
         int debug_log_level;
         int fast_exit;
         int thread_instrumentation;
@@ -55,6 +56,7 @@ namespace db
             , topology()
             , wsrep_provider()
             , wsrep_provider_options()
+            , status_file("status.json")
             , debug_log_level(0)
             , fast_exit(0)
             , thread_instrumentation()

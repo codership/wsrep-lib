@@ -137,7 +137,8 @@ void db::simulator::start()
                         std::make_unique<db::server>(
                             *this,
                             name_os.str(),
-                            address_os.str()))));
+                            address_os.str(),
+                            name_os.str() + "_" + params_.status_file))));
         if (it.second == false)
         {
             throw wsrep::runtime_error("Failed to add server");

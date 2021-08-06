@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2018 Codership Oy <info@codership.com>
+# Copyright (C) 2021 Codership Oy <info@codership.com>
 #
 
 cmake_minimum_required (VERSION 2.8)
@@ -25,7 +25,15 @@ else()
   project(wsrep-lib)
 endif()
 
-include(CheckIncludeFile)
+if (POLICY CMP0057)
+  cmake_policy(SET CMP0057 NEW)
+endif()
+
+if (POLICY CMP0077)
+  cmake_policy(SET CMP0077 NEW)
+endif()
+
+include(CheckIncludeFileCXX)
 include(CheckLibraryExists)
 include(CheckCXXCompilerFlag)
 
@@ -36,6 +44,7 @@ option(WSREP_LIB_WITH_UNIT_TESTS "Compile unit tests" ON)
 if (WSREP_LIB_WITH_UNIT_TESTS)
   # Run tests automatically by default if compiled
   option(WSREP_LIB_WITH_AUTO_TEST "Run unit tests automatically after build" OFF)
+  option(WSREP_LIB_WITH_UNIT_TESTS_EXTRA "Compile unit tests that may require additional software" OFF)
 endif()
 
 # Build a sample program
@@ -107,14 +116,47 @@ else()
   set(WSREP_LIB_LIBDL "")
 endif()
 
+set(MIN_BOOST_VERSION "1.54.0")
 if (WSREP_LIB_WITH_UNIT_TESTS)
-  find_package(Boost 1.54.0 REQUIRED
+  if (WSREP_LIB_WITH_UNIT_TESTS_EXTRA)
+    set(json_HEADER "boost/json/src.hpp")
+    # Extra tests may require packages from very recent boost which may be
+    # unavailable on the system. In such case download private boost distro.
+    check_include_file_cxx(${json_HEADER} system_json_FOUND)
+    if (NOT system_json_FOUND)
+      if (NOT WITH_BOOST)
+        set(WITH_BOOST "${CMAKE_SOURCE_DIR}/../boost")
+      endif()
+      set(DOWNLOAD_BOOST ON)
+      include (cmake/boost.cmake)
+      set(MIN_BOOST_VERSION "${BOOST_MAJOR}.${BOOST_MINOR}.${BOOST_PATCH}")
+      message(STATUS "Boost includes: ${BOOST_INCLUDE_DIR}, ver: ${MIN_BOOST_VERSION}")
+      find_package(Boost ${MIN_BOOST_VERSION} REQUIRED
+        COMPONENTS json headers
+        PATHS ${WITH_BOOST}/lib/cmake
+        NO_DEFAULT_PATH
+        )
+      # Boost 1.76.0 comes very sloppy (and not only in JSON department)
+      # - need to disable some checks.
+      set(ADDITIONAL_CXX_FLAGS "-Wno-effc++ -Wno-conversion -Wno-suggest-override -Wno-overloaded-virtual")
+      set(ADDITIONAL_CXX_INCLUDES ${BOOST_INCLUDE_DIR})
+      check_include_file_cxx(${json_HEADER} json_FOUND
+        "-I${ADDITIONAL_CXX_INCLUDES} ${ADDITIONAL_CXX_FLAGS}"
+        )
+      if (NOT json_FOUND)
+        message(FATAL_ERROR "Required header 'boost/json.hpp' not found: ${json_FOUND}")
+      else()
+        include_directories(SYSTEM ${ADDITIONAL_CXX_INCLUDES})
+      endif()
+    endif()
+  endif()
+  find_package(Boost ${MIN_BOOST_VERSION} REQUIRED
     unit_test_framework
     )
 endif()
 
 if (WSREP_LIB_WITH_DBSIM)
-  find_package(Boost 1.54.0 REQUIRED
+  find_package(Boost ${MIN_BOOST_VERSION} REQUIRED
     program_options
     filesystem
     thread

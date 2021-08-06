@@ -154,10 +154,9 @@ void db::server_service::log_state_change(
     enum wsrep::server_state::state prev_state,
     enum wsrep::server_state::state current_state)
 {
-
-    wsrep::log_info() << "State changed "
-                      << prev_state << " -> " << current_state;
+    server_.log_state_change(prev_state, current_state);
 }
+
 int db::server_service::wait_committing_transactions(int)
 {
     throw wsrep::not_implemented_error();

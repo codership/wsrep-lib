@@ -57,6 +57,9 @@ db::params db::parse_args(int argc, char** argv)
         ("wsrep-provider-options",
          po::value<std::string>(&params.wsrep_provider_options),
          "wsrep provider options")
+        ("status-file",
+         po::value<std::string>(&params.status_file),
+         "status output file")
         ("servers", po::value<size_t>(&params.n_servers)->required(),
          "number of servers to start")
         ("topology", po::value<std::string>(&params.topology),

@@ -145,7 +145,62 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_replay,
 
     BOOST_REQUIRE(cc.unordered_replays() == 1);
 
-    // xa_replay() createa a streaming applier, clean it up
+    // xa_replay() creates a streaming applier, clean it up
+    wsrep::mock_high_priority_service* hps(
+        static_cast<wsrep::mock_high_priority_service*>(
+            sc.find_streaming_applier(sc.id(), wsrep::transaction_id(1))));
+    BOOST_REQUIRE(hps);
+    hps->rollback(wsrep::ws_handle(), wsrep::ws_meta());
+    hps->after_apply();
+    sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
+    server_service.release_high_priority_service(hps);
+}
+
+BOOST_FIXTURE_TEST_CASE(transaction_xa_replay_after_command_before_result,
+                        replicating_client_fixture_sync_rm)
+{
+    wsrep::xid xid(1, 1, 1, "id");
+
+    cc.start_transaction(wsrep::transaction_id(1));
+    cc.assign_xid(xid);
+    cc.before_prepare();
+    cc.after_prepare();
+    BOOST_REQUIRE(cc.state() == wsrep::client_state::s_exec);
+    wsrep_test::bf_abort_unordered(cc);
+    cc.after_command_before_result();
+    cc.after_command_after_result();
+
+    BOOST_REQUIRE(cc.unordered_replays() == 1);
+
+    // xa_replay() creates a streaming applier, clean it up
+    wsrep::mock_high_priority_service* hps(
+        static_cast<wsrep::mock_high_priority_service*>(
+            sc.find_streaming_applier(sc.id(), wsrep::transaction_id(1))));
+    BOOST_REQUIRE(hps);
+    hps->rollback(wsrep::ws_handle(), wsrep::ws_meta());
+    hps->after_apply();
+    sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
+    server_service.release_high_priority_service(hps);
+}
+
+BOOST_FIXTURE_TEST_CASE(transaction_xa_replay_after_command_after_result,
+                        replicating_client_fixture_sync_rm)
+{
+    wsrep::xid xid(1, 1, 1, "id");
+
+    cc.start_transaction(wsrep::transaction_id(1));
+    cc.assign_xid(xid);
+    cc.before_prepare();
+    cc.after_prepare();
+    cc.after_command_before_result();
+    BOOST_REQUIRE(cc.state() == wsrep::client_state::s_result);
+    wsrep_test::bf_abort_unordered(cc);
+
+    cc.after_command_after_result();
+
+    BOOST_REQUIRE(cc.unordered_replays() == 1);
+
+    // xa_replay() creates a a streaming applier, clean it up
     wsrep::mock_high_priority_service* hps(
         static_cast<wsrep::mock_high_priority_service*>(
             sc.find_streaming_applier(sc.id(), wsrep::transaction_id(1))));

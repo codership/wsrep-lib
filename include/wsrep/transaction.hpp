@@ -194,6 +194,8 @@ namespace wsrep
 
         int after_statement();
 
+        void after_command_must_abort(wsrep::unique_lock<wsrep::mutex>&);
+
         void after_applying();
 
         bool bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
@@ -251,6 +253,8 @@ namespace wsrep
         int release_commit_order(wsrep::unique_lock<wsrep::mutex>&);
         void streaming_rollback(wsrep::unique_lock<wsrep::mutex>&);
         int replay(wsrep::unique_lock<wsrep::mutex>&);
+        void xa_replay_common(wsrep::unique_lock<wsrep::mutex>&);
+        int xa_replay_commit(wsrep::unique_lock<wsrep::mutex>&);
         void cleanup();
         void debug_log_state(const char*) const;
         void debug_log_key_append(const wsrep::key& key) const;

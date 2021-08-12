@@ -835,7 +835,13 @@ int wsrep::transaction::after_statement()
         break;
     case s_must_abort:
     case s_cert_failed:
-        client_state_.override_error(wsrep::e_deadlock_error);
+        // Error may be set already. For example, if fragment size
+        // exceeded the maximum size in certify_fragment(), then
+        // we already have wsrep::e_error_during_commit
+        if (client_state_.current_error() == wsrep::e_success)
+        {
+            client_state_.override_error(wsrep::e_deadlock_error);
+        }
         lock.unlock();
         ret = client_service_.bf_rollback();
         lock.lock();
@@ -849,7 +855,7 @@ int wsrep::transaction::after_statement()
     {
         if (is_xa() && !ordered())
         {
-            ret = xa_replay(lock);
+            ret = xa_replay_commit(lock);
         }
         else
         {
@@ -898,6 +904,34 @@ int wsrep::transaction::after_statement()
     debug_log_state("after_statement_leave");
     assert(ret == 0 || state() == s_aborted);
     return ret;
+}
+
+void wsrep::transaction::after_command_must_abort(
+    wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    debug_log_state("after_command_must_abort enter");
+    assert(active());
+    assert(state_ == s_must_abort);
+
+    if (is_xa() && is_streaming())
+    {
+        state(lock, s_must_replay);
+    }
+
+    lock.unlock();
+    client_service_.bf_rollback();
+    lock.lock();
+
+    if (is_xa() && is_streaming())
+    {
+        xa_replay(lock);
+    }
+    else
+    {
+        client_state_.override_error(wsrep::e_deadlock_error);
+    }
+
+    debug_log_state("after_command_must_abort leave");
 }
 
 void wsrep::transaction::after_applying()
@@ -1173,9 +1207,8 @@ void wsrep::transaction::xa_detach()
     debug_log_state("xa_detach leave");
 }
 
-int wsrep::transaction::xa_replay(wsrep::unique_lock<wsrep::mutex>& lock)
+void wsrep::transaction::xa_replay_common(wsrep::unique_lock<wsrep::mutex>& lock)
 {
-    debug_log_state("xa_replay enter");
     assert(lock.owns_lock());
     assert(is_xa());
     assert(is_streaming());
@@ -1197,42 +1230,49 @@ int wsrep::transaction::xa_replay(wsrep::unique_lock<wsrep::mutex>& lock)
     {
         client_service_.emergency_shutdown();
     }
+}
 
+int wsrep::transaction::xa_replay(wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    debug_log_state("xa_replay enter");
+    xa_replay_common(lock);
+    state(lock, s_aborted);
+    streaming_context_.cleanup();
+    provider().release(ws_handle_);
+    cleanup();
+    client_service_.signal_replayed();
+    debug_log_state("xa_replay leave");
+    return 0;
+}
+
+int wsrep::transaction::xa_replay_commit(wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    debug_log_state("xa_replay_commit enter");
+    xa_replay_common(lock);
+    lock.unlock();
+    enum wsrep::provider::status status(client_service_.commit_by_xid());
+    lock.lock();
     int ret(1);
-    if (bf_abort_client_state_ == wsrep::client_state::s_idle)
+    switch (status)
     {
-        state(lock, s_aborted);
+    case wsrep::provider::success:
+        state(lock, s_committed);
         streaming_context_.cleanup();
         provider().release(ws_handle_);
         cleanup();
         ret = 0;
-    }
-    else
-    {
-        lock.unlock();
-        enum wsrep::provider::status status(client_service_.commit_by_xid());
-        lock.lock();
-        switch (status)
-        {
-        case wsrep::provider::success:
-            state(lock, s_committed);
-            streaming_context_.cleanup();
-            provider().release(ws_handle_);
-            cleanup();
-            ret = 0;
-            break;
-        default:
-            log_warning() << "Failed to commit by xid during replay";
-            // Commit by xid failed, return a commit
-            // error and let the client retry
-            state(lock, s_preparing);
-            state(lock, s_prepared);
-            client_state_.override_error(wsrep::e_error_during_commit, status);
-        }
+        break;
+    default:
+        log_warning() << "Failed to commit by xid during replay";
+        // Commit by xid failed, return a commit
+        // error and let the client retry
+        state(lock, s_preparing);
+        state(lock, s_prepared);
+        client_state_.override_error(wsrep::e_error_during_commit, status);
     }
 
     client_service_.signal_replayed();
-    debug_log_state("xa_replay leave");
+    debug_log_state("xa_replay_commit leave");
     return ret;
 }
 

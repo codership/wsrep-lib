@@ -13,19 +13,19 @@ jobs:
       matrix:
         config:
           # GCC/G++
-          - os: ubuntu-16.04
+          - os: ubuntu-18.04
             CC: gcc
             version: "4.8"
             type: Debug
-          - os: ubuntu-16.04
+          - os: ubuntu-18.04
             CC: gcc
             version: "4.8"
             type: Release
-          - os: ubuntu-16.04
+          - os: ubuntu-18.04
             CC: gcc
             version: "5"
             type: Debug
-          - os: ubuntu-16.04
+          - os: ubuntu-18.04
             CC: gcc
             version: "5"
             type: Release

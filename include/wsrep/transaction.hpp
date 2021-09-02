@@ -276,6 +276,7 @@ namespace wsrep
         wsrep::sr_key_set sr_keys_;
         wsrep::mutable_buffer apply_error_buf_;
         wsrep::xid xid_;
+        bool streaming_rollback_in_progress_;
     };
 
     static inline const char* to_c_string(enum wsrep::transaction::state state)

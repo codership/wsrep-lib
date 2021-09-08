@@ -49,6 +49,12 @@ void wsrep::client_state::close()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("close: enter");
+
+    while (mode_ == m_local && is_rollbacker_active()) {
+        cond_.wait(lock);
+    }
+    do_acquire_ownership(lock);
+
     state(lock, s_quitting);
     keep_command_error_ = false;
     lock.unlock();

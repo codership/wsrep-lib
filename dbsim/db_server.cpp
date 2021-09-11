@@ -24,13 +24,11 @@
 #include "db_simulator.hpp"
 
 #include "wsrep/logger.hpp"
-#include "wsrep/reporter.hpp"
 
 #include <ostream>
 #include <cstdio>
 
 static wsrep::default_mutex logger_mtx;
-static wsrep::reporter* reporter = nullptr;
 
 static void
 logger_fn(wsrep::log::level l, const char* pfx, const char* msg)
@@ -50,31 +48,19 @@ logger_fn(wsrep::log::level l, const char* pfx, const char* msg)
              date.tm_year + 1900, date.tm_mon + 1, date.tm_mday,
              date.tm_hour, date.tm_min, date.tm_sec, (int)time.tv_nsec/1000000);
 
-#define LOG_STR date_str << pfx << wsrep::log::to_c_string(l) << msg
-    if (l >= wsrep::log::error && reporter)
-    {
-        std::ostringstream os;
-        os << LOG_STR;
-        std::cerr << os.str() << std::endl;
-        auto const tstamp(double(time.tv_sec) + double(time.tv_nsec)*1.0e-9);
-        reporter->report_log_msg(wsrep::reporter::error, os.str(), tstamp);
-    }
-    else
-    {
-        std::cerr << LOG_STR << std::endl;
-    }
-#undef LOG_STR
+    std::cerr << date_str << ' ' << pfx << wsrep::log::to_c_string(l) << ' '
+              << msg << std::endl;
 }
 
 db::server::server(simulator& simulator,
                    const std::string& name,
-                   const std::string& address,
-                   const std::string& status_file)
+                   const std::string& address)
     : simulator_(simulator)
     , storage_engine_(simulator_.params())
     , mutex_()
     , cond_()
     , server_service_(*this)
+    , reporter_(mutex_, name + ".json", 4)
     , server_state_(server_service_,
                     name, address, "dbsim_" + name + "_data")
     , last_client_id_(0)
@@ -84,12 +70,6 @@ db::server::server(simulator& simulator,
     , client_threads_()
 {
     wsrep::log::logger_fn(logger_fn);
-    reporter = new wsrep::reporter(mutex_, status_file, 3);
-}
-
-db::server::~server()
-{
-    delete reporter;
 }
 
 void db::server::applier_thread()
@@ -183,5 +163,5 @@ void db::server::log_state_change(enum wsrep::server_state::state from,
                                   enum wsrep::server_state::state to)
 {
     wsrep::log_info() << "State changed " << from << " -> " << to;
-    if (reporter) reporter->report_state(to, 0);
+    reporter_.report_state(to, 0);
 }

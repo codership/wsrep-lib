@@ -22,6 +22,7 @@
 
 #include "wsrep/gtid.hpp"
 #include "wsrep/client_state.hpp"
+#include "wsrep/reporter.hpp"
 
 #include "db_storage_engine.hpp"
 #include "db_server_state.hpp"
@@ -41,9 +42,7 @@ namespace db
     public:
         server(simulator& simulator,
                const std::string& name,
-               const std::string& address,
-               const std::string& status_file);
-        ~server();
+               const std::string& address);
         void applier_thread();
         void start_applier();
         void stop_applier();
@@ -70,6 +69,7 @@ namespace db
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;
         db::server_service server_service_;
+        wsrep::reporter reporter_;
         db::server_state server_state_;
         std::atomic<size_t> last_client_id_;
         std::atomic<size_t> last_transaction_id_;

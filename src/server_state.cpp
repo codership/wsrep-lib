@@ -1113,6 +1113,14 @@ void wsrep::server_state::on_sync()
         }
     }
     init_synced_ = true;
+
+    enum wsrep::provider::status status(send_pending_rollback_events(lock));
+    if (status)
+    {
+        // TODO should be retried?
+        wsrep::log_warning()
+            << "Failed to flush rollback event cache: " << status;
+    }
 }
 
 int wsrep::server_state::on_apply(
@@ -1456,6 +1464,10 @@ void wsrep::server_state::close_orphaned_sr_transactions(
     // - (1 non-primary) and (2 non-primary)
     // - (1,2 primary)
     // We need to rollback SRs owned by both 1 and 2.
+    // Notice that since the introduction of rollback_event_queue_,
+    // checking for equal consecutive views is no longer needed.
+    // However, we must keep it here for the time being, for backwards
+    // compatibility.
     const bool equal_consecutive_views =
         current_view_.equal_membership(previous_primary_view_);
 
@@ -1504,10 +1516,8 @@ void wsrep::server_state::close_orphaned_sr_transactions(
         if ((streaming_applier->transaction().state() !=
              wsrep::transaction::s_prepared) &&
             (equal_consecutive_views ||
-             (std::find_if(current_view_.members().begin(),
-                           current_view_.members().end(),
-                           server_id_cmp(i->first.first)) ==
-              current_view_.members().end())))
+             not current_view_.is_member(
+                 streaming_applier->transaction().server_id())))
         {
             WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
                             wsrep::log::debug_level_server_state,
@@ -1579,4 +1589,51 @@ void wsrep::server_state::close_transactions_at_disconnect(
         high_priority_service.store_globals();
     }
     streaming_appliers_recovered_ = false;
+}
+
+//
+// Rollback event queue
+//
+
+void wsrep::server_state::queue_rollback_event(
+    const wsrep::transaction_id& id)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+#ifndef NDEBUG
+    // Make sure we don't have duplicate
+    // transaction ids in rollback event queue.
+    // There is no need to do this in release
+    // build given that caller (streaming_rollback())
+    // should avoid duplicates.
+    for (auto i : rollback_event_queue_)
+    {
+        assert(id != i);
+    }
+#endif
+    rollback_event_queue_.push_back(id);
+}
+
+enum wsrep::provider::status
+wsrep::server_state::send_pending_rollback_events(
+    wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED)
+{
+    assert(lock.owns_lock());
+    while (not rollback_event_queue_.empty())
+    {
+        const wsrep::transaction_id& id(rollback_event_queue_.front());
+        const enum wsrep::provider::status status(provider().rollback(id));
+        if (status)
+        {
+            return status;
+        }
+        rollback_event_queue_.pop_front();
+    }
+    return wsrep::provider::success;
+}
+
+enum wsrep::provider::status
+wsrep::server_state::send_pending_rollback_events()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    return send_pending_rollback_events(lock);
 }

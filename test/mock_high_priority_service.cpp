@@ -51,6 +51,7 @@ int wsrep::mock_high_priority_service::apply_write_set(
 {
     assert(client_state_->toi_meta().seqno().is_undefined());
     assert(client_state_->transaction().state() == wsrep::transaction::s_executing ||
+           client_state_->transaction().state() == wsrep::transaction::s_prepared ||
            client_state_->transaction().state() == wsrep::transaction::s_replaying);
     if (fail_next_applying_)
     {
@@ -62,7 +63,18 @@ int wsrep::mock_high_priority_service::apply_write_set(
     }
     else
     {
-        return 0;
+        int ret(0);
+        if (!(meta.flags() & wsrep::provider::flag::commit))
+        {
+            client_state_->fragment_applied(meta.seqno());
+        }
+        if ((meta.flags() & wsrep::provider::flag::prepare))
+        {
+            client_state_->assign_xid(wsrep::xid(1, 3, 1, "xid"));
+            ret = client_state_->before_prepare() ||
+            client_state_->after_prepare();
+        }
+        return ret;
     };
 }
 
@@ -77,9 +89,19 @@ int wsrep::mock_high_priority_service::commit(
         ret = client_state_->before_prepare() ||
             client_state_->after_prepare();
     }
-    return (ret || client_state_->before_commit() ||
-            client_state_->ordered_commit() ||
-            client_state_->after_commit());
+    const bool is_ordered= !ws_meta.seqno().is_undefined();
+    if (!is_ordered)
+    {
+        client_state_->before_rollback();
+        client_state_->after_rollback();
+        return 0;
+    }
+    else
+    {
+        return (ret || client_state_->before_commit() ||
+                client_state_->ordered_commit() ||
+                client_state_->after_commit());
+    }
 }
 
 int wsrep::mock_high_priority_service::rollback(

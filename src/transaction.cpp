@@ -1452,6 +1452,19 @@ int wsrep::transaction::certify_fragment(
     lock.unlock();
     client_service_.debug_sync("wsrep_before_fragment_certification");
 
+    enum wsrep::provider::status status(
+        client_state_.server_state_.send_pending_rollback_events());
+    if (status)
+    {
+        wsrep::log_warning()
+            << "Failed to replicate pending rollback events: "
+            << status << " ("
+            << wsrep::provider::to_string(status) << ")";
+        lock.lock();
+        state(lock, s_must_abort);
+        return 1;
+    }
+
     wsrep::mutable_buffer data;
     size_t log_position(0);
     if (client_service_.prepare_fragment_for_replication(data, log_position))
@@ -1684,6 +1697,32 @@ int wsrep::transaction::certify_commit(
     state(lock, s_certifying);
     lock.unlock();
 
+    enum wsrep::provider::status status(
+        client_state_.server_state_.send_pending_rollback_events());
+    if (status)
+    {
+        wsrep::log_warning()
+            << "Failed to replicate pending rollback events: "
+            << status << " ("
+            << wsrep::provider::to_string(status) << ")";
+
+        // We failed to replicate some pending rollback fragment.
+        // Meaning that some transaction that was rolled back
+        // locally might still be active out there in the cluster.
+        // To avoid a potential BF-BF conflict, we need to abort
+        // and give up on this one.
+        // Notice that we can't abort a prepared XA that wants to
+        // commit. Fortunately, there is no need to in this case:
+        // the commit fragment for XA does not cause any changes and
+        // can't possibly conflict with other transactions out there.
+        if (!is_xa())
+        {
+            lock.lock();
+            state(lock, s_must_abort);
+            return 1;
+        }
+    }
+
     if (is_streaming())
     {
         if (!is_xa())
@@ -1912,12 +1951,16 @@ void wsrep::transaction::streaming_rollback(
             lock.lock();
             streaming_context_.cleanup();
 
-            enum wsrep::provider::status ret;
-            if ((ret = provider().rollback(id_)))
+            enum wsrep::provider::status status(provider().rollback(id_));
+            if (status)
             {
+                lock.unlock();
+                client_state_.server_state_.queue_rollback_event(id_);
+                lock.lock();
                 wsrep::log_debug()
-                    << "Failed to replicate rollback fragment for "
-                    << id_ << ": " << ret;
+                    << "Failed to replicate rollback fragment for " << id_
+                    << ": " << status << " ( "
+                    << wsrep::provider::to_string(status) << ")";
             }
         }
 

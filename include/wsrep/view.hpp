@@ -110,7 +110,9 @@ namespace wsrep
 
         int protocol_version() const
         { return protocol_version_; }
-        const std::vector<member>& members() const { return members_; }
+
+        const std::vector<member>& members() const
+        { return members_; }
 
         /**
          * Return true if the view is final
@@ -127,6 +129,14 @@ namespace wsrep
          *         in the view.
          */
         int member_index(const wsrep::id& member_id) const;
+
+        /**
+         * Return true if id is member of this view
+         */
+        bool is_member(const wsrep::id& id) const
+        {
+            return member_index(id) != -1;
+        }
 
         void print(std::ostream& os) const;
 

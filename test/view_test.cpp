@@ -87,3 +87,19 @@ BOOST_AUTO_TEST_CASE(view_test_equal_membership)
     BOOST_REQUIRE(!v1.equal_membership(v3));
     BOOST_REQUIRE(!v3.equal_membership(v1));
 }
+
+BOOST_AUTO_TEST_CASE(view_test_is_member)
+{
+    wsrep::view view(wsrep::gtid(wsrep::id("cluster"), wsrep::seqno(1)),
+                     wsrep::seqno(1),
+                     wsrep::view::primary,
+                     0,
+                     1,
+                     0,
+                     { wsrep::view::member(wsrep::id("1"), "", ""),
+                       wsrep::view::member(wsrep::id("2"), "", "") });
+
+    BOOST_REQUIRE(view.is_member(wsrep::id("2")));
+    BOOST_REQUIRE(view.is_member(wsrep::id("1")));
+    BOOST_REQUIRE(not view.is_member(wsrep::id("0")));
+}

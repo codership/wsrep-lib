@@ -649,3 +649,266 @@ BOOST_FIXTURE_TEST_CASE(
     ss.disconnect();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
 }
+
+/////////////////////////////////////////////////////////////////////////////
+//                             Orphaned SR                                 //
+/////////////////////////////////////////////////////////////////////////////
+
+// Test the behavior of server_state::close_orphaned_sr_transactions().
+// In this test we check the scenario where we initially have 3 nodes in
+// the cluster (s1, s2, s3), and this server_state delivers one streaming
+// fragment from s2 and s3 each, followed by view changes:
+//
+//     view 1: primary (s1, s2, s3)
+//     view 2: primary (s1, s2)
+//     view 3: non-primary (s1)
+//     view 4: non-primary (s1, s3)
+//     view 5: primary (s1, s2, s3)
+//
+// We expect that on view 2, transaction originated from s3 is considered
+// orphaned, so it should be rolled back.
+// Transaction from s2 should never be considered orphaned in this scenario,
+// we expect it to survive until the end of the test. That's because
+// transactions are rolled back in primary views only, and because s2
+// is member of all primary views in this scenario.
+BOOST_FIXTURE_TEST_CASE(server_state_close_orphaned_transactions,
+                        sst_first_server_fixture)
+{
+    connect_in_view(third_view);
+    server_service.logged_view(third_view);
+    sst_received_action();
+    ss.on_view(third_view, &hps);
+
+    // initially we have members (s1, s2, s3)
+    std::vector<wsrep::view::member> members(ss.current_view().members());
+
+    // apply a fragment coming from s2
+    wsrep::ws_meta meta_s2(wsrep::gtid(wsrep::id("s2"), wsrep::seqno(1)),
+                           wsrep::stid(wsrep::id("s2"),
+                                       wsrep::transaction_id(1),
+                                       wsrep::client_id(1)),
+                           wsrep::seqno(1),
+                           wsrep::provider::flag::start_transaction);
+
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_s2,
+                              wsrep::const_buffer("1", 1)) == 0);
+    BOOST_REQUIRE(ss.find_streaming_applier(
+                      meta_s2.server_id(), meta_s2.transaction_id()));
+
+    // apply a fragment coming from s3
+    wsrep::ws_meta meta_s3(wsrep::gtid(wsrep::id("s3"), wsrep::seqno(2)),
+                           wsrep::stid(wsrep::id("s3"),
+                                       wsrep::transaction_id(1),
+                                       wsrep::client_id(1)),
+                           wsrep::seqno(2),
+                           wsrep::provider::flag::start_transaction);
+
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_s3,
+                              wsrep::const_buffer("1", 1)) == 0);
+    BOOST_REQUIRE(ss.find_streaming_applier(
+                      meta_s3.server_id(), meta_s3.transaction_id()));
+
+    // s3 drops out of the cluster, deliver primary view (s1, s2)
+    wsrep::view::member s3(members.back());
+    members.pop_back();
+    ss.on_view(wsrep::view(ss.current_view().state_id(),
+                           ss.current_view().view_seqno() + 1,
+                           wsrep::view::primary,
+                           0, // capabilities
+                           0, // own index
+                           1, // protocol version
+                           members), &hps);
+
+    // transaction from s2 is still present
+    BOOST_REQUIRE(ss.find_streaming_applier(
+                      meta_s2.server_id(), meta_s2.transaction_id()));
+    // transaction from s3 is gone
+    BOOST_REQUIRE(not ss.find_streaming_applier(
+                      meta_s3.server_id(), meta_s3.transaction_id()));
+
+    // s2 drops out of the cluster, deliver non-primary view (s1)
+    wsrep::view::member s2(members.back());
+    members.pop_back();
+    ss.on_view(wsrep::view(ss.current_view().state_id(),
+                           ss.current_view().view_seqno(),
+                           wsrep::view::non_primary,
+                           0, // capabilities
+                           0, // own index
+                           1, // protocol version
+                           members), &hps);
+
+    // no streaming appliers are closed on non-primary view,
+    // so transaction from s2 is still present
+    BOOST_REQUIRE(ss.find_streaming_applier(
+                      meta_s2.server_id(), meta_s2.transaction_id()));
+
+    // s3 comes back, deliver non-primary view (s1, s3)
+    members.push_back(s3);
+    ss.on_view(wsrep::view(ss.current_view().state_id(),
+                           ss.current_view().view_seqno() + 1,
+                           wsrep::view::non_primary,
+                           0, // capabilities
+                           0, // own index
+                           1, // protocol version
+                           members), &hps);
+
+    // transaction s2 is still present after non-primary view
+    BOOST_REQUIRE(ss.find_streaming_applier(
+                      meta_s2.server_id(), meta_s2.transaction_id()));
+
+    // s2 comes back, deliver primary-view (s1, s2, s3)
+    members.push_back(s2);
+    ss.on_view(wsrep::view(ss.current_view().state_id(),
+                           ss.current_view().view_seqno() + 1,
+                           wsrep::view::primary,
+                           0, // capabilities
+                           0, // own index
+                           1, // protocol version
+                           members), &hps);
+
+    // finally, transaction from s2 is still present (part of primary view)
+    // and transaction from s3 is gone
+    BOOST_REQUIRE(ss.find_streaming_applier(
+                      meta_s2.server_id(), meta_s2.transaction_id()));
+    BOOST_REQUIRE(not ss.find_streaming_applier(
+                      meta_s3.server_id(), meta_s3.transaction_id()));
+
+    // cleanup
+    wsrep::ws_meta meta_commit_s2(wsrep::gtid(wsrep::id("s2"), wsrep::seqno(3)),
+                                  wsrep::stid(wsrep::id("s2"),
+                                              wsrep::transaction_id(1),
+                                              wsrep::client_id(1)),
+                                  wsrep::seqno(3),
+                                  wsrep::provider::flag::commit);
+
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_commit_s2,
+                              wsrep::const_buffer("1", 1)) == 0);
+
+    BOOST_REQUIRE(not ss.find_streaming_applier(
+                      meta_commit_s2.server_id(), meta_commit_s2.transaction_id()));
+}
+
+
+// Test the case where two consecutive primary views with the
+// same members are delivered (provider may do so).
+// Expect SR transactions to be rolled back on equal consecutive views
+BOOST_FIXTURE_TEST_CASE(server_state_equal_consecutive_views,
+                        sst_first_server_fixture)
+{
+    connect_in_view(third_view);
+    server_service.logged_view(third_view);
+    sst_received_action();
+    ss.on_view(third_view, &hps);
+
+    // apply a fragment coming from s2
+    wsrep::ws_meta meta_s2(wsrep::gtid(wsrep::id("s2"), wsrep::seqno(1)),
+                           wsrep::stid(wsrep::id("s2"),
+                                       wsrep::transaction_id(1),
+                                       wsrep::client_id(1)),
+                           wsrep::seqno(1),
+                           wsrep::provider::flag::start_transaction);
+
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_s2,
+                              wsrep::const_buffer("1", 1)) == 0);
+    BOOST_REQUIRE(ss.find_streaming_applier(
+                      meta_s2.server_id(), meta_s2.transaction_id()));
+
+    // apply a fragment coming from s3
+    wsrep::ws_meta meta_s3(wsrep::gtid(wsrep::id("s3"), wsrep::seqno(2)),
+                           wsrep::stid(wsrep::id("s3"),
+                                       wsrep::transaction_id(1),
+                                       wsrep::client_id(1)),
+                           wsrep::seqno(2),
+                           wsrep::provider::flag::start_transaction);
+
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_s3,
+                              wsrep::const_buffer("1", 1)) == 0);
+    BOOST_REQUIRE(ss.find_streaming_applier(
+                      meta_s3.server_id(), meta_s3.transaction_id()));
+
+    // deliver primary view with the same members (s1, s2, s3)
+    ss.on_view(wsrep::view(ss.current_view().state_id(),
+                           ss.current_view().view_seqno() + 1,
+                           wsrep::view::primary,
+                           0, // capabilities
+                           0, // own index
+                           1, // protocol version
+                           ss.current_view().members()), &hps);
+
+    // transaction from s2 and s3 are gone
+    BOOST_REQUIRE(not ss.find_streaming_applier(
+                      meta_s2.server_id(), meta_s2.transaction_id()));
+    BOOST_REQUIRE(not ss.find_streaming_applier(
+                      meta_s3.server_id(), meta_s3.transaction_id()));
+}
+
+// Verify that prepared XA transactions are not rolled back
+// by close_orphaned_transactions()
+BOOST_FIXTURE_TEST_CASE(server_state_xa_not_orphaned,
+                        sst_first_server_fixture)
+{
+    connect_in_view(third_view);
+    server_service.logged_view(third_view);
+    sst_received_action();
+    ss.on_view(third_view, &hps);
+
+    // initially we have members (s1, s2, s3)
+    std::vector<wsrep::view::member> members(ss.current_view().members());
+
+
+    wsrep::ws_meta meta_s3(wsrep::gtid(wsrep::id("s3"), wsrep::seqno(1)),
+                           wsrep::stid(wsrep::id("s3"),
+                                       wsrep::transaction_id(1),
+                                       wsrep::client_id(1)),
+                           wsrep::seqno(1),
+                           wsrep::provider::flag::start_transaction |
+                           wsrep::provider::flag::prepare);
+
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_s3,
+                              wsrep::const_buffer("1", 1)) == 0);
+    BOOST_REQUIRE(ss.find_streaming_applier(
+                      meta_s3.server_id(), meta_s3.transaction_id()));
+
+
+    // s3 drops out of the cluster, deliver primary view (s1, s2)
+    wsrep::view::member s3(members.back());
+    members.pop_back();
+    ss.on_view(wsrep::view(ss.current_view().state_id(),
+                           ss.current_view().view_seqno() + 1,
+                           wsrep::view::primary,
+                           0, // capabilities
+                           0, // own index
+                           1, // protocol version
+                           members), &hps);
+
+    // transaction from s3 is still present
+    BOOST_REQUIRE(ss.find_streaming_applier(
+                      meta_s3.server_id(), meta_s3.transaction_id()));
+
+    // s3 comes back, deliver primary view (s1, s2, s3)
+    members.push_back(s3);
+    ss.on_view(wsrep::view(ss.current_view().state_id(),
+                           ss.current_view().view_seqno() + 1,
+                           wsrep::view::primary,
+                           0, // capabilities
+                           0, // own index
+                           1, // protocol version
+                           members), &hps);
+
+    // transaction from s3 is still present
+    BOOST_REQUIRE(ss.find_streaming_applier(
+                      meta_s3.server_id(), meta_s3.transaction_id()));
+
+    // cleanup
+    wsrep::ws_meta meta_commit_s3(wsrep::gtid(wsrep::id("s3"), wsrep::seqno(3)),
+                                  wsrep::stid(wsrep::id("s3"),
+                                              wsrep::transaction_id(1),
+                                              wsrep::client_id(1)),
+                                  wsrep::seqno(3),
+                                  wsrep::provider::flag::commit);
+
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_commit_s3,
+                              wsrep::const_buffer("1", 1)) == 0);
+    BOOST_REQUIRE(not ss.find_streaming_applier(
+                      meta_commit_s3.server_id(), meta_commit_s3.transaction_id()));
+}

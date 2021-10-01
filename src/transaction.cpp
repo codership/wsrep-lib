@@ -656,10 +656,11 @@ int wsrep::transaction::before_rollback()
 {
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("before_rollback_enter");
-    assert(state() == s_executing ||
-           state() == s_preparing ||
-           state() == s_prepared ||
+    assert(state() == s_executing  ||
+           state() == s_preparing  ||
+           state() == s_prepared   ||
            state() == s_must_abort ||
+           state() == s_committing ||
            // Background rollbacker or rollback initiated from SE
            state() == s_aborting ||
            state() == s_cert_failed ||
@@ -672,6 +673,15 @@ int wsrep::transaction::before_rollback()
         {
             client_service_.debug_sync("wsrep_before_SR_rollback");
         }
+        /* this state change was added to support BF aborting
+           at later state (before prepare), where victim has certified
+           successfully, and state has already
+           propagated to committing phase
+        */
+        if (state() == s_committing) {
+	  state(lock, s_must_abort);
+	}
+
         switch (state())
         {
         case s_preparing:
@@ -984,6 +994,7 @@ bool wsrep::transaction::bf_abort(
         case s_preparing:
         case s_prepared:
         case s_certifying:
+        case s_waiting_for_replayers:
         case s_committing:
         {
             wsrep::seqno victim_seqno;
@@ -1306,22 +1317,22 @@ void wsrep::transaction::state(
            next_state == s_aborting);
 
     static const char allowed[n_states][n_states] =
-        { /*  ex pg pd ce co oc ct cf ma ab ad mr re */
-            { 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0}, /* ex */
-            { 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0}, /* pg */
-            { 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0}, /* pd */
-            { 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0}, /* ce */
-            { 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0}, /* co */
-            { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}, /* oc */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ct */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}, /* cf */
-            { 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0}, /* ma */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0}, /* ab */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ad */
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, /* mr */
-            { 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0}  /* re */
+        { /*  ex pg pd ce co oc ct cf ma ab ad mr wr re */
+	    { 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0}, /* ex */
+            { 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0}, /* pg */
+            { 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0}, /* pd */
+            { 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0}, /* ce */
+            { 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0}, /* co */
+            { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0}, /* oc */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ct */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0}, /* cf */
+            { 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0}, /* ma */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}, /* ab */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* ad */
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, /* mr */
+            { 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1}, /* wr */
+            { 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0}  /* re */
         };
-
     if (!allowed[state_][next_state])
     {
         wsrep::log_debug() << "unallowed state transition for transaction "
@@ -1681,6 +1692,7 @@ int wsrep::transaction::certify_commit(
 {
     assert(lock.owns_lock());
     assert(active());
+    state(lock, s_waiting_for_replayers);
     client_service_.wait_for_replayers(lock);
 
     assert(lock.owns_lock());

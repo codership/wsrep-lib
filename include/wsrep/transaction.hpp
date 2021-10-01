@@ -58,6 +58,7 @@ namespace wsrep
             s_aborting,
             s_aborted,
             s_must_replay,
+            s_waiting_for_replayers,
             s_replaying
         };
         static const int n_states = s_replaying + 1;
@@ -299,6 +300,7 @@ namespace wsrep
         case wsrep::transaction::s_aborting: return "aborting";
         case wsrep::transaction::s_aborted: return "aborted";
         case wsrep::transaction::s_must_replay: return "must_replay";
+        case wsrep::transaction::s_waiting_for_replayers: return "waiting_for_replayers";
         case wsrep::transaction::s_replaying: return "replaying";
         }
         return "unknown";

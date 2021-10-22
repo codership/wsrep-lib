@@ -96,20 +96,10 @@ static int apply_fragment(wsrep::server_state& server_state,
     int sr_store = streaming_applier->transaction().streaming_context().
 		    get_sr_store();
 #endif /* WITH_WSREP_SR_SPEEDUP */
-#ifdef DEBUG_SR_SPEEDUP
-    wsrep::log_info() << "server_state: apply_fragment, line = " << line;
-#endif /* DEBUG_SR_SPEEDUP */
     {
         wsrep::high_priority_switch sw(high_priority_service,
                                        *streaming_applier);
         apply_err = streaming_applier->apply_write_set(ws_meta, data, err);
-#ifdef DEBUG_SR_SPEEDUP
-	wsrep::log_info() << "server_state: apply_fragment, line = "
-			  << __LINE__ << ", apply_err = " << apply_err
-			  << ", sr_store = "
-			  << streaming_applier->transaction(
-			      ).streaming_context().get_sr_store();
-#endif /* DEBUG_SR_SPEEDUP */
         if (!apply_err)
         {
             assert(err.size() == 0);
@@ -138,10 +128,6 @@ static int apply_fragment(wsrep::server_state& server_state,
             }
         }
     }
-#ifdef DEBUG_SR_SPEEDUP
-	wsrep::log_info() << "server_state: apply_fragment, line = "
-			  << __LINE__ << ", ret = " << ret;
-#endif /* DEBUG_SR_SPEEDUP */
     if (!ret)
     {
         if (!apply_err)
@@ -685,9 +671,6 @@ int wsrep::server_state::start_sst(const std::string& sst_request,
     state(lock, s_donor);
     int ret(0);
     lock.unlock();
-#ifdef DEBUG_SR_SPEEDUP
-    wsrep::log_info() << __FUNCTION__ << "(" << __LINE__ << ")";
-#endif /* DEBUG_SR_SPEEDUP */
     if (server_service_.start_sst(sst_request, gtid, bypass))
     {
         lock.lock();
@@ -1169,10 +1152,6 @@ void wsrep::server_state::start_streaming_client(
     WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
                     wsrep::log::debug_level_server_state,
                     "Start streaming client: " << client_state->id());
-#ifdef DEBUG_SR_SPEEDUP
-    wsrep::log_info() << "server_state: start_streaming_client";
-#endif /* DEBUG_SR_SPEEDUP */
-
     if (streaming_clients_.insert(
             std::make_pair(client_state->id(), client_state)).second == false)
     {
@@ -1274,10 +1253,6 @@ void wsrep::server_state::start_streaming_applier(
     wsrep::high_priority_service* sa)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-#ifdef DEBUG_SR_SPEEDUP
-    wsrep::log_info() << "start_streaming_applier: wsrep_trx_id = "
-		      << transaction_id;
-#endif /* DEBUG_SR_SPEEDUP */
     if (streaming_appliers_.insert(
             std::make_pair(std::make_pair(server_id, transaction_id),
                            sa)).second == false)
@@ -1591,9 +1566,6 @@ void wsrep::server_state::close_orphaned_sr_transactions(
 void wsrep::server_state::close_transactions_at_disconnect(
     wsrep::high_priority_service& high_priority_service)
 {
-#ifdef DEBUG_SR_SPEEDUP	
-        wsrep::log_info() << __FUNCTION__ << "(" << __LINE__ << ")";
-#endif /* DEBUG_SR_SPEEDUP	 */
     // Close streaming applier without removing fragments
     // from fragment storage. When the server is started again,
     // it must be able to recover ongoing streaming transactions.
@@ -1604,11 +1576,6 @@ void wsrep::server_state::close_transactions_at_disconnect(
         {
             wsrep::high_priority_switch sw(high_priority_service,
                                            *streaming_applier);
-#ifdef DEBUG_SR_SPEEDUP	
-	    wsrep::log_info() << __FUNCTION__ << "(" << __LINE__
-			      << ") skipped rollback for wsrep::trx = "
-			      << streaming_applier->transaction().id();
-#endif /* DEBUG_SR_SPEEDUP	 */
 #ifdef WITH_WSREP_SR_SPEEDUP
 	    streaming_applier->rollback(
 		    wsrep::ws_handle(), wsrep::ws_meta(), true);

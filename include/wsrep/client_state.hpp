@@ -926,6 +926,23 @@ namespace wsrep
         {
             return transaction_;
         }
+
+        /**
+         * Mark the transaction associated with the client state
+         * (if any), as unsafe for parallel applying
+         *
+         * @return Zero on success, non-zero on error.
+         */
+        int mark_transaction_pa_unsafe()
+        {
+          if (transaction_.active())
+          {
+            transaction_.pa_unsafe(true);
+            return 0;
+          }
+          return 1;
+        }
+
 #ifdef WITH_WSREP_SR_SPEEDUP
         /**
          * Return a reference to the transaction associated

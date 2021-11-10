@@ -34,8 +34,11 @@
  *                  left empty.
  * WSREP_UNUSED - Can be used to mark variables which may be present in
  *                debug builds but not in release builds.
+ * WSREP_FALLTHROUGH - Silence implicit fallthrough warning.
  */
 
+#ifndef WSREP_LIB_COMPILER_HPP
+#define WSREP_LIB_COMPILER_HPP
 
 #if __cplusplus >= 201103L && !(__GNUC__ == 4 && __GNUG_MINOR__ < 8)
 #define WSREP_NORETURN [[noreturn]]
@@ -51,3 +54,17 @@
 #define WSREP_OVERRIDE
 #endif // __cplusplus >= 201103L
 #define WSREP_UNUSED __attribute__((unused))
+
+#if __GNUC__ >= 7
+#define WSREP_FALLTHROUGH __attribute__((fallthrough))
+#elif defined(__clang__)
+#  if defined(__has_warning)
+#    if __has_feature(cxx_attributes) && __has_warning("-Wimplicit-fallthrough")
+#      define WSREP_FALLTHROUGH [[clang::fallthrough]]
+#    endif
+#  endif
+#else  // __clang __
+#define WSREP_FALLTHROUGH ((void)0)
+#endif // __GNUC__ >= 7 || (__clang__ && __clang_major__ >= 10)
+
+#endif // WSREP_LIB_COMPILER_HPP

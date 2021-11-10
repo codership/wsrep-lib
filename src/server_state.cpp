@@ -1086,7 +1086,7 @@ void wsrep::server_state::on_sync()
             break;
         case s_connected:
             state(lock, s_joiner);
-            // fall through
+            WSREP_FALLTHROUGH;
         case s_joiner:
             state(lock, s_initializing);
             break;
@@ -1096,7 +1096,7 @@ void wsrep::server_state::on_sync()
             break;
         case s_initialized:
             state(lock, s_joined);
-            // fall through
+            WSREP_FALLTHROUGH;
         default:
             /* State */
             state(lock, s_synced);

@@ -677,9 +677,9 @@ int wsrep::transaction::before_rollback()
         case s_preparing:
             // Error detected during prepare phase
             state(lock, s_must_abort);
-            // fall through
+            WSREP_FALLTHROUGH;
         case s_prepared:
-            // fall through
+            WSREP_FALLTHROUGH;
         case s_executing:
             // Voluntary rollback
             if (is_streaming())
@@ -850,7 +850,7 @@ int wsrep::transaction::after_statement()
             break;
         }
         // Continue to replay if rollback() changed the state to s_must_replay
-        // Fall through
+        WSREP_FALLTHROUGH;
     case s_must_replay:
     {
         if (is_xa() && !ordered())
@@ -1404,7 +1404,7 @@ int wsrep::transaction::streaming_step(wsrep::unique_lock<wsrep::mutex>& lock,
     switch (streaming_context_.fragment_unit())
     {
     case streaming_context::row:
-        // fall through
+        WSREP_FALLTHROUGH;
     case streaming_context::statement:
         streaming_context_.increment_unit_counter(1);
         break;

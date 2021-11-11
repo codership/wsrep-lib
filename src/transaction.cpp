@@ -1136,8 +1136,22 @@ int wsrep::transaction::commit_or_rollback_by_xid(const wsrep::xid& xid,
 
     if (!sa)
     {
-        assert(sa);
-        client_state_.override_error(wsrep::e_error_during_commit);
+        enum wsrep::provider::status status;
+        if (server_state.state() == wsrep::server_state::s_disconnected)
+        {
+            // The node has disconnected from the cluster, and has closed
+            // all streaming appliers. We can't tell if a transaction with
+            // corresponding xid exists. In any case, we can't do much
+            // while disconnected, the client should retry.
+            status = wsrep::provider::error_connection_failed;
+        }
+        else
+        {
+            // The xid never existed, or it was already committed or
+            // rolled back.
+            status = wsrep::provider::error_transaction_missing;
+        }
+        client_state_.override_error(wsrep::e_error_during_commit, status);
         return 1;
     }
 

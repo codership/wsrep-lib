@@ -69,6 +69,14 @@ jobs:
             CC: gcc
             version: "10"
             type: Release
+          - os: ubuntu-20.04
+            CC: gcc
+            version: "11"
+            type: Debug
+          - os: ubuntu-20.04
+            CC: gcc
+            version: "11"
+            type: Release
           # Clang
           - os: ubuntu-18.04
             CC: clang
@@ -86,13 +94,28 @@ jobs:
             CC: clang
             version: "10"
             type: Release
+          - os: ubuntu-20.04
+            CC: clang
+            version: "11"
+            type: Debug
+          - os: ubuntu-20.04
+            CC: clang
+            version: "11"
+            type: Release
+          - os: ubuntu-20.04
+            CC: clang
+            version: "12"
+            type: Debug
+          - os: ubuntu-20.04
+            CC: clang
+            version: "12"
+            type: Release
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
-
-    - name: Checkout submodules
-      uses: textbook/git-checkout-submodule-action@master
+      with:
+        submodules: "recursive"
 
     - name: Install compiler
       run: |

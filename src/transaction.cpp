@@ -1531,6 +1531,8 @@ int wsrep::transaction::certify_fragment(
         flags(flags() | wsrep::provider::flag::implicit_deps);
     }
 
+    client_service_.debug_sync("wsrep_before_fragment_append");
+
     int ret(0);
     enum wsrep::client_error error(wsrep::e_success);
     enum wsrep::provider::status cert_ret(wsrep::provider::success);
@@ -1549,14 +1551,21 @@ int wsrep::transaction::certify_fragment(
         // available to store the fragment. The fragment meta data
         // is updated after certification.
         wsrep::id server_id(client_state_.server_state().id());
-        assert(server_id.is_undefined() == false);
-        if (storage_service.start_transaction(ws_handle_) ||
+        if (server_id.is_undefined())
+        {
+            // we can't append a fragment with undefined server_id
+            // server has disconnected?
+            ret = 1;
+            error = wsrep::e_append_fragment_error;
+        }
+
+        if (!ret && (storage_service.start_transaction(ws_handle_) ||
             storage_service.append_fragment(
                 server_id,
                 id(),
                 flags(),
                 wsrep::const_buffer(data.data(), data.size()),
-                xid()))
+                xid())))
         {
             ret = 1;
             error = wsrep::e_append_fragment_error;

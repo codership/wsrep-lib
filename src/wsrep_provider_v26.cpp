@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2021 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -32,6 +32,7 @@
 #include "thread_service_v1.hpp"
 #include "tls_service_v1.hpp"
 #include "allowlist_service_v1.hpp"
+#include "event_service_v1.hpp"
 #include "v26/wsrep_api.h"
 
 
@@ -460,7 +461,7 @@ namespace
         wsrep::const_buffer key(enc_ctx->key->ptr, enc_ctx->key->len);
         wsrep::const_buffer in(input->ptr, input->len);
         try
-        {   
+        {
             return server_state.encryption_service()->do_crypt(&enc_ctx->ctx,
                                                               key,
                                                               enc_ctx->iv,
@@ -654,7 +655,25 @@ namespace
         // assert(not wsrep::allowlist_service_v1_probe(dlh));
         wsrep::allowlist_service_v1_deinit(dlh);
     }
+
+    static int init_event_service(void* dlh,
+                                  wsrep::event_service* service)
+    {
+        assert(service);
+        if (not wsrep::event_service_v1_probe(dlh))
+        {
+            return wsrep::event_service_v1_init(dlh, service);
+        }
+        return 1;
+    }
+
+    static void deinit_event_service(void* dlh)
+    {
+        wsrep::event_service_v1_deinit(dlh);
+    }
 }
+
+
 
 void wsrep::wsrep_provider_v26::init_services(
     const wsrep::provider::services& services)
@@ -683,10 +702,24 @@ void wsrep::wsrep_provider_v26::init_services(
         }
         services_enabled_.allowlist_service = services.allowlist_service;
     }
+    if (services.event_service)
+    {
+        if (init_event_service(wsrep_->dlh, services.event_service))
+        {
+            wsrep::log_warning() << "Failed to initialize event service";
+            // provider does not produce events, ignore
+        }
+        else
+        {
+            services_enabled_.event_service = services.event_service;
+        }
+    }
 }
 
 void wsrep::wsrep_provider_v26::deinit_services()
 {
+    if (services_enabled_.event_service)
+        deinit_event_service(wsrep_->dlh);
     if (services_enabled_.tls_service)
         deinit_tls_service(wsrep_->dlh);
     if (services_enabled_.thread_service)

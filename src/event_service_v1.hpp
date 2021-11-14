@@ -17,38 +17,38 @@
  * along with wsrep-lib.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef WSREP_TLS_SERVICE_V1_HPP
-#define WSREP_TLS_SERVICE_V1_HPP
+#ifndef WSREP_EVENT_SERVICE_V1_HPP
+#define WSREP_EVENT_SERVICE_V1_HPP
 
 namespace wsrep
 {
-    class tls_service;
+    class event_service;
     /**
-     * Probe tls_service_v1 support in loaded library.
+     * Probe event_service_v1 support in loaded library.
      *
      * @param dlh Handle returned by dlopen().
      *
      * @return Zero on success, non-zero system error code on failure.
      */
-    int tls_service_v1_probe(void *dlh);
+    int event_service_v1_probe(void *dlh);
 
     /**
-     * Initialize TLS service.
+     * Initialize event service.
      *
      * @param dlh Handle returned by dlopen().
-     * @params tls_service Pointer to wsrep::thread_service implementation.
+     * @params event_service Pointer to wsrep::event_service implementation.
      *
      * @return Zero on success, non-zero system error code on failure.
      */
-    int tls_service_v1_init(void* dlh,
-                            wsrep::tls_service* tls_service);
+    int event_service_v1_init(void* dlh,
+                              wsrep::event_service* event_service);
 
     /**
-     * Deinitialize TLS service.
+     * Deinitialize event service.
      *
      * @param dlh Handler returned by dlopen().
      */
-    void tls_service_v1_deinit(void* dlh);
+    void event_service_v1_deinit(void* dlh);
 }
 
-#endif // WSREP_TLS_SERVICE_V1_HPP
+#endif // WSREP_EVENT_SERVICE_V1_HPP

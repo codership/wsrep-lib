@@ -47,6 +47,7 @@ namespace wsrep
     class thread_service;
     class tls_service;
     class allowlist_service;
+    class event_service;
 
     class stid
     {
@@ -424,10 +425,29 @@ namespace wsrep
             wsrep::thread_service* thread_service;
             wsrep::tls_service* tls_service;
             wsrep::allowlist_service* allowlist_service;
+            wsrep::event_service* event_service;
+
+            // some GCC and clang versions don't support C++11 default
+            // initializers fully, so we need to use explicit constructors
+            // instead:
+            // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=88165
+            // https://bugs.llvm.org/show_bug.cgi?id=36684
             services()
                 : thread_service()
                 , tls_service()
                 , allowlist_service()
+                , event_service()
+            {
+            }
+
+            services(wsrep::thread_service* thr,
+                     wsrep::tls_service*    tls,
+                     wsrep::allowlist_service* all,
+                     wsrep::event_service*  event)
+                : thread_service(thr)
+                , tls_service(tls)
+                , allowlist_service(all)
+                , event_service(event)
             {
             }
         };

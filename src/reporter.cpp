@@ -220,7 +220,7 @@ wsrep::reporter::write_file(double const tstamp)
     if (fd < 0)
     {
         std::cerr << "Reporter could not open temporary file `" << template_
-                  << "': " << strerror(errno) << " (" << errno << ")";
+                  << "': " << strerror(errno) << " (" << errno << ")\n";
         return;
     }
 
@@ -258,7 +258,7 @@ wsrep::reporter::write_file(double const tstamp)
         std::cerr << "Could not write " << str.length()
                   << " bytes to temporary file '"
                   << template_ << "': " << strerror(errno)
-                  << " (" << errno << ")";
+                  << " (" << errno << ")\n";
         return;
     }
 

@@ -668,8 +668,10 @@ int wsrep::server_state::start_sst(const std::string& sst_request,
     if (server_service_.start_sst(sst_request, gtid, bypass))
     {
         lock.lock();
-        wsrep::log_warning() << "SST start failed";
-        state(lock, s_synced);
+        wsrep::log_warning() << "SST preparation failed";
+        // v26 API does not have JOINED event, so in anticipation of SYNCED
+        // we must do it here.
+        state(lock, s_joined);
         ret = 1;
     }
     return ret;
@@ -683,6 +685,8 @@ void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
         wsrep::log_info() << "SST sending failed: " << error;
 
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    // v26 API does not have JOINED event, so in anticipation of SYNCED
+    // we must do it here.
     state(lock, s_joined);
     lock.unlock();
     enum provider::status const retval(provider().sst_sent(gtid, error));
@@ -719,7 +723,6 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
                 assert(init_initialized_);
             }
         }
-        state(lock, s_joined);
         lock.unlock();
 
         if (id_.is_undefined())
@@ -893,7 +896,7 @@ void wsrep::server_state::on_connect(const wsrep::view& view)
 }
 
 void wsrep::server_state::on_primary_view(
-    const wsrep::view& view WSREP_UNUSED,
+    const wsrep::view& view,
     wsrep::high_priority_service* high_priority_service)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
@@ -930,14 +933,7 @@ void wsrep::server_state::on_primary_view(
                 // If server side has already been initialized,
                 // skip directly to s_joined.
                 state(lock, s_initialized);
-                state(lock, s_joined);
             }
-        }
-        else if (state_ == s_joiner)
-        {
-            // Got partiioned from the cluster, got IST and
-            // started applying actions.
-            state(lock, s_joined);
         }
     }
     else
@@ -946,14 +942,7 @@ void wsrep::server_state::on_primary_view(
         {
             state(lock, s_joiner);
         }
-        if (init_initialized_ && state_ != s_joined)
-        {
-            // If server side has already been initialized,
-            // skip directly to s_joined.
-            state(lock, s_joined);
-        }
     }
-
     if (init_initialized_ == false)
     {
         lock.unlock();
@@ -978,27 +967,11 @@ void wsrep::server_state::on_primary_view(
         close_orphaned_sr_transactions(lock, *high_priority_service);
     }
 
-    if (server_service_.sst_before_init())
+    if (state(lock) < s_joined &&
+        view.state_id().seqno() >= connected_gtid().seqno())
     {
-        if (state_ == s_initialized)
-        {
-            state(lock, s_joined);
-            if (init_synced_)
-            {
-                state(lock, s_synced);
-            }
-        }
-    }
-    else
-    {
-        if (state_ == s_joiner)
-        {
-            state(lock, s_joined);
-            if (init_synced_)
-            {
-                state(lock, s_synced);
-            }
-        }
+        // If we progressed beyond connected seqno, it means we have full state
+        state(lock, s_joined);
     }
 }
 
@@ -1079,13 +1052,14 @@ void wsrep::server_state::on_sync()
         {
         case s_synced:
             break;
-        case s_connected:
-            state(lock, s_joiner);
-            WSREP_FALLTHROUGH;
-        case s_joiner:
-            state(lock, s_initializing);
+        case s_connected:                 // Seed node path: provider becomes
+            state(lock, s_joiner);        // synced with itself before anything
+            WSREP_FALLTHROUGH;            // else. Then goes DB initialization.
+        case s_joiner:                    // |
+            state(lock, s_initializing);  // V
             break;
         case s_donor:
+            assert(false); // this should never happen
             state(lock, s_joined);
             state(lock, s_synced);
             break;
@@ -1352,14 +1326,14 @@ void wsrep::server_state::state(
     assert(lock.owns_lock());
     static const char allowed[n_states_][n_states_] =
         {
-            /* dis, ing, ized, cted, jer, jed, dor, sed, ding */
+            /* dis, ing, ized, cted, jer, jed, dor, sed, ding to/from */
             {  0,   1,   0,    1,    0,   0,   0,   0,   0}, /* dis */
             {  1,   0,   1,    0,    0,   0,   0,   0,   1}, /* ing */
             {  1,   0,   0,    1,    0,   1,   0,   0,   1}, /* ized */
             {  1,   0,   0,    1,    1,   0,   0,   1,   1}, /* cted */
             {  1,   1,   0,    0,    0,   1,   0,   0,   1}, /* jer */
             {  1,   0,   0,    1,    0,   0,   1,   1,   1}, /* jed */
-            {  1,   0,   0,    1,    0,   1,   0,   1,   1}, /* dor */
+            {  1,   0,   0,    1,    0,   1,   0,   0,   1}, /* dor */
             {  1,   0,   0,    1,    0,   1,   1,   0,   1}, /* sed */
             {  1,   0,   0,    0,    0,   0,   0,   0,   0}  /* ding */
         };

@@ -76,6 +76,8 @@ wsrep::reporter::substate_map(enum wsrep::server_state::state const state)
             return s_disconnected_initializing;
         else if (s_joining_sst == state_)
             return s_joining_initializing;
+        else if (s_joining_initializing == state_)
+            return s_joining_initializing; // continuation
         else
         {
             assert(0);
@@ -87,6 +89,8 @@ wsrep::reporter::substate_map(enum wsrep::server_state::state const state)
             return s_disconnected_initialized;
         else if (s_joining_initializing == state_)
             return s_joining_ist;
+        else if (s_joining_ist == state_)
+            return s_joining_ist; // continuation
         else
         {
             assert(0);

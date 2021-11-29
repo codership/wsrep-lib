@@ -804,21 +804,6 @@ void wsrep::server_state::initialized()
     }
 }
 
-void wsrep::server_state::last_committed_gtid(const wsrep::gtid& gtid)
-{
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    assert(last_committed_gtid_.is_undefined() ||
-           last_committed_gtid_.seqno() + 1 == gtid.seqno());
-    last_committed_gtid_ = gtid;
-    cond_.notify_all();
-}
-
-wsrep::gtid wsrep::server_state::last_committed_gtid() const
-{
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    return last_committed_gtid_;
-}
-
 enum wsrep::provider::status
 wsrep::server_state::wait_for_gtid(const wsrep::gtid& gtid, int timeout)
     const

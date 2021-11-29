@@ -388,16 +388,6 @@ namespace wsrep
         const wsrep::view& current_view() const { return current_view_; }
 
         /**
-         * Set last committed GTID.
-         */
-        void last_committed_gtid(const wsrep::gtid&);
-        /**
-         * Return the last committed GTID known to be committed
-         * on server.
-         */
-        wsrep::gtid last_committed_gtid() const;
-
-        /**
          * Wait until all the write sets up to given GTID have been
          * committed.
          *
@@ -643,7 +633,6 @@ namespace wsrep
             , connected_gtid_()
             , previous_primary_view_()
             , current_view_()
-            , last_committed_gtid_()
             , rollback_event_queue_()
         { }
 
@@ -725,7 +714,6 @@ namespace wsrep
         wsrep::gtid connected_gtid_;
         wsrep::view previous_primary_view_;
         wsrep::view current_view_;
-        wsrep::gtid last_committed_gtid_;
         std::deque<wsrep::transaction_id> rollback_event_queue_;
     };
 

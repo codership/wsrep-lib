@@ -647,7 +647,6 @@ int wsrep::transaction::after_commit()
     assert(ret == 0);
     state(lock, s_committed);
 
-    // client_state_.server_state().last_committed_gtid(ws_meta.gitd());
     debug_log_state("after_commit_leave");
     return ret;
 }

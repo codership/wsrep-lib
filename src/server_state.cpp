@@ -731,6 +731,16 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
 
         gtid = server_service_.get_position(cs);
         wsrep::log_info() << "Recovered position from storage: " << gtid;
+
+        lock.lock();
+        if (gtid.seqno() >= connected_gtid().seqno())
+        {
+            /* Now the node has all the data the cluster has: part in
+             * storage, part in replication event queue. */
+            state(lock, s_joined);
+        }
+        lock.unlock();
+
         wsrep::view const v(server_service_.get_view(cs, id_));
         wsrep::log_info() << "Recovered view from SST:\n" << v;
 
@@ -802,21 +812,6 @@ void wsrep::server_state::initialized()
         state(lock, s_initializing);
         state(lock, s_initialized);
     }
-}
-
-void wsrep::server_state::last_committed_gtid(const wsrep::gtid& gtid)
-{
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    assert(last_committed_gtid_.is_undefined() ||
-           last_committed_gtid_.seqno() + 1 == gtid.seqno());
-    last_committed_gtid_ = gtid;
-    cond_.notify_all();
-}
-
-wsrep::gtid wsrep::server_state::last_committed_gtid() const
-{
-    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    return last_committed_gtid_;
 }
 
 enum wsrep::provider::status

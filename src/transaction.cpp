@@ -235,6 +235,7 @@ int wsrep::transaction::assign_read_view(const wsrep::gtid* const gtid)
 
 int wsrep::transaction::append_key(const wsrep::key& key)
 {
+    assert(active());
     try
     {
         debug_log_key_append(key);
@@ -250,7 +251,7 @@ int wsrep::transaction::append_key(const wsrep::key& key)
 
 int wsrep::transaction::append_data(const wsrep::const_buffer& data)
 {
-
+    assert(active());
     return provider().append_data(ws_handle_, data);
 }
 

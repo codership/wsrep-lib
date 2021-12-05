@@ -163,5 +163,5 @@ void db::server::log_state_change(enum wsrep::server_state::state from,
                                   enum wsrep::server_state::state to)
 {
     wsrep::log_info() << "State changed " << from << " -> " << to;
-    reporter_.report_state(to, 0);
+    reporter_.report_state(to);
 }

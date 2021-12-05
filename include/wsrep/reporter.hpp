@@ -43,11 +43,19 @@ namespace wsrep
 
         virtual ~reporter();
 
-        // indefinite progress value
-        static float constexpr indefinite = -1.0f;
+        void report_state(enum server_state::state state);
 
-        void report_state(enum server_state::state state,
-                          float progress = indefinite);
+        /**
+         * Report progres in the form of a JSON string (all values integers):
+         * {
+         *     "from":       FROM,       // from wsrep API state number
+         *     "to":         TO,         // to wsrep API state number
+         *     "total":      TOTAL,      // total work to do
+         *     "done":       DONE,       // work already done
+         *     "indefinite": INDEFINITE  // indefinite value of work constant
+         * }
+         */
+        void report_progress(const std::string& json);
 
         enum log_level
         {
@@ -80,9 +88,9 @@ namespace wsrep
 
         wsrep::mutex&       mutex_;
         std::string const   file_name_;
+        std::string         progress_;
         char*               template_;
         substates           state_;
-        float               progress_;
         bool                initialized_;
 
         typedef struct {

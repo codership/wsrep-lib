@@ -33,6 +33,26 @@
 
 static std::string const TEMP_EXTENSION(".XXXXXX");
 
+static std::string make_progress_string(int const from, int const to,
+                                        int const total,int const done,
+                                        int const indefinite)
+{
+    std::ostringstream os;
+
+    os << "{ \"from\": "     << from       << ", "
+       << "\"to\": "         << to         << ", "
+       << "\"total\": "      << total      << ", "
+       << "\"done\": "       << done       << ", "
+       << "\"indefinite\": " << indefinite << " }";
+
+    return os.str();
+}
+
+static std::string const indefinite_progress
+    (make_progress_string(-1, -1, -1, -1, -1));
+static std::string const steady_state
+    (make_progress_string(-1, -1, 0, 0, -1));
+
 static inline double
 timestamp()
 {
@@ -46,9 +66,9 @@ wsrep::reporter::reporter(wsrep::mutex&      mutex,
                           size_t const       max_msg)
     : mutex_(mutex)
     , file_name_(file_name)
+    , progress_(indefinite_progress)
     , template_(new char [file_name_.length() + TEMP_EXTENSION.length() + 1])
     , state_(wsrep::reporter::s_disconnected_disconnected)
-    , progress_(indefinite)
     , initialized_(false)
     , err_msg_()
     , warn_msg_()
@@ -114,48 +134,6 @@ wsrep::reporter::substate_map(enum wsrep::server_state::state const state)
     default:
         assert(0);
         return state_;
-    }
-}
-
-static float const SST_SHARE  = 0.5f; // SST share of JOINING progress
-static float const INIT_SHARE = 0.1f; // initialization share of JOINING progress
-static float const IST_SHARE  = (1.0f - SST_SHARE - INIT_SHARE); // IST share
-
-float
-wsrep::reporter::progress_map(float const progress) const
-{
-    assert(progress >= 0.0f);
-    assert(progress <= 1.0f);
-
-    switch (state_)
-    {
-    case s_disconnected_disconnected:
-        return indefinite;
-    case s_disconnected_initializing:
-        return indefinite;
-    case s_disconnected_initialized:
-        return indefinite;
-    case s_connected_waiting:
-        return indefinite;
-    case s_joining_initialized:
-        return progress;
-    case s_joining_sst:
-        return progress * SST_SHARE;
-    case s_joining_initializing:
-        return SST_SHARE + progress * INIT_SHARE;
-    case s_joining_ist:
-        return SST_SHARE + INIT_SHARE + progress * IST_SHARE;
-    case s_joined_syncing:
-        return progress;
-    case s_synced_running:
-        return 1.0;
-    case s_donor_sending:
-        return progress;
-    case s_disconnecting_disconnecting:
-        return indefinite;
-    default:
-        assert(0);
-        return progress;
     }
 }
 
@@ -250,8 +228,7 @@ wsrep::reporter::write_file(double const tstamp)
     os << "\t\"status\": {\n";
     os << "\t\t\"state\": \"" << strings[state_].state << "\",\n";
     os << "\t\t\"comment\": \"" << strings[state_].comment << "\",\n";
-    os << "\t\t\"progress\": " << std::showpoint << std::setprecision(6)
-       << progress_ << "\n";
+    os << "\t\t\"progress\": " << progress_ << "\n";
     os << "\t}\n";
     os << "}\n";
 
@@ -270,13 +247,8 @@ wsrep::reporter::write_file(double const tstamp)
 }
 
 void
-wsrep::reporter::report_state(enum server_state::state const s, float const p)
+wsrep::reporter::report_state(enum server_state::state const s)
 {
-    assert(p >= -1);
-    assert(p <= 1);
-
-    bool flush(false);
-
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
 
     substates const state(substate_map(s));
@@ -284,22 +256,29 @@ wsrep::reporter::report_state(enum server_state::state const s, float const p)
     if (state != state_)
     {
         state_ = state;
-        flush = true;
-    }
 
-    float const progress(progress_map(p));
-    assert(progress >= -1);
-    assert(progress <= 1);
+        if (state_ == s_synced_running)
+            progress_ = steady_state;
+        else
+            progress_ = indefinite_progress;
 
-    if (progress != progress_)
-    {
-        progress_ = progress;
-        flush = true;
-    }
-
-    if (flush)
-    {
         write_file(timestamp());
+    }
+}
+
+void
+wsrep::reporter::report_progress(const std::string& json)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+
+    if (json != progress_)
+    {
+        if (state_ != s_synced_running)
+        {
+            // ignore any progress in SYNCED state
+            progress_ = json;
+            write_file(timestamp());
+        }
     }
 }
 

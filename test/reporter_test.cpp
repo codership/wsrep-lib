@@ -40,6 +40,22 @@ timestamp()
     return (double(time.tv_sec) + double(time.tv_nsec)*1.0e-9);
 }
 
+static std::string make_progress_string(int const from, int const to,
+                                        int const total,int const done,
+                                        int const indefinite)
+{
+    std::ostringstream os;
+
+    os << "{ \"from\": "     << from       << ", "
+       << "\"to\": "         << to         << ", "
+       << "\"total\": "      << total      << ", "
+       << "\"done\": "       << done       << ", "
+       << "\"indefinite\": " << indefinite << " }";
+
+    return os.str();
+}
+
+
 static json::value
 read_file(const char* const filename)
 {
@@ -71,6 +87,52 @@ struct logs
     std::deque<std::string> msg_;
 };
 
+struct progress
+{
+    int from_;
+    int to_;
+    int total_;
+    int done_;
+    int indefinite_;
+
+    bool indefinite() const { return total_ == indefinite_; }
+    bool steady()     const { return total_ == 0; }
+    progress(int const from, int const to, int const total, int const done,
+        int const indefinite)
+        : from_(from)
+        , to_(to)
+        , total_(total)
+        , done_(done)
+        , indefinite_(indefinite)
+    {}
+};
+
+static bool
+operator==(const progress& left, const progress& right)
+{
+    if (left.indefinite() && right.indefinite()) return true;
+    if (left.steady() && right.steady()) return true;
+
+    return (left.from_       == right.from_ &&
+            left.to_         == right.to_ &&
+            left.total_      == right.total_ &&
+            left.done_       == right.done_ &&
+            left.indefinite_ == right.indefinite_);
+}
+
+static bool
+operator!=(const progress& left, const progress& right)
+{
+    return !(left == right);
+}
+
+static std::ostream&
+operator<<(std::ostream& os, const progress& p)
+{
+    os << make_progress_string(p.from_, p.to_, p.total_, p.done_,p.indefinite_);
+    return os;
+}
+
 struct result
 {
     logs errors_;
@@ -79,7 +141,7 @@ struct result
     {
         std::string state_;
         std::string comment_;
-        float       progress_;
+        progress    progress_;
     } status_;
 };
 
@@ -137,15 +199,31 @@ parse_result(const json::value& value, struct result& res,
         return;
     }
     case json::kind::uint64:
-        return;
+        WSREP_FALLTHROUGH;
     case json::kind::int64:
+        if (path == ".status.progress.from")
+        {
+            res.status_.progress_.from_ = int(value.get_int64());
+        }
+        else if (path == ".status.progress.to")
+        {
+            res.status_.progress_.to_ = int(value.get_int64());
+        }
+        else if (path == ".status.progress.total")
+        {
+            res.status_.progress_.total_ = int(value.get_int64());
+        }
+        else if (path == ".status.progress.done")
+        {
+            res.status_.progress_.done_ = int(value.get_int64());
+        }
+        else if (path == ".status.progress.indefinite")
+        {
+            res.status_.progress_.indefinite_ = int(value.get_int64());
+        }
         return;
     case json::kind::double_:
-        if (path == ".status.progress")
-        {
-            res.status_.progress_ = float(value.get_double());
-        }
-        else if (path == ".errors.[].timestamp")
+        if (path == ".errors.[].timestamp")
         {
             res.errors_.tstamp_.push_back(value.get_double());
         }
@@ -270,8 +348,11 @@ print(const result& left, const result& right, size_t it)
 static const char*
 const REPORT = "report.json";
 
-static auto
-const indefinite(wsrep::reporter::indefinite);
+static progress
+const indefinite(-1, -1, -1, -1, -1);
+
+static progress
+const steady(-1, -1, 0, 0, -1);
 
 static struct logs
 const LOGS_INIT = { std::deque<double>(), std::deque<std::string>() };
@@ -391,7 +472,7 @@ BOOST_AUTO_TEST_CASE(state_test)
           { "CONNECTED",     "Waiting",         indefinite }}},
         {{ server_state::s_joiner,        0 },
          { ERRS_INIT, LOGS_INIT,
-          { "JOINING",       "Receiving state", 0.0f       }}},
+          { "JOINING",       "Receiving state", indefinite }}},
         {{ server_state::s_disconnecting, 0 },
          { ERRS_INIT, LOGS_INIT,
           { "DISCONNECTING", "Disconnecting",   indefinite }}},
@@ -403,28 +484,28 @@ BOOST_AUTO_TEST_CASE(state_test)
           { "CONNECTED",     "Waiting",         indefinite }}},
         {{ server_state::s_joiner,        0 },
          { ERRS_INIT, LOGS_INIT,
-          { "JOINING",       "Receiving SST",   0.0f       }}},
+          { "JOINING",       "Receiving SST",   indefinite }}},
         {{ server_state::s_initializing,  0 },
          { ERRS_INIT, LOGS_INIT,
-          { "JOINING",       "Initializing",    0.5f       }}},
+          { "JOINING",       "Initializing",    indefinite }}},
         {{ server_state::s_initialized,   0 },
          { ERRS_INIT, LOGS_INIT,
-          { "JOINING",       "Receiving IST",   0.6f       }}},
+          { "JOINING",       "Receiving IST",   indefinite }}},
         {{ server_state::s_joined,        0 },
          { ERRS_INIT, LOGS_INIT,
-          { "JOINED",        "Syncing",         0.0f       }}},
+          { "JOINED",        "Syncing",         indefinite }}},
         {{ server_state::s_synced,        0 },
          { ERRS_INIT, LOGS_INIT,
-          { "SYNCED",        "Operational",     1.0f       }}},
+          { "SYNCED",        "Operational",     steady     }}},
         {{ server_state::s_donor,         0 },
          { ERRS_INIT, LOGS_INIT,
-          { "DONOR",         "Donating SST",    0.0f       }}},
+          { "DONOR",         "Donating SST",    indefinite }}},
         {{ server_state::s_joined,        0 },
          { ERRS_INIT, LOGS_INIT,
-          { "JOINED",        "Syncing",         0.0f       }}},
+          { "JOINED",        "Syncing",         indefinite }}},
         {{ server_state::s_synced,        0 },
          { ERRS_INIT, LOGS_INIT,
-          { "SYNCED",        "Operational",     1.0f       }}},
+          { "SYNCED",        "Operational",     steady     }}},
         {{ server_state::s_disconnecting, 0 },
          { ERRS_INIT, LOGS_INIT,
           { "DISCONNECTING", "Disconnecting",   indefinite }}},
@@ -434,7 +515,7 @@ BOOST_AUTO_TEST_CASE(state_test)
 
     for (auto i(tests.begin()); i != tests.end(); ++i)
     {
-        rep.report_state(i->input.state, i->input.progress);
+        rep.report_state(i->input.state);
         auto value = read_file(REPORT);
         result res(RES_INIT);
         parse_result(value, res);
@@ -454,12 +535,17 @@ BOOST_AUTO_TEST_CASE(progress_test)
     double const      warn_tstamp(timestamp());
     std::string const warn_msg("Warn!");
 
+    static progress const progress5_0(-1, -1, 5, 0, -1);
+    static progress const progress5_2(-1, -1, 5, 2, -1);
+    static progress const progress5_5(-1, -1, 5, 5, -1);
+
     struct test
     {
         struct
         {
             enum wsrep::server_state::state state;
-            float progress;
+            int total;
+            int done;
         } input;
         struct result output;
     };
@@ -468,70 +554,77 @@ BOOST_AUTO_TEST_CASE(progress_test)
 
     std::vector<test> tests =
     {
-        {{ server_state::s_initialized,   0 },
+        {{ server_state::s_initialized,  -1, -1 },
          { LOGS_INIT, WARN_INIT,
-          { "DISCONNECTED",  "Connecting",      indefinite }}},
-        {{ server_state::s_connected,     0 },
+          { "DISCONNECTED", "Connecting",      indefinite  }}},
+        {{ server_state::s_connected,    -1, -1 },
          { LOGS_INIT, WARN_INIT,
-          { "CONNECTED",     "Waiting",         indefinite }}},
-        {{ server_state::s_joiner,        0 },
+          { "CONNECTED",    "Waiting",         indefinite  }}},
+        {{ server_state::s_joiner,        5,  0 },
          { LOGS_INIT, WARN_INIT,
-          { "JOINING",       "Receiving state", 0.0f       }}},
-        {{ server_state::s_joiner,        0.5 },
+          { "JOINING",      "Receiving state", progress5_0 }}},
+        {{ server_state::s_joiner,        5,  2 },
          { LOGS_INIT, WARN_INIT,
-          { "JOINING",       "Receiving state", 0.5f       }}},
-        {{ server_state::s_disconnected,  0 },
+          { "JOINING",      "Receiving state", progress5_2 }}},
+        {{ server_state::s_disconnected, -1, -1 },
          { LOGS_INIT, WARN_INIT,
-          { "DISCONNECTED",  "Disconnected",    indefinite }}},
-        {{ server_state::s_connected,     0 },
+          { "DISCONNECTED", "Disconnected",    indefinite  }}},
+        {{ server_state::s_connected,    -1, -1 },
          { LOGS_INIT, WARN_INIT,
-          { "CONNECTED",     "Waiting",         indefinite }}},
-        {{ server_state::s_joiner,        0 },
+          { "CONNECTED",    "Waiting",         indefinite  }}},
+        {{ server_state::s_joiner,        5,  0 },
          { LOGS_INIT, WARN_INIT,
-          { "JOINING",       "Receiving SST",   0.0f       }}},
-        {{ server_state::s_joiner,        0.5 },
+          { "JOINING",      "Receiving SST",   progress5_0 }}},
+        {{ server_state::s_joiner,        5,  2 },
          { LOGS_INIT, WARN_INIT,
-          { "JOINING",       "Receiving SST",   0.25f      }}},
-        {{ server_state::s_initializing,  0 },
+          { "JOINING",      "Receiving SST",   progress5_2 }}},
+        {{ server_state::s_joiner,        5,  5 },
          { LOGS_INIT, WARN_INIT,
-          { "JOINING",       "Initializing",    0.5f       }}},
-        {{ server_state::s_initializing,  0.5 },
+          { "JOINING",      "Receiving SST",   progress5_5 }}},
+        {{ server_state::s_initializing, -1, -1 },
          { LOGS_INIT, WARN_INIT,
-          { "JOINING",       "Initializing",    0.55f      }}},
-        {{ server_state::s_initialized,   0 },
+          { "JOINING",      "Initializing",    indefinite  }}},
+        {{ server_state::s_initializing,  5,  2 },
          { LOGS_INIT, WARN_INIT,
-          { "JOINING",       "Receiving IST",   0.6f       }}},
-        {{ server_state::s_initialized,   0.5 },
+          { "JOINING",      "Initializing",    progress5_2 }}},
+        {{ server_state::s_initialized,   5,  0 },
          { LOGS_INIT, WARN_INIT,
-          { "JOINING",       "Receiving IST",   0.8f       }}},
-        {{ server_state::s_joined,        0 },
+          { "JOINING",      "Receiving IST",   progress5_0 }}},
+        {{ server_state::s_initialized,   5, 5 },
          { LOGS_INIT, WARN_INIT,
-          { "JOINED",        "Syncing",         0.0f       }}},
-        {{ server_state::s_joined,        0.5 },
+          { "JOINING",      "Receiving IST",   progress5_5 }}},
+        {{ server_state::s_joined,       -1, -1 },
          { LOGS_INIT, WARN_INIT,
-          { "JOINED",        "Syncing",         0.5f       }}},
-        {{ server_state::s_synced,        0 },
+          { "JOINED",       "Syncing",         indefinite  }}},
+        {{ server_state::s_joined,        5, 2 },
          { LOGS_INIT, WARN_INIT,
-          { "SYNCED",        "Operational",     1.0f       }}},
-        {{ server_state::s_donor,         0 },
+          { "JOINED",       "Syncing",         progress5_2 }}},
+        {{ server_state::s_synced,       -1, -1 },
          { LOGS_INIT, WARN_INIT,
-          { "DONOR",         "Donating SST",    0.0f       }}},
-        {{ server_state::s_donor,         0.5 },
+          { "SYNCED",       "Operational",     steady      }}},
+        {{ server_state::s_donor,        -1, -1 },
          { LOGS_INIT, WARN_INIT,
-          { "DONOR",         "Donating SST",    0.5f       }}},
-        {{ server_state::s_joined,        0 },
+          { "DONOR",        "Donating SST",    indefinite  }}},
+        {{ server_state::s_donor,         5,  0 },
          { LOGS_INIT, WARN_INIT,
-          { "JOINED",        "Syncing",         0.0f       }}},
-        {{ server_state::s_synced,        0 },
+          { "DONOR",        "Donating SST",    progress5_0 }}},
+        {{ server_state::s_joined,       -1, -1 },
          { LOGS_INIT, WARN_INIT,
-          { "SYNCED",        "Operational",     1.0f       }}},
+          { "JOINED",       "Syncing",         indefinite }}},
+        {{ server_state::s_synced,       -1, -1 },
+         { LOGS_INIT, WARN_INIT,
+          { "SYNCED",       "Operational",     steady     }}},
     };
 
     rep.report_log_msg(wsrep::reporter::warning, warn_msg, warn_tstamp);
 
     for (auto i(tests.begin()); i != tests.end(); ++i)
     {
-        rep.report_state(i->input.state, i->input.progress);
+        rep.report_state(i->input.state);
+        if (i->input.total >= 0)
+            rep.report_progress(make_progress_string(-1, -1,
+                                                 i->input.total, i->input.done,
+                                                 -1));
         auto value = read_file(REPORT);
         result res(RES_INIT);
         parse_result(value, res);

@@ -501,13 +501,28 @@ int wsrep::server_state::load_provider(
                                                provider_spec,
                                                provider_options,
                                                services);
+    if (provider_)
+    {
+        owns_provider_ = true;
+    }
     return (provider_ ? 0 : 1);
+}
+
+int wsrep::server_state::set_provider(wsrep::provider* provider)
+{
+    if (provider_)
+    {
+        return 1;
+    }
+    provider_ = provider;
+    return 0;
 }
 
 void wsrep::server_state::unload_provider()
 {
     delete provider_;
     provider_ = 0;
+    owns_provider_ = false;
 }
 
 int wsrep::server_state::connect(const std::string& cluster_name,
@@ -542,7 +557,10 @@ int wsrep::server_state::disconnect()
 
 wsrep::server_state::~server_state()
 {
-    delete provider_;
+    if (owns_provider_)
+    {
+        delete provider_;
+    }
 }
 
 std::vector<wsrep::provider::status_variable>

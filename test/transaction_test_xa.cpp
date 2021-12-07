@@ -1,11 +1,28 @@
+/*
+ * Copyright (C) 2019-2021 Codership Oy <info@codership.com>
+ *
+ * This file is part of wsrep-lib.
+ *
+ * Wsrep-lib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * Wsrep-lib is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with wsrep-lib.  If not, see <https://www.gnu.org/licenses/>.
+ */
 #include "client_state_fixture.hpp"
 #include <iostream>
 
 //
 // Test a successful XA transaction lifecycle
 //
-BOOST_FIXTURE_TEST_CASE(transaction_xa,
-                        replicating_client_fixture_sync_rm)
+BOOST_FIXTURE_TEST_CASE(transaction_xa, replicating_client_fixture_sync_rm)
 {
     wsrep::xid xid(1, 9, 0, "test xid");
 
@@ -25,8 +42,8 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_prepared);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     // XA START + PREPARE fragment
-    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
-    BOOST_REQUIRE(sc.provider().fragments() == 1);
+    BOOST_REQUIRE(sc.mock_provider().start_fragments() == 1);
+    BOOST_REQUIRE(sc.mock_provider().fragments() == 1);
 
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committing);
@@ -37,8 +54,8 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
     BOOST_REQUIRE(cc.after_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committed);
     // XA PREPARE and XA COMMIT fragments
-    BOOST_REQUIRE(sc.provider().fragments() == 2);
-    BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
+    BOOST_REQUIRE(sc.mock_provider().fragments() == 2);
+    BOOST_REQUIRE(sc.mock_provider().commit_fragments() == 1);
 
     BOOST_REQUIRE(cc.after_statement() == 0);
     BOOST_REQUIRE(tc.active() == false);
@@ -46,7 +63,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
 }
-
 
 //
 // Test detaching of XA transactions
@@ -60,7 +76,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_commit_by_xid,
     cc1.assign_xid(xid);
     cc1.before_prepare();
     cc1.after_prepare();
-    BOOST_REQUIRE(sc.provider().fragments() == 1);
+    BOOST_REQUIRE(sc.mock_provider().fragments() == 1);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
 
     cc1.xa_detach();
@@ -72,7 +88,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_commit_by_xid,
     cc2.assign_xid(xid);
     BOOST_REQUIRE(cc2.client_state::commit_by_xid(xid) == 0);
     BOOST_REQUIRE(cc2.after_statement() == 0);
-    BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
+    BOOST_REQUIRE(sc.mock_provider().commit_fragments() == 1);
 
     // xa_detach() creates a streaming applier, clean it up
     wsrep::mock_high_priority_service* hps(
@@ -94,7 +110,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_rollback_by_xid,
     cc1.assign_xid(xid);
     cc1.before_prepare();
     cc1.after_prepare();
-    BOOST_REQUIRE(sc.provider().fragments() == 1);
+    BOOST_REQUIRE(sc.mock_provider().fragments() == 1);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
 
     cc1.xa_detach();
@@ -106,7 +122,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_rollback_by_xid,
     cc2.assign_xid(xid);
     BOOST_REQUIRE(cc2.rollback_by_xid(xid) == 0);
     BOOST_REQUIRE(cc2.after_statement() == 0);
-    BOOST_REQUIRE(sc.provider().rollback_fragments() == 1);
+    BOOST_REQUIRE(sc.mock_provider().rollback_fragments() == 1);
 
     // xa_detach() creates a streaming applier, clean it up
     wsrep::mock_high_priority_service* hps(
@@ -118,7 +134,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_rollback_by_xid,
     sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
     server_service.release_high_priority_service(hps);
 }
-
 
 //
 // Test XA replay
@@ -214,8 +229,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_replay_after_command_after_result,
 //
 // Test a successful XA transaction lifecycle (applying side)
 //
-BOOST_FIXTURE_TEST_CASE(transaction_xa_applying,
-                        applying_client_fixture)
+BOOST_FIXTURE_TEST_CASE(transaction_xa_applying, applying_client_fixture)
 {
     wsrep::xid xid(1, 9, 0, "test xid");
 
@@ -249,8 +263,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_applying,
 //
 // Test a successful XA transaction lifecycle
 //
-BOOST_FIXTURE_TEST_CASE(transaction_xa_sr,
-                        streaming_client_fixture_byte)
+BOOST_FIXTURE_TEST_CASE(transaction_xa_sr, streaming_client_fixture_byte)
 {
     wsrep::xid xid(1, 9, 0, "test xid");
 
@@ -261,8 +274,8 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_sr,
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     // XA START fragment with data
-    BOOST_REQUIRE(sc.provider().fragments() == 1);
-    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
+    BOOST_REQUIRE(sc.mock_provider().fragments() == 1);
+    BOOST_REQUIRE(sc.mock_provider().start_fragments() == 1);
 
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
@@ -274,7 +287,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_sr,
     BOOST_REQUIRE(cc.after_prepare() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_prepared);
     // XA PREPARE fragment
-    BOOST_REQUIRE(sc.provider().fragments() == 2);
+    BOOST_REQUIRE(sc.mock_provider().fragments() == 2);
 
     BOOST_REQUIRE(cc.before_commit() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committing);
@@ -290,7 +303,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_sr,
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
     // XA START fragment (with data), XA PREPARE fragment and XA COMMIT fragment
-    BOOST_REQUIRE(sc.provider().fragments() == 3);
-    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
-    BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
+    BOOST_REQUIRE(sc.mock_provider().fragments() == 3);
+    BOOST_REQUIRE(sc.mock_provider().start_fragments() == 1);
+    BOOST_REQUIRE(sc.mock_provider().commit_fragments() == 1);
 }

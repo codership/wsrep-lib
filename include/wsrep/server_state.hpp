@@ -299,6 +299,16 @@ namespace wsrep
                           const wsrep::provider::services& services
                           = wsrep::provider::services());
 
+        /**
+         * Set provider.
+         *
+         * @param Pointer to provider.
+         *
+         * @return Zero in case of success, non-zero in case of failure.
+         */
+        int set_provider(wsrep::provider* provider);
+
+        /** Unload/unset provider. */
         void unload_provider();
 
         bool is_provider_loaded() const { return provider_ != 0; }
@@ -310,12 +320,8 @@ namespace wsrep
          *
          * @throw wsrep::runtime_error if provider has not been loaded
          *
-         * @todo This should not be virtual. However, currently there
-         *       is no mechanism for tests and integrations to provide
-         *       their own provider implementations, so this is kept virtual
-         *       for time being.
          */
-        virtual wsrep::provider& provider() const
+        wsrep::provider& provider() const
         {
             if (provider_ == 0)
             {
@@ -622,6 +628,7 @@ namespace wsrep
             , streaming_appliers_()
             , streaming_appliers_recovered_()
             , provider_()
+            , owns_provider_()
             , name_(name)
             , id_(wsrep::id::undefined())
             , incoming_address_(incoming_address)
@@ -703,6 +710,7 @@ namespace wsrep
         streaming_appliers_map streaming_appliers_;
         bool streaming_appliers_recovered_;
         wsrep::provider* provider_;
+        bool owns_provider_; /** True if the provider was loaded by this. */
         std::string name_;
         wsrep::id id_;
         std::string incoming_address_;

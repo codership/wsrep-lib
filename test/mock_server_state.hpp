@@ -246,11 +246,14 @@ namespace wsrep
             , mutex_()
             , cond_()
             , provider_(*this)
-        { }
+        {
+            set_provider(&provider_);
+        }
 
-        wsrep::mock_provider& provider() const WSREP_OVERRIDE
-        { return provider_; }
-
+        wsrep::mock_provider& mock_provider() const
+        {
+            return provider_;
+        }
         // mock connected state for tests without overriding the connect()
         // method.
         int mock_connect(const std::string& own_id,

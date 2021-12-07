@@ -63,9 +63,9 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo,
 
     // There must have been two toi write sets, one with
     // start transaction flag, another with commit flag.
-    BOOST_REQUIRE(sc.provider().toi_write_sets() == 2);
-    BOOST_REQUIRE(sc.provider().toi_start_transaction() == 1);
-    BOOST_REQUIRE(sc.provider().toi_commit() == 1);
+    BOOST_REQUIRE(sc.mock_provider().toi_write_sets() == 2);
+    BOOST_REQUIRE(sc.mock_provider().toi_start_transaction() == 1);
+    BOOST_REQUIRE(sc.mock_provider().toi_commit() == 1);
 }
 
 BOOST_FIXTURE_TEST_CASE(test_local_nbo_cert_failure,
@@ -79,7 +79,7 @@ BOOST_FIXTURE_TEST_CASE(test_local_nbo_cert_failure,
     key.append_key_part("k2", 2);
     wsrep::key_array keys{key};
     std::string data("data");
-    sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
+    sc.mock_provider().certify_result_ = wsrep::provider::error_certification_failed;
     BOOST_REQUIRE(cc.begin_nbo_phase_one(
                       keys,
                       wsrep::const_buffer(data.data(),
@@ -139,9 +139,9 @@ BOOST_FIXTURE_TEST_CASE(test_applying_nbo,
     BOOST_REQUIRE(nbo_cs->toi_mode() == wsrep::client_state::m_undefined);
 
     // There must have been one toi write set with commit flag.
-    BOOST_REQUIRE(sc.provider().toi_write_sets() == 1);
-    BOOST_REQUIRE(sc.provider().toi_start_transaction() == 0);
-    BOOST_REQUIRE(sc.provider().toi_commit() == 1);
+    BOOST_REQUIRE(sc.mock_provider().toi_write_sets() == 1);
+    BOOST_REQUIRE(sc.mock_provider().toi_start_transaction() == 0);
+    BOOST_REQUIRE(sc.mock_provider().toi_commit() == 1);
 }
 
 // This test case operates through server_state object in order to

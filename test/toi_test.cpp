@@ -41,9 +41,9 @@ BOOST_FIXTURE_TEST_CASE(test_toi_mode,
     BOOST_REQUIRE(cc.leave_toi_local(err) == 0);
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_local);
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_undefined);
-    BOOST_REQUIRE(sc.provider().toi_write_sets() == 1);
-    BOOST_REQUIRE(sc.provider().toi_start_transaction() == 1);
-    BOOST_REQUIRE(sc.provider().toi_commit() == 1);
+    BOOST_REQUIRE(sc.mock_provider().toi_write_sets() == 1);
+    BOOST_REQUIRE(sc.mock_provider().toi_start_transaction() == 1);
+    BOOST_REQUIRE(sc.mock_provider().toi_commit() == 1);
 }
 
 BOOST_FIXTURE_TEST_CASE(test_toi_applying,

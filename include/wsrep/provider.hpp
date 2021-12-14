@@ -30,6 +30,7 @@
 #include <cassert>
 #include <cstring>
 
+#include <memory>
 #include <string>
 #include <vector>
 #include <ostream>
@@ -438,11 +439,12 @@ namespace wsrep
          * @param provider_options Initial options to provider
          * @param thread_service Optional thread service implementation.
          */
-        static provider* make_provider(wsrep::server_state&,
-                                       const std::string& provider_spec,
-                                       const std::string& provider_options,
-                                       const wsrep::provider::services& services
-                                       = wsrep::provider::services());
+        static std::unique_ptr<provider> make_provider(
+            wsrep::server_state&,
+            const std::string& provider_spec,
+            const std::string& provider_options,
+            const wsrep::provider::services& services
+            = wsrep::provider::services());
 
     protected:
         wsrep::server_state& server_state_;

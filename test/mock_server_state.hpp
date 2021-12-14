@@ -245,12 +245,26 @@ namespace wsrep
                                   rollback_mode)
             , mutex_()
             , cond_()
-            , provider_(*this)
-        { }
+            , provider_()
+        {
+            set_provider_factory([&](wsrep::server_state&,
+                                     const std::string&,
+                                     const std::string&,
+                                     const wsrep::provider::services&)
+            {
+                // The provider object is destroyed upon server state
+                // destruction, so using a raw pointer is safe.
+                provider_ = new wsrep::mock_provider(*this);
+                return std::unique_ptr<wsrep::provider>(provider_);
+            });
+            assert(load_provider("mock", "") == 0);
+            assert(provider_ != nullptr);
+        }
 
-        wsrep::mock_provider& provider() const WSREP_OVERRIDE
-        { return provider_; }
-
+        wsrep::mock_provider& mock_provider() const
+        {
+            return *provider_;
+        }
         // mock connected state for tests without overriding the connect()
         // method.
         int mock_connect(const std::string& own_id,
@@ -295,7 +309,7 @@ namespace wsrep
     private:
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;
-        mutable wsrep::mock_provider provider_;
+        wsrep::mock_provider* provider_;
     };
 }
 

@@ -240,7 +240,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_applying_1pc_rollback,
                         applying_server_fixture)
 {
     /* make sure default success result is flipped to error_fatal */
-    ss.provider().commit_order_leave_result_ = wsrep::provider::success;
+    ss.mock_provider().commit_order_leave_result_ = wsrep::provider::success;
     hps.fail_next_applying_ = true;
     char buf[1] = { 1 };
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
@@ -255,7 +255,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_applying_2pc_rollback,
                         applying_server_fixture)
 {
     /* make sure default success result is flipped to error_fatal */
-    ss.provider().commit_order_leave_result_ = wsrep::provider::success;
+    ss.mock_provider().commit_order_leave_result_ = wsrep::provider::success;
     hps.do_2pc_ = true;
     hps.fail_next_applying_ = true;
     char buf[1] = { 1 };

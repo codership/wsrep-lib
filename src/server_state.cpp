@@ -502,17 +502,23 @@ int wsrep::server_state::load_provider(
     wsrep::log_info() << "Loading provider " << provider_spec
                       << " initial position: " << initial_position_;
 
-    provider_ = wsrep::provider::make_provider(*this,
-                                               provider_spec,
-                                               provider_options,
-                                               services);
+    provider_ = provider_factory_(*this,
+                                  provider_spec,
+                                  provider_options,
+                                  services);
     return (provider_ ? 0 : 1);
+}
+
+void wsrep::server_state::set_provider_factory(
+    const provider_factory_func& provider_factory)
+{
+    assert(provider_factory);
+    provider_factory_ = provider_factory;
 }
 
 void wsrep::server_state::unload_provider()
 {
-    delete provider_;
-    provider_ = 0;
+    provider_.reset();
 }
 
 int wsrep::server_state::connect(const std::string& cluster_name,
@@ -543,11 +549,6 @@ int wsrep::server_state::disconnect()
         interrupt_state_waiters(lock);
     }
     return provider().disconnect();
-}
-
-wsrep::server_state::~server_state()
-{
-    delete provider_;
 }
 
 std::vector<wsrep::provider::status_variable>

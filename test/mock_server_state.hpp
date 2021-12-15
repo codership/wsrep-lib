@@ -257,7 +257,9 @@ namespace wsrep
                 provider_ = new wsrep::mock_provider(*this);
                 return std::unique_ptr<wsrep::provider>(provider_);
             });
-            assert(load_provider("mock", "") == 0);
+
+            const int ret = load_provider("mock", "");
+            assert(ret == 0);
             assert(provider_ != nullptr);
         }
 

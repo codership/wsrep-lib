@@ -258,7 +258,7 @@ namespace wsrep
                 return std::unique_ptr<wsrep::provider>(provider_);
             });
 
-            const int ret = load_provider("mock", "");
+            const int ret WSREP_UNUSED = load_provider("mock", "");
             assert(ret == 0);
             assert(provider_ != nullptr);
         }

@@ -249,9 +249,9 @@ static int rollback_fragment(wsrep::server_state& server_state,
         {
             if (remove_fragments)
             {
-                ret = high_priority_service.remove_fragments(ws_meta);
-                ret = ret || high_priority_service.commit(ws_handle, ws_meta);
-                ret = ret || (high_priority_service.after_apply(), 0);
+                high_priority_service.remove_fragments(ws_meta);
+                high_priority_service.commit(ws_handle, ws_meta);
+                high_priority_service.after_apply();
             }
             else
             {

@@ -1535,14 +1535,22 @@ int wsrep::transaction::certify_fragment(
         // available to store the fragment. The fragment meta data
         // is updated after certification.
         wsrep::id server_id(client_state_.server_state().id());
-        assert(server_id.is_undefined() == false);
-        if (storage_service.start_transaction(ws_handle_) ||
-            storage_service.append_fragment(
-                server_id,
-                id(),
-                flags(),
-                wsrep::const_buffer(data.data(), data.size()),
-                xid()))
+
+        if (server_id.is_undefined()) {
+            // Server disconnected from cluster, do not
+            // append a fragment with undefined server_id.
+            ret = 1;
+            error = wsrep::e_append_fragment_error;
+        }
+
+        if (ret == 0 &&
+            (storage_service.start_transaction(ws_handle_) ||
+             storage_service.append_fragment(
+                 server_id,
+                 id(),
+                 flags(),
+                 wsrep::const_buffer(data.data(), data.size()),
+                 xid())))
         {
             ret = 1;
             error = wsrep::e_append_fragment_error;

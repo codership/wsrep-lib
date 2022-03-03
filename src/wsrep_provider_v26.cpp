@@ -690,7 +690,7 @@ void wsrep::wsrep_provider_v26::init_services(
     {
         if (init_tls_service(wsrep_->dlh, services.tls_service))
         {
-            throw wsrep::runtime_error("Failed to initialze TLS service");
+            throw wsrep::runtime_error("Failed to initialize TLS service");
         }
         services_enabled_.tls_service = services.tls_service;
     }
@@ -698,7 +698,7 @@ void wsrep::wsrep_provider_v26::init_services(
     {
         if (init_allowlist_service(wsrep_->dlh, services.allowlist_service))
         {
-            throw wsrep::runtime_error("Failed to initialze allowlist service");
+            throw wsrep::runtime_error("Failed to initialize allowlist service");
         }
         services_enabled_.allowlist_service = services.allowlist_service;
     }

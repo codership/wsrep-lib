@@ -992,6 +992,7 @@ wsrep::wsrep_provider_v26::enter_toi(
 
 enum wsrep::provider::status
 wsrep::wsrep_provider_v26::leave_toi(wsrep::client_id client_id,
+                                     const wsrep::ws_meta&,
                                      const wsrep::mutable_buffer& err)
 {
     const wsrep_buf_t err_buf = { err.data(), err.size() };

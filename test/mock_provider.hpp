@@ -260,6 +260,7 @@ namespace wsrep
         }
 
         enum wsrep::provider::status leave_toi(wsrep::client_id,
+                                               const wsrep::ws_meta&,
                                                const wsrep::mutable_buffer&)
             WSREP_OVERRIDE
         { return wsrep::provider::success; }

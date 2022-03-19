@@ -395,7 +395,7 @@ wsrep::client_state::poll_enter_toi(
             // Successfully entered TOI, but the provider reported failure.
             // This may happen for example if certification fails.
             // Leave TOI before proceeding.
-            if (provider().leave_toi(id_, wsrep::mutable_buffer()))
+            if (provider().leave_toi(id_, poll_meta, wsrep::mutable_buffer()))
             {
                 wsrep::log_warning()
                     << "Failed to leave TOI after failure in "
@@ -499,10 +499,12 @@ int wsrep::client_state::leave_toi_local(const wsrep::mutable_buffer& err)
 {
     debug_log_state("leave_toi_local: enter");
     assert(toi_mode_ == m_local);
-    leave_toi_common();
 
+    auto ret = (provider().leave_toi(id_, toi_meta_, err) == provider::success ? 0 : 1);
+    leave_toi_common();
     debug_log_state("leave_toi_local: leave");
-    return (provider().leave_toi(id_, err) == provider::success ? 0 : 1);
+
+    return ret;
 }
 
 void wsrep::client_state::leave_toi_mode()
@@ -619,7 +621,7 @@ int wsrep::client_state::end_nbo_phase_one(const wsrep::mutable_buffer& err)
     assert(mode_ == m_nbo);
     assert(in_toi());
 
-    enum wsrep::provider::status status(provider().leave_toi(id_, err));
+    enum wsrep::provider::status status(provider().leave_toi(id_, toi_meta_, err));
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     int ret;
     switch (status)
@@ -720,7 +722,7 @@ int wsrep::client_state::end_nbo_phase_two(const wsrep::mutable_buffer& err)
     assert(toi_mode_ == m_local);
     assert(in_toi());
     enum wsrep::provider::status status(
-        provider().leave_toi(id_, err));
+        provider().leave_toi(id_, toi_meta_, err));
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     int ret;
     switch (status)

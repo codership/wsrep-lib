@@ -367,6 +367,7 @@ namespace wsrep
          * Leave total order isolation critical section
          */
         virtual enum status leave_toi(wsrep::client_id,
+                                      const wsrep::ws_meta& ws_meta,
                                       const wsrep::mutable_buffer& err) = 0;
 
         /**

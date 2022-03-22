@@ -147,7 +147,8 @@ namespace wsrep
                 logged_view_.capabilities(),
                 my_idx,
                 logged_view_.protocol_version(),
-                logged_view_.members()
+                logged_view_.members(),
+                0
             );
             return my_view;
         }
@@ -292,7 +293,8 @@ namespace wsrep
                                            0,
                                            0,
                                            1,
-                                           members);
+                                           members,
+                                           0);
                 server_state::on_connect(bootstrap_view);
             }
             else

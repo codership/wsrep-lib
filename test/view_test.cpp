@@ -33,7 +33,8 @@ BOOST_AUTO_TEST_CASE(view_test_member_index)
                      0,
                      1,
                      0,
-                     members);
+                     members,
+                     0);
     BOOST_REQUIRE(view.member_index(wsrep::id("1")) == 0);
     BOOST_REQUIRE(view.member_index(wsrep::id("2")) == 1);
     BOOST_REQUIRE(view.member_index(wsrep::id("3")) == 2);
@@ -64,7 +65,8 @@ BOOST_AUTO_TEST_CASE(view_test_equal_membership)
                    0,
                    1,
                    0,
-                   m1);
+                   m1,
+                   0);
 
     wsrep::view v2(wsrep::gtid(wsrep::id("cluster"), wsrep::seqno(1)),
                    wsrep::seqno(1),
@@ -72,7 +74,8 @@ BOOST_AUTO_TEST_CASE(view_test_equal_membership)
                    0,
                    1,
                    0,
-                   m2);
+                   m2,
+                   0);
 
     wsrep::view v3(wsrep::gtid(wsrep::id("cluster"), wsrep::seqno(1)),
                    wsrep::seqno(1),
@@ -80,7 +83,8 @@ BOOST_AUTO_TEST_CASE(view_test_equal_membership)
                    0,
                    1,
                    0,
-                   m3);
+                   m3,
+                   0);
 
     BOOST_REQUIRE(v1.equal_membership(v2));
     BOOST_REQUIRE(v2.equal_membership(v1));
@@ -97,7 +101,8 @@ BOOST_AUTO_TEST_CASE(view_test_is_member)
                      1,
                      0,
                      { wsrep::view::member(wsrep::id("1"), "", ""),
-                       wsrep::view::member(wsrep::id("2"), "", "") });
+                       wsrep::view::member(wsrep::id("2"), "", "") },
+                     0);
 
     BOOST_REQUIRE(view.is_member(wsrep::id("2")));
     BOOST_REQUIRE(view.is_member(wsrep::id("1")));

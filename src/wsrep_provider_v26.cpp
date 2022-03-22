@@ -242,7 +242,7 @@ namespace
                                       sizeof(trx_meta_.stid.node.data)),
                             wsrep::transaction_id(trx_meta_.stid.trx),
                             wsrep::client_id(trx_meta_.stid.conn)),
-                seqno_from_native(trx_meta_.depends_on), flags_);
+                seqno_from_native(trx_meta_.depends_on), flags_, 0);
         }
 
         wsrep_trx_meta* native() { return &trx_meta_; }
@@ -347,7 +347,7 @@ namespace
             map_capabilities_from_native(view_info.capabilities),
             own_idx,
             view_info.proto_ver,
-            members);
+            members, 0);
     }
 
     /////////////////////////////////////////////////////////////////////
@@ -501,7 +501,7 @@ namespace
                         wsrep::transaction_id(meta->stid.trx),
                         wsrep::client_id(meta->stid.conn)),
             wsrep::seqno(seqno_from_native(meta->depends_on)),
-            map_flags_from_native(flags));
+            map_flags_from_native(flags), 0);
         try
         {
             if (high_priority_service->apply(ws_handle, ws_meta, data))

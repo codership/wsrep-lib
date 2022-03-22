@@ -125,21 +125,25 @@ namespace wsrep
             , stid_()
             , depends_on_()
             , flags_()
+            , provider_position_()
         { }
         ws_meta(const wsrep::gtid& gtid,
                 const wsrep::stid& stid,
                 wsrep::seqno depends_on,
-                int flags)
+                int flags,
+                int64_t provider_position)
             : gtid_(gtid)
             , stid_(stid)
             , depends_on_(depends_on)
             , flags_(flags)
+            , provider_position_(provider_position)
         { }
         ws_meta(const wsrep::stid& stid)
             : gtid_()
             , stid_(stid)
             , depends_on_()
             , flags_()
+            , provider_position_()
         { }
         const wsrep::gtid& gtid() const { return gtid_; }
         const wsrep::id& group_id() const
@@ -171,6 +175,8 @@ namespace wsrep
 
         wsrep::seqno depends_on() const { return depends_on_; }
 
+        int64_t provider_position() const { return provider_position_; }
+
         int flags() const { return flags_; }
 
         bool operator==(const ws_meta& other) const
@@ -187,6 +193,8 @@ namespace wsrep
         wsrep::stid stid_;
         wsrep::seqno depends_on_;
         int flags_;
+        /** Field reserved for provider to report its internal position. */
+        int64_t provider_position_;
     };
 
     std::string flags_to_string(int flags);

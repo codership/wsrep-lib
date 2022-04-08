@@ -1193,11 +1193,15 @@ int wsrep::transaction::commit_or_rollback_by_xid(const wsrep::xid& xid,
 void wsrep::transaction::xa_detach()
 {
     debug_log_state("xa_detach enter");
-    assert(state() == s_prepared);
-    wsrep::server_state& server_state(client_state_.server_state());
-    server_state.convert_streaming_client_to_applier(&client_state_);
-    client_service_.store_globals();
-    client_service_.cleanup_transaction();
+    assert(state() == s_prepared ||
+           client_state_.state() == wsrep::client_state::s_quitting);
+    if (state() == s_prepared)
+    {
+        wsrep::server_state& server_state(client_state_.server_state());
+        server_state.convert_streaming_client_to_applier(&client_state_);
+        client_service_.store_globals();
+        client_service_.cleanup_transaction();
+    }
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex_);
     streaming_context_.cleanup();
     state(lock, s_aborting);

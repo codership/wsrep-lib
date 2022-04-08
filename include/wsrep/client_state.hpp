@@ -633,7 +633,7 @@ namespace wsrep
         void xa_detach()
         {
             assert(mode_ == m_local);
-            assert(state_ == s_none || state_ == s_exec);
+            assert(state_ == s_none || state_ == s_exec || state_ == s_quitting);
             transaction_.xa_detach();
         }
 

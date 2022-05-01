@@ -63,6 +63,7 @@ namespace wsrep
         enum wsrep::provider::status
         bf_abort(wsrep::seqno,
                  wsrep::transaction_id,
+                 wsrep::operation_context&,
                  wsrep::seqno&) WSREP_OVERRIDE;
         enum wsrep::provider::status
         rollback(const wsrep::transaction_id) WSREP_OVERRIDE;

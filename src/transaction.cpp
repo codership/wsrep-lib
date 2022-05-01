@@ -964,7 +964,8 @@ void wsrep::transaction::after_applying()
 
 bool wsrep::transaction::bf_abort(
     wsrep::unique_lock<wsrep::mutex>& lock,
-    wsrep::seqno bf_seqno)
+    wsrep::seqno bf_seqno,
+    wsrep::operation_context& victim_ctx)
 {
     bool ret(false);
     const enum wsrep::transaction::state state_at_enter(state());
@@ -989,7 +990,7 @@ bool wsrep::transaction::bf_abort(
             wsrep::seqno victim_seqno;
             enum wsrep::provider::status
                 status(client_state_.provider().bf_abort(
-                           bf_seqno, id_, victim_seqno));
+                           bf_seqno, id_, victim_ctx, victim_seqno));
             switch (status)
             {
             case wsrep::provider::success:
@@ -1077,9 +1078,10 @@ bool wsrep::transaction::bf_abort(
 
 bool wsrep::transaction::total_order_bf_abort(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
-    wsrep::seqno bf_seqno)
+    wsrep::seqno bf_seqno,
+    wsrep::operation_context& victim_ctx)
 {
-    bool ret(bf_abort(lock, bf_seqno));
+    bool ret(bf_abort(lock, bf_seqno, victim_ctx));
     if (ret)
     {
         bf_aborted_in_total_order_ = true;

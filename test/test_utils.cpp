@@ -40,7 +40,8 @@ void wsrep_test::bf_abort_provider(wsrep::mock_server_state& sc,
                                    wsrep::seqno bf_seqno)
 {
     wsrep::seqno victim_seqno;
-    sc.provider().bf_abort(bf_seqno, tc.id(), victim_seqno);
+    wsrep::null_operation_context victim_ctx;
+    sc.provider().bf_abort(bf_seqno, tc.id(), victim_ctx, victim_seqno);
     (void)victim_seqno;
 }
 

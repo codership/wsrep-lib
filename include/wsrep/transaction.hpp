@@ -30,6 +30,7 @@
 #include "buffer.hpp"
 #include "client_service.hpp"
 #include "xid.hpp"
+#include "operation_context.hpp"
 
 #include <cassert>
 #include <vector>
@@ -199,9 +200,11 @@ namespace wsrep
         void after_applying();
 
         bool bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
-                      wsrep::seqno bf_seqno);
+                      wsrep::seqno bf_seqno,
+                      wsrep::operation_context&);
         bool total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>&,
-                                  wsrep::seqno bf_seqno);
+                                  wsrep::seqno bf_seqno,
+                                  wsrep::operation_context&);
 
         void clone_for_replay(const wsrep::transaction& other);
 

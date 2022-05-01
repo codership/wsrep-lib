@@ -310,6 +310,7 @@ namespace wsrep
         enum wsrep::provider::status
         bf_abort(wsrep::seqno bf_seqno,
                  wsrep::transaction_id trx_id,
+                 wsrep::operation_context&,
                  wsrep::seqno& victim_seqno)
             WSREP_OVERRIDE
         {

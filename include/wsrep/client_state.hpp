@@ -40,6 +40,7 @@
 #include "thread.hpp"
 #include "xid.hpp"
 #include "chrono.hpp"
+#include "operation_context.hpp"
 
 namespace wsrep
 {
@@ -661,22 +662,45 @@ namespace wsrep
          * called by a transaction which needs to BF abort a conflicting
          * locally processing transaction.
          */
-        int bf_abort(wsrep::seqno bf_seqno)
+        int bf_abort(wsrep::seqno bf_seqno,
+                     wsrep::operation_context& victim_ctx)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(mode_ == m_local || transaction_.is_streaming());
-            return transaction_.bf_abort(lock, bf_seqno);
+            return transaction_.bf_abort(lock, bf_seqno, victim_ctx);
+        }
+
+        /**
+         * For backwards compatibility when the caller does not pass
+         * victim_ctx.
+         */
+        int bf_abort(wsrep::seqno bf_seqno)
+        {
+            wsrep::null_operation_context victim_ctx;
+            return bf_abort(bf_seqno, victim_ctx);
         }
         /**
          * Brute force abort a transaction in total order. This method
          * should be called by the TOI operation which needs to
          * BF abort a transaction.
          */
-        int total_order_bf_abort(wsrep::seqno bf_seqno)
+        int total_order_bf_abort(wsrep::seqno bf_seqno,
+                                 wsrep::operation_context& victim_ctx)
         {
             wsrep::unique_lock<wsrep::mutex> lock(mutex_);
             assert(mode_ == m_local || transaction_.is_streaming());
-            return transaction_.total_order_bf_abort(lock, bf_seqno);
+            return transaction_.total_order_bf_abort(lock, bf_seqno,
+                                                     victim_ctx);
+        }
+
+        /**
+         * For backwards compatibility when the caller does not pass
+         * victim_ctx.
+         */
+        int total_order_bf_abort(wsrep::seqno bf_seqno)
+        {
+            wsrep::null_operation_context victim_ctx;
+            return total_order_bf_abort(bf_seqno, victim_ctx);
         }
 
         /**

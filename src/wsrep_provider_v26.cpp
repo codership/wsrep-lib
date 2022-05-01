@@ -928,6 +928,7 @@ enum wsrep::provider::status
 wsrep::wsrep_provider_v26::bf_abort(
     wsrep::seqno bf_seqno,
     wsrep::transaction_id victim_id,
+    wsrep::operation_context& /* Ignored here */,
     wsrep::seqno& victim_seqno)
 {
     wsrep_seqno_t wsrep_victim_seqno;

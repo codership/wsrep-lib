@@ -26,6 +26,7 @@
 #include "client_id.hpp"
 #include "transaction_id.hpp"
 #include "compiler.hpp"
+#include "operation_context.hpp"
 
 #include <cassert>
 #include <cstring>
@@ -343,6 +344,7 @@ namespace wsrep
          */
         virtual enum status bf_abort(wsrep::seqno bf_seqno,
                                      wsrep::transaction_id victim_trx,
+                                     wsrep::operation_context& victim_ctx,
                                      wsrep::seqno& victim_seqno) = 0;
         virtual enum status rollback(wsrep::transaction_id) = 0;
         virtual enum status commit_order_enter(const wsrep::ws_handle&,

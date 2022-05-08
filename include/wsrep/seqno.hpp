@@ -51,6 +51,11 @@ namespace wsrep
             return (seqno_ == -1);
         }
 
+        wsrep::seqno prev() const
+        {
+            return seqno{seqno_ - 1};
+        }
+
         bool operator<(seqno other) const
         {
             return (seqno_ < other.seqno_);

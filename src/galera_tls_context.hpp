@@ -27,6 +27,7 @@
 #define WSREP_GALERA_TLS_CONTEXT_HPP
 
 #include "wsrep/provider_tls_context.hpp"
+#include "wsrep/provider_options.hpp"
 
 #include <map>
 #include <vector>

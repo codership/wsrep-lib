@@ -27,7 +27,7 @@
 
 #include <string>
 
-#include "provider_options.hpp"
+#include "optional.hpp"
 
 namespace wsrep
 {

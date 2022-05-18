@@ -26,7 +26,7 @@
 #ifndef WSREP_GALERA_TLS_CONTEXT_HPP
 #define WSREP_GALERA_TLS_CONTEXT_HPP
 
-#include "wsrep/tls_context.hpp"
+#include "wsrep/provider_tls_context.hpp"
 
 #include <map>
 #include <vector>
@@ -34,7 +34,7 @@
 namespace wsrep
 {
     class provider;
-    class galera_tls_context : public tls_context
+    class galera_tls_context : public provider_tls_context
     {
     public:
         using tls_options_map_type = std::map<std::string, std::string>;

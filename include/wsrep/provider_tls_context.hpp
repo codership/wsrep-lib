@@ -17,13 +17,13 @@
  * along with wsrep-lib.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/** @file tls_context.hpp
+/** @file tls_provider_context.hpp
  *
  * An interface for controlling provider SSL/TLS settings.
  */
 
-#ifndef WSREP_TLS_CONTEXT_HPP
-#define WSREP_TLS_CONTEXT_HPP
+#ifndef WSREP_PROVIDER_TLS_CONTEXT_HPP
+#define WSREP_PROVIDER_TLS_CONTEXT_HPP
 
 #include <string>
 
@@ -31,7 +31,7 @@
 
 namespace wsrep
 {
-    class tls_context
+    class provider_tls_context
     {
     public:
 
@@ -82,21 +82,22 @@ namespace wsrep
         };
 
         /**
-         * Construct a tls_context.
+         * Construct a provider_tls_context.
          *
          * @param Reference to provider.
          */
-        tls_context() = default;
+        provider_tls_context() = default;
+
         /**
-         * Destruct tls_context.
+         * Destruct provider_tls_context.
          */
-        virtual ~tls_context() { }
+        virtual ~provider_tls_context() { }
 
         /**
          * Non-copy constructible and non-copy assignable.
          */
-        tls_context(const tls_context&) = delete;
-        tls_context& operator=(const tls_context&) = delete;
+        provider_tls_context(const provider_tls_context&) = delete;
+        provider_tls_context& operator=(const provider_tls_context&) = delete;
 
         /**
          * Check if the provider supports TLS.
@@ -104,8 +105,8 @@ namespace wsrep
          * @return true If provider supports TLS.
          * @return false If provider does not support TLS.
          */
-
         virtual bool supports_tls() const = 0;
+
         /**
          * Check if TLS is enabled by the provider.
          *
@@ -145,4 +146,4 @@ namespace wsrep
     };
 }
 
-#endif // WSREP_TLS_CONTEXT_HPP
+#endif // WSREP_PROVIDER_TLS_CONTEXT_HPP

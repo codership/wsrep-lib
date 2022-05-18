@@ -137,7 +137,7 @@ BOOST_FIXTURE_TEST_CASE(galera_tls_context_disable_verify,
 {
     options.initial_options("socket.ssl=YES;socket.ssl_verify=YES;");
     (void)tls_context->get_configuration();
-    wsrep::tls_context::conf conf{ false, "", "", "", "" };
+    wsrep::provider_tls_context::conf conf{ false, "", "", "", "" };
     BOOST_REQUIRE(tls_context->configure(conf) == 0);
     BOOST_REQUIRE_MESSAGE(options.options()
                               == "socket_ssl=YES;socket_ssl_verify=NO;",

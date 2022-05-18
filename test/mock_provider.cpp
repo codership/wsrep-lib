@@ -21,10 +21,10 @@
 
 #include "../src/galera_tls_context.hpp"
 
-std::unique_ptr<wsrep::tls_context> wsrep::mock_provider::make_tls_context(
-    wsrep::provider_options& provider_options
-    )
+std::unique_ptr<wsrep::provider_tls_context>
+wsrep::mock_provider::make_tls_context(
+    wsrep::provider_options& provider_options)
 {
-    return std::unique_ptr<wsrep::tls_context>(
+    return std::unique_ptr<wsrep::provider_tls_context>(
         new wsrep::galera_tls_context(provider_options));
 }

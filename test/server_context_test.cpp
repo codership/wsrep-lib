@@ -935,3 +935,14 @@ BOOST_FIXTURE_TEST_CASE(server_state_xa_not_orphaned,
     BOOST_REQUIRE(not ss.find_streaming_applier(
                       meta_commit_s3.server_id(), meta_commit_s3.transaction_id()));
 }
+
+BOOST_FIXTURE_TEST_CASE(server_state_sync_in_disconnecting,
+                        sst_first_server_fixture)
+{
+    bootstrap();
+    ss.disconnect();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnecting);
+    // Synced event from the provider must not change the state.
+    ss.on_sync();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnecting);
+}

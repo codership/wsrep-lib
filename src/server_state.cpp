@@ -1067,6 +1067,8 @@ void wsrep::server_state::on_sync()
     {
         switch (state_)
         {
+        case s_disconnecting:
+            break;
         case s_synced:
             break;
         case s_connected:                 // Seed node path: provider becomes
@@ -1093,7 +1095,7 @@ void wsrep::server_state::on_sync()
         // Calls to on_sync() in synced state are possible if
         // server desyncs itself from the group. Provider does not
         // inform about this through callbacks.
-        if (state_ != s_synced)
+        if (state_ != s_synced && state_ != s_disconnecting)
         {
             state(lock, s_synced);
         }

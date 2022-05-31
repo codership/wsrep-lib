@@ -30,7 +30,6 @@
 #include <cassert>
 #include <cstring>
 
-#include <memory>
 #include <string>
 #include <vector>
 #include <ostream>
@@ -45,7 +44,6 @@ namespace wsrep
 {
     class server_state;
     class high_priority_service;
-    class provider_options;
     class thread_service;
     class tls_service;
     class allowlist_service;

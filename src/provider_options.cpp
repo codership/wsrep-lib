@@ -25,7 +25,6 @@
 #include <cassert>
 #include <cctype>
 #include <cstring>
-#include <vector>
 
 /**
  * Provider options string separators.
@@ -108,19 +107,6 @@ enum wsrep::provider::status wsrep::provider_options::initial_options()
     {
         return wsrep::provider::success;
     }
-}
-
-std::string wsrep::provider_options::options() const
-{
-    std::string ret;
-    const provider_options_sep sep;
-    std::for_each(options_.cbegin(), options_.cend(),
-                  [&ret, &sep](const options_map::value_type& opt) {
-                      ret += std::string(opt.second->name()) + sep.key_value
-                             + std::string(opt.second->value()) + sep.param;
-                  });
-
-    return ret;
 }
 
 enum wsrep::provider::status

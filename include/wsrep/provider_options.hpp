@@ -114,11 +114,6 @@ namespace wsrep
         enum wsrep::provider::status initial_options();
 
         /**
-         * Get full options string from the provider.
-         */
-        std::string options() const;
-
-        /**
          * Update options from string.
          */
         // enum wsrep::provider::status options(const std::string&);

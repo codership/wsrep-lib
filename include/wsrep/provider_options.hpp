@@ -31,6 +31,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <memory>
 
 namespace wsrep
 {

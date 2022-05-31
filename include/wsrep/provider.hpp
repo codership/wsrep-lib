@@ -50,7 +50,7 @@ namespace wsrep
     class tls_service;
     class allowlist_service;
     class event_service;
-    class provider_tls_context;
+
     class stid
     {
     public:
@@ -465,12 +465,6 @@ namespace wsrep
                                        const std::string& provider_options,
                                        const wsrep::provider::services& services
                                        = wsrep::provider::services());
-
-        /**
-         * Create a new TLS context.
-         */
-        virtual std::unique_ptr<provider_tls_context>
-        make_tls_context(wsrep::provider_options&) = 0;
 
     protected:
         wsrep::server_state& server_state_;

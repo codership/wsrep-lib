@@ -34,20 +34,6 @@
 
 namespace wsrep
 {
-
-    /**
-     * Provider options string separators.
-     */
-    struct provider_options_sep
-    {
-        /** Parameter separator. */
-        char param{ ';' };
-        /** Key value separator. */
-        char key_value{ '=' };
-        /** Escape character. */
-        char escape{ '\\' };
-    };
-
     /**
      * Proxy class for managing provider options. All options values
      * are taken as strings, it is up to the user to know the type of
@@ -117,19 +103,15 @@ namespace wsrep
         provider_options(wsrep::provider&);
         provider_options(const provider_options&) = delete;
         provider_options& operator=(const provider_options&) = delete;
+
         /**
-         * Set initial options string. This should be used to initialize
+         * Set initial options. This should be used to initialize
          * provider options after the provider has been loaded.
          * Individual options should be accessed through set()/get().
          *
-         * Known options are populated from the options string
-         * which is retrieved from the provider after initial
-         * options set. Default values are recorded here and not
-         * changed afterwards.
-         *
          * @return Provider status code.
          */
-        enum wsrep::provider::status initial_options(const std::string&);
+        enum wsrep::provider::status initial_options();
 
         /**
          * Get full options string from the provider.
@@ -158,17 +140,15 @@ namespace wsrep
         enum wsrep::provider::status
         set(const std::string& name, const std::string& value);
 
+        /**
+         * Create a new option with default value.
+         */
+        enum wsrep::provider::status
+        set_default(const std::string& name, const std::string& value);
 
         void for_each(const std::function<void(option*)>& fn);
     private:
         provider& provider_;
-        struct option_cmp
-        {
-            bool operator()(const option& left, const option& right) const
-            {
-                return std::strcmp(left.name(), right.name()) < 0;
-            }
-        };
         using options_map = std::map<std::string, std::unique_ptr<option>>;
         options_map options_;
     };
@@ -179,20 +159,6 @@ namespace wsrep
      */
     bool operator==(const wsrep::provider_options::option&,
                     const wsrep::provider_options::option&);
-
-    /**
-     * Parse provider options string retrieved from the
-     * provider. For each found configuration option, on_value
-     * function will be called.
-     *
-     * @return Zero in case of success.
-     * @return Non-zero if config string parsing failed.
-     */
-    int parse_provider_options(const std::string&,
-                               const std::function<void(
-                                   const std::string& key,
-                                   const std::string& value)>& on_value);
 }
-
 
 #endif // WSREP_PROVIDER_OPTIONS_HPP

@@ -19,6 +19,7 @@
 
 #include "wsrep/provider_options.hpp"
 #include "wsrep/logger.hpp"
+#include "config_service_v1.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -26,70 +27,16 @@
 #include <cstring>
 #include <vector>
 
-static std::vector<std::string> tokenize(const std::string& real_str,
-                                         char const sep, char const esc)
+/**
+ * Provider options string separators.
+ */
+struct provider_options_sep
 {
-    // The string is modified in place when parsing, make a copy
-    std::string str{ real_str };
-    std::vector<std::string> ret;
-    std::string sep_esc;
-    sep_esc += sep;
-    sep_esc += esc;
-    size_t prev_pos{ 0 };
-    size_t pos{ str.find_first_of(sep_esc, prev_pos) };
-
-    if (real_str.empty())
-        return ret;
-
-    // No separator found, return with one element containing input string
-    if (pos == std::string::npos)
-    {
-        ret.push_back(str);
-        return ret;
-    }
-
-    do
-    {
-        assert(pos >= prev_pos);
-        if (str[pos] == esc)
-        {
-            // String ends in escape character, break loop
-            if (pos + 1 == str.size())
-            {
-                ++pos;
-                break;
-            };
-
-            if (str[pos + 1] == sep) // Skip escape
-            {
-                str.erase(pos, 1);
-                ++pos;
-                if (pos >= str.size())
-                    break;
-            }
-        }
-        else if (str[pos]
-                 == sep) // Separator found, push [prev_pos, pos) to ret
-        {
-            ret.push_back(str.substr(prev_pos, pos - prev_pos));
-            ++pos;
-            prev_pos = pos;
-        }
-    } while ((pos = str.find_first_of(sep_esc, pos)) != std::string::npos);
-    // No sparator found from the tail of the string, push remaining from
-    // last scanned position until the end
-    if (prev_pos < str.size())
-    {
-        ret.push_back(str.substr(prev_pos, str.size() - prev_pos));
-    }
-    return ret;
-}
-
-static std::string& strip(std::string& str)
-{
-    str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
-    return str;
-}
+  /** Parameter separator. */
+  char param{ ';' };
+  /** Key value separator. */
+  char key_value{ '=' };
+};
 
 // Replace dots in option name with underscores
 static void sanitize_name(std::string& name)
@@ -150,27 +97,17 @@ wsrep::provider_options::provider_options(wsrep::provider& provider)
 {
 }
 
-enum wsrep::provider::status
-wsrep::provider_options::initial_options(const std::string& opts_str)
+enum wsrep::provider::status wsrep::provider_options::initial_options()
 {
     options_.clear();
-    auto ret( provider_.options(opts_str) );
-    if (ret == wsrep::provider::success)
+    if (config_service_v1_fetch(provider_, this))
     {
-
-        auto real_opts_str( provider_.options() );
-        parse_provider_options(real_opts_str, [this](const std::string& key,
-                                                     const std::string& value) {
-            // assert(not key.empty());
-            wsrep::log_debug() << "key: " << key << " value: " << value;
-            if (key.empty())
-                return;
-            auto opt( std::unique_ptr<option>(
-                          new option{ key, value, value }) );
-            options_.emplace(std::string(opt->name()), std::move(opt));
-        });
+        return wsrep::provider::error_not_implemented;
     }
-    return ret;
+    else
+    {
+        return wsrep::provider::success;
+    }
 }
 
 std::string wsrep::provider_options::options() const
@@ -206,6 +143,22 @@ wsrep::provider_options::set(const std::string& name, const std::string& value)
     return ret;
 }
 
+enum wsrep::provider::status
+wsrep::provider_options::set_default(const std::string& name,
+                                     const std::string& value)
+{
+    auto opt(std::unique_ptr<provider_options::option>(
+        new option{ name, value, value }));
+    auto found(options_.find(name));
+    if (found != options_.end())
+    {
+        assert(0);
+        return wsrep::provider::error_not_allowed;
+    }
+    options_.emplace(std::string(opt->name()), std::move(opt));
+    return wsrep::provider::success;
+}
+
 wsrep::optional<const char*>
 wsrep::provider_options::get(const std::string& name) const
 {
@@ -215,40 +168,6 @@ wsrep::provider_options::get(const std::string& name) const
         return optional<const char*>{};
     }
     return optional<const char*>(option->second->value());
-}
-
-int wsrep::parse_provider_options(
-    const std::string& options_str,
-    const std::function<void(const std::string&, const std::string&)>& on_value)
-try
-{
-    provider_options_sep sep;
-    auto params( tokenize(options_str, sep.param, sep.escape) );
-    std::for_each(params.cbegin(), params.cend(),
-                  [&on_value, &sep](const std::string& param) {
-                      auto keyval( tokenize(param, sep.key_value, sep.escape) );
-                      // All Galera options are form of <key> = <value>
-                      if (keyval.size() > 2)
-                          return;
-                      const auto& key( strip(keyval[0]) );
-                      if (keyval.size() == 2)
-                      {
-                          const auto& value( strip(keyval[1]) );
-                          on_value(key, value);
-                      }
-                      else
-                      {
-                          // TODO: Currently this causes parameters without '='
-                          // separator being parsed as parameters with empty
-                          // value.
-                          on_value(key, "");
-                      }
-                  });
-    return 0;
-}
-catch (const std::exception&)
-{
-    return 1;
 }
 
 void wsrep::provider_options::for_each(const std::function<void(option*)>& fn)

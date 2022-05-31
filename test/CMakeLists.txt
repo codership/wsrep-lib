@@ -11,7 +11,6 @@ set(TEST_SOURCES
   buffer_test.cpp
   gtid_test.cpp
   id_test.cpp
-  mock_provider.cpp
   nbo_test.cpp
   rsu_test.cpp
   server_context_test.cpp

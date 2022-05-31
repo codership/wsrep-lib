@@ -302,8 +302,6 @@ namespace wsrep
         std::string version() const WSREP_OVERRIDE { return "0.0"; }
         std::string vendor() const WSREP_OVERRIDE { return "mock"; }
         void* native() const WSREP_OVERRIDE { return 0; }
-        std::unique_ptr<wsrep::provider_tls_context>
-        make_tls_context(wsrep::provider_options&) override;
         //
         // Methods to modify mock state
         //

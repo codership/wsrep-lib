@@ -109,6 +109,17 @@ enum wsrep::provider::status wsrep::provider_options::initial_options()
     }
 }
 
+const wsrep::provider_options::option*
+wsrep::provider_options::get_option(const std::string& name) const
+{
+    auto ret(options_.find(name));
+    if (ret == options_.end())
+    {
+        return nullptr;
+    }
+    return ret->second.get();
+}
+
 enum wsrep::provider::status
 wsrep::provider_options::set(const std::string& name, const std::string& value)
 {
@@ -143,17 +154,6 @@ wsrep::provider_options::set_default(const std::string& name,
     }
     options_.emplace(std::string(opt->name()), std::move(opt));
     return wsrep::provider::success;
-}
-
-wsrep::optional<const char*>
-wsrep::provider_options::get(const std::string& name) const
-{
-    auto option( options_.find(name) );
-    if (option == options_.end())
-    {
-        return optional<const char*>{};
-    }
-    return optional<const char*>(option->second->value());
 }
 
 void wsrep::provider_options::for_each(const std::function<void(option*)>& fn)

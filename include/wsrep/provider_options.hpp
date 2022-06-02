@@ -25,7 +25,6 @@
 #ifndef WSREP_PROVIDER_OPTIONS_HPP
 #define WSREP_PROVIDER_OPTIONS_HPP
 
-#include "optional.hpp"
 #include "provider.hpp"
 
 #include <functional>
@@ -97,7 +96,7 @@ namespace wsrep
             std::string name_;
             /** Real name in provider */
             std::string real_name_;
-            std::string  value_;
+            std::string value_;
             std::string default_value_;
         };
 
@@ -115,16 +114,11 @@ namespace wsrep
         enum wsrep::provider::status initial_options();
 
         /**
-         * Update options from string.
-         */
-        // enum wsrep::provider::status options(const std::string&);
-
-        /**
-         * Get the value of the option.
+         * Get the option with the given name
          *
-         * @param name Option name
+         * @param name Name of the option to retrieve
          */
-        wsrep::optional<const char*> get(const std::string& name) const;
+        const option* get_option(const std::string& name) const;
 
         /**
          * Set a value for the option.

@@ -42,15 +42,79 @@ namespace wsrep
     class provider_options
     {
     public:
+        struct flag
+        {
+            static const int deprecated   = (1 << 0);
+            static const int readonly     = (1 << 1);
+            static const int type_bool    = (1 << 2);
+            static const int type_integer = (1 << 3);
+            static const int type_double  = (1 << 4);
+        };
+
+        class option_value
+        {
+        public:
+            virtual ~option_value() {};
+            virtual const char* as_string() const = 0;
+            virtual const void* get_ptr() const = 0;
+        };
+
+        class option_value_string : public option_value
+        {
+        public:
+            option_value_string(const std::string& value)
+                : value_(value)
+            {
+            }
+            ~option_value_string() {}
+            const char* as_string() const WSREP_OVERRIDE
+            {
+                return value_.c_str();
+            }
+            const void* get_ptr() const WSREP_OVERRIDE
+            {
+                return value_.c_str();
+            }
+        private:
+            std::string value_;
+        };
+
+        class option_value_bool : public option_value
+        {
+        public:
+            option_value_bool(bool value)
+                : value_(value)
+            {
+            }
+            ~option_value_bool() {}
+            const char* as_string() const WSREP_OVERRIDE
+            {
+                if (value_)
+                {
+                    return "yes";
+                }
+                else
+                {
+                    return "no";
+                }
+            }
+            const void* get_ptr() const WSREP_OVERRIDE
+            {
+                return &value_;
+            }
+        private:
+            bool value_;
+        };
+
         class option
         {
         public:
             option();
             /** Construct option with given values. Allocates
              * memory. */
-            option(const std::string& name,
-                   const std::string& value,
-                   const std::string& default_value);
+            option(const std::string& name, const std::string& value,
+                   int flags);
+            option(const std::string& name, bool value, int flags);
             /** Non copy-constructible. */
             option(const option&) = delete;
             /** Non copy-assignable. */
@@ -77,27 +141,36 @@ namespace wsrep
              *
              * @return Value of the option.
              */
-            const char* value() const { return value_.c_str(); }
+            option_value* value() const { return value_.get(); }
 
             /**
              * Get default value of the option.
              *
              * @return Default value of the option.
              */
-            const char* default_value() const { return default_value_.c_str(); }
+            option_value* default_value() const { return default_value_.get(); }
+
+            /**
+             * Get flags of the option
+             *
+             * @return Flag of the option
+             */
+            int flags() const { return flags_; }
 
             /**
              * Update the value of the option with new_value. The old
              * value is freed.
              */
-            void update_value(const std::string& new_value);
+            void update_value(std::unique_ptr<option_value> new_value);
+
         private:
             /** Sanitized name with dots replaced with underscores */
             std::string name_;
             /** Real name in provider */
             std::string real_name_;
-            std::string value_;
-            std::string default_value_;
+            std::unique_ptr<option_value> value_;
+            std::unique_ptr<option_value> default_value_;
+            int flags_;
         };
 
         provider_options(wsrep::provider&);
@@ -128,15 +201,20 @@ namespace wsrep
          *         not be allocated for the new value.
          */
         enum wsrep::provider::status
-        set(const std::string& name, const std::string& value);
+        set(const std::string& name, std::unique_ptr<option_value> value);
 
         /**
          * Create a new option with default value.
          */
-        enum wsrep::provider::status
-        set_default(const std::string& name, const std::string& value);
+        enum wsrep::provider::status set_default(const std::string& name,
+                                                 const std::string& value,
+                                                 int flags);
+
+        enum wsrep::provider::status set_default(const std::string& name,
+                                                 bool value, int flags);
 
         void for_each(const std::function<void(option*)>& fn);
+
     private:
         provider& provider_;
         using options_map = std::map<std::string, std::unique_ptr<option>>;

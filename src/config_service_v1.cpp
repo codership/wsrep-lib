@@ -21,14 +21,47 @@
 #include "v26/wsrep_config_service.h"
 #include "service_helpers.hpp"
 #include "wsrep/provider_options.hpp"
+#include "wsrep/logger.hpp"
 
 namespace wsrep_config_service_v1
 {
     wsrep_config_service_v1_t service {0};
+
+    int map_flags(int flags)
+    {
+      int option_flags = 0;
+      if (flags & WSREP_PARAM_DEPRECATED)
+        option_flags |= wsrep::provider_options::flag::deprecated;
+      if (flags & WSREP_PARAM_READONLY)
+        option_flags |= wsrep::provider_options::flag::readonly;
+      if (flags & WSREP_PARAM_TYPE_BOOL)
+        option_flags |= wsrep::provider_options::flag::type_bool;
+      if (flags & WSREP_PARAM_TYPE_INTEGER)
+        option_flags |= wsrep::provider_options::flag::type_integer;
+      if (flags & WSREP_PARAM_TYPE_DOUBLE)
+        option_flags |= wsrep::provider_options::flag::type_double;
+      return option_flags;
+    }
+
     void service_callback (const wsrep_parameter* p, void* context)
     {
         wsrep::provider_options* options = (wsrep::provider_options*)context;
-        options->set_default(p->name, p->value);
+        switch(p->flags & WSREP_PARAM_TYPE_MASK)
+        {
+        case WSREP_PARAM_TYPE_BOOL:
+          options->set_default(p->name, p->value.as_bool, map_flags(p->flags));
+          break;
+        case WSREP_PARAM_TYPE_INTEGER:
+          assert(0); // not implemented yet
+          break;
+        case WSREP_PARAM_TYPE_DOUBLE:
+          assert(0); // not implemented yet
+          break;
+        default:
+          assert((p->flags & WSREP_PARAM_TYPE_MASK) == 0);
+          const std::string& value(p->value.as_string);
+          options->set_default(p->name, value, map_flags(p->flags));
+        }
     }
 }
 

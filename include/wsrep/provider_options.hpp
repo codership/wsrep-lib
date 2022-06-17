@@ -29,8 +29,8 @@
 
 #include <functional>
 #include <map>
-#include <string>
 #include <memory>
+#include <string>
 
 namespace wsrep
 {
@@ -44,11 +44,11 @@ namespace wsrep
     public:
         struct flag
         {
-            static const int deprecated   = (1 << 0);
-            static const int readonly     = (1 << 1);
-            static const int type_bool    = (1 << 2);
+            static const int deprecated = (1 << 0);
+            static const int readonly = (1 << 1);
+            static const int type_bool = (1 << 2);
             static const int type_integer = (1 << 3);
-            static const int type_double  = (1 << 4);
+            static const int type_double = (1 << 4);
         };
 
         static const int flag_type_mask
@@ -57,7 +57,7 @@ namespace wsrep
         class option_value
         {
         public:
-            virtual ~option_value() {};
+            virtual ~option_value(){};
             virtual const char* as_string() const = 0;
             virtual const void* get_ptr() const = 0;
         };
@@ -78,6 +78,7 @@ namespace wsrep
             {
                 return value_.c_str();
             }
+
         private:
             std::string value_;
         };
@@ -101,10 +102,8 @@ namespace wsrep
                     return "no";
                 }
             }
-            const void* get_ptr() const WSREP_OVERRIDE
-            {
-                return &value_;
-            }
+            const void* get_ptr() const WSREP_OVERRIDE { return &value_; }
+
         private:
             bool value_;
         };
@@ -122,10 +121,8 @@ namespace wsrep
             {
                 return value_str_.c_str();
             }
-            const void* get_ptr() const WSREP_OVERRIDE
-            {
-                return &value_;
-            }
+            const void* get_ptr() const WSREP_OVERRIDE { return &value_; }
+
         private:
             int64_t value_;
             std::string value_str_;
@@ -144,10 +141,8 @@ namespace wsrep
             {
                 return value_str_.c_str();
             }
-            const void* get_ptr() const WSREP_OVERRIDE
-            {
-                return &value_;
-            }
+            const void* get_ptr() const WSREP_OVERRIDE { return &value_; }
+
         private:
             double value_;
             std::string value_str_;
@@ -246,8 +241,8 @@ namespace wsrep
          * @return wsrep::provider::error_size_exceeded if memory could
          *         not be allocated for the new value.
          */
-        enum wsrep::provider::status
-        set(const std::string& name, std::unique_ptr<option_value> value);
+        enum wsrep::provider::status set(const std::string& name,
+                                         std::unique_ptr<option_value> value);
 
         /**
          * Create a new option with default value.
@@ -271,6 +266,6 @@ namespace wsrep
      */
     bool operator==(const wsrep::provider_options::option&,
                     const wsrep::provider_options::option&);
-}
+} // namespace wsrep
 
 #endif // WSREP_PROVIDER_OPTIONS_HPP

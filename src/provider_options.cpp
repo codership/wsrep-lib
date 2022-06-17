@@ -18,8 +18,8 @@
  */
 
 #include "wsrep/provider_options.hpp"
-#include "wsrep/logger.hpp"
 #include "config_service_v1.hpp"
+#include "wsrep/logger.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -31,22 +31,21 @@
  */
 struct provider_options_sep
 {
-  /** Parameter separator. */
-  char param{ ';' };
-  /** Key value separator. */
-  char key_value{ '=' };
+    /** Parameter separator. */
+    char param{ ';' };
+    /** Key value separator. */
+    char key_value{ '=' };
 };
 
 // Replace dots in option name with underscores
 static void sanitize_name(std::string& name)
 {
     std::transform(name.begin(), name.end(), name.begin(),
-                   [](std::string::value_type c)
-                       {
-                           if (c == '.')
-                               return '_';
-                           return c;
-                       });
+                   [](std::string::value_type c) {
+                       if (c == '.')
+                           return '_';
+                       return c;
+                   });
 }
 
 bool wsrep::operator==(const wsrep::provider_options::option& left,
@@ -63,19 +62,18 @@ static enum wsrep::provider::status not_found_error{
 };
 
 wsrep::provider_options::option::option()
-    : name_{},
-      real_name_{},
-      value_{},
-      default_value_{},
-      flags_{0}
+    : name_{}
+    , real_name_{}
+    , value_{}
+    , default_value_{}
+    , flags_{ 0 }
 {
 }
 
 wsrep::provider_options::option::option(
     const std::string& name,
     std::unique_ptr<wsrep::provider_options::option_value> value,
-    std::unique_ptr<wsrep::provider_options::option_value>
-            default_value,
+    std::unique_ptr<wsrep::provider_options::option_value> default_value,
     int flags)
     : name_{ name }
     , real_name_{ name }
@@ -92,12 +90,10 @@ void wsrep::provider_options::option::update_value(
     value_ = std::move(value);
 }
 
-wsrep::provider_options::option::~option()
-{
-}
+wsrep::provider_options::option::~option() {}
 
 wsrep::provider_options::provider_options(wsrep::provider& provider)
-    : provider_( provider )
+    : provider_(provider)
     , options_()
 {
 }
@@ -126,9 +122,9 @@ wsrep::provider_options::get_option(const std::string& name) const
     return ret->second.get();
 }
 
-enum wsrep::provider::status
-wsrep::provider_options::set(const std::string& name,
-                             std::unique_ptr<wsrep::provider_options::option_value> value)
+enum wsrep::provider::status wsrep::provider_options::set(
+    const std::string& name,
+    std::unique_ptr<wsrep::provider_options::option_value> value)
 {
     auto option(options_.find(name));
     if (option == options_.end())
@@ -137,7 +133,8 @@ wsrep::provider_options::set(const std::string& name,
     }
     provider_options_sep sep;
     auto ret(provider_.options(std::string(option->second->real_name())
-                               + sep.key_value + value->as_string() + sep.param));
+                               + sep.key_value + value->as_string()
+                               + sep.param));
     if (ret == provider::success)
     {
         option->second->update_value(std::move(value));
@@ -148,11 +145,12 @@ wsrep::provider_options::set(const std::string& name,
 enum wsrep::provider::status wsrep::provider_options::set_default(
     const std::string& name,
     std::unique_ptr<wsrep::provider_options::option_value> value,
-    std::unique_ptr<wsrep::provider_options::option_value> default_value, int flags)
+    std::unique_ptr<wsrep::provider_options::option_value> default_value,
+    int flags)
 {
     auto found(options_.find(name));
     auto opt(std::unique_ptr<provider_options::option>(
-                 new option{ name, std::move(value), std::move(default_value), flags}));
+        new option{ name, std::move(value), std::move(default_value), flags }));
     if (found != options_.end())
     {
         assert(0);

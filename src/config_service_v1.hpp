@@ -25,6 +25,6 @@ namespace wsrep
     class provider;
     class provider_options;
     int config_service_v1_fetch(provider& provider, provider_options* opts);
-}
+} // namespace wsrep
 
 #endif // WSREP_CONFIG_SERVICE_V1_HPP

@@ -18,68 +18,86 @@
  */
 
 #include "config_service_v1.hpp"
-#include "v26/wsrep_config_service.h"
 #include "service_helpers.hpp"
-#include "wsrep/provider_options.hpp"
+#include "v26/wsrep_config_service.h"
 #include "wsrep/logger.hpp"
+#include "wsrep/provider_options.hpp"
 
 namespace wsrep_config_service_v1
 {
-    wsrep_config_service_v1_t service {0};
+    wsrep_config_service_v1_t service{ 0 };
 
     int map_flags(int flags)
     {
-      int option_flags = 0;
-      if (flags & WSREP_PARAM_DEPRECATED)
-        option_flags |= wsrep::provider_options::flag::deprecated;
-      if (flags & WSREP_PARAM_READONLY)
-        option_flags |= wsrep::provider_options::flag::readonly;
-      if (flags & WSREP_PARAM_TYPE_BOOL)
-        option_flags |= wsrep::provider_options::flag::type_bool;
-      if (flags & WSREP_PARAM_TYPE_INTEGER)
-        option_flags |= wsrep::provider_options::flag::type_integer;
-      if (flags & WSREP_PARAM_TYPE_DOUBLE)
-        option_flags |= wsrep::provider_options::flag::type_double;
-      return option_flags;
+        int option_flags = 0;
+        if (flags & WSREP_PARAM_DEPRECATED)
+            option_flags |= wsrep::provider_options::flag::deprecated;
+        if (flags & WSREP_PARAM_READONLY)
+            option_flags |= wsrep::provider_options::flag::readonly;
+        if (flags & WSREP_PARAM_TYPE_BOOL)
+            option_flags |= wsrep::provider_options::flag::type_bool;
+        if (flags & WSREP_PARAM_TYPE_INTEGER)
+            option_flags |= wsrep::provider_options::flag::type_integer;
+        if (flags & WSREP_PARAM_TYPE_DOUBLE)
+            option_flags |= wsrep::provider_options::flag::type_double;
+        return option_flags;
     }
 
-    void service_callback (const wsrep_parameter* p, void* context)
+    void service_callback(const wsrep_parameter* p, void* context)
     {
+        const int flags = map_flags(p->flags);
+        std::unique_ptr<wsrep::provider_options::option_value> value;
+        std::unique_ptr<wsrep::provider_options::option_value> default_value;
         wsrep::provider_options* options = (wsrep::provider_options*)context;
-        switch(p->flags & WSREP_PARAM_TYPE_MASK)
+        switch (p->flags & WSREP_PARAM_TYPE_MASK)
         {
         case WSREP_PARAM_TYPE_BOOL:
-          options->set_default(p->name, p->value.as_bool, map_flags(p->flags));
-          break;
+            value.reset(new wsrep::provider_options::option_value_bool(
+                p->value.as_bool));
+            default_value.reset(new wsrep::provider_options::option_value_bool(
+                p->value.as_bool));
+            break;
         case WSREP_PARAM_TYPE_INTEGER:
-          assert(0); // not implemented yet
-          break;
+            value.reset(new wsrep::provider_options::option_value_int(
+                p->value.as_integer));
+            default_value.reset(new wsrep::provider_options::option_value_int(
+                p->value.as_integer));
+            break;
         case WSREP_PARAM_TYPE_DOUBLE:
-          assert(0); // not implemented yet
-          break;
+            value.reset(new wsrep::provider_options::option_value_double(
+                p->value.as_double));
+            default_value.reset(
+                new wsrep::provider_options::option_value_double(
+                    p->value.as_double));
+            break;
         default:
-          assert((p->flags & WSREP_PARAM_TYPE_MASK) == 0);
-          const std::string& value(p->value.as_string);
-          options->set_default(p->name, value, map_flags(p->flags));
+            assert((p->flags & WSREP_PARAM_TYPE_MASK) == 0);
+            const std::string str_value(p->value.as_string);
+            value.reset(
+                new wsrep::provider_options::option_value_string(str_value));
+            default_value.reset(
+                new wsrep::provider_options::option_value_string(str_value));
         }
+        options->set_default(p->name, std::move(value),
+                             std::move(default_value), flags);
     }
-}
+} // namespace wsrep_config_service_v1
 
 static int config_service_v1_probe(void* dlh)
 {
     typedef int (*init_fn)(wsrep_config_service_v1_t*);
     typedef void (*deinit_fn)();
     return wsrep_impl::service_probe<init_fn>(
-      dlh, WSREP_CONFIG_SERVICE_INIT_FUNC_V1, "config service v1") ||
-      wsrep_impl::service_probe<deinit_fn>(
-        dlh, WSREP_CONFIG_SERVICE_DEINIT_FUNC_V1, "config service v1");
+               dlh, WSREP_CONFIG_SERVICE_INIT_FUNC_V1, "config service v1")
+           || wsrep_impl::service_probe<deinit_fn>(
+               dlh, WSREP_CONFIG_SERVICE_DEINIT_FUNC_V1, "config service v1");
 }
 
 static int config_service_v1_init(void* dlh)
 {
     typedef int (*init_fn)(wsrep_config_service_v1_t*);
     return wsrep_impl::service_init<init_fn>(
-      dlh, WSREP_CONFIG_SERVICE_INIT_FUNC_V1,
+        dlh, WSREP_CONFIG_SERVICE_INIT_FUNC_V1,
         &wsrep_config_service_v1::service, "config service v1");
 }
 
@@ -94,13 +112,15 @@ int wsrep::config_service_v1_fetch(wsrep::provider& provider,
                                    wsrep::provider_options* options)
 {
     struct wsrep_st* wsrep = (struct wsrep_st*)provider.native();
-    if (config_service_v1_probe(wsrep->dlh)) {
-      wsrep::log_warning() << "Provider does not support config service v1";
-      return 1;
+    if (config_service_v1_probe(wsrep->dlh))
+    {
+        wsrep::log_warning() << "Provider does not support config service v1";
+        return 1;
     }
-    if (config_service_v1_init(wsrep->dlh)) {
-      wsrep::log_warning() << "Failed to initialize config service v1";
-      return 1;
+    if (config_service_v1_init(wsrep->dlh))
+    {
+        wsrep::log_warning() << "Failed to initialize config service v1";
+        return 1;
     }
     wsrep_config_service_v1::service.get_parameters(
         wsrep, &wsrep_config_service_v1::service_callback, options);

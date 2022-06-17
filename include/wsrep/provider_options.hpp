@@ -51,6 +51,9 @@ namespace wsrep
             static const int type_double  = (1 << 4);
         };
 
+        static const int flag_type_mask
+            = flag::type_bool | flag::type_integer | flag::type_double;
+
         class option_value
         {
         public:
@@ -106,15 +109,58 @@ namespace wsrep
             bool value_;
         };
 
+        class option_value_int : public option_value
+        {
+        public:
+            option_value_int(int64_t value)
+                : value_(value)
+                , value_str_(std::to_string(value))
+            {
+            }
+            ~option_value_int() {}
+            const char* as_string() const WSREP_OVERRIDE
+            {
+                return value_str_.c_str();
+            }
+            const void* get_ptr() const WSREP_OVERRIDE
+            {
+                return &value_;
+            }
+        private:
+            int64_t value_;
+            std::string value_str_;
+        };
+
+        class option_value_double : public option_value
+        {
+        public:
+            option_value_double(double value)
+                : value_(value)
+                , value_str_(std::to_string(value))
+            {
+            }
+            ~option_value_double() {}
+            const char* as_string() const WSREP_OVERRIDE
+            {
+                return value_str_.c_str();
+            }
+            const void* get_ptr() const WSREP_OVERRIDE
+            {
+                return &value_;
+            }
+        private:
+            double value_;
+            std::string value_str_;
+        };
+
         class option
         {
         public:
             option();
             /** Construct option with given values. Allocates
              * memory. */
-            option(const std::string& name, const std::string& value,
-                   int flags);
-            option(const std::string& name, bool value, int flags);
+            option(const std::string& name, std::unique_ptr<option_value> value,
+                   std::unique_ptr<option_value> default_value, int flags);
             /** Non copy-constructible. */
             option(const option&) = delete;
             /** Non copy-assignable. */
@@ -206,12 +252,10 @@ namespace wsrep
         /**
          * Create a new option with default value.
          */
-        enum wsrep::provider::status set_default(const std::string& name,
-                                                 const std::string& value,
-                                                 int flags);
-
-        enum wsrep::provider::status set_default(const std::string& name,
-                                                 bool value, int flags);
+        enum wsrep::provider::status
+        set_default(const std::string& name,
+                    std::unique_ptr<option_value> value,
+                    std::unique_ptr<option_value> default_value, int flags);
 
         void for_each(const std::function<void(option*)>& fn);
 

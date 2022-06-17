@@ -71,24 +71,16 @@ wsrep::provider_options::option::option()
 {
 }
 
-wsrep::provider_options::option::option(const std::string& name,
-                                        const std::string& value,
-                                        int flags)
+wsrep::provider_options::option::option(
+    const std::string& name,
+    std::unique_ptr<wsrep::provider_options::option_value> value,
+    std::unique_ptr<wsrep::provider_options::option_value>
+            default_value,
+    int flags)
     : name_{ name }
     , real_name_{ name }
-    , value_{ new option_value_string(value) }
-    , default_value_{ new option_value_string(value) }
-    , flags_{ flags }
-{
-    sanitize_name(name_);
-}
-
-wsrep::provider_options::option::option(const std::string& name, bool value,
-                                        int flags)
-    : name_{ name }
-    , real_name_{ name }
-    , value_{ new option_value_bool(value) }
-    , default_value_{ new option_value_bool(value) }
+    , value_{ std::move(value) }
+    , default_value_{ std::move(default_value) }
     , flags_{ flags }
 {
     sanitize_name(name_);
@@ -153,29 +145,14 @@ wsrep::provider_options::set(const std::string& name,
     return ret;
 }
 
-enum wsrep::provider::status
-wsrep::provider_options::set_default(const std::string& name,
-                                     const std::string& value, int flags)
+enum wsrep::provider::status wsrep::provider_options::set_default(
+    const std::string& name,
+    std::unique_ptr<wsrep::provider_options::option_value> value,
+    std::unique_ptr<wsrep::provider_options::option_value> default_value, int flags)
 {
-    auto opt(std::unique_ptr<provider_options::option>(
-        new option{ name, value, flags }));
     auto found(options_.find(name));
-    if (found != options_.end())
-    {
-        assert(0);
-        return wsrep::provider::error_not_allowed;
-    }
-    options_.emplace(std::string(opt->name()), std::move(opt));
-    return wsrep::provider::success;
-}
-
-enum wsrep::provider::status
-wsrep::provider_options::set_default(const std::string& name, bool value,
-                                     int flags)
-{
     auto opt(std::unique_ptr<provider_options::option>(
-        new option{ name, value, flags }));
-    auto found(options_.find(name));
+                 new option{ name, std::move(value), std::move(default_value), flags}));
     if (found != options_.end())
     {
         assert(0);

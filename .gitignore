@@ -13,3 +13,6 @@ wsrep-API/libwsrep_api_v26.a
 
 # Gcov generated files
 *.dgcov
+
+# Test logs
+wsrep-lib_test.log

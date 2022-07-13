@@ -764,6 +764,17 @@ int wsrep::client_state::sync_wait(int timeout)
     return ret;
 }
 
+void wsrep::client_state::set_operation_context(
+    wsrep::operation_context* context)
+{
+    current_context_ = context;
+}
+
+wsrep::operation_context* wsrep::client_state::operation_context()
+{
+    return current_context_;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //                               Private                                     //
 ///////////////////////////////////////////////////////////////////////////////

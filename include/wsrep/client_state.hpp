@@ -1053,6 +1053,9 @@ namespace wsrep
         {
             return current_error_status_;
         }
+
+        void set_operation_context(wsrep::operation_context* context);
+        wsrep::operation_context* operation_context();
     protected:
         /**
          * Client context constuctor. This is protected so that it
@@ -1065,6 +1068,7 @@ namespace wsrep
                      const client_id& id,
                      enum mode mode)
             : owning_thread_id_(wsrep::this_thread::get_id())
+            , current_context_()
             , rollbacker_active_(false)
             , mutex_(mutex)
             , cond_(cond)
@@ -1128,6 +1132,7 @@ namespace wsrep
         void leave_toi_common();
 
         wsrep::thread::id owning_thread_id_;
+        wsrep::operation_context* current_context_;
         bool rollbacker_active_;
         wsrep::mutex& mutex_;
         wsrep::condition_variable& cond_;

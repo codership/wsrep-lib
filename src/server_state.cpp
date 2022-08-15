@@ -832,7 +832,7 @@ int
 wsrep::server_state::set_encryption_key(std::vector<unsigned char>& key)
 {
     encryption_key_ = key;
-    if (state_ != s_disconnected)
+    if (provider_)
     {
         wsrep::const_buffer const key(encryption_key_.data(),
                                       encryption_key_.size());

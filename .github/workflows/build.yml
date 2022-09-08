@@ -159,19 +159,27 @@ jobs:
         else
           export CXX="ccache clang++-${{ matrix.config.version }}"
         fi
-        if [ ${{ matrix.config.version }} == "4.8" ]
+        if [ ${{ matrix.config.CC }} == "gcc" ] && [ ${{ matrix.config.version }} == "4.8" ]
         then
           STRICT=OFF
           DBSIM=OFF
+          TESTS_EXTRA=OFF
+        elif [ ${{ matrix.config.CC }} == "gcc" ] && [ ${{ matrix.config.version }} == "5" ]
+        then
+          STRICT=ON
+          DBSIM=ON
+          TESTS_EXTRA=OFF
         else
           STRICT=ON
           DBSIM=ON
+          TESTS_EXTRA=ON
         fi
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=${{ matrix.config.type }} \
           -DWSREP_LIB_MAINTAINER_MODE:BOOL=ON \
           -DWSREP_LIB_STRICT_BUILD_FLAGS:BOOL=$STRICT \
           -DWSREP_LIB_WITH_DBSIM:BOOL=$DBSIM \
-          -DWSREP_LIB_WITH_ASAN:BOOL=ON .
+          -DWSREP_LIB_WITH_ASAN:BOOL=ON \
+          -DWSREP_LIB_WITH_UNIT_TESTS_EXTRA:BOOL=$TESTS_EXTRA
 
     - name: Build
       working-directory: ${{runner.workspace}}/build

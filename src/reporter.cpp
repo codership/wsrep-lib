@@ -72,6 +72,7 @@ wsrep::reporter::reporter(wsrep::mutex&      mutex,
     , initialized_(false)
     , err_msg_()
     , warn_msg_()
+    , events_()
     , max_msg_(max_msg)
 {
     template_[file_name_.length() + TEMP_EXTENSION.length()] = '\0';
@@ -137,6 +138,37 @@ wsrep::reporter::substate_map(enum wsrep::server_state::state const state)
     }
 }
 
+// See https://www.ietf.org/rfc/rfc4627.txt
+static std::string escape_json(const std::string& str)
+{
+    std::ostringstream os;
+    for (auto c = str.cbegin(); c != str.cend(); ++c)
+    {
+        switch (*c)
+        {
+        case '"': os << "\\\""; break;
+        case '\\': os << "\\\\"; break;
+        case '/': os << "\\/"; break;
+        case '\b': os << "\\b"; break;
+        case '\f': os << "\\f"; break;
+        case '\n': os << "\\n"; break;
+        case '\r': os << "\\r"; break;
+        case '\t': os << "\\t"; break;
+        default:
+            if (0x0 <= *c && *c <= 0x1f)
+            {
+                os << "\\u" << std::hex << std::setw(4) <<
+                    std::setfill('0') << static_cast<int>(*c);
+            }
+            else
+            {
+                os << *c;
+            }
+        }
+    }
+    return os.str();
+}
+
 void
 wsrep::reporter::write_log_msg(std::ostream&  os,
                                const log_msg& msg)
@@ -149,14 +181,27 @@ wsrep::reporter::write_log_msg(std::ostream&  os,
 }
 
 void
-wsrep::reporter::write_log_msgs(std::ostream&              os,
-                                const std::string&         label,
-                                const std::deque<log_msg>& msgs)
+wsrep::reporter::write_event(std::ostream&  os,
+                             const log_msg& msg)
+{
+    os << "\t\t{\n";
+    os << "\t\t\t\"timestamp\": " << std::showpoint << std::setprecision(18)
+       << msg.tstamp << ",\n";
+    os << "\t\t\t\"event\": " << msg.msg << "\n";
+    os << "\t\t}";
+}
+
+void
+wsrep::reporter::write_array(std::ostream&              os,
+                             const std::string&         label,
+                             const std::deque<log_msg>& msgs,
+                             void (*element_writer)(std::ostream& os,
+                                                    const log_msg& msg))
 {
     os << "\t\"" << label << "\": [\n";
     for (size_t i(0); i < msgs.size(); ++i)
     {
-        write_log_msg(os, msgs[i]);
+        element_writer(os, msgs[i]);
         os << (i+1 < msgs.size() ? ",\n" : "\n");
     }
     os << "\t],\n";
@@ -223,8 +268,9 @@ wsrep::reporter::write_file(double const tstamp)
     os << "\t\"date\": \"" << date_str << "\",\n";
     os << "\t\"timestamp\": " << std::showpoint << std::setprecision(18)
        << tstamp << ",\n";
-    write_log_msgs(os, "errors",   err_msg_);
-    write_log_msgs(os, "warnings", warn_msg_);
+    write_array(os, "errors",   err_msg_, write_log_msg);
+    write_array(os, "warnings", warn_msg_, write_log_msg);
+    write_array(os, "events", events_, write_event);
     os << "\t\"status\": {\n";
     os << "\t\t\"state\": \"" << strings[state_].state << "\",\n";
     os << "\t\t\"comment\": \"" << strings[state_].comment << "\",\n";
@@ -283,6 +329,18 @@ wsrep::reporter::report_progress(const std::string& json)
 }
 
 void
+wsrep::reporter::report_event(const std::string& json)
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    if (events_.size() == max_msg_)
+    {
+        events_.pop_front();
+    }
+    events_.push_back({timestamp(), json});
+    write_file(timestamp());
+}
+
+void
 wsrep::reporter::report_log_msg(log_level const    lvl,
                                 const std::string& msg,
                                 double             tstamp)
@@ -297,7 +355,9 @@ wsrep::reporter::report_log_msg(log_level const    lvl,
 
         if (tstamp <= undefined) tstamp = timestamp();
 
-        log_msg entry({tstamp, msg});
+        /* Log messages are not expected to be json formatted, so we escape
+           the message strings here to keep the report file well formatted. */
+        log_msg entry({tstamp, escape_json(msg)});
         deque.push_back(entry);
         write_file(tstamp);
     }

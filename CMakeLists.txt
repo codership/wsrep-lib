@@ -123,6 +123,7 @@ endif()
 set(MIN_BOOST_VERSION "1.54.0")
 if (WSREP_LIB_WITH_UNIT_TESTS)
   if (WSREP_LIB_WITH_UNIT_TESTS_EXTRA)
+    message(STATUS "Compiling extra unit tests")
     set(json_HEADER "boost/json/src.hpp")
     # Extra tests may require packages from very recent boost which may be
     # unavailable on the system. In such case download private boost distro.
@@ -140,17 +141,14 @@ if (WSREP_LIB_WITH_UNIT_TESTS)
         PATHS ${WITH_BOOST}/lib/cmake
         NO_DEFAULT_PATH
         )
-      # Boost 1.76.0 comes very sloppy (and not only in JSON department)
-      # - need to disable some checks.
-      set(ADDITIONAL_CXX_FLAGS "-Wno-effc++ -Wno-conversion -Wno-suggest-override -Wno-overloaded-virtual")
-      set(ADDITIONAL_CXX_INCLUDES ${BOOST_INCLUDE_DIR})
-      check_include_file_cxx(${json_HEADER} json_FOUND
-        "-I${ADDITIONAL_CXX_INCLUDES} ${ADDITIONAL_CXX_FLAGS}"
-        )
+      # Include as system header to be more permissive about generated
+      # warnings.
+      set(CMAKE_REQUIRED_FLAGS "-isystem ${BOOST_INCLUDE_DIR}")
+      check_include_file_cxx(${json_HEADER} json_FOUND)
       if (NOT json_FOUND)
         message(FATAL_ERROR "Required header 'boost/json.hpp' not found: ${json_FOUND}")
       else()
-        include_directories(SYSTEM ${ADDITIONAL_CXX_INCLUDES})
+        include_directories(SYSTEM ${BOOST_INCLUDE_DIR})
       endif()
     endif()
   else()

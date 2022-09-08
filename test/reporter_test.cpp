@@ -320,8 +320,9 @@ print_logs(std::ostream& os, const logs& left, const logs& right)
 }
 
 // print two results against each other
+template <typename Iteration>
 static std::string
-print(const result& left, const result& right, size_t it)
+print(const result& left, const result& right, Iteration it)
 {
     std::ostringstream os;
 
@@ -360,6 +361,7 @@ static struct result
 const RES_INIT = { LOGS_INIT, LOGS_INIT,
                   { "DISCONNECTED", "Disconnected", indefinite } };
 
+template <typename Iteration>
 static void
 test_log(const char* const  fname,
          wsrep::reporter&   rep,
@@ -367,7 +369,7 @@ test_log(const char* const  fname,
          wsrep::reporter::log_level const lvl,
          double const       tstamp,
          const std::string& msg,
-         size_t const       iteration)
+         Iteration const       iteration)
 {
     // this is implementaiton detail, if it changes in the code, it needs
     // to be changed here
@@ -389,11 +391,14 @@ test_log(const char* const  fname,
 
 static size_t const MAX_MSG = 4;
 
-BOOST_AUTO_TEST_CASE(log_msg_test)
+struct reporter_fixture
 {
-    wsrep::default_mutex m;
-    wsrep::reporter rep(m, REPORT, MAX_MSG);
+    wsrep::default_mutex mutex{};
+    wsrep::reporter rep{mutex, REPORT, MAX_MSG};
+};
 
+BOOST_FIXTURE_TEST_CASE(log_msg_test, reporter_fixture)
+{
     auto value = read_file(REPORT);
     BOOST_REQUIRE(value != nullptr);
 
@@ -435,12 +440,10 @@ BOOST_AUTO_TEST_CASE(log_msg_test)
     ::unlink(REPORT);
 }
 
-BOOST_AUTO_TEST_CASE(state_test)
+BOOST_FIXTURE_TEST_CASE(state_test, reporter_fixture)
 {
     using wsrep::server_state;
 
-    wsrep::default_mutex m;
-    wsrep::reporter   rep(m, REPORT, MAX_MSG);
     double const      err_tstamp(timestamp());
     std::string const err_msg("Error!");
 
@@ -526,7 +529,7 @@ BOOST_AUTO_TEST_CASE(state_test)
     ::unlink(REPORT);
 }
 
-BOOST_AUTO_TEST_CASE(progress_test)
+BOOST_FIXTURE_TEST_CASE(progress_test, reporter_fixture)
 {
     using wsrep::server_state;
 
@@ -632,5 +635,21 @@ BOOST_AUTO_TEST_CASE(progress_test)
         VERIFY_RESULT(res, check, i - tests.begin());
     }
 
+    ::unlink(REPORT);
+}
+
+BOOST_FIXTURE_TEST_CASE(event_test, reporter_fixture)
+{
+    rep.report_event("{\"msg\": \"message\"}");
+    auto value = read_file(REPORT);
+    BOOST_REQUIRE(value.at("events").is_array());
+    auto event_array = value.at("events").as_array();
+    BOOST_REQUIRE(event_array.size() == 1);
+    auto event = event_array[0];
+    BOOST_REQUIRE(event.is_object());
+    BOOST_REQUIRE(event.at("timestamp").is_double());
+    BOOST_REQUIRE(event.at("event").is_object());
+    BOOST_REQUIRE(event.at("event").at("msg").is_string());
+    BOOST_REQUIRE(event.at("event").at("msg").as_string() == "message");
     ::unlink(REPORT);
 }

@@ -57,6 +57,15 @@ namespace wsrep
          */
         void report_progress(const std::string& json);
 
+        /**
+         * Report provider event.
+         * {
+         *     "status": "Status string",
+         *     "message": "Message from the provider"
+         * }
+         */
+        void report_event(const std::string& json);
+
         enum log_level
         {
             error,
@@ -100,14 +109,17 @@ namespace wsrep
 
         std::deque<log_msg> err_msg_;
         std::deque<log_msg> warn_msg_;
+        std::deque<log_msg> events_;
         size_t const        max_msg_;
 
-        static void write_log_msgs(std::ostream& os,
-                                   const std::string& label,
-                                   const std::deque<log_msg>& msgs);
         static void write_log_msg(std::ostream& os,
-                                   const log_msg& msg);
-
+                                  const log_msg& msg);
+        static void write_event(std::ostream& os,
+                                const log_msg& msg);
+        static void write_array(std::ostream& os, const std::string& label,
+                                const std::deque<log_msg>& events,
+                                void (*element_writer)(std::ostream& os,
+                                                       const log_msg& msg));
         substates substate_map(enum server_state::state state);
         float     progress_map(float progress) const;
         void      write_file(double timestamp);

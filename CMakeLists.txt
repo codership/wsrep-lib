@@ -125,14 +125,14 @@ if (WSREP_LIB_WITH_UNIT_TESTS)
     check_include_file_cxx(${json_HEADER} system_json_FOUND)
     if (NOT system_json_FOUND)
       if (NOT WITH_BOOST)
-        set(WITH_BOOST "${CMAKE_SOURCE_DIR}/../boost")
+        set(WITH_BOOST "${CMAKE_SOURCE_DIR}/third_party/boost")
       endif()
       set(DOWNLOAD_BOOST ON)
       include (cmake/boost.cmake)
       set(MIN_BOOST_VERSION "${BOOST_MAJOR}.${BOOST_MINOR}.${BOOST_PATCH}")
       message(STATUS "Boost includes: ${BOOST_INCLUDE_DIR}, ver: ${MIN_BOOST_VERSION}")
       find_package(Boost ${MIN_BOOST_VERSION} REQUIRED
-        COMPONENTS json headers
+        COMPONENTS json headers unit_test_framework
         PATHS ${WITH_BOOST}/lib/cmake
         NO_DEFAULT_PATH
         )
@@ -149,10 +149,29 @@ if (WSREP_LIB_WITH_UNIT_TESTS)
         include_directories(SYSTEM ${ADDITIONAL_CXX_INCLUDES})
       endif()
     endif()
+  else()
+    find_package(Boost ${MIN_BOOST_VERSION}
+      COMPONENTS unit_test_framework
+      )
+
+    if (NOT Boost_UNIT_TEST_FRAMEWORK_FOUND)
+      # Check if we have header implementation available from
+      # extracted source tarball.
+      if (NOT WITH_BOOST)
+        message(FATAL_ERROR "System Boost not found, specify Boost installation with WITH_BOOST=<install_dir>")
+      endif()
+      CHECK_CXX_SOURCE_COMPILES(
+        "
+#define BOOST_TEST_ALTERNATIVE_INIT_API
+#include <boost/test/included/unit_test.hpp>
+bool init_unit_test() { return true; }
+"
+        FOUND_BOOST_TEST_INCLUDED_UNIT_TEST_HPP)
+      if (NOT FOUND_BOOST_TEST_INCLUDED_UNIT_TEST_HPP)
+        message(FATAL_ERROR "Boost unit test header not found")
+      endif()
+    endif()
   endif()
-  find_package(Boost ${MIN_BOOST_VERSION} REQUIRED
-    unit_test_framework
-    )
 endif()
 
 if (WSREP_LIB_WITH_DBSIM)

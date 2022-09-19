@@ -57,7 +57,7 @@ namespace wsrep
         class option_value
         {
         public:
-            virtual ~option_value(){};
+            virtual ~option_value(){}
             virtual const char* as_string() const = 0;
             virtual const void* get_ptr() const = 0;
         };

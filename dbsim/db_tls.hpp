@@ -57,6 +57,6 @@ namespace db
         static void init(int mode);
         static std::string stats();
     };
-};
+}
 
 #endif // WSREP_DB_TLS_HPP

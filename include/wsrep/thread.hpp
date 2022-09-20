@@ -52,4 +52,4 @@ namespace wsrep
     }
 
     std::ostream& operator<<(std::ostream&, const thread::id&);
-};
+}

@@ -77,6 +77,6 @@ namespace db
         std::vector<std::shared_ptr<db::client>> clients_;
         std::vector<boost::thread> client_threads_;
     };
-};
+}
 
 #endif // WSREP_DB_SERVER_HPP

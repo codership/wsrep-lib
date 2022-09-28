@@ -106,12 +106,17 @@ int wsrep::mock_high_priority_service::commit(
 
 int wsrep::mock_high_priority_service::rollback(
     const wsrep::ws_handle& ws_handle,
-    const wsrep::ws_meta& ws_meta,
-    bool)
+    const wsrep::ws_meta& ws_meta)
 {
     client_state_->prepare_for_ordering(ws_handle, ws_meta, false);
     return (client_state_->before_rollback() ||
             client_state_->after_rollback());
+}
+
+int wsrep::mock_high_priority_service::rollback_sr_on_disconnect()
+{
+    return (client_state_->before_rollback()
+            || client_state_->after_rollback());
 }
 
 int wsrep::mock_high_priority_service::apply_toi(const wsrep::ws_meta&,

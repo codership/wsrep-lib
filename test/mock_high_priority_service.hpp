@@ -57,18 +57,19 @@ namespace wsrep
                             const wsrep::const_buffer&,
                             wsrep::mutable_buffer&) WSREP_OVERRIDE;
         int append_fragment_and_commit(
+            wsrep::high_priority_service&,
             const wsrep::ws_handle&,
             const wsrep::ws_meta&,
             const wsrep::const_buffer&,
-            int,
             const wsrep::xid&) WSREP_OVERRIDE
         { return 0; }
         int remove_fragments(const wsrep::ws_meta&) WSREP_OVERRIDE
         { return 0; }
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&)
             WSREP_OVERRIDE;
-        int rollback(const wsrep::ws_handle&, const wsrep::ws_meta&,
-                     bool skip_rollback = false) WSREP_OVERRIDE;
+        int rollback(const wsrep::ws_handle&, const wsrep::ws_meta&)
+            WSREP_OVERRIDE;
+        int rollback_sr_on_disconnect() WSREP_OVERRIDE;
         int apply_toi(const wsrep::ws_meta&,
                       const wsrep::const_buffer&,
                       wsrep::mutable_buffer&) WSREP_OVERRIDE;

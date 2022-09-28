@@ -219,12 +219,6 @@ namespace wsrep
         virtual void debug_crash(const char* crash_point) = 0;
 
         /**
-         * Return the binlog cache for the currently executing
-         * transaction or a NULL pointer if no such cache exists.
-         */
-        virtual void *get_binlog_cache() = 0;
-
-        /**
          * Remove the given transaction from the fragment cache.
          */
         virtual int fragment_cache_remove_transaction(

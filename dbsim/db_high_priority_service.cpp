@@ -88,11 +88,21 @@ int db::high_priority_service::commit(const wsrep::ws_handle& ws_handle,
 }
 
 int db::high_priority_service::rollback(const wsrep::ws_handle& ws_handle,
-                                        const wsrep::ws_meta& ws_meta,
-                                        bool)
+                                        const wsrep::ws_meta& ws_meta)
 {
     client_.client_state_.prepare_for_ordering(ws_handle, ws_meta, false);
     int ret(client_.client_state_.before_rollback());
+    assert(ret == 0);
+    client_.se_trx_.rollback();
+    ret = client_.client_state_.after_rollback();
+    assert(ret == 0);
+    return ret;
+}
+
+int db::high_priority_service::rollback_sr_on_disconnect()
+{
+
+    auto ret = client_.client_state_.before_rollback();
     assert(ret == 0);
     client_.se_trx_.rollback();
     ret = client_.client_state_.after_rollback();

@@ -65,10 +65,7 @@ namespace wsrep
                                     wsrep::transaction_id client_id,
                                     int flags,
                                     const wsrep::const_buffer& data,
-                                    int sr_store,
-                                    size_t offset,
-                                    const wsrep::xid& xid,
-                                    void *binlog_cache) = 0;
+                                    const wsrep::xid& xid) = 0;
         /**
          * Update fragment meta data after certification process.
          */
@@ -79,13 +76,6 @@ namespace wsrep
          * adopted a transaction prior this call.
          */
         virtual int remove_fragments() = 0;
-
-        /**
-         * Update the list of fragments in the streaming context by
-         * adding all fragments in the streaming log table for the given
-         * transaction.
-         */
-        virtual int set_fragments_from_table() = 0;
 
         /**
          * Commit the transaction.

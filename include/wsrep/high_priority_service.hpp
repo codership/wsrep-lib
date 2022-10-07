@@ -93,12 +93,18 @@ namespace wsrep
          *
          * Note that the call is not done from streaming transaction
          * context, but from applier context.
+         *
+         * @param sr_hps Object that is hosting the streaming transaction.
+         * @param ws_handle Write set handle corresponding to fragment.
+         * @param ws_meta Write set meta data corresponding to fragment.
+         * @param data Fragment data.
+         * @param xid XID corresponding to streaming transaction.
          */
         virtual int append_fragment_and_commit(
+            high_priority_service& sr_hps,
             const wsrep::ws_handle& ws_handle,
             const wsrep::ws_meta& ws_meta,
             const wsrep::const_buffer& data,
-            int sr_store,
             const wsrep::xid& xid) = 0;
 
         /**
@@ -146,8 +152,16 @@ namespace wsrep
          * @return Zero in case of success, non-zero in case of failure
          */
         virtual int rollback(const wsrep::ws_handle& ws_handle,
-                             const wsrep::ws_meta& ws_meta,
-                             bool skip_rollback = false) = 0;
+                             const wsrep::ws_meta& ws_meta) = 0;
+
+        /**
+         * Roll back a SR transaction when disconnecting from cluster.
+         *
+         * The implementation is supposed to roll back the transaction, but
+         * keep the fragments in fragment store intact to allow recovering
+         * the ongoing SR transactions on reconnect.
+         */
+        virtual int rollback_sr_on_disconnect() = 0;
 
         /**
          * Apply a TOI operation.

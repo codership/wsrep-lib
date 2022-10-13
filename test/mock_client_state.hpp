@@ -23,6 +23,8 @@
 #include "wsrep/client_state.hpp"
 #include "wsrep/mutex.hpp"
 #include "wsrep/compiler.hpp"
+#include "wsrep/client_service.hpp"
+#include "wsrep/condition_variable.hpp"
 
 #include "test_utils.hpp"
 

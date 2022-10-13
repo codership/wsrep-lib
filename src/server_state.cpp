@@ -20,6 +20,7 @@
 #include "wsrep/server_state.hpp"
 #include "wsrep/client_state.hpp"
 #include "wsrep/server_service.hpp"
+#include "wsrep/client_service.hpp"
 #include "wsrep/high_priority_service.hpp"
 #include "wsrep/transaction.hpp"
 #include "wsrep/view.hpp"

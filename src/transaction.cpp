@@ -25,6 +25,8 @@
 #include "wsrep/key.hpp"
 #include "wsrep/logger.hpp"
 #include "wsrep/compiler.hpp"
+#include "wsrep/server_service.hpp"
+#include "wsrep/client_service.hpp"
 
 #include <sstream>
 #include <memory>

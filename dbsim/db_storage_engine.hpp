@@ -23,7 +23,8 @@
 #include "db_params.hpp"
 
 #include "wsrep/mutex.hpp"
-#include "wsrep/client_state.hpp"
+#include "wsrep/view.hpp"
+#include "wsrep/transaction.hpp"
 
 #include <atomic>
 #include <unordered_set>

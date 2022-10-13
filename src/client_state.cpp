@@ -20,6 +20,9 @@
 #include "wsrep/client_state.hpp"
 #include "wsrep/compiler.hpp"
 #include "wsrep/logger.hpp"
+#include "wsrep/server_state.hpp"
+#include "wsrep/server_service.hpp"
+#include "wsrep/client_service.hpp"
 
 #include <unistd.h> // usleep()
 #include <sstream>

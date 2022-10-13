@@ -24,11 +24,11 @@
 #ifndef WSREP_HIGH_PRIORITY_SERVICE_HPP
 #define WSREP_HIGH_PRIORITY_SERVICE_HPP
 
-#include "xid.hpp"
 #include "server_state.hpp"
 
 namespace wsrep
 {
+    class xid;
     class ws_handle;
     class ws_meta;
     class const_buffer;

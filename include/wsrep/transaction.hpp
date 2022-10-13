@@ -22,13 +22,11 @@
 #define WSREP_TRANSACTION_HPP
 
 #include "provider.hpp"
-#include "server_state.hpp"
 #include "transaction_id.hpp"
 #include "streaming_context.hpp"
 #include "lock.hpp"
 #include "sr_key_set.hpp"
 #include "buffer.hpp"
-#include "client_service.hpp"
 #include "xid.hpp"
 
 #include <cassert>
@@ -40,6 +38,7 @@ namespace wsrep
     class client_state;
     class key;
     class const_buffer;
+    class server_service;
 
     class transaction
     {

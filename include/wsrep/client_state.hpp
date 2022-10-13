@@ -31,12 +31,9 @@
 #ifndef WSREP_CLIENT_STATE_HPP
 #define WSREP_CLIENT_STATE_HPP
 
-#include "server_state.hpp"
-#include "server_service.hpp"
 #include "provider.hpp"
 #include "transaction.hpp"
 #include "client_id.hpp"
-#include "client_service.hpp"
 #include "mutex.hpp"
 #include "lock.hpp"
 #include "buffer.hpp"
@@ -46,8 +43,10 @@
 
 namespace wsrep
 {
+    class client_service;
     class server_state;
     class provider;
+    class condition_variable;
 
     enum client_error
     {

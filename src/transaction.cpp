@@ -791,13 +791,14 @@ int wsrep::transaction::release_commit_order(
 {
     lock.unlock();
     int ret(provider().commit_order_enter(ws_handle_, ws_meta_));
-    lock.lock();
     if (!ret)
     {
         server_service_.set_position(client_service_, ws_meta_.gtid());
         ret = provider().commit_order_leave(ws_handle_, ws_meta_,
                                             apply_error_buf_);
     }
+    // grabbing lock here, as set_position may call for sync wait in galera side
+    lock.lock();
     return ret;
 }
 

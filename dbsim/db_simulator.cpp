@@ -77,7 +77,10 @@ void db::simulator::sst(db::server& server,
     db::client dummy(*(i->second), wsrep::client_id(-1),
                      wsrep::client_state::m_local, params());
 
-    i->second->server_state().sst_received(dummy.client_service(), 0);
+    if (i->second->server_state().sst_received(dummy.client_service(), 0))
+    {
+        throw wsrep::runtime_error("Call to SST received failed");
+    }
     server.server_state().sst_sent(gtid, 0);
 }
 
@@ -169,12 +172,19 @@ void db::simulator::start()
         wsrep::log_debug() << "main: Starting applier";
         server.start_applier();
         wsrep::log_debug() << "main: Waiting initializing state";
-        server.server_state().wait_until_state(wsrep::server_state::s_initializing);
+        if (server.server_state().wait_until_state(
+                wsrep::server_state::s_initializing))
+        {
+            throw wsrep::runtime_error("Failed to reach initializing state");
+        }
         wsrep::log_debug() << "main: Calling initialized";
         server.server_state().initialized();
         wsrep::log_debug() << "main: Waiting for synced state";
-        server.server_state().wait_until_state(
-            wsrep::server_state::s_synced);
+        if (server.server_state().wait_until_state(
+                wsrep::server_state::s_synced))
+        {
+            throw wsrep::runtime_error("Failed to reach synced state");
+        }
         wsrep::log_debug() << "main: Server synced";
     }
 
@@ -220,8 +230,11 @@ void db::simulator::stop()
                      wsrep::log_info() << sv.name() << " = " << sv.value();
                  });
         server.server_state().disconnect();
-        server.server_state().wait_until_state(
-            wsrep::server_state::s_disconnected);
+        if (server.server_state().wait_until_state(
+                wsrep::server_state::s_disconnected))
+        {
+            throw wsrep::runtime_error("Failed to reach disconnected state");
+        }
         server.stop_applier();
         server.server_state().unload_provider();
     }

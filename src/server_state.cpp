@@ -703,8 +703,9 @@ void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
     }
 }
 
-void wsrep::server_state::sst_received(wsrep::client_service& cs,
+int wsrep::server_state::sst_received(wsrep::client_service& cs,
                                        int const error)
+try
 {
     wsrep::log_info() << "SST received";
     wsrep::gtid gtid(wsrep::gtid::undefined());
@@ -800,10 +801,20 @@ void wsrep::server_state::sst_received(wsrep::client_service& cs,
     enum provider::status const retval(provider().sst_received(gtid, error));
     if (retval != provider::success)
     {
-        std::string msg("wsrep::sst_received() failed: ");
-        msg += wsrep::provider::to_string(retval);
-        throw wsrep::runtime_error(msg);
+        wsrep::log_error() << "provider.sst_received() failed: "
+                           << wsrep::provider::to_string(retval);
+        return 1;
     }
+    return 0;
+}
+catch (const wsrep::runtime_error& e)
+{
+    wsrep::log_error() << "sst_received failed: " << e.what();
+    if (provider_)
+    {
+        provider_->sst_received(wsrep::gtid::undefined(), -EINTR);
+    }
+    return 1;
 }
 
 void wsrep::server_state::initialized()
@@ -1386,6 +1397,18 @@ void wsrep::server_state::wait_until_state(
     }
     --state_waiters_[state];
     cond_.notify_all();
+}
+
+int wsrep::server_state::wait_until_state(enum state state) const
+try
+{
+    wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    wait_until_state(lock, state);
+    return 0;
+}
+catch (...)
+{
+    return 1;
 }
 
 void wsrep::server_state::interrupt_state_waiters(

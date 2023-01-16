@@ -343,7 +343,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_sst_first_join_with_sst,
     // case where SST contains the view in which SST happens.
     server_service.logged_view(second_view);
     server_service.position(wsrep::gtid(cluster_id, wsrep::seqno(2)));
-    ss.sst_received(cc, 0);
+    BOOST_REQUIRE(ss.sst_received(cc, 0) == 0);
     clear_sync_point_action();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_sync();
@@ -429,7 +429,7 @@ BOOST_FIXTURE_TEST_CASE(
     ss.prepare_for_sst();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
     server_service.position(wsrep::gtid::undefined());
-    ss.sst_received(cc, 1);
+    BOOST_REQUIRE(ss.sst_received(cc, 1) == 0);
     disconnect();
 }
 
@@ -442,8 +442,7 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
     initialization_failure_action();
     server_service.position(wsrep::gtid(second_view.state_id()));
-    BOOST_REQUIRE_EXCEPTION(ss.sst_received(cc, 0),
-                            wsrep::runtime_error, exception_check);
+    BOOST_REQUIRE(ss.sst_received(cc, 0) != 0);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_initializing);
     BOOST_REQUIRE_EXCEPTION(ss.on_view(second_view, &hps),
                             wsrep::runtime_error, exception_check);
@@ -466,7 +465,7 @@ BOOST_FIXTURE_TEST_CASE(
     // case where SST contains the view in which SST happens.
     server_service.logged_view(second_view);
     server_service.position(wsrep::gtid(cluster_id, wsrep::seqno(2)));
-    ss.sst_received(cc, 0);
+    BOOST_REQUIRE(ss.sst_received(cc, 0) == 0);
     clear_sync_point_action();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     disconnect();
@@ -507,7 +506,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_init_first_join_with_sst,
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
     server_service.logged_view(second_view);
     server_service.position(wsrep::gtid(cluster_id, wsrep::seqno(2)));
-    ss.sst_received(cc, 0);
+    BOOST_REQUIRE(ss.sst_received(cc, 0) == 0);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_sync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);

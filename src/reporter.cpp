@@ -155,7 +155,11 @@ static std::string escape_json(const std::string& str)
         case '\r': os << "\\r"; break;
         case '\t': os << "\\t"; break;
         default:
-            if (0x0 <= *c && *c <= 0x1f)
+            // std::iscntrl() returns non-zero for [0x00, 0x1f] and
+            // backspace character. Argument type is int so cast to
+            // unsigned char is needed to make it safe, see
+            // https://en.cppreference.com/w/cpp/string/byte/iscntrl
+            if (std::iscntrl(static_cast<unsigned char>(*c)))
             {
                 os << "\\u" << std::hex << std::setw(4) <<
                     std::setfill('0') << static_cast<int>(*c);

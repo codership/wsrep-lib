@@ -200,6 +200,17 @@ namespace wsrep
             // Not going to do this while unit testing
         }
 
+        void *get_binlog_cache() WSREP_OVERRIDE
+        {
+            return (NULL);
+        }
+
+        int fragment_cache_remove_transaction(
+            const wsrep::id&,
+            wsrep::transaction_id) WSREP_OVERRIDE
+        {
+            return (0);
+        }
 
         //
         // Knobs to tune the behavior

@@ -35,12 +35,17 @@ namespace db
                             wsrep::transaction_id,
                             int,
                             const wsrep::const_buffer&,
-                            const wsrep::xid&) override
+                            int,
+                            size_t,
+                            const wsrep::xid&,
+                            void *) override
         { throw wsrep::not_implemented_error(); }
         int update_fragment_meta(const wsrep::ws_meta&) override
         { throw wsrep::not_implemented_error(); }
         int remove_fragments() override
         { throw wsrep::not_implemented_error(); }
+        int set_fragments_from_table() override
+        { return 0; }
         int commit(const wsrep::ws_handle&, const wsrep::ws_meta&) override
         { throw wsrep::not_implemented_error(); }
         int rollback(const wsrep::ws_handle&, const wsrep::ws_meta&)

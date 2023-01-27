@@ -88,7 +88,8 @@ int db::high_priority_service::commit(const wsrep::ws_handle& ws_handle,
 }
 
 int db::high_priority_service::rollback(const wsrep::ws_handle& ws_handle,
-                                        const wsrep::ws_meta& ws_meta)
+                                        const wsrep::ws_meta& ws_meta,
+                                        bool)
 {
     client_.client_state_.prepare_for_ordering(ws_handle, ws_meta, false);
     int ret(client_.client_state_.before_rollback());

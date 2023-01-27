@@ -942,6 +942,15 @@ namespace wsrep
           return 1;
         }
 
+        /**
+         * Return a reference to the transaction associated
+         * with the client state.
+         */
+        wsrep::transaction& transaction()
+        {
+            return transaction_;
+        }
+
         const wsrep::ws_meta& toi_meta() const
         {
             return toi_meta_;

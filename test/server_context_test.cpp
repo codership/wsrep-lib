@@ -26,7 +26,7 @@ namespace
     struct server_fixture_base
     {
         server_fixture_base()
-            : server_service(ss)
+            : server_service(&ss)
             , ss("s1",
                  wsrep::server_state::rm_sync, server_service)
             , cc(ss,

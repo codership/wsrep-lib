@@ -31,7 +31,7 @@ namespace
     struct replicating_client_fixture_sync_rm
     {
         replicating_client_fixture_sync_rm()
-            : server_service(sc)
+            : server_service(&sc)
             , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc, wsrep::client_id(1),
                  wsrep::client_state::m_local)
@@ -54,7 +54,7 @@ namespace
     struct replicating_two_clients_fixture_sync_rm
     {
         replicating_two_clients_fixture_sync_rm()
-            : server_service(sc)
+            : server_service(&sc)
             , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc1(sc, wsrep::client_id(1),
                   wsrep::client_state::m_local)
@@ -83,7 +83,7 @@ namespace
     struct replicating_client_fixture_async_rm
     {
         replicating_client_fixture_async_rm()
-            : server_service(sc)
+            : server_service(&sc)
             , sc("s1", wsrep::server_state::rm_async, server_service)
             , cc(sc, wsrep::client_id(1),
                  wsrep::client_state::m_local)
@@ -106,7 +106,7 @@ namespace
     struct replicating_client_fixture_2pc
     {
         replicating_client_fixture_2pc()
-            : server_service(sc)
+            : server_service(&sc)
             , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,  wsrep::client_id(1),
                  wsrep::client_state::m_local)
@@ -130,7 +130,7 @@ namespace
     struct replicating_client_fixture_autocommit
     {
         replicating_client_fixture_autocommit()
-            : server_service(sc)
+            : server_service(&sc)
             , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc, wsrep::client_id(1),
                  wsrep::client_state::m_local)
@@ -154,7 +154,7 @@ namespace
     struct applying_client_fixture
     {
         applying_client_fixture()
-            : server_service(sc)
+            : server_service(&sc)
             , sc("s1",
                  wsrep::server_state::rm_async, server_service)
             , cc(sc,
@@ -193,7 +193,7 @@ namespace
     struct applying_client_fixture_2pc
     {
         applying_client_fixture_2pc()
-            : server_service(sc)
+            : server_service(&sc)
             , sc("s1",
                  wsrep::server_state::rm_async, server_service)
             , cc(sc,
@@ -228,7 +228,7 @@ namespace
     struct streaming_client_fixture_row
     {
         streaming_client_fixture_row()
-            : server_service(sc)
+            : server_service(&sc)
             , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,
                  wsrep::client_id(1),
@@ -254,7 +254,7 @@ namespace
     struct streaming_client_fixture_byte
     {
         streaming_client_fixture_byte()
-            : server_service(sc)
+            : server_service(&sc)
             , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,
                  wsrep::client_id(1),
@@ -279,7 +279,7 @@ namespace
     struct streaming_client_fixture_statement
     {
         streaming_client_fixture_statement()
-            : server_service(sc)
+            : server_service(&sc)
             , sc("s1", wsrep::server_state::rm_sync, server_service)
             , cc(sc,
                  wsrep::client_id(1),

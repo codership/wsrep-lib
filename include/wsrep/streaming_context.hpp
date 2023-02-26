@@ -165,7 +165,7 @@ namespace wsrep
         void cleanup();
     private:
 
-        void check_fragment_seqno(wsrep::seqno seqno WSREP_UNUSED);
+        void check_fragment_seqno(wsrep::seqno seqno);
 
         size_t fragments_certified_;
         std::vector<wsrep::seqno> fragments_;

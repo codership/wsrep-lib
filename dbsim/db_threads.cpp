@@ -22,10 +22,12 @@
 #include "wsrep/logger.hpp"
 
 #include <cassert>
+#include <cstdint>
 #include <pthread.h>
 
 #include <algorithm>
 #include <atomic>
+#include <array>
 #include <chrono>
 #include <map>
 #include <mutex>

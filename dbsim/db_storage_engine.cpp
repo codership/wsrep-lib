@@ -108,7 +108,6 @@ wsrep::view db::storage_engine::get_view() const
 
 void db::storage_engine::validate_position(const wsrep::gtid& gtid) const
 {
-    using std::rel_ops::operator<=;
     if (position_.id() == gtid.id() && gtid.seqno() <= position_.seqno())
     {
         std::ostringstream os;

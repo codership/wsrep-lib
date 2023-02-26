@@ -60,7 +60,7 @@ namespace wsrep
     class mock_client_service : public wsrep::client_service
     {
     public:
-        mock_client_service(wsrep::mock_client_state& client_state)
+        mock_client_service(wsrep::mock_client_state* client_state)
             : wsrep::client_service()
             , is_autocommit_()
             , do_2pc_()
@@ -79,6 +79,8 @@ namespace wsrep
             , unordered_replays_()
             , aborts_()
         { }
+        mock_client_service(const mock_client_service&) = delete;
+        mock_client_service& operator=(const mock_client_service&) = delete;
 
         int bf_rollback() WSREP_OVERRIDE;
 
@@ -93,8 +95,8 @@ namespace wsrep
         {
             if (bf_abort_during_fragment_removal_)
             {
-                client_state_.before_rollback();
-                client_state_.after_rollback();
+                client_state_->before_rollback();
+                client_state_->after_rollback();
                 return 1;
             }
             else
@@ -122,7 +124,7 @@ namespace wsrep
             lock.unlock();
             if (bf_abort_during_wait_)
             {
-                wsrep_test::bf_abort_unordered(client_state_);
+                wsrep_test::bf_abort_unordered(*client_state_);
             }
             lock.lock();
         }
@@ -135,7 +137,7 @@ namespace wsrep
             }
             static const char buf[1] = { 1 };
             wsrep::const_buffer data = wsrep::const_buffer(buf, 1);
-            return client_state_.append_data(data);
+            return client_state_->append_data(data);
         }
 
         void cleanup_transaction() WSREP_OVERRIDE { }
@@ -158,7 +160,7 @@ namespace wsrep
             buffer.push_back(&buf[0], &buf[1]);
             wsrep::const_buffer data(buffer.data(), buffer.size());
             position = buffer.size();
-            return client_state_.append_data(data);
+            return client_state_->append_data(data);
         }
 
         void store_globals() WSREP_OVERRIDE { }
@@ -186,10 +188,10 @@ namespace wsrep
                 switch (sync_point_action_)
                 {
                 case spa_bf_abort_unordered:
-                    wsrep_test::bf_abort_unordered(client_state_);
+                    wsrep_test::bf_abort_unordered(*client_state_);
                     break;
                 case spa_bf_abort_ordered:
-                    wsrep_test::bf_abort_ordered(client_state_);
+                    wsrep_test::bf_abort_ordered(*client_state_);
                     break;
                 }
             }
@@ -228,7 +230,7 @@ namespace wsrep
         size_t unordered_replays() const { return unordered_replays_; }
         size_t aborts() const { return aborts_; }
     private:
-        wsrep::mock_client_state& client_state_;
+        wsrep::mock_client_state* client_state_;
         bool will_replay_called_;
         size_t replays_;
         size_t unordered_replays_;
@@ -244,7 +246,7 @@ namespace wsrep
                     const wsrep::client_id& id,
                     enum wsrep::client_state::mode mode)
             : mock_client_state(server_state, *this, id, mode)
-            , mock_client_service(static_cast<mock_client_state&>(*this))
+            , mock_client_service(static_cast<mock_client_state*>(this))
         { }
 
         int after_row()

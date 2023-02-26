@@ -29,6 +29,7 @@
 
 namespace wsrep
 {
+    /* Helper class to store streaming transaction context. */
     class streaming_context
     {
     public:
@@ -58,144 +59,113 @@ namespace wsrep
          * @param fragment_unit Desired fragment unit.
          * @param fragment_size Desired fragment size.
          */
-        void params(enum fragment_unit fragment_unit, size_t fragment_size)
-        {
-            if (fragment_size)
-            {
-                WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
-                                 wsrep::log::debug_level_streaming,
-                                 "Enabling streaming: "
-                                 << fragment_unit << " " << fragment_size);
-            }
-            else
-            {
-                WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
-                                wsrep::log::debug_level_streaming,
-                                "Disabling streaming");
-            }
-            fragment_unit_ = fragment_unit;
-            fragment_size_ = fragment_size;
-            reset_unit_counter();
-        }
+        void params(enum fragment_unit fragment_unit, size_t fragment_size);
 
-        void enable(enum fragment_unit fragment_unit, size_t fragment_size)
-        {
-            WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
-                            wsrep::log::debug_level_streaming,
-                            "Enabling streaming: "
-                            << fragment_unit << " " << fragment_size);
-            assert(fragment_size > 0);
-            fragment_unit_ = fragment_unit;
-            fragment_size_ = fragment_size;
-        }
+        /**
+         * Enable streaming replication.
+         *
+         * @param fragment_unit Desired fragment unit.
+         * @param fragment_size Desired fragment size.
+         */
+        void enable(enum fragment_unit fragment_unit, size_t fragment_size);
 
+        /** Return current fragment unit. */
         enum fragment_unit fragment_unit() const { return fragment_unit_; }
 
+        /** Return current fragment size. */
         size_t fragment_size() const { return fragment_size_; }
 
-        void disable()
-        {
-            WSREP_LOG_DEBUG(wsrep::log::debug_log_level(),
-                            wsrep::log::debug_level_streaming,
-                            "Disabling streaming");
-            fragment_size_ = 0;
-        }
+        /** Disable streaming replication. */
+        void disable();
 
+        /** Increment counter for certified fragments. */
         void certified()
         {
             ++fragments_certified_;
         }
 
+        /** Return number of certified fragments. */
         size_t fragments_certified() const
         {
             return fragments_certified_;
         }
 
-        void stored(wsrep::seqno seqno)
-        {
-            check_fragment_seqno(seqno);
-            fragments_.push_back(seqno);
-        }
+        /** Mark fragment with seqno as stored in fragment store. */
+        void stored(wsrep::seqno seqno);
 
+        /** Return number of stored fragments. */
         size_t fragments_stored() const
         {
             return fragments_.size();
         }
 
-        void applied(wsrep::seqno seqno)
-        {
-            check_fragment_seqno(seqno);
-            ++fragments_certified_;
-            fragments_.push_back(seqno);
-        }
+        /** Mark fragment with seqno as applied. */
+        void applied(wsrep::seqno seqno);
 
-        void rolled_back(wsrep::transaction_id id)
-        {
-            assert(rollback_replicated_for_ == wsrep::transaction_id::undefined());
-            rollback_replicated_for_ = id;
-        }
+        /** Mark streaming transaction as rolled back. */
+        void rolled_back(wsrep::transaction_id id);
 
+        /** Return true if streaming transaction has been marked
+         * as rolled back. */
         bool rolled_back() const
         {
             return (rollback_replicated_for_ !=
                     wsrep::transaction_id::undefined());
         }
 
+        /** Return current value of unit counter. */
         size_t unit_counter() const
         {
             return unit_counter_;
         }
 
+        /** Set value for unit counter. */
         void set_unit_counter(size_t count)
         {
             unit_counter_ = count;
         }
 
+        /** Increment unit counter by inc. */
         void increment_unit_counter(size_t inc)
         {
             unit_counter_ += inc;
         }
 
+        /** Reset unit counter to zero. */
         void reset_unit_counter()
         {
             unit_counter_ = 0;
         }
 
+        /** Return current log position. */
         size_t log_position() const
         {
             return log_position_;
         }
 
+        /** Set log position. */
         void set_log_position(size_t position)
         {
             log_position_ = position;
         }
 
+        /** Return vector of stored fragments. */
         const std::vector<wsrep::seqno>& fragments() const
         {
             return fragments_;
         }
 
+        /** Return true if the fragment size was exceeded. */
         bool fragment_size_exceeded() const
         {
             return unit_counter_ >= fragment_size_;
         }
 
-        void cleanup()
-        {
-            fragments_certified_ = 0;
-            fragments_.clear();
-            rollback_replicated_for_ = wsrep::transaction_id::undefined();
-            unit_counter_ = 0;
-            log_position_ = 0;
-        }
+        /** Clean up the streaming transaction state. */
+        void cleanup();
     private:
 
-        void check_fragment_seqno(wsrep::seqno seqno WSREP_UNUSED)
-        {
-            assert(seqno.is_undefined() == false);
-            assert(fragments_.empty() || fragments_.back() < seqno);
-        }
+        void check_fragment_seqno(wsrep::seqno seqno WSREP_UNUSED);
 
         size_t fragments_certified_;
         std::vector<wsrep::seqno> fragments_;

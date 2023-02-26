@@ -554,11 +554,7 @@ namespace wsrep
         }
 
         enum state state(wsrep::unique_lock<wsrep::mutex>&
-                         lock WSREP_UNUSED) const
-        {
-            assert(lock.owns_lock());
-            return state_;
-        }
+                         lock WSREP_UNUSED) const;
 
         /**
          * Get provider status variables.

@@ -29,7 +29,6 @@
 #include "buffer.hpp"
 #include "xid.hpp"
 
-#include <cassert>
 #include <vector>
 
 namespace wsrep

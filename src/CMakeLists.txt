@@ -3,26 +3,29 @@
 #
 
 add_library(wsrep-lib
+  allowlist_service_v1.cpp
   client_state.cpp
+  config_service_v1.cpp
+  event_service_v1.cpp
   exception.cpp
   gtid.cpp
   id.cpp
-  xid.cpp
   key.cpp
   logger.cpp
   provider.cpp
   provider_options.cpp
+  reporter.cpp
   seqno.cpp
-  view.cpp
   server_state.cpp
+  sr_key_set.cpp
+  streaming_context.cpp
   thread.cpp
   thread_service_v1.cpp
   tls_service_v1.cpp
-  event_service_v1.cpp
   transaction.cpp
   uuid.cpp
-  reporter.cpp
-  allowlist_service_v1.cpp
+  view.cpp
   wsrep_provider_v26.cpp
-  config_service_v1.cpp)
+  xid.cpp
+  )
 target_link_libraries(wsrep-lib wsrep_api_v26 pthread ${WSREP_LIB_LIBDL})

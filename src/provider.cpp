@@ -23,6 +23,7 @@
 #include "wsrep_provider_v26.hpp"
 
 #include <dlfcn.h>
+#include <cassert>
 #include <memory>
 
 wsrep::provider* wsrep::provider::make_provider(

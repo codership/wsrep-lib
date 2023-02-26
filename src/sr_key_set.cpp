@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2023 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -17,31 +17,27 @@
  * along with wsrep-lib.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef WSREP_SR_KEY_SET_HPP
-#define WSREP_SR_KEY_SET_HPP
+#include "wsrep/sr_key_set.hpp"
 
-#include <set>
-#include <map>
-#include <string>
+#include "wsrep/key.hpp"
 
-namespace wsrep
+#include <cassert>
+
+void wsrep::sr_key_set::insert(const wsrep::key& key)
 {
-    class key;
-    class sr_key_set
+    assert(key.size() >= 2);
+    if (key.size() < 2)
     {
-    public:
-        typedef std::set<std::string> leaf_type;
-        typedef std::map<std::string, leaf_type > branch_type;
-        sr_key_set()
-            : root_()
-        { }
-        void insert(const wsrep::key& key);
-        const branch_type& root() const { return root_; }
-        void clear();
-        bool empty() const { return root_.empty(); }
-    private:
-        branch_type root_;
-    };
+        throw wsrep::runtime_error("Invalid key size");
+    }
+
+    root_[std::string(static_cast<const char*>(key.key_parts()[0].data()),
+                      key.key_parts()[0].size())]
+        .insert(std::string(static_cast<const char*>(key.key_parts()[1].data()),
+                            key.key_parts()[1].size()));
 }
 
-#endif // WSREP_KEY_SET_HPP
+void wsrep::sr_key_set::clear()
+{
+    root_.clear();
+}

@@ -20,6 +20,8 @@
 #include "db_storage_engine.hpp"
 #include "db_client.hpp"
 
+#include <cassert>
+
 void db::storage_engine::transaction::start(db::client* cc)
 {
     wsrep::unique_lock<wsrep::mutex> lock(se_.mutex_);

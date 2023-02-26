@@ -27,7 +27,6 @@
 #include "transaction_id.hpp"
 #include "compiler.hpp"
 
-#include <cassert>
 #include <cstring>
 
 #include <string>

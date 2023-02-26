@@ -28,6 +28,7 @@
 #include "wsrep/server_service.hpp"
 #include "wsrep/client_service.hpp"
 
+#include <cassert>
 #include <sstream>
 #include <memory>
 

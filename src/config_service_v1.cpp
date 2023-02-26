@@ -23,6 +23,8 @@
 #include "wsrep/logger.hpp"
 #include "wsrep/provider_options.hpp"
 
+#include <cassert>
+
 namespace wsrep_config_service_v1
 {
     wsrep_config_service_v1_t service{ 0 };

@@ -1132,6 +1132,13 @@ int wsrep::server_state::on_apply(
     }
 }
 
+enum wsrep::server_state::state wsrep::server_state::state(
+    wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED) const
+{
+    assert(lock.owns_lock());
+    return state_;
+}
+
 void wsrep::server_state::start_streaming_client(
     wsrep::client_state* client_state)
 {

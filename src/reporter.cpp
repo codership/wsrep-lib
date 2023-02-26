@@ -23,6 +23,7 @@
 #include <sstream>
 #include <iomanip>
 
+#include <cassert>
 #include <cstring>  // strerror()
 #include <cstdlib>  // mkstemp()
 #include <cerrno>   // errno

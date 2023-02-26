@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2013 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -172,11 +172,20 @@ namespace wsrep
         bool sst_before_init() const WSREP_OVERRIDE
         { return sst_before_init_; }
         std::string sst_request() WSREP_OVERRIDE { return ""; }
-        int start_sst(const std::string&,
-                      const wsrep::gtid&,
-                      bool) WSREP_OVERRIDE { return 0; }
-        void background_rollback(wsrep::client_state& client_state)
-            WSREP_OVERRIDE
+
+        std::function<int()> start_sst_action{};
+        int start_sst(const std::string&, const wsrep::gtid&,
+                      bool) WSREP_OVERRIDE
+        {
+            if (start_sst_action)
+            {
+                return start_sst_action();
+            }
+            return 0;
+        }
+
+        void
+        background_rollback(wsrep::client_state& client_state) WSREP_OVERRIDE
         {
             client_state.before_rollback();
             client_state.after_rollback();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2023 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -675,8 +675,12 @@ int wsrep::server_state::start_sst(const std::string& sst_request,
         lock.lock();
         wsrep::log_warning() << "SST preparation failed";
         // v26 API does not have JOINED event, so in anticipation of SYNCED
-        // we must do it here.
-        state(lock, s_joined);
+        // we must do it here. Do not modify the state if donor lost the
+        // donor state e.g. due to cluster partitioning.
+        if (state(lock) == s_donor)
+        {
+            state(lock, s_joined);
+        }
         ret = 1;
     }
     return ret;
@@ -691,8 +695,13 @@ void wsrep::server_state::sst_sent(const wsrep::gtid& gtid, int error)
 
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     // v26 API does not have JOINED event, so in anticipation of SYNCED
-    // we must do it here.
-    state(lock, s_joined);
+    // we must do it here. Do not modify the state if donor lost the
+    // donor state e.g. due to cluster partitioning.
+    if (state(lock) == s_donor)
+    {
+        state(lock, s_joined);
+    }
+
     lock.unlock();
     enum provider::status const retval(provider().sst_sent(gtid, error));
     if (retval != provider::success)

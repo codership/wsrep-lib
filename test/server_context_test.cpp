@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2023 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -103,6 +103,24 @@ namespace
         {
             ss.prepare_for_sst();
             BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joiner);
+        }
+
+        void non_prim()
+        {
+            BOOST_REQUIRE(ss.state() != wsrep::server_state::s_disconnected);
+            std::vector<wsrep::view::member> members;
+            members.push_back(wsrep::view::member(
+                                  ss.id(), "s1", ""));
+
+            wsrep::view view(wsrep::gtid(),                     // state_id
+                             wsrep::seqno::undefined(),         // view seqno
+                             wsrep::view::non_primary,          // status
+                             0,                                 // capabilities
+                             0,                                 // own_index
+                             0,                                 // protocol ver
+                             members // members
+                );
+            ss.on_view(view, &hps);
         }
 
         void final_view()
@@ -597,6 +615,35 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
     ss.on_sync();
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+}
+
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_donor_start_sst_error_in_non_prim,
+    sst_first_server_fixture)
+{
+    bootstrap();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+    server_service.start_sst_action = [&]() {
+        non_prim();
+        return 1;
+    };
+    ss.start_sst("", wsrep::gtid(cluster_id, wsrep::seqno(2)), false);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
+}
+
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_donor_sst_sent_in_non_prim,
+    sst_first_server_fixture)
+{
+    bootstrap();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_synced);
+    ss.start_sst("", wsrep::gtid(cluster_id, wsrep::seqno(2)), false);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_donor);
+    non_prim();
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
+    ss.sst_sent(wsrep::gtid(cluster_id, wsrep::seqno(2)), 0);
+    // Must stay in connected state
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -77,6 +77,14 @@ jobs:
             CC: gcc
             version: "11"
             type: Release
+          - os: ubuntu-22.04
+            CC: gcc
+            version: "12"
+            type: Debug
+          - os: ubuntu-22.04
+            CC: gcc
+            version: "12"
+            type: Release
           # Clang
           - os: ubuntu-18.04
             CC: clang

@@ -173,15 +173,14 @@ namespace wsrep
         { return sst_before_init_; }
         std::string sst_request() WSREP_OVERRIDE { return ""; }
 
-        std::function<int()> start_sst_action{};
+        // Action to take when start_sst() method is called.
+        // This can be overriden by test case to inject custom
+        // behavior.
+        std::function<int()> start_sst_action{[](){ return 0; }};
         int start_sst(const std::string&, const wsrep::gtid&,
                       bool) WSREP_OVERRIDE
         {
-            if (start_sst_action)
-            {
-                return start_sst_action();
-            }
-            return 0;
+            return start_sst_action();
         }
 
         void

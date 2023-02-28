@@ -674,6 +674,9 @@ namespace wsrep
         enum wsrep::provider::status send_pending_rollback_events(
           wsrep::unique_lock<wsrep::mutex>& lock);
 
+        // Handle returning from donor state.
+        void return_from_donor_state(wsrep::unique_lock<wsrep::mutex>& lock);
+
         wsrep::mutex& mutex_;
         wsrep::condition_variable& cond_;
         wsrep::server_service& server_service_;

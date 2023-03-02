@@ -614,18 +614,7 @@ int wsrep::transaction::after_commit()
         {
             // XA fragment removal happens here,
             // see comment in before_prepare
-            lock.unlock();
-            scoped_storage_service<storage_service_deleter>
-                sr_scope(
-                    client_service_,
-                    server_service_.storage_service(client_service_),
-                    storage_service_deleter(server_service_));
-            wsrep::storage_service& storage_service(
-                sr_scope.storage_service());
-            storage_service.adopt_transaction(*this);
-            storage_service.remove_fragments();
-            storage_service.commit(wsrep::ws_handle(), wsrep::ws_meta());
-            lock.lock();
+            remove_fragments_in_storage_service_scope(lock);
         }
 
         if (client_state_.mode() == wsrep::client_state::m_local)
@@ -757,21 +746,7 @@ int wsrep::transaction::after_rollback()
     // MDL locks. It is not clear how to enforce that though.
     if (is_streaming() && bf_aborted_in_total_order_)
     {
-        lock.unlock();
-        // Storage service scope
-        {
-            scoped_storage_service<storage_service_deleter>
-                sr_scope(
-                    client_service_,
-                    server_service_.storage_service(client_service_),
-                    storage_service_deleter(server_service_));
-            wsrep::storage_service& storage_service(
-                sr_scope.storage_service());
-            storage_service.adopt_transaction(*this);
-            storage_service.remove_fragments();
-            storage_service.commit(wsrep::ws_handle(), wsrep::ws_meta());
-        }
-        lock.lock();
+        remove_fragments_in_storage_service_scope(lock);
         streaming_context_.cleanup();
     }
 
@@ -809,6 +784,26 @@ int wsrep::transaction::release_commit_order(
     // grabbing lock here, as set_position may call for sync wait in galera side
     lock.lock();
     return ret;
+}
+
+void wsrep::transaction::remove_fragments_in_storage_service_scope(
+    wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    assert(lock.owns_lock());
+    lock.unlock();
+    {
+        scoped_storage_service<storage_service_deleter>
+            sr_scope(
+                client_service_,
+                server_service_.storage_service(client_service_),
+                storage_service_deleter(server_service_));
+        wsrep::storage_service& storage_service(
+            sr_scope.storage_service());
+        storage_service.adopt_transaction(*this);
+        storage_service.remove_fragments();
+        storage_service.commit(wsrep::ws_handle(), wsrep::ws_meta());
+    }
+    lock.lock();
 }
 
 int wsrep::transaction::after_statement()

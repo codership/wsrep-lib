@@ -249,6 +249,8 @@ namespace wsrep
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
         int append_sr_keys_for_commit();
         int release_commit_order(wsrep::unique_lock<wsrep::mutex>&);
+        void remove_fragments_in_storage_service_scope(
+            wsrep::unique_lock<wsrep::mutex>&);
         void streaming_rollback(wsrep::unique_lock<wsrep::mutex>&);
         int replay(wsrep::unique_lock<wsrep::mutex>&);
         void xa_replay_common(wsrep::unique_lock<wsrep::mutex>&);

@@ -1961,12 +1961,19 @@ void wsrep::transaction::streaming_rollback(
 
     if (streaming_context_.rolled_back() == false)
     {
+        // Note that streaming_context_ must not be cleaned up in this
+        // method. This is because the owning thread may still be executing
+        // fragment removal on commit, which will access fragment
+        // vector in streaming context. Clearing streaming context
+        // here may cause owning thread to access memory which was
+        // already freed. Cleanup for streaming_context_ will happen
+        // in after_rollback().
+
         if (bf_aborted_in_total_order_)
         {
             lock.unlock();
             server_service_.debug_sync("wsrep_streaming_rollback");
             client_state_.server_state_.stop_streaming_client(&client_state_);
-            // Fragments are removed in after_rollback().
             lock.lock();
         }
         else
@@ -1980,7 +1987,6 @@ void wsrep::transaction::streaming_rollback(
             client_state_.server_state_.convert_streaming_client_to_applier(
                 &client_state_);
             lock.lock();
-            streaming_context_.cleanup();
 
             enum wsrep::provider::status status(provider().rollback(id_));
             if (status)

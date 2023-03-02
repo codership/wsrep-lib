@@ -44,6 +44,9 @@ namespace wsrep_test
                            const wsrep::transaction& tc,
                            wsrep::seqno bf_seqno);
 
+    // BF abort in total order
+    void bf_abort_in_total_order(wsrep::client_state&);
+
     // Terminate streaming applier by applying rollback fragment.
     void terminate_streaming_applier(
         wsrep::mock_server_state& sc,

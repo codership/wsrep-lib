@@ -1406,6 +1406,28 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_bf_abort_executing,
                                             wsrep::transaction_id(1));
 
 }
+
+BOOST_FIXTURE_TEST_CASE(
+    transaction_row_streaming_total_order_bf_abort_executing,
+    streaming_client_fixture_row)
+{
+    BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
+    wsrep_test::bf_abort_in_total_order(cc);
+    BOOST_REQUIRE(tc.bf_aborted_in_total_order());
+    // TO BF abort must not replicate rollback fragment,
+    // rollback must complete before TO is allowed to
+    // continue.
+    BOOST_REQUIRE(sc.provider().rollback_fragments() == 0);
+    BOOST_REQUIRE(tc.streaming_context().rolled_back());
+    BOOST_REQUIRE(cc.before_rollback() == 0);
+    BOOST_REQUIRE(cc.after_rollback() == 0);
+    BOOST_REQUIRE(cc.after_statement());
+    wsrep_test::terminate_streaming_applier(sc, sc.id(),
+                                            wsrep::transaction_id(1));
+}
+
 //
 // Test streaming certification failure during fragment replication
 //
@@ -1489,8 +1511,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_bf_abort_committing,
     BOOST_REQUIRE(sc.provider().start_fragments() == 1);
     BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
 }
-
-
 
 BOOST_FIXTURE_TEST_CASE(transaction_byte_streaming_1pc_commit,
                         streaming_client_fixture_byte)

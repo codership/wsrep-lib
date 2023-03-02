@@ -749,6 +749,12 @@ int wsrep::transaction::after_rollback()
     assert(state() == s_aborting ||
            state() == s_must_replay);
 
+    // Note that it would be technically more correct to
+    // remove fragments after TOI BF abort in before_rollback(),
+    // it seems to cause deadlocks and is done here instead.
+    // We assume that the application does not let the TOI
+    // to proceed until this method returns, e.g. by holding
+    // MDL locks. It is not clear how to enforce that though.
     if (is_streaming() && bf_aborted_in_total_order_)
     {
         lock.unlock();
@@ -1083,10 +1089,15 @@ bool wsrep::transaction::total_order_bf_abort(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
     wsrep::seqno bf_seqno)
 {
+    /* We must set this flag before entering bf_abort() in order
+     * to streaming_rollback() work correctly. The flag will be
+     * unset if BF abort was not allowed. Note that we rely in
+     * bf_abort() not to release lock if the BF abort is not allowed. */
+    bf_aborted_in_total_order_ = true;
     bool ret(bf_abort(lock, bf_seqno));
-    if (ret)
+    if (not ret)
     {
-        bf_aborted_in_total_order_ = true;
+        bf_aborted_in_total_order_ = false;
     }
     return ret;
 }
@@ -1953,7 +1964,9 @@ void wsrep::transaction::streaming_rollback(
         if (bf_aborted_in_total_order_)
         {
             lock.unlock();
+            server_service_.debug_sync("wsrep_streaming_rollback");
             client_state_.server_state_.stop_streaming_client(&client_state_);
+            // Fragments are removed in after_rollback().
             lock.lock();
         }
         else

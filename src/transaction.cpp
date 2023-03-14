@@ -1557,17 +1557,25 @@ int wsrep::transaction::certify_fragment(
             error = wsrep::e_append_fragment_error;
         }
 
-        if (ret == 0 &&
-            (storage_service.start_transaction(ws_handle_) ||
-             storage_service.append_fragment(
-                 server_id,
-                 id(),
-                 flags(),
-                 wsrep::const_buffer(data.data(), data.size()),
-                 xid())))
+        if (ret == 0)
         {
-            ret = 1;
-            error = wsrep::e_append_fragment_error;
+            ret = storage_service.start_transaction(ws_handle_);
+            if (ret)
+            {
+                error = wsrep::e_append_fragment_error;
+            }
+        }
+
+        if (ret == 0)
+        {
+            ret = storage_service.append_fragment(
+                server_id, id(), flags(),
+                wsrep::const_buffer(data.data(), data.size()), xid());
+            if (ret)
+            {
+                error = wsrep::e_append_fragment_error;
+                storage_service.rollback(wsrep::ws_handle(), wsrep::ws_meta());
+            }
         }
 
         if (ret == 0)

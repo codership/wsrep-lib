@@ -1074,7 +1074,9 @@ bool wsrep::transaction::bf_abort(
             }
 
             lock.unlock();
-            server_service_.background_rollback(client_state_);
+            /* if background rollback is skipped, reset rollbacker activity */
+            if (server_service_.background_rollback(client_state_))
+	        client_state_.set_rollbacker_active(false);
             lock.lock();
         }
     }

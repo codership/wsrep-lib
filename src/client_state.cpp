@@ -530,18 +530,32 @@ void wsrep::client_state::xa_replay()
 //                                 BF                                       //
 //////////////////////////////////////////////////////////////////////////////
 
+int wsrep::client_state::bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
+                                  wsrep::seqno bf_seqno)
+{
+    assert(lock.owns_lock());
+    assert(mode_ == m_local || transaction_.is_streaming());
+    return transaction_.bf_abort(lock, bf_seqno);
+
+}
+
 int wsrep::client_state::bf_abort(wsrep::seqno bf_seqno)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+    return bf_abort(lock, bf_seqno);
+}
+
+int wsrep::client_state::total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>& lock, wsrep::seqno bf_seqno)
+{
+    assert(lock.owns_lock());
     assert(mode_ == m_local || transaction_.is_streaming());
-    return transaction_.bf_abort(lock, bf_seqno);
+    return transaction_.total_order_bf_abort(lock, bf_seqno);
 }
 
 int wsrep::client_state::total_order_bf_abort(wsrep::seqno bf_seqno)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    assert(mode_ == m_local || transaction_.is_streaming());
-    return transaction_.total_order_bf_abort(lock, bf_seqno);
+    return total_order_bf_abort(lock, bf_seqno);
 }
 
 void wsrep::client_state::adopt_transaction(

@@ -540,6 +540,13 @@ namespace wsrep
          * Brute force abort a transaction. This method should be
          * called by a transaction which needs to BF abort a conflicting
          * locally processing transaction.
+         *
+         * @param lock Lock to protect client state.
+         * @param bf_seqno Seqno of the BF aborter.
+         */
+        int bf_abort(wsrep::unique_lock<wsrep::mutex>& lock, wsrep::seqno bf_seqno);
+        /**
+         * Wrapper to bf_abort() call, grabs lock internally.
          */
         int bf_abort(wsrep::seqno bf_seqno);
 
@@ -547,6 +554,11 @@ namespace wsrep
          * Brute force abort a transaction in total order. This method
          * should be called by the TOI operation which needs to
          * BF abort a transaction.
+         */
+        int total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>& lock, wsrep::seqno bf_seqno);
+
+        /**
+         * Wrapper to total_order_bf_abort(), grabs lock internally.
          */
         int total_order_bf_abort(wsrep::seqno bf_seqno);
 

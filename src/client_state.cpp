@@ -535,8 +535,9 @@ int wsrep::client_state::bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
 {
     assert(lock.owns_lock());
     assert(mode_ == m_local || transaction_.is_streaming());
-    return transaction_.bf_abort(lock, bf_seqno);
-
+    auto ret = transaction_.bf_abort(lock, bf_seqno);
+    assert(lock.owns_lock());
+    return ret;
 }
 
 int wsrep::client_state::bf_abort(wsrep::seqno bf_seqno)
@@ -545,11 +546,14 @@ int wsrep::client_state::bf_abort(wsrep::seqno bf_seqno)
     return bf_abort(lock, bf_seqno);
 }
 
-int wsrep::client_state::total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>& lock, wsrep::seqno bf_seqno)
+int wsrep::client_state::total_order_bf_abort(
+    wsrep::unique_lock<wsrep::mutex>& lock, wsrep::seqno bf_seqno)
 {
     assert(lock.owns_lock());
     assert(mode_ == m_local || transaction_.is_streaming());
-    return transaction_.total_order_bf_abort(lock, bf_seqno);
+    auto ret = transaction_.total_order_bf_abort(lock, bf_seqno);
+    assert(lock.owns_lock());
+    return ret;
 }
 
 int wsrep::client_state::total_order_bf_abort(wsrep::seqno bf_seqno)

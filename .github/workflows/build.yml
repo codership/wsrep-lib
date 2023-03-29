@@ -118,6 +118,14 @@ jobs:
             CC: clang
             version: "12"
             type: Release
+          - os: ubuntu-22.04
+            CC: clang
+            version: "13"
+            type: Debug
+          - os: ubuntu-22.04
+            CC: clang
+            version: "13"
+            type: Release
 
     steps:
     - name: Checkout repository

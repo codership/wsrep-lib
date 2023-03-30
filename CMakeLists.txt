@@ -86,6 +86,12 @@ check_cxx_compiler_flag("-Wsuggest-override" HAVE_SUGGEST_OVERRIDE)
 if (HAVE_SUGGEST_OVERRIDE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
 endif()
+check_cxx_compiler_flag("-Winconsistent-missing-destructor-override"
+  HAVE_INCONSISTENT_MISSING_DESTRUCTOR_OVERRIDE)
+if (HAVE_INCONSISTENT_MISSING_DESTRUCTOR_OVERRIDE)
+  set(CMAKE_CXX_FLAGS
+    "${CMAKE_CXX_FLAGS} -Winconsistent-missing-destructor-override")
+endif()
 check_cxx_compiler_flag("-Wextra-semi" HAVE_EXTRA_SEMI)
 if (HAVE_EXTRA_SEMI)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra-semi")

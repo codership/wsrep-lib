@@ -43,7 +43,7 @@ namespace wsrep
             , nbo_cs_()
         { }
 
-        ~mock_high_priority_service()
+        ~mock_high_priority_service() WSREP_OVERRIDE
         { }
         int start_transaction(const wsrep::ws_handle&, const wsrep::ws_meta&)
             WSREP_OVERRIDE;

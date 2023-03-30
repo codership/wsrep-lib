@@ -58,7 +58,7 @@ namespace wsrep
                 throw wsrep::runtime_error("mutex init failed");
             }
         }
-        ~default_mutex()
+        ~default_mutex() WSREP_OVERRIDE
         {
             if (pthread_mutex_destroy(&mutex_)) ::abort();
         }

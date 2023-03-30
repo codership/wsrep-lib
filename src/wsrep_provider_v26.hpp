@@ -35,7 +35,7 @@ namespace wsrep
         wsrep_provider_v26(wsrep::server_state&, const std::string&,
                            const std::string&,
                            const wsrep::provider::services& services);
-        ~wsrep_provider_v26();
+        ~wsrep_provider_v26() WSREP_OVERRIDE;
         enum wsrep::provider::status
         connect(const std::string&, const std::string&, const std::string&,
                     bool) WSREP_OVERRIDE;

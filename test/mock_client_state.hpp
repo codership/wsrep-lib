@@ -42,7 +42,7 @@ namespace wsrep
             , mutex_()
             , cond_()
         { }
-        ~mock_client_state()
+        ~mock_client_state() WSREP_OVERRIDE
         {
             if (transaction().active())
             {

@@ -30,7 +30,7 @@ class mock_server_state;
     {
     public:
         mock_storage_service(wsrep::server_state&, wsrep::client_id);
-        ~mock_storage_service();
+        ~mock_storage_service() WSREP_OVERRIDE;
 
         int start_transaction(const wsrep::ws_handle&) WSREP_OVERRIDE;
 

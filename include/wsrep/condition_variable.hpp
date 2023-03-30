@@ -53,7 +53,7 @@ namespace wsrep
             }
         }
 
-        ~default_condition_variable()
+        ~default_condition_variable() WSREP_OVERRIDE
         {
             if (pthread_cond_destroy(&cond_))
             {

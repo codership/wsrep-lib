@@ -69,7 +69,7 @@ namespace wsrep
                 : value_(value)
             {
             }
-            ~option_value_string() {}
+            ~option_value_string() WSREP_OVERRIDE {}
             const char* as_string() const WSREP_OVERRIDE
             {
                 return value_.c_str();
@@ -90,7 +90,7 @@ namespace wsrep
                 : value_(value)
             {
             }
-            ~option_value_bool() {}
+            ~option_value_bool() WSREP_OVERRIDE {}
             const char* as_string() const WSREP_OVERRIDE
             {
                 if (value_)
@@ -116,7 +116,7 @@ namespace wsrep
                 , value_str_(std::to_string(value))
             {
             }
-            ~option_value_int() {}
+            ~option_value_int() WSREP_OVERRIDE {}
             const char* as_string() const WSREP_OVERRIDE
             {
                 return value_str_.c_str();
@@ -136,7 +136,7 @@ namespace wsrep
                 , value_str_(std::to_string(value))
             {
             }
-            ~option_value_double() {}
+            ~option_value_double() WSREP_OVERRIDE {}
             const char* as_string() const WSREP_OVERRIDE
             {
                 return value_str_.c_str();

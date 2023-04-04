@@ -49,6 +49,16 @@ namespace wsrep
                 (void)client_service().bf_rollback();
             }
         }
+
+        void make_read_write()
+        {
+            wsrep::key key{wsrep::key::exclusive};
+            key.append_key_part("db", 2);
+            key.append_key_part("table", 5);
+            key.append_key_part("1", 2);
+            append_key(key);
+        }
+
     private:
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;

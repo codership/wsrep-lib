@@ -70,6 +70,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_1pc, T,
 
     // Establish default read view
     BOOST_REQUIRE(0 == cc.assign_read_view(NULL));
+    cc.make_read_write();
 
     // Verify that the commit can be successfully executed in separate command
     BOOST_REQUIRE(cc.after_statement() == 0);
@@ -113,12 +114,13 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_rollback, T,
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
-    // Run before commit
+    // Run before rollback
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborting);
 
-    // Run after commit
+    // Run after rollback
     BOOST_REQUIRE(cc.after_rollback() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
 
@@ -145,6 +147,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     wsrep_test::bf_abort_unordered(cc);
 
@@ -187,6 +190,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     wsrep_test::bf_abort_provider(sc, tc, wsrep::seqno::undefined());
 
@@ -226,6 +230,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     cc.bf_abort_during_wait_ = true;
 
@@ -262,6 +267,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     sc.provider().commit_order_enter_result_ = wsrep::provider::error_bf_abort;
 
@@ -304,6 +310,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     cc.error_during_prepare_data_ = true;
 
@@ -343,6 +350,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     cc.killed_before_certify_ = true;
 
@@ -376,6 +384,7 @@ BOOST_FIXTURE_TEST_CASE(
     replicating_client_fixture_sync_rm)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     sc.provider().certify_result_ = wsrep::provider::error_bf_abort;
     sc.provider().replay_result_ = wsrep::provider::success;
 
@@ -397,6 +406,7 @@ BOOST_FIXTURE_TEST_CASE(
     replicating_client_fixture_sync_rm)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     sc.provider().certify_result_ = wsrep::provider::error_bf_abort;
     sc.provider().replay_result_ = wsrep::provider::error_certification_failed;
 
@@ -424,6 +434,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
 
     // Start a new transaction with ID 1
     cc.start_transaction(wsrep::transaction_id(1));
+    cc.make_read_write();
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
@@ -467,6 +478,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     const wsrep::transaction& tc(T::tc);
 
     cc.start_transaction(wsrep::transaction_id(1));
+    cc.make_read_write();
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
@@ -501,6 +513,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
 
     // Start a new transaction with ID 1
     cc.start_transaction(wsrep::transaction_id(1));
+    cc.make_read_write();
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
@@ -545,6 +558,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     sc.provider().certify_result_ = wsrep::provider::error_transaction_missing;
 
@@ -586,6 +600,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     sc.provider().certify_result_ = wsrep::provider::error_size_exceeded;
 
@@ -627,6 +642,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     sc.provider().certify_result_ = wsrep::provider::error_connection_failed;
 
@@ -668,6 +684,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     sc.provider().certify_result_ = wsrep::provider::error_not_allowed;
 
@@ -709,6 +726,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     sc.provider().certify_result_ = wsrep::provider::error_fatal;
 
@@ -751,6 +769,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     sc.provider().certify_result_ = wsrep::provider::error_unknown;
 
@@ -792,6 +811,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     cc.sync_point_enabled_ = "wsrep_after_certification";
     cc.sync_point_action_ = wsrep::mock_client_service::spa_bf_abort_ordered;
@@ -824,7 +844,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_before_before_statement, T,
     replicating_fixtures, T)
 {
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -832,6 +852,8 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
+
     cc.after_statement();
     cc.after_command_before_result();
     cc.after_command_after_result();
@@ -856,7 +878,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_before_after_statement, T,
     replicating_fixtures, T)
 {
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     // Start a new transaction with ID 1
@@ -864,6 +886,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.active());
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+    cc.make_read_write();
 
     wsrep_test::bf_abort_unordered(cc);
 
@@ -878,11 +901,13 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_abort_after_after_statement, T,
     replicating_fixtures, T)
 {
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     cc.start_transaction(wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.active());
+    cc.make_read_write();
+
     cc.after_statement();
     BOOST_REQUIRE(cc.state() == wsrep::client_state::s_exec);
     wsrep_test::bf_abort_unordered(cc);
@@ -906,6 +931,8 @@ BOOST_FIXTURE_TEST_CASE(
 
     cc.start_transaction(wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.active());
+    cc.make_read_write();
+
     wsrep_test::bf_abort_unordered(cc);
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
@@ -921,11 +948,13 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     transaction_1pc_bf_abort_after_after_command_before_result, T,
     replicating_fixtures, T)
 {
-    wsrep::client_state& cc(T::cc);
+    wsrep::mock_client_state& cc(T::cc);
     const wsrep::transaction& tc(T::tc);
 
     cc.start_transaction(wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.active());
+    cc.make_read_write();
+
     cc.after_statement();
     BOOST_REQUIRE(cc.state() == wsrep::client_state::s_exec);
     cc.after_command_before_result();
@@ -960,6 +989,8 @@ BOOST_FIXTURE_TEST_CASE(
 {
     cc.start_transaction(wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.active());
+    cc.make_read_write();
+
     cc.after_statement();
     BOOST_REQUIRE(cc.state() == wsrep::client_state::s_exec);
     cc.after_command_before_result();
@@ -988,6 +1019,8 @@ BOOST_FIXTURE_TEST_CASE(
 {
     cc.start_transaction(wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.active());
+    cc.make_read_write();
+
     cc.after_statement();
     BOOST_REQUIRE(cc.state() == wsrep::client_state::s_exec);
     cc.after_command_before_result();
@@ -1023,6 +1056,8 @@ BOOST_FIXTURE_TEST_CASE(
 {
     cc.start_transaction(wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.active());
+    cc.make_read_write();
+
     cc.after_statement();
     BOOST_REQUIRE(cc.state() == wsrep::client_state::s_exec);
     cc.after_command_before_result();
@@ -1052,6 +1087,8 @@ BOOST_FIXTURE_TEST_CASE(
 {
     cc.start_transaction(wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.active());
+    cc.make_read_write();
+
     cc.after_statement();
     BOOST_REQUIRE(cc.state() == wsrep::client_state::s_exec);
     cc.after_command_before_result();
@@ -1083,6 +1120,8 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_keep_error, T,
 
     cc.start_transaction(wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.active());
+    cc.make_read_write();
+
     cc.after_statement();
     cc.after_command_before_result();
     cc.after_command_after_result();
@@ -1111,6 +1150,8 @@ BOOST_FIXTURE_TEST_CASE(transaction_keep_error_bf_idle_sync_rm,
                         replicating_client_fixture_sync_rm)
 {
     cc.start_transaction(wsrep::transaction_id(1));
+    cc.make_read_write();
+
     cc.after_statement();
     cc.after_command_before_result();
     cc.after_command_after_result();
@@ -1147,6 +1188,8 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_keep_error_bf_after_ownership, T,
     const wsrep::transaction& tc(T::tc);
 
     cc.start_transaction(wsrep::transaction_id(1));
+    cc.make_read_write();
+
     cc.after_statement();
     cc.after_command_before_result();
     cc.after_command_after_result();
@@ -1182,6 +1225,8 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_keep_error_bf_after_before_command,
     const wsrep::transaction& tc(T::tc);
 
     cc.start_transaction(wsrep::transaction_id(1));
+    cc.make_read_write();
+
     cc.after_statement();
     cc.after_command_before_result();
     cc.after_command_after_result();
@@ -1216,6 +1261,8 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_keep_error_bf_after_after_command_b
     const wsrep::transaction& tc(T::tc);
 
     cc.start_transaction(wsrep::transaction_id(1));
+    cc.make_read_write();
+
     cc.after_statement();
     cc.after_command_before_result();
     cc.after_command_after_result();
@@ -1239,6 +1286,14 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_keep_error_bf_after_after_command_b
     cc.after_command_before_result();
     cc.after_command_after_result();
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
+BOOST_FIXTURE_TEST_CASE(transaction_read_only,
+                        replicating_client_fixture_sync_rm)
+{
+  cc.start_transaction(wsrep::transaction_id(1));
+  BOOST_REQUIRE(cc.before_commit() == 0);
+  BOOST_REQUIRE(sc.provider().commit_fragments() == 0);
 }
 
 BOOST_FIXTURE_TEST_CASE(transaction_1pc_applying,
@@ -1283,6 +1338,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_1pc_commit,
                         streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_commit() == 0);
@@ -1303,6 +1359,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_batch_streaming_1pc_commit,
     BOOST_REQUIRE(cc.enable_streaming(
                       wsrep::streaming_context::row, 2) == 0);
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
@@ -1324,6 +1381,7 @@ BOOST_FIXTURE_TEST_CASE(
     streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.after_statement() == 0);
@@ -1351,6 +1409,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_streaming_1pc_bf_abort_during_fragment_remov
                         streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     cc.bf_abort_during_fragment_removal_ = true;
@@ -1369,6 +1428,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_rollback,
                         streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_rollback() == 0);
@@ -1395,6 +1455,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_bf_abort_executing,
                         streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     wsrep_test::bf_abort_unordered(cc);
@@ -1412,6 +1473,7 @@ BOOST_FIXTURE_TEST_CASE(
     streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     wsrep_test::bf_abort_in_total_order(cc);
@@ -1435,6 +1497,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_cert_fail_non_commit,
                         streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
@@ -1464,6 +1527,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_cert_fail_commit,
                         streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     sc.provider().certify_result_ = wsrep::provider::error_certification_failed;
@@ -1495,6 +1559,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_bf_abort_committing,
                         streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
     BOOST_REQUIRE(cc.before_commit() == 0);
@@ -1516,6 +1581,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_byte_streaming_1pc_commit,
                         streaming_client_fixture_byte)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     cc.bytes_generated_ = 1;
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
@@ -1535,6 +1601,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_byte_batch_streaming_1pc_commit,
         cc.enable_streaming(
             wsrep::streaming_context::bytes, 2) == 0);
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
@@ -1553,6 +1620,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_statement_streaming_statement_with_no_effect
                         streaming_client_fixture_statement)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     BOOST_REQUIRE(cc.before_statement() == 0);
     BOOST_REQUIRE(cc.after_statement() == 0);
@@ -1575,6 +1643,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_statement_streaming_1pc_commit,
                         streaming_client_fixture_statement)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     BOOST_REQUIRE(cc.after_statement() == 0);
@@ -1596,6 +1665,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_statement_batch_streaming_1pc_commit,
         cc.enable_streaming(
             wsrep::streaming_context::statement, 2) == 0);
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     BOOST_REQUIRE(cc.after_statement() == 0);
@@ -1619,6 +1689,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_statement_streaming_cert_fail,
                         streaming_client_fixture_statement)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 0);
     sc.provider().certify_result_ = wsrep::provider::error_certification_failed;

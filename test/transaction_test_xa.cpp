@@ -10,6 +10,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
     wsrep::xid xid(1, 9, 0, "test xid");
 
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     cc.assign_xid(xid);
 
     BOOST_REQUIRE(tc.active());
@@ -57,6 +58,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_commit_by_xid,
     wsrep::xid xid(1, 1, 1, "id");
 
     cc1.start_transaction(wsrep::transaction_id(1));
+    cc1.make_read_write();
     cc1.assign_xid(xid);
     cc1.before_prepare();
     cc1.after_prepare();
@@ -91,6 +93,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_rollback_by_xid,
     wsrep::xid xid(1, 1, 1, "id");
 
     cc1.start_transaction(wsrep::transaction_id(1));
+    cc1.make_read_write();
     cc1.assign_xid(xid);
     cc1.before_prepare();
     cc1.after_prepare();
@@ -129,6 +132,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_replay,
     wsrep::xid xid(1, 1, 1, "id");
 
     cc.start_transaction(wsrep::transaction_id(1));
+    cc.make_read_write();
     cc.assign_xid(xid);
     cc.before_prepare();
     cc.after_prepare();
@@ -162,6 +166,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_replay_after_command_before_result,
     wsrep::xid xid(1, 1, 1, "id");
 
     cc.start_transaction(wsrep::transaction_id(1));
+    cc.make_read_write();
     cc.assign_xid(xid);
     cc.before_prepare();
     cc.after_prepare();
@@ -189,6 +194,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_replay_after_command_after_result,
     wsrep::xid xid(1, 1, 1, "id");
 
     cc.start_transaction(wsrep::transaction_id(1));
+    cc.make_read_write();
     cc.assign_xid(xid);
     cc.before_prepare();
     cc.after_prepare();
@@ -255,6 +261,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_sr,
     wsrep::xid xid(1, 9, 0, "test xid");
 
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    cc.make_read_write();
     cc.assign_xid(xid);
 
     cc.bytes_generated_ = 1;

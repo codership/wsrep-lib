@@ -509,6 +509,37 @@ int wsrep::transaction::before_commit_local(
     return ret;
 }
 
+int wsrep::transaction::before_commit_high_priority(
+    wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    int ret = 1;
+    assert(certified());
+    assert(ordered());
+    if (is_xa())
+    {
+        assert(state() == s_prepared || state() == s_replaying);
+        state(lock, s_committing);
+        ret = 0;
+    }
+    else if (state() == s_executing || state() == s_replaying)
+    {
+        ret = before_prepare(lock) || after_prepare(lock);
+    }
+    else
+    {
+        ret = 0;
+    }
+    lock.unlock();
+    ret = ret || provider().commit_order_enter(ws_handle_, ws_meta_);
+    lock.lock();
+    if (ret)
+    {
+        state(lock, s_must_abort);
+        state(lock, s_aborting);
+    }
+    return ret;
+}
+
 int wsrep::transaction::before_commit()
 {
     int ret(1);
@@ -516,39 +547,13 @@ int wsrep::transaction::before_commit()
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("before_commit_enter");
     assert(client_state_.mode() != wsrep::client_state::m_toi);
-
-
-
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_local:
-        return before_commit_local(lock);
+        ret = before_commit_local(lock);
+        break;
     case wsrep::client_state::m_high_priority:
-        assert(certified());
-        assert(ordered());
-        if (is_xa())
-        {
-            assert(state() == s_prepared ||
-                   state() == s_replaying);
-            state(lock, s_committing);
-            ret = 0;
-        }
-        else if (state() == s_executing || state() == s_replaying)
-        {
-            ret = before_prepare(lock) || after_prepare(lock);
-        }
-        else
-        {
-            ret = 0;
-        }
-        lock.unlock();
-        ret = ret || provider().commit_order_enter(ws_handle_, ws_meta_);
-        lock.lock();
-        if (ret)
-        {
-            state(lock, s_must_abort);
-            state(lock, s_aborting);
-        }
+        ret = before_commit_high_priority(lock);
         break;
     default:
         assert(0);

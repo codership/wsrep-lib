@@ -238,6 +238,8 @@ namespace wsrep
 
         wsrep::provider& provider();
         void flags(int flags) { flags_ = flags; }
+        int before_commit_local(wsrep::unique_lock<wsrep::mutex>&);
+        int before_commit_high_priority(wsrep::unique_lock<wsrep::mutex>&);
         // Return true if the transaction must abort, is aborting,
         // or has been aborted, or has been interrupted by DBMS
         // as indicated by client_service::interrupted() call.
@@ -245,7 +247,6 @@ namespace wsrep
         // error status accordingly.
         bool abort_or_interrupt(wsrep::unique_lock<wsrep::mutex>&);
         int streaming_step(wsrep::unique_lock<wsrep::mutex>&, bool force = false);
-        int before_commit_local(wsrep::unique_lock<wsrep::mutex>&);
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
         int append_sr_keys_for_commit();

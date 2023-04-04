@@ -438,9 +438,10 @@ int wsrep::transaction::after_prepare(
     return ret;
 }
 
-bool wsrep::transaction::is_read_only() const
+bool wsrep::transaction::is_local_read_only() const
 {
-    return sr_keys_.empty();
+    return client_state_.mode() == wsrep::client_state::m_local
+           && sr_keys_.empty();
 }
 
 int wsrep::transaction::before_commit_local_read_only(
@@ -465,7 +466,7 @@ int wsrep::transaction::before_commit_local(
 {
     assert(lock.owns_lock());
 
-    if (is_read_only()) {
+    if (is_local_read_only()) {
         return before_commit_local_read_only(lock);
     }
 
@@ -597,7 +598,7 @@ int wsrep::transaction::ordered_commit()
     debug_log_state("ordered_commit_enter");
     assert(state() == s_committing);
 
-    if (is_read_only())
+    if (is_local_read_only())
     {
         state(lock, s_ordered_commit);
         debug_log_state("ordered_commit_leave read_only");

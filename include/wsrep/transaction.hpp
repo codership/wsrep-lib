@@ -245,6 +245,7 @@ namespace wsrep
         // error status accordingly.
         bool abort_or_interrupt(wsrep::unique_lock<wsrep::mutex>&);
         int streaming_step(wsrep::unique_lock<wsrep::mutex>&, bool force = false);
+        int before_commit_local(wsrep::unique_lock<wsrep::mutex>&);
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
         int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
         int append_sr_keys_for_commit();

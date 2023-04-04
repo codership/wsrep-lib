@@ -438,6 +438,77 @@ int wsrep::transaction::after_prepare(
     return ret;
 }
 
+int wsrep::transaction::before_commit_local(
+    wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    int ret = 1;
+    assert(state() == s_executing || state() == s_prepared
+           || state() == s_committing || state() == s_must_abort
+           || state() == s_replaying);
+    assert((state() != s_committing && state() != s_replaying) || certified());
+
+    if (state() == s_executing)
+    {
+        ret = before_prepare(lock) || after_prepare(lock);
+        assert((ret == 0 && (state() == s_committing || state() == s_prepared))
+               || (state() == s_must_abort || state() == s_must_replay
+                   || state() == s_cert_failed || state() == s_aborted));
+    }
+    else if (state() != s_committing && state() != s_prepared)
+    {
+        assert(state() == s_must_abort);
+        if (certified() || (is_xa() && is_streaming()))
+        {
+            state(lock, s_must_replay);
+        }
+        else
+        {
+            client_state_.override_error(wsrep::e_deadlock_error);
+        }
+    }
+    else
+    {
+        // 2PC commit, prepare was done before
+        ret = 0;
+    }
+
+    if (ret == 0 && state() == s_prepared)
+    {
+        ret = certify_commit(lock);
+        assert((ret == 0 && state() == s_committing)
+               || (state() == s_must_abort || state() == s_must_replay
+                   || state() == s_cert_failed || state() == s_prepared));
+    }
+
+    if (ret == 0)
+    {
+        assert(certified());
+        assert(ordered());
+        lock.unlock();
+        client_service_.debug_sync("wsrep_before_commit_order_enter");
+        enum wsrep::provider::status status(
+            provider().commit_order_enter(ws_handle_, ws_meta_));
+        lock.lock();
+        switch (status)
+        {
+        case wsrep::provider::success: break;
+        case wsrep::provider::error_bf_abort:
+            if (state() != s_must_abort)
+            {
+                state(lock, s_must_abort);
+            }
+            state(lock, s_must_replay);
+            ret = 1;
+            break;
+        default:
+            ret = 1;
+            assert(0);
+            break;
+        }
+    }
+    return ret;
+}
+
 int wsrep::transaction::before_commit()
 {
     int ret(1);
@@ -445,85 +516,13 @@ int wsrep::transaction::before_commit()
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("before_commit_enter");
     assert(client_state_.mode() != wsrep::client_state::m_toi);
-    assert(state() == s_executing ||
-           state() == s_prepared ||
-           state() == s_committing ||
-           state() == s_must_abort ||
-           state() == s_replaying);
-    assert((state() != s_committing && state() != s_replaying) ||
-           certified());
+
+
 
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_local:
-        if (state() == s_executing)
-        {
-            ret = before_prepare(lock) || after_prepare(lock);
-            assert((ret == 0 &&
-                    (state() == s_committing || state() == s_prepared))
-                   ||
-                   (state() == s_must_abort ||
-                    state() == s_must_replay ||
-                    state() == s_cert_failed ||
-                    state() == s_aborted));
-        }
-        else if (state() != s_committing && state() != s_prepared)
-        {
-            assert(state() == s_must_abort);
-            if (certified() ||
-                (is_xa() && is_streaming()))
-            {
-                state(lock, s_must_replay);
-            }
-            else
-            {
-                client_state_.override_error(wsrep::e_deadlock_error);
-            }
-        }
-        else
-        {
-            // 2PC commit, prepare was done before
-            ret = 0;
-        }
-
-        if (ret == 0 && state() == s_prepared)
-        {
-            ret = certify_commit(lock);
-            assert((ret == 0 && state() == s_committing) ||
-                   (state() == s_must_abort ||
-                    state() == s_must_replay ||
-                    state() == s_cert_failed ||
-                    state() == s_prepared));
-        }
-
-        if (ret == 0)
-        {
-            assert(certified());
-            assert(ordered());
-            lock.unlock();
-            client_service_.debug_sync("wsrep_before_commit_order_enter");
-            enum wsrep::provider::status
-                status(provider().commit_order_enter(ws_handle_, ws_meta_));
-            lock.lock();
-            switch (status)
-            {
-            case wsrep::provider::success:
-                break;
-            case wsrep::provider::error_bf_abort:
-                if (state() != s_must_abort)
-                {
-                    state(lock, s_must_abort);
-                }
-                state(lock, s_must_replay);
-                ret = 1;
-                break;
-            default:
-                ret = 1;
-                assert(0);
-                break;
-            }
-        }
-        break;
+        return before_commit_local(lock);
     case wsrep::client_state::m_high_priority:
         assert(certified());
         assert(ordered());

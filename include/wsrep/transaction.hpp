@@ -238,6 +238,8 @@ namespace wsrep
 
         wsrep::provider& provider();
         void flags(int flags) { flags_ = flags; }
+        int before_prepare_local(wsrep::unique_lock<wsrep::mutex>&);
+        int before_prepare_high_priority(wsrep::unique_lock<wsrep::mutex>&);
         int before_commit_local(wsrep::unique_lock<wsrep::mutex>&);
         int before_commit_high_priority(wsrep::unique_lock<wsrep::mutex>&);
         // Return true if the transaction must abort, is aborting,

@@ -242,6 +242,8 @@ namespace wsrep
         int before_prepare_high_priority(wsrep::unique_lock<wsrep::mutex>&);
         int before_commit_local(wsrep::unique_lock<wsrep::mutex>&);
         int before_commit_high_priority(wsrep::unique_lock<wsrep::mutex>&);
+        int before_rollback_local(wsrep::unique_lock<wsrep::mutex>&);
+        int before_rollback_high_priority(wsrep::unique_lock<wsrep::mutex>&);
         // Return true if the transaction must abort, is aborting,
         // or has been aborted, or has been interrupted by DBMS
         // as indicated by client_service::interrupted() call.

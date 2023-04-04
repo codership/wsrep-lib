@@ -672,10 +672,11 @@ int wsrep::transaction::after_commit()
     return ret;
 }
 
-int wsrep::transaction::before_rollback()
+int wsrep::transaction::before_rollback_local(
+    wsrep::unique_lock<wsrep::mutex>& lock)
 {
-    wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
-    debug_log_state("before_rollback_enter");
+    assert(lock.owns_lock());
+    assert(client_state_.mode() == wsrep::client_state::m_local);
     assert(state() == s_executing ||
            state() == s_preparing ||
            state() == s_prepared ||
@@ -685,70 +686,86 @@ int wsrep::transaction::before_rollback()
            state() == s_cert_failed ||
            state() == s_must_replay);
 
+    if (is_streaming())
+    {
+        client_service_.debug_sync("wsrep_before_SR_rollback");
+    }
+    switch (state())
+    {
+    case s_preparing:
+        // Error detected during prepare phase
+        state(lock, s_must_abort);
+        WSREP_FALLTHROUGH;
+    case s_prepared: WSREP_FALLTHROUGH;
+    case s_executing:
+        // Voluntary rollback
+        if (is_streaming())
+        {
+            streaming_rollback(lock);
+        }
+        state(lock, s_aborting);
+        break;
+    case s_must_abort:
+        if (certified())
+        {
+            state(lock, s_must_replay);
+        }
+        else
+        {
+            if (is_streaming())
+            {
+                streaming_rollback(lock);
+            }
+            state(lock, s_aborting);
+        }
+        break;
+    case s_cert_failed:
+        if (is_streaming())
+        {
+            streaming_rollback(lock);
+        }
+        state(lock, s_aborting);
+        break;
+    case s_aborting:
+        if (is_streaming())
+        {
+            streaming_rollback(lock);
+        }
+        break;
+    case s_must_replay: break;
+    default: assert(0); break;
+    }
+    return 0;
+}
+
+int wsrep::transaction::before_rollback_high_priority(
+    wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    assert(lock.owns_lock());
+    assert(client_state_.mode() == wsrep::client_state::m_high_priority);
+    // Rollback by rollback write set or BF abort
+    assert(state_ == s_executing || state_ == s_prepared
+           || state_ == s_aborting);
+    if (state_ != s_aborting)
+    {
+        state(lock, s_aborting);
+    }
+    return 0;
+}
+
+int wsrep::transaction::before_rollback()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
+    debug_log_state("before_rollback_enter");
+
+    int ret = 0;
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_local:
-        if (is_streaming())
-        {
-            client_service_.debug_sync("wsrep_before_SR_rollback");
-        }
-        switch (state())
-        {
-        case s_preparing:
-            // Error detected during prepare phase
-            state(lock, s_must_abort);
-            WSREP_FALLTHROUGH;
-        case s_prepared:
-            WSREP_FALLTHROUGH;
-        case s_executing:
-            // Voluntary rollback
-            if (is_streaming())
-            {
-                streaming_rollback(lock);
-            }
-            state(lock, s_aborting);
-            break;
-        case s_must_abort:
-            if (certified())
-            {
-                state(lock, s_must_replay);
-            }
-            else
-            {
-                if (is_streaming())
-                {
-                    streaming_rollback(lock);
-                }
-                state(lock, s_aborting);
-            }
-            break;
-        case s_cert_failed:
-            if (is_streaming())
-            {
-                streaming_rollback(lock);
-            }
-            state(lock, s_aborting);
-            break;
-        case s_aborting:
-            if (is_streaming())
-            {
-                streaming_rollback(lock);
-            }
-            break;
-        case s_must_replay:
-            break;
-        default:
-            assert(0);
-            break;
-        }
+        ret = before_rollback_local(lock);
         break;
     case wsrep::client_state::m_high_priority:
-        // Rollback by rollback write set or BF abort
-        assert(state_ == s_executing || state_ == s_prepared || state_ == s_aborting);
-        if (state_ != s_aborting)
-        {
-            state(lock, s_aborting);
-        }
+        ret = before_rollback_high_priority(lock);
         break;
     default:
         assert(0);
@@ -756,7 +773,7 @@ int wsrep::transaction::before_rollback()
     }
 
     debug_log_state("before_rollback_leave");
-    return 0;
+    return ret;
 }
 
 int wsrep::transaction::after_rollback()

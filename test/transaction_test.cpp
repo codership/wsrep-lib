@@ -1294,7 +1294,27 @@ BOOST_FIXTURE_TEST_CASE(transaction_read_only,
   cc.start_transaction(wsrep::transaction_id(1));
   BOOST_REQUIRE(cc.before_commit() == 0);
   BOOST_REQUIRE(sc.provider().commit_fragments() == 0);
+  BOOST_REQUIRE(cc.ordered_commit() == 0);
+  BOOST_REQUIRE(cc.after_commit() == 0);
+  BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committed);
+  BOOST_REQUIRE(cc.after_statement() == 0);
 }
+
+BOOST_FIXTURE_TEST_CASE(transaction_bf_abort_read_only,
+                        replicating_client_fixture_sync_rm)
+{
+  cc.start_transaction(wsrep::transaction_id(1));
+  wsrep_test::bf_abort_unordered(cc);
+  BOOST_REQUIRE(cc.before_commit() == 1);
+  BOOST_REQUIRE(sc.provider().commit_fragments() == 0);
+  BOOST_REQUIRE(cc.before_rollback() == 0);
+  BOOST_REQUIRE(cc.after_rollback() == 0);
+  BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
+  BOOST_REQUIRE(cc.after_statement() == 1);
+  BOOST_REQUIRE(cc.current_error() == wsrep::client_error::e_deadlock_error);
+}
+
+
 
 BOOST_FIXTURE_TEST_CASE(transaction_1pc_applying,
                         applying_client_fixture)

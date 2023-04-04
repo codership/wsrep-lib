@@ -438,15 +438,42 @@ int wsrep::transaction::after_prepare(
     return ret;
 }
 
+bool wsrep::transaction::is_read_only() const
+{
+    return sr_keys_.empty();
+}
+
+int wsrep::transaction::before_commit_local_read_only(
+    wsrep::unique_lock<wsrep::mutex>& lock)
+{
+    assert(lock.owns_lock());
+    assert(state() == s_executing || state() == s_must_abort);
+
+    if (state() == s_must_abort)
+    {
+        state(lock, s_aborting);
+        return 1;
+    }
+
+    state(lock, s_preparing);
+    state(lock, s_committing);
+    return 0;
+}
+
 int wsrep::transaction::before_commit_local(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
-    int ret = 1;
+    assert(lock.owns_lock());
+
+    if (is_read_only()) {
+        return before_commit_local_read_only(lock);
+    }
+
     assert(state() == s_executing || state() == s_prepared
            || state() == s_committing || state() == s_must_abort
            || state() == s_replaying);
     assert((state() != s_committing && state() != s_replaying) || certified());
-
+    int ret = 1;
     if (state() == s_executing)
     {
         ret = before_prepare(lock) || after_prepare(lock);
@@ -512,6 +539,7 @@ int wsrep::transaction::before_commit_local(
 int wsrep::transaction::before_commit_high_priority(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
+    assert(lock.owns_lock());
     int ret = 1;
     assert(certified());
     assert(ordered());
@@ -568,6 +596,14 @@ int wsrep::transaction::ordered_commit()
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("ordered_commit_enter");
     assert(state() == s_committing);
+
+    if (is_read_only())
+    {
+        state(lock, s_ordered_commit);
+        debug_log_state("ordered_commit_leave read_only");
+        return 0;
+    }
+
     assert(ordered());
     client_service_.debug_sync("wsrep_before_commit_order_leave");
     int ret(provider().commit_order_leave(ws_handle_, ws_meta_,

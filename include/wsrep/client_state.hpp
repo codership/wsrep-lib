@@ -902,6 +902,15 @@ namespace wsrep
         {
             return current_error_status_;
         }
+
+        /**
+         * Return true if rollbacker is active. The caller should
+         * hold the mutex protecting client_state.
+         */
+        bool is_rollbacker_active()
+        {
+            return rollbacker_active_;
+        }
     protected:
         /**
          * Client context constuctor. This is protected so that it
@@ -1006,11 +1015,6 @@ namespace wsrep
         void set_rollbacker_active(bool value)
         {
             rollbacker_active_ = value;
-        }
-
-        bool is_rollbacker_active()
-        {
-            return rollbacker_active_;
         }
     };
 

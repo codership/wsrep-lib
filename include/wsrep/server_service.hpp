@@ -85,6 +85,7 @@ namespace wsrep
 
         /**
          * Perform a background rollback for a transaction.
+         * @return true if rollbacker was not started, false otherwise
          */
         virtual bool background_rollback(wsrep::client_state&) = 0;
 

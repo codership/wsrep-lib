@@ -183,11 +183,12 @@ namespace wsrep
             return start_sst_action();
         }
 
-        void
+        bool
         background_rollback(wsrep::client_state& client_state) WSREP_OVERRIDE
         {
             client_state.before_rollback();
             client_state.after_rollback();
+            return false;
         }
 
         int wait_committing_transactions(int) WSREP_OVERRIDE { return 0; }

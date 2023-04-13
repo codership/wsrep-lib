@@ -85,8 +85,9 @@ namespace wsrep
 
         /**
          * Perform a background rollback for a transaction.
+         * @return true if rollbacker was not started, false otherwise
          */
-        virtual void background_rollback(wsrep::client_state&) = 0;
+        virtual bool background_rollback(wsrep::client_state&) = 0;
 
         /**
          * Bootstrap a DBMS state for a new cluster.

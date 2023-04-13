@@ -1074,8 +1074,19 @@ bool wsrep::transaction::bf_abort(
             }
 
             lock.unlock();
-            server_service_.background_rollback(client_state_);
-            lock.lock();
+            /* if background rollback is skipped, reset rollbacker activity */
+            if (server_service_.background_rollback(client_state_))
+            {
+                lock.lock();
+                client_state_.set_rollbacker_active(false);
+
+                /* release the victim from waiting, if it has advanced to
+                   wait_rollback_complete_and_acquire_ownership stage */
+                if (client_state_.state() == wsrep::client_state::s_idle)
+                  client_state_.cond_.notify_all();
+            }
+            else
+                lock.lock();
         }
     }
     return ret;

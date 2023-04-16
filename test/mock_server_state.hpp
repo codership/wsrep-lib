@@ -184,10 +184,13 @@ namespace wsrep
         }
 
         void
-        background_rollback(wsrep::client_state& client_state) WSREP_OVERRIDE
+        background_rollback(wsrep::unique_lock<wsrep::mutex>& lock,
+                            wsrep::client_state& client_state) WSREP_OVERRIDE
         {
+            lock.unlock();
             client_state.before_rollback();
             client_state.after_rollback();
+            lock.lock();
         }
 
         int wait_committing_transactions(int) WSREP_OVERRIDE { return 0; }

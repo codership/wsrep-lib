@@ -49,6 +49,8 @@ namespace wsrep
                 (void)client_service().bf_rollback();
             }
         }
+      void lock() { mutex_.lock(); }
+      void unlock() { mutex_.unlock(); }
     private:
         wsrep::default_mutex mutex_;
         wsrep::default_condition_variable cond_;

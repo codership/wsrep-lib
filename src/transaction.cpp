@@ -1073,7 +1073,7 @@ bool wsrep::transaction::bf_abort(
                 }
             }
 
-            server_service_.background_rollback(client_state_);
+            server_service_.background_rollback(lock, client_state_);
         }
     }
     return ret;

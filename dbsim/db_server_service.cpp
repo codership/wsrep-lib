@@ -86,7 +86,8 @@ int db::server_service::start_sst(
     return 0;
 }
 
-void db::server_service::background_rollback(wsrep::client_state&)
+void db::server_service::background_rollback(wsrep::unique_lock<wsrep::mutex>&,
+                                             wsrep::client_state&)
 {
 }
 

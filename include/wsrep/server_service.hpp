@@ -85,8 +85,14 @@ namespace wsrep
 
         /**
          * Perform a background rollback for a transaction.
+         *
+         * @param lock Lock protecting client state.
+         * @param client_state Client session to do background rollback
+         *        for.
          */
-        virtual void background_rollback(wsrep::client_state&) = 0;
+        virtual void background_rollback(wsrep::unique_lock<wsrep::mutex>& lock,
+                                         wsrep::client_state& client_state)
+            = 0;
 
         /**
          * Bootstrap a DBMS state for a new cluster.

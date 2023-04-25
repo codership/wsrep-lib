@@ -289,6 +289,32 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(not cc.current_error());
 }
 
+BOOST_FIXTURE_TEST_CASE(
+    transaction_1pc_bf_after_before_commit,
+    replicating_client_fixture_async_rm)
+{
+    // Start a new transaction with ID 1
+    cc.start_transaction(wsrep::transaction_id(1));
+    BOOST_REQUIRE(tc.active());
+    BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+
+    // Run before commit
+    BOOST_REQUIRE(cc.before_commit() == 0);
+    BOOST_REQUIRE_EQUAL(tc.state(), wsrep::transaction::s_committing);
+    BOOST_REQUIRE(tc.certified() == true);
+    BOOST_REQUIRE(tc.ordered() == true);
+
+    wsrep_test::bf_abort_ordered(cc);
+    BOOST_REQUIRE_EQUAL(tc.state(), wsrep::transaction::s_committing);
+
+    // Clean up
+    cc.ordered_commit();
+    cc.after_commit();
+    cc.after_statement();
+}
+
+
 //
 // Test a 1PC transaction for which prepare data fails
 //
@@ -1491,16 +1517,17 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_cert_fail_commit,
 //
 // Test streaming BF abort after succesful certification
 //
-BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_bf_abort_committing,
-                        streaming_client_fixture_row)
+BOOST_FIXTURE_TEST_CASE(
+    transaction_row_streaming_bf_abort_during_commit_order_enter,
+    streaming_client_fixture_row)
 {
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
-    BOOST_REQUIRE(cc.before_commit() == 0);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committing);
-    wsrep_test::bf_abort_ordered(cc);
-    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_abort);
+    sc.provider().commit_order_enter_result_ = wsrep::provider::error_bf_abort;
+    BOOST_REQUIRE(cc.before_commit());
+    BOOST_REQUIRE_EQUAL(tc.state(), wsrep::transaction::s_must_replay);
+    sc.provider().commit_order_enter_result_ = wsrep::provider::success;
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(cc.after_rollback() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);

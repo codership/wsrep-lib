@@ -112,6 +112,7 @@ wsrep::transaction::transaction(
     , apply_error_buf_()
     , xid_()
     , streaming_rollback_in_progress_(false)
+    , is_bf_immutable_(false)
 { }
 
 
@@ -555,6 +556,12 @@ int wsrep::transaction::before_commit()
         assert(0);
         break;
     }
+
+    if (ret == 0 && state() == s_committing)
+    {
+        is_bf_immutable_ = true;
+    }
+
     debug_log_state("before_commit_leave");
     return ret;
 }
@@ -564,6 +571,7 @@ int wsrep::transaction::ordered_commit()
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("ordered_commit_enter");
     assert(state() == s_committing);
+    assert(is_bf_immutable_);
     assert(ordered());
     client_service_.debug_sync("wsrep_before_commit_order_leave");
     int ret(provider().commit_order_leave(ws_handle_, ws_meta_,
@@ -602,6 +610,7 @@ int wsrep::transaction::after_commit()
     int ret(0);
 
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
+    assert(is_bf_immutable_);
     debug_log_state("after_commit_enter");
     assert(state() == s_ordered_commit);
 
@@ -639,7 +648,7 @@ int wsrep::transaction::after_commit()
     }
     assert(ret == 0);
     state(lock, s_committed);
-
+    is_bf_immutable_ = false;
     debug_log_state("after_commit_leave");
     return ret;
 }
@@ -819,6 +828,7 @@ int wsrep::transaction::after_statement()
            state() == s_must_abort ||
            state() == s_cert_failed ||
            state() == s_must_replay);
+    assert(not is_bf_immutable_);
 
     if (state() == s_executing &&
         streaming_context_.fragment_size() &&
@@ -980,6 +990,12 @@ bool wsrep::transaction::bf_abort(
          WSREP_LOG_DEBUG(client_state_.debug_log_level(),
                          wsrep::log::debug_level_transaction,
                          "Transaction not active, skipping bf abort");
+    }
+    else if (is_bf_immutable_)
+    {
+        WSREP_LOG_DEBUG(client_state_.debug_log_level(),
+                        wsrep::log::debug_level_transaction,
+                        "Transaction has become immutable for BF abort");
     }
     else
     {
@@ -2138,4 +2154,10 @@ void wsrep::transaction::debug_log_key_append(const wsrep::key& key) const
                     << "trx_id: "
                     << int64_t(id().get())
                     << " append key:\n" << key);
+}
+
+std::ostream& wsrep::operator<<(std::ostream& os,
+                                enum wsrep::transaction::state state)
+{
+    return (os << to_c_string(state));
 }

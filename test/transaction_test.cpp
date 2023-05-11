@@ -1489,6 +1489,27 @@ BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_cert_fail_commit,
 }
 
 //
+// Test streaming BF abort on commit fragment which fails certification
+//
+BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_bf_abort_commit_cert_fail,
+                        streaming_client_fixture_row)
+{
+    BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
+    sc.provider().certify_result_ = wsrep::provider::error_bf_abort;
+    BOOST_REQUIRE(cc.before_commit() == 1);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
+    sc.provider().replay_result_ = wsrep::provider::error_certification_failed;
+    BOOST_REQUIRE(cc.before_rollback() == 0);
+    BOOST_REQUIRE(cc.after_rollback() == 0);
+    BOOST_REQUIRE(cc.after_statement() );
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
+    BOOST_REQUIRE(sc.provider().fragments() == 1);
+    BOOST_REQUIRE(sc.provider().start_fragments() == 1);
+}
+
+//
 // Test streaming BF abort after succesful certification
 //
 BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_bf_abort_committing,

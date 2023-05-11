@@ -267,7 +267,6 @@ namespace wsrep
         enum state state_;
         std::vector<enum state> state_hist_;
         enum state bf_abort_state_;
-        enum wsrep::provider::status bf_abort_provider_status_;
         int bf_abort_client_state_;
         bool bf_aborted_in_total_order_;
         wsrep::ws_handle ws_handle_;

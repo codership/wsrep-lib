@@ -98,7 +98,6 @@ wsrep::transaction::transaction(
     , state_(s_executing)
     , state_hist_()
     , bf_abort_state_(s_executing)
-    , bf_abort_provider_status_()
     , bf_abort_client_state_()
     , bf_aborted_in_total_order_()
     , ws_handle_()
@@ -1799,6 +1798,8 @@ int wsrep::transaction::certify_commit(
 
     lock.lock();
 
+    wsrep::log_info() << "Certify commit ret: " << cert_ret;
+
     assert(state() == s_certifying || state() == s_must_abort);
 
     int ret(1);
@@ -2084,7 +2085,6 @@ void wsrep::transaction::cleanup()
         client_state_.update_last_written_gtid(ws_meta_.gtid());
     }
     bf_abort_state_ = s_executing;
-    bf_abort_provider_status_ = wsrep::provider::success;
     bf_abort_client_state_ = 0;
     bf_aborted_in_total_order_ = false;
     ws_meta_ = wsrep::ws_meta();

@@ -106,6 +106,7 @@ namespace wsrep
                 static_cast<mock_high_priority_service*>(high_priority_service));
             wsrep::mock_client* cs(&static_cast<wsrep::mock_client&>(
                                        mhps->client_state()));
+            cs->after_applying();
             cs->after_command_before_result();
             cs->after_command_after_result();
             cs->close();

@@ -648,7 +648,6 @@ int wsrep::transaction::after_commit()
     }
     assert(ret == 0);
     state(lock, s_committed);
-    is_bf_immutable_ = false;
     debug_log_state("after_commit_leave");
     return ret;
 }
@@ -828,7 +827,6 @@ int wsrep::transaction::after_statement()
            state() == s_must_abort ||
            state() == s_cert_failed ||
            state() == s_must_replay);
-    assert(not is_bf_immutable_);
 
     if (state() == s_executing &&
         streaming_context_.fragment_size() &&
@@ -2110,6 +2108,7 @@ void wsrep::transaction::cleanup()
     client_service_.cleanup_transaction();
     apply_error_buf_.clear();
     xid_.clear();
+    is_bf_immutable_ = false;
     debug_log_state("cleanup_leave");
 }
 

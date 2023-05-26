@@ -2084,7 +2084,6 @@ int wsrep::transaction::replay(wsrep::unique_lock<wsrep::mutex>& lock)
 void wsrep::transaction::cleanup()
 {
     debug_log_state("cleanup_enter");
-    assert(is_streaming() == false);
     assert(state() == s_committed || state() == s_aborted);
     id_ = wsrep::transaction_id::undefined();
     ws_handle_ = wsrep::ws_handle();

@@ -201,7 +201,6 @@ namespace wsrep
             wsrep::mock_client_state& cc(
                 static_cast<wsrep::mock_client_state&>(
                     high_priority_service.client_state()));
-            wsrep::high_priority_context high_priority_context(cc);
             const wsrep::transaction& tc(cc.transaction());
             wsrep::ws_meta ws_meta;
             if (replay_result_ == wsrep::provider::success)

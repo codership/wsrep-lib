@@ -1539,6 +1539,55 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(sc.provider().commit_fragments() == 1);
 }
 
+//
+// Test a streaming transaction which gets BF aborted inside provider before
+// certification result is known. Replaying will be successful
+//
+BOOST_FIXTURE_TEST_CASE(
+    transaction_row_streaming_bf_before_cert_result_replay_success,
+    streaming_client_fixture_row)
+{
+    BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
+
+    sc.provider().certify_result_ = wsrep::provider::error_bf_abort;
+    sc.provider().replay_result_ = wsrep::provider::success;
+
+    BOOST_REQUIRE(cc.before_commit());
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
+    BOOST_REQUIRE(cc.will_replay_called() == true);
+    BOOST_REQUIRE(cc.after_statement() == 0);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_committed);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
+}
+
+//
+// Test a streaming transaction which gets BF aborted inside provider before
+// certification result is known. Replaying will fail because of
+// certification failure.
+//
+BOOST_FIXTURE_TEST_CASE(
+    transaction_row_streaming_bf_before_cert_result_replay_cert_fail,
+    streaming_client_fixture_row)
+{
+    BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
+
+    sc.provider().certify_result_ = wsrep::provider::error_bf_abort;
+    sc.provider().replay_result_ = wsrep::provider::error_certification_failed;
+
+    BOOST_REQUIRE(cc.before_commit());
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
+    BOOST_REQUIRE(cc.will_replay_called() == true);
+    BOOST_REQUIRE(cc.after_statement() );
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    BOOST_REQUIRE(tc.active() == false);
+}
+
+
 BOOST_FIXTURE_TEST_CASE(transaction_byte_streaming_1pc_commit,
                         streaming_client_fixture_byte)
 {

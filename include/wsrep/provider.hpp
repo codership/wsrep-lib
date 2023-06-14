@@ -26,9 +26,11 @@
 #include "client_id.hpp"
 #include "transaction_id.hpp"
 #include "compiler.hpp"
+#include "operation_context.hpp"
 
 #include <cstring>
 
+#include <memory>
 #include <string>
 #include <vector>
 #include <ostream>
@@ -123,21 +125,25 @@ namespace wsrep
             , stid_()
             , depends_on_()
             , flags_()
+            , provider_position_()
         { }
         ws_meta(const wsrep::gtid& gtid,
                 const wsrep::stid& stid,
                 wsrep::seqno depends_on,
-                int flags)
+                int flags,
+                int64_t provider_position)
             : gtid_(gtid)
             , stid_(stid)
             , depends_on_(depends_on)
             , flags_(flags)
+            , provider_position_(provider_position)
         { }
         ws_meta(const wsrep::stid& stid)
             : gtid_()
             , stid_(stid)
             , depends_on_()
             , flags_()
+            , provider_position_()
         { }
         const wsrep::gtid& gtid() const { return gtid_; }
         const wsrep::id& group_id() const
@@ -169,6 +175,8 @@ namespace wsrep
 
         wsrep::seqno depends_on() const { return depends_on_; }
 
+        int64_t provider_position() const { return provider_position_; }
+
         int flags() const { return flags_; }
 
         bool operator==(const ws_meta& other) const
@@ -185,6 +193,8 @@ namespace wsrep
         wsrep::stid stid_;
         wsrep::seqno depends_on_;
         int flags_;
+        /** Field reserved for provider to report its internal position. */
+        int64_t provider_position_;
     };
 
     std::string flags_to_string(int flags);
@@ -333,6 +343,7 @@ namespace wsrep
          */
         virtual enum status bf_abort(wsrep::seqno bf_seqno,
                                      wsrep::transaction_id victim_trx,
+                                     wsrep::operation_context& victim_ctx,
                                      wsrep::seqno& victim_seqno) = 0;
         virtual enum status rollback(wsrep::transaction_id) = 0;
         virtual enum status commit_order_enter(const wsrep::ws_handle&,
@@ -365,6 +376,7 @@ namespace wsrep
          * Leave total order isolation critical section
          */
         virtual enum status leave_toi(wsrep::client_id,
+                                      const wsrep::ws_meta& ws_meta,
                                       const wsrep::mutable_buffer& err) = 0;
 
         /**
@@ -457,11 +469,12 @@ namespace wsrep
          * @param provider_options Initial options to provider
          * @param thread_service Optional thread service implementation.
          */
-        static provider* make_provider(wsrep::server_state&,
-                                       const std::string& provider_spec,
-                                       const std::string& provider_options,
-                                       const wsrep::provider::services& services
-                                       = wsrep::provider::services());
+        static std::unique_ptr<provider> make_provider(
+            wsrep::server_state&,
+            const std::string& provider_spec,
+            const std::string& provider_options,
+            const wsrep::provider::services& services
+            = wsrep::provider::services());
 
     protected:
         wsrep::server_state& server_state_;

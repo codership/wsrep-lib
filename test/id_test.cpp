@@ -38,6 +38,15 @@ BOOST_AUTO_TEST_CASE(id_test_uuid)
 
 BOOST_AUTO_TEST_CASE(id_test_string)
 {
+    std::string id_str("node1");
+    wsrep::id id(id_str);
+    std::ostringstream os;
+    os << id;
+    BOOST_REQUIRE(id_str == os.str());
+}
+
+BOOST_AUTO_TEST_CASE(id_test_string_max)
+{
     std::string id_str("1234567890123456");
     wsrep::id id(id_str);
     std::ostringstream os;

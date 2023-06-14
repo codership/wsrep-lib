@@ -242,7 +242,7 @@ namespace
                                       sizeof(trx_meta_.stid.node.data)),
                             wsrep::transaction_id(trx_meta_.stid.trx),
                             wsrep::client_id(trx_meta_.stid.conn)),
-                seqno_from_native(trx_meta_.depends_on), flags_);
+                seqno_from_native(trx_meta_.depends_on), flags_, 0);
         }
 
         wsrep_trx_meta* native() { return &trx_meta_; }
@@ -347,7 +347,7 @@ namespace
             map_capabilities_from_native(view_info.capabilities),
             own_idx,
             view_info.proto_ver,
-            members);
+            members, 0);
     }
 
     /////////////////////////////////////////////////////////////////////
@@ -501,7 +501,7 @@ namespace
                         wsrep::transaction_id(meta->stid.trx),
                         wsrep::client_id(meta->stid.conn)),
             wsrep::seqno(seqno_from_native(meta->depends_on)),
-            map_flags_from_native(flags));
+            map_flags_from_native(flags), 0);
         try
         {
             if (high_priority_service->apply(ws_handle, ws_meta, data))
@@ -928,6 +928,7 @@ enum wsrep::provider::status
 wsrep::wsrep_provider_v26::bf_abort(
     wsrep::seqno bf_seqno,
     wsrep::transaction_id victim_id,
+    wsrep::operation_context& /* Ignored here */,
     wsrep::seqno& victim_seqno)
 {
     wsrep_seqno_t wsrep_victim_seqno;
@@ -1025,6 +1026,7 @@ wsrep::wsrep_provider_v26::enter_toi(
 
 enum wsrep::provider::status
 wsrep::wsrep_provider_v26::leave_toi(wsrep::client_id client_id,
+                                     const wsrep::ws_meta&,
                                      const wsrep::mutable_buffer& err)
 {
     const wsrep_buf_t err_buf = { err.data(), err.size() };

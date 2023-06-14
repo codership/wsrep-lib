@@ -502,17 +502,23 @@ int wsrep::server_state::load_provider(
     wsrep::log_info() << "Loading provider " << provider_spec
                       << " initial position: " << initial_position_;
 
-    provider_ = wsrep::provider::make_provider(*this,
-                                               provider_spec,
-                                               provider_options,
-                                               services);
+    provider_ = provider_factory_(*this,
+                                  provider_spec,
+                                  provider_options,
+                                  services);
     return (provider_ ? 0 : 1);
+}
+
+void wsrep::server_state::set_provider_factory(
+    const provider_factory_func& provider_factory)
+{
+    assert(provider_factory);
+    provider_factory_ = provider_factory;
 }
 
 void wsrep::server_state::unload_provider()
 {
-    delete provider_;
-    provider_ = 0;
+    provider_.reset();
 }
 
 int wsrep::server_state::connect(const std::string& cluster_name,
@@ -543,11 +549,6 @@ int wsrep::server_state::disconnect()
         interrupt_state_waiters(lock);
     }
     return provider().disconnect();
-}
-
-wsrep::server_state::~server_state()
-{
-    delete provider_;
 }
 
 std::vector<wsrep::provider::status_variable>
@@ -1064,6 +1065,8 @@ void wsrep::server_state::on_sync()
     {
         switch (state_)
         {
+        case s_disconnecting:
+            break;
         case s_synced:
             break;
         case s_connected:                 // Seed node path: provider becomes
@@ -1090,7 +1093,7 @@ void wsrep::server_state::on_sync()
         // Calls to on_sync() in synced state are possible if
         // server desyncs itself from the group. Provider does not
         // inform about this through callbacks.
-        if (state_ != s_synced)
+        if (state_ != s_synced && state_ != s_disconnecting)
         {
             state(lock, s_synced);
         }
@@ -1551,7 +1554,7 @@ void wsrep::server_state::close_orphaned_sr_transactions(
             wsrep::ws_meta ws_meta(
                 wsrep::gtid(),
                 wsrep::stid(server_id, transaction_id, wsrep::client_id()),
-                wsrep::seqno::undefined(), 0);
+                wsrep::seqno::undefined(), 0, 0);
             lock.unlock();
             if (adopt_error == 0)
             {

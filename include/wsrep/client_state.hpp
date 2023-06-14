@@ -40,6 +40,7 @@
 #include "thread.hpp"
 #include "xid.hpp"
 #include "chrono.hpp"
+#include "operation_context.hpp"
 
 namespace wsrep
 {
@@ -544,7 +545,9 @@ namespace wsrep
          * @param lock Lock to protect client state.
          * @param bf_seqno Seqno of the BF aborter.
          */
-        int bf_abort(wsrep::unique_lock<wsrep::mutex>& lock, wsrep::seqno bf_seqno);
+        int bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
+                     wsrep::seqno bf_seqno,
+                     wsrep::operation_context& victim_ctx);
         /**
          * Wrapper to bf_abort() call, grabs lock internally.
          */
@@ -555,7 +558,9 @@ namespace wsrep
          * should be called by the TOI operation which needs to
          * BF abort a transaction.
          */
-        int total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>& lock, wsrep::seqno bf_seqno);
+        int total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
+                                 wsrep::seqno bf_seqno,
+                                 wsrep::operation_context& victim_ctx);
 
         /**
          * Wrapper to total_order_bf_abort(), grabs lock internally.
@@ -911,6 +916,9 @@ namespace wsrep
         {
             return rollbacker_active_;
         }
+
+        void set_operation_context(wsrep::operation_context* context);
+        wsrep::operation_context* operation_context();
     protected:
         /**
          * Client context constuctor. This is protected so that it
@@ -923,6 +931,7 @@ namespace wsrep
                      const client_id& id,
                      enum mode mode)
             : owning_thread_id_(wsrep::this_thread::get_id())
+            , current_context_()
             , rollbacker_active_(false)
             , mutex_(mutex)
             , cond_(cond)
@@ -986,6 +995,7 @@ namespace wsrep
         void leave_toi_common();
 
         wsrep::thread::id owning_thread_id_;
+        wsrep::operation_context* current_context_;
         bool rollbacker_active_;
         wsrep::mutex& mutex_;
         wsrep::condition_variable& cond_;

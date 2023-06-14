@@ -151,6 +151,11 @@ int wsrep::config_service_v1_fetch(wsrep::provider& provider,
                                    wsrep::provider_options* options)
 {
     struct wsrep_st* wsrep = (struct wsrep_st*)provider.native();
+    if (wsrep == nullptr)
+    {
+        // Not a provider which was loaded via wsrep-API
+        return 0;
+    }
     if (config_service_v1_probe(wsrep->dlh))
     {
         wsrep::log_warning() << "Provider does not support config service v1";

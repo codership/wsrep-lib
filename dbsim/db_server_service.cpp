@@ -135,7 +135,8 @@ wsrep::view db::server_service::get_view(wsrep::client_service&,
         stored_view.capabilities(),
         my_idx,
         stored_view.protocol_version(),
-        stored_view.members()
+        stored_view.members(),
+        0
     );
     return my_view;
 }

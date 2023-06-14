@@ -41,22 +41,22 @@ BOOST_FIXTURE_TEST_CASE(test_toi_mode,
     BOOST_REQUIRE(cc.leave_toi_local(err) == 0);
     BOOST_REQUIRE(cc.mode() == wsrep::client_state::m_local);
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_undefined);
-    BOOST_REQUIRE(sc.provider().toi_write_sets() == 1);
-    BOOST_REQUIRE(sc.provider().toi_start_transaction() == 1);
-    BOOST_REQUIRE(sc.provider().toi_commit() == 1);
+    BOOST_REQUIRE(sc.mock_provider().toi_write_sets() == 1);
+    BOOST_REQUIRE(sc.mock_provider().toi_start_transaction() == 1);
+    BOOST_REQUIRE(sc.mock_provider().toi_commit() == 1);
 }
 
 BOOST_FIXTURE_TEST_CASE(test_toi_applying,
                         applying_client_fixture)
 {
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_undefined);
-    wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("1"), wsrep::seqno(2)),
-                           wsrep::stid(sc.id(),
-                                       wsrep::transaction_id::undefined(),
-                                       cc.id()),
-                           wsrep::seqno(1),
-                           wsrep::provider::flag::start_transaction |
-                           wsrep::provider::flag::commit);
+    wsrep::ws_meta ws_meta(
+        wsrep::gtid(wsrep::id("1"), wsrep::seqno(2)),
+        wsrep::stid(sc.id(), wsrep::transaction_id::undefined(), cc.id()),
+        wsrep::seqno(1),
+        wsrep::provider::flag::start_transaction
+            | wsrep::provider::flag::commit,
+        0);
     cc.enter_toi_mode(ws_meta);
     BOOST_REQUIRE(cc.in_toi());
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_high_priority);

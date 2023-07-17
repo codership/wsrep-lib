@@ -192,6 +192,7 @@ namespace wsrep
         int before_statement();
 
         int after_statement();
+        int after_statement(wsrep::unique_lock<wsrep::mutex>&);
 
         void after_command_must_abort(wsrep::unique_lock<wsrep::mutex>&);
 

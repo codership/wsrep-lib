@@ -816,9 +816,15 @@ void wsrep::transaction::remove_fragments_in_storage_service_scope(
 
 int wsrep::transaction::after_statement()
 {
+  wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
+  return after_statement(lock);
+}
+
+int wsrep::transaction::after_statement(wsrep::unique_lock<wsrep::mutex>& lock)
+{
     int ret(0);
-    wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("after_statement_enter");
+    assert(lock.owns_lock());
     assert(client_state_.mode() == wsrep::client_state::m_local);
     assert(state() == s_executing ||
            state() == s_prepared ||

@@ -168,9 +168,7 @@ int wsrep::client_state::before_command(bool keep_command_error)
             }
 
             // Clean up the transaction and return error.
-            lock.unlock();
-            (void)transaction_.after_statement();
-            lock.lock();
+            (void)transaction_.after_statement(lock);
 
             assert(transaction_.active() == false);
             assert(transaction_.state() == wsrep::transaction::s_aborted);
@@ -199,9 +197,7 @@ void wsrep::client_state::after_command_before_result()
         // hook.
         if (not keep_command_error_)
         {
-            lock.unlock();
-            (void)transaction_.after_statement();
-            lock.lock();
+            (void)transaction_.after_statement(lock);
         }
 
         assert(transaction_.state() == wsrep::transaction::s_aborted);
@@ -266,37 +262,18 @@ int wsrep::client_state::after_statement()
     debug_log_state("after_statement: enter");
     assert(state() == s_exec);
     assert(mode() == m_local);
-
-    if (transaction_.active() &&
-        transaction_.state() == wsrep::transaction::s_must_abort)
-    {
-        lock.unlock();
-        client_service_.bf_rollback();
-        lock.lock();
-        assert(transaction_.state() == wsrep::transaction::s_aborted);
-        // Error may be set already. For example, if fragment size
-        // exceeded the maximum size in certify_fragment(), then
-        // we already have wsrep::e_error_during_commit
-        if (current_error() == wsrep::e_success)
-        {
-            override_error(wsrep::e_deadlock_error);
-        }
-    }
-    lock.unlock();
-
-    (void)transaction_.after_statement();
+    (void)transaction_.after_statement(lock);
     if (current_error() == wsrep::e_deadlock_error)
     {
         if (mode_ == m_local)
         {
             debug_log_state("after_statement: may_retry");
-            return 1;
         }
         else
         {
             debug_log_state("after_statement: error");
-            return 1;
         }
+        return 1;
     }
     debug_log_state("after_statement: success");
     return 0;

@@ -109,6 +109,9 @@ jobs:
       with:
         submodules: "recursive"
 
+    - name: Update packages
+      run: sudo apt update
+
     - name: Install compiler
       run: |
         sudo apt-get install -y ${{ matrix.config.CC }}-${{ matrix.config.version }}

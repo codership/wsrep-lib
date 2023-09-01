@@ -743,8 +743,7 @@ int wsrep::transaction::after_rollback()
 {
     wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
     debug_log_state("after_rollback_enter");
-    assert(state() == s_aborting ||
-           state() == s_must_replay);
+    assert(state() == s_aborting || state() == s_must_replay);
 
     // Note that it would be technically more correct to
     // remove fragments after TOI BF abort in before_rollback(),
@@ -755,16 +754,18 @@ int wsrep::transaction::after_rollback()
     if (is_streaming() && bf_aborted_in_total_order_)
     {
         remove_fragments_in_storage_service_scope(lock);
-        streaming_context_.cleanup();
-    }
-
-    if (is_streaming() && state() != s_must_replay)
-    {
-        streaming_context_.cleanup();
     }
 
     if (state() == s_aborting)
     {
+        if (is_streaming())
+        {
+            // We skip streaming context cleanup for replay because
+            // we want to remember if the transaction was streaming.
+            // See transaction::replay()
+            streaming_context_.cleanup();
+        }
+
         state(lock, s_aborted);
     }
 
@@ -2081,9 +2082,10 @@ int wsrep::transaction::replay(wsrep::unique_lock<wsrep::mutex>& lock)
         break;
     }
 
-    WSREP_LOG_DEBUG(client_state_.debug_log_level(),
-                    wsrep::log::debug_level_transaction,
-                    "replay returned" << replay_ret);
+    WSREP_LOG_DEBUG(
+        client_state_.debug_log_level(), wsrep::log::debug_level_transaction,
+        "replay returned: " << replay_ret << " ("
+                            << wsrep::provider::to_string(replay_ret) << ")");
     return ret;
 }
 

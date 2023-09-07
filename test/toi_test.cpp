@@ -55,8 +55,7 @@ BOOST_FIXTURE_TEST_CASE(test_toi_applying,
         wsrep::stid(sc.id(), wsrep::transaction_id::undefined(), cc.id()),
         wsrep::seqno(1),
         wsrep::provider::flag::start_transaction
-            | wsrep::provider::flag::commit,
-        0);
+            | wsrep::provider::flag::commit);
     cc.enter_toi_mode(ws_meta);
     BOOST_REQUIRE(cc.in_toi());
     BOOST_REQUIRE(cc.toi_mode() == wsrep::client_state::m_high_priority);

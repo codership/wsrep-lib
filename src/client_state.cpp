@@ -530,7 +530,7 @@ int wsrep::client_state::total_order_bf_abort(
 {
     assert(lock.owns_lock());
     assert(mode_ == m_local || transaction_.is_streaming());
-    auto ret = transaction_.total_order_bf_abort(lock, bf_seqno);
+    auto ret = transaction_.total_order_bf_abort(lock, bf_seqno, victim_ctx);
     assert(lock.owns_lock());
     return ret;
 }

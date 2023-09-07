@@ -107,7 +107,7 @@ BOOST_FIXTURE_TEST_CASE(test_applying_nbo,
                            wsrep::stid(wsrep::id("s1"),
                                        wsrep::transaction_id::undefined(),
                                        wsrep::client_id(1)),
-                           wsrep::seqno(0), nbo_begin_flags, 0);
+                           wsrep::seqno(0), nbo_begin_flags);
     std::string nbo_begin("nbo_begin");
     BOOST_REQUIRE(sc.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer(nbo_begin.data(),
@@ -158,7 +158,7 @@ BOOST_FIXTURE_TEST_CASE(test_applying_nbo_fail,
                            wsrep::stid(wsrep::id("s1"),
                                        wsrep::transaction_id::undefined(),
                                        wsrep::client_id(1)),
-                           wsrep::seqno(0), nbo_begin_flags, 0);
+                           wsrep::seqno(0), nbo_begin_flags);
     std::string nbo_begin("nbo_begin");
     hps.fail_next_toi_ = true;
     BOOST_REQUIRE(sc.on_apply(hps, ws_handle, ws_meta,

@@ -176,8 +176,7 @@ namespace
                 wsrep::stid(sc.id(), wsrep::transaction_id(1), cc.id()),
                 wsrep::seqno(0),
                 wsrep::provider::flag::start_transaction
-                    | wsrep::provider::flag::commit,
-                0);
+                    | wsrep::provider::flag::commit);
             BOOST_REQUIRE(cc.start_transaction(ws_handle, ws_meta) == 0);
             BOOST_REQUIRE(tc.active() == true);
             BOOST_REQUIRE(tc.certified() == true);
@@ -212,8 +211,7 @@ namespace
                 wsrep::stid(sc.id(), wsrep::transaction_id(1), cc.id()),
                 wsrep::seqno(0),
                 wsrep::provider::flag::start_transaction
-                    | wsrep::provider::flag::commit,
-                0);
+                    | wsrep::provider::flag::commit);
             BOOST_REQUIRE(cc.start_transaction(ws_handle, ws_meta) == 0);
             BOOST_REQUIRE(tc.active() == true);
             BOOST_REQUIRE(tc.certified() == true);

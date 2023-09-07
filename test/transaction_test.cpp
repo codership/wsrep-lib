@@ -1423,7 +1423,7 @@ BOOST_FIXTURE_TEST_CASE(
     // TO BF abort must not replicate rollback fragment,
     // rollback must complete before TO is allowed to
     // continue.
-    BOOST_REQUIRE(sc.provider().rollback_fragments() == 0);
+    BOOST_REQUIRE(sc.mock_provider().rollback_fragments() == 0);
     BOOST_REQUIRE(tc.streaming_context().rolled_back());
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(cc.after_rollback() == 0);
@@ -1502,10 +1502,10 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
-    sc.provider().commit_order_enter_result_ = wsrep::provider::error_bf_abort;
+    sc.mock_provider().commit_order_enter_result_ = wsrep::provider::error_bf_abort;
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE_EQUAL(tc.state(), wsrep::transaction::s_must_replay);
-    sc.provider().commit_order_enter_result_ = wsrep::provider::success;
+    sc.mock_provider().commit_order_enter_result_ = wsrep::provider::success;
     BOOST_REQUIRE(cc.before_rollback() == 0);
     BOOST_REQUIRE(cc.after_rollback() == 0);
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
@@ -1529,8 +1529,8 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
 
-    sc.provider().certify_result_ = wsrep::provider::error_bf_abort;
-    sc.provider().replay_result_ = wsrep::provider::success;
+    sc.mock_provider().certify_result_ = wsrep::provider::error_bf_abort;
+    sc.mock_provider().replay_result_ = wsrep::provider::success;
 
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);
@@ -1553,8 +1553,8 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(cc.after_row() == 0);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
 
-    sc.provider().certify_result_ = wsrep::provider::error_bf_abort;
-    sc.provider().replay_result_ = wsrep::provider::error_certification_failed;
+    sc.mock_provider().certify_result_ = wsrep::provider::error_bf_abort;
+    sc.mock_provider().replay_result_ = wsrep::provider::error_certification_failed;
 
     BOOST_REQUIRE(cc.before_commit());
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_replay);

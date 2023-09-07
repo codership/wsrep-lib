@@ -70,7 +70,6 @@ namespace wsrep
             , capabilities_()
             , own_index_(-1)
             , protocol_version_(0)
-            , provider_position_()
             , members_()
         { }
         view(const wsrep::gtid& state_id,
@@ -79,15 +78,13 @@ namespace wsrep
              int capabilities,
              ssize_t own_index,
              int protocol_version,
-             const std::vector<wsrep::view::member>& members,
-             int64_t provider_position)
+             const std::vector<wsrep::view::member>& members)
             : state_id_(state_id)
             , view_seqno_(view_seqno)
             , status_(status)
             , capabilities_(capabilities)
             , own_index_(own_index)
             , protocol_version_(protocol_version)
-            , provider_position_(provider_position)
             , members_(members)
         { }
 
@@ -113,9 +110,6 @@ namespace wsrep
 
         int protocol_version() const
         { return protocol_version_; }
-
-        int64_t provider_position() const
-        { return provider_position_; }
 
         const std::vector<member>& members() const
         { return members_; }
@@ -153,8 +147,6 @@ namespace wsrep
         int capabilities_;
         ssize_t own_index_;
         int protocol_version_;
-        /** Field reserved for provider to report its internal position. */
-        int64_t provider_position_;
         std::vector<wsrep::view::member> members_;
     };
 

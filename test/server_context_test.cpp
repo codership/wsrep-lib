@@ -39,8 +39,7 @@ namespace
                                   wsrep::client_id(1)),
                       wsrep::seqno(0),
                       wsrep::provider::flag::start_transaction |
-                      wsrep::provider::flag::commit,
-                      0)
+                      wsrep::provider::flag::commit)
             , cluster_id("1")
             , bootstrap_view()
             , second_view()
@@ -56,8 +55,7 @@ namespace
                                          0, // capabilities
                                          0, // own index
                                          1, // protocol version
-                                         members,
-                                         0);
+                                         members);
 
             members.push_back(wsrep::view::member(
                                   wsrep::id("s2"), "s2", ""));
@@ -67,8 +65,7 @@ namespace
                                       0, // capabilities
                                       1, // own index
                                       1, // protocol version
-                                      members,
-                                      0);
+                                      members);
 
             members.push_back(wsrep::view::member(
                                   wsrep::id("s3"), "s3", ""));
@@ -79,8 +76,7 @@ namespace
                                      0, // capabilities
                                      1, // own index
                                      1, // protocol version
-                                     members,
-                                     0);
+                                     members);
 
             cc.open(cc.id());
             BOOST_REQUIRE(cc.before_command() == 0);
@@ -116,29 +112,28 @@ namespace
             members.push_back(wsrep::view::member(
                                   ss.id(), "s1", ""));
 
-            wsrep::view view(wsrep::gtid(),                     // state_id
-                             wsrep::seqno::undefined(),         // view seqno
-                             wsrep::view::non_primary,          // status
-                             0,                                 // capabilities
-                             0,                                 // own_index
-                             0,                                 // protocol ver
+            wsrep::view view(wsrep::gtid(), // state_id
+                             wsrep::seqno::undefined(), // view seqno
+                             wsrep::view::non_primary, // status
+                             0, // capabilities
+                             0, // own_index
+                             0, // protocol ver
                              members // members
-                );
+            );
             ss.on_view(view, &hps);
         }
 
         void final_view()
         {
             BOOST_REQUIRE(ss.state() != wsrep::server_state::s_disconnected);
-            wsrep::view view(wsrep::gtid(),                     // state_id
-                             wsrep::seqno::undefined(),         // view seqno
-                             wsrep::view::disconnected,         // status
-                             0,                                 // capabilities
-                             -1,                                // own_index
-                             0,                                 // protocol ver
-                             std::vector<wsrep::view::member>(),// members
-                             0
-                );
+            wsrep::view view(wsrep::gtid(), // state_id
+                             wsrep::seqno::undefined(), // view seqno
+                             wsrep::view::disconnected, // status
+                             0, // capabilities
+                             -1, // own_index
+                             0, // protocol ver
+                             std::vector<wsrep::view::member>() // members
+            );
             ss.on_view(view, &hps);
         }
 
@@ -295,8 +290,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_streaming, applying_server_fixture)
                                          wsrep::transaction_id(1),
                                          wsrep::client_id(1)),
                              wsrep::seqno(0),
-                             wsrep::provider::flag::start_transaction,
-                             0);
+                             wsrep::provider::flag::start_transaction);
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer("1", 1)) == 0);
     BOOST_REQUIRE(ss.find_streaming_applier(
@@ -306,7 +300,6 @@ BOOST_FIXTURE_TEST_CASE(server_state_streaming, applying_server_fixture)
                                          wsrep::transaction_id(1),
                                          wsrep::client_id(1)),
                              wsrep::seqno(1),
-                             0,
                              0);
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer("1", 1)) == 0);
@@ -315,8 +308,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_streaming, applying_server_fixture)
                                          wsrep::transaction_id(1),
                                          wsrep::client_id(1)),
                              wsrep::seqno(1),
-                             wsrep::provider::flag::commit,
-                             0);
+                             wsrep::provider::flag::commit);
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
                               wsrep::const_buffer("1", 1)) == 0);
     BOOST_REQUIRE(ss.find_streaming_applier(
@@ -421,8 +413,7 @@ BOOST_FIXTURE_TEST_CASE(
                      0, // capabilities
                      0, // own index
                      1, // protocol version
-                     members,
-                     0);
+                     members);
     ss.on_connect(view);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
     // As storage engines have been initialized, there should not be
@@ -582,8 +573,7 @@ BOOST_FIXTURE_TEST_CASE(
                      0, // capabilities
                      0, // own index
                      1, // protocol version
-                     members,
-                     0);
+                     members);
     ss.on_connect(view);
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
     // As storage engines have been initialized, there should not be
@@ -744,8 +734,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_close_orphaned_transactions,
                                        wsrep::transaction_id(1),
                                        wsrep::client_id(1)),
                            wsrep::seqno(1),
-                           wsrep::provider::flag::start_transaction,
-                           0);
+                           wsrep::provider::flag::start_transaction);
 
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_s2,
                               wsrep::const_buffer("1", 1)) == 0);
@@ -758,8 +747,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_close_orphaned_transactions,
                                        wsrep::transaction_id(1),
                                        wsrep::client_id(1)),
                            wsrep::seqno(2),
-                           wsrep::provider::flag::start_transaction,
-                           0);
+                           wsrep::provider::flag::start_transaction);
 
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_s3,
                               wsrep::const_buffer("1", 1)) == 0);
@@ -775,8 +763,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_close_orphaned_transactions,
                            0, // capabilities
                            0, // own index
                            1, // protocol version
-                           members,
-                           0), &hps);
+                           members), &hps);
 
     // transaction from s2 is still present
     BOOST_REQUIRE(ss.find_streaming_applier(
@@ -794,7 +781,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_close_orphaned_transactions,
                            0, // capabilities
                            0, // own index
                            1, // protocol version
-                           members, 0), &hps);
+                           members), &hps);
 
     // no streaming appliers are closed on non-primary view,
     // so transaction from s2 is still present
@@ -809,8 +796,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_close_orphaned_transactions,
                            0, // capabilities
                            0, // own index
                            1, // protocol version
-                           members,
-                           0), &hps);
+                           members), &hps);
 
     // transaction s2 is still present after non-primary view
     BOOST_REQUIRE(ss.find_streaming_applier(
@@ -824,8 +810,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_close_orphaned_transactions,
                            0, // capabilities
                            0, // own index
                            1, // protocol version
-                           members,
-                           0), &hps);
+                           members), &hps);
 
     // finally, transaction from s2 is still present (part of primary view)
     // and transaction from s3 is gone
@@ -840,8 +825,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_close_orphaned_transactions,
                                               wsrep::transaction_id(1),
                                               wsrep::client_id(1)),
                                   wsrep::seqno(3),
-                                  wsrep::provider::flag::commit,
-                                  0);
+                                  wsrep::provider::flag::commit);
 
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_commit_s2,
                               wsrep::const_buffer("1", 1)) == 0);
@@ -868,8 +852,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_equal_consecutive_views,
                                        wsrep::transaction_id(1),
                                        wsrep::client_id(1)),
                            wsrep::seqno(1),
-                           wsrep::provider::flag::start_transaction,
-                           0);
+                           wsrep::provider::flag::start_transaction);
 
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_s2,
                               wsrep::const_buffer("1", 1)) == 0);
@@ -882,8 +865,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_equal_consecutive_views,
                                        wsrep::transaction_id(1),
                                        wsrep::client_id(1)),
                            wsrep::seqno(2),
-                           wsrep::provider::flag::start_transaction,
-                           0);
+                           wsrep::provider::flag::start_transaction);
 
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_s3,
                               wsrep::const_buffer("1", 1)) == 0);
@@ -897,8 +879,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_equal_consecutive_views,
                            0, // capabilities
                            0, // own index
                            1, // protocol version
-                           ss.current_view().members(),
-                           0), &hps);
+                           ss.current_view().members()), &hps);
 
     // transaction from s2 and s3 are gone
     BOOST_REQUIRE(not ss.find_streaming_applier(
@@ -927,8 +908,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_xa_not_orphaned,
                                        wsrep::client_id(1)),
                            wsrep::seqno(1),
                            wsrep::provider::flag::start_transaction |
-                           wsrep::provider::flag::prepare,
-                           0);
+                           wsrep::provider::flag::prepare);
 
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_s3,
                               wsrep::const_buffer("1", 1)) == 0);
@@ -945,8 +925,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_xa_not_orphaned,
                            0, // capabilities
                            0, // own index
                            1, // protocol version
-                           members,
-                           0), &hps);
+                           members), &hps);
 
     // transaction from s3 is still present
     BOOST_REQUIRE(ss.find_streaming_applier(
@@ -960,8 +939,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_xa_not_orphaned,
                            0, // capabilities
                            0, // own index
                            1, // protocol version
-                           members,
-                           0), &hps);
+                           members), &hps);
 
     // transaction from s3 is still present
     BOOST_REQUIRE(ss.find_streaming_applier(
@@ -973,8 +951,7 @@ BOOST_FIXTURE_TEST_CASE(server_state_xa_not_orphaned,
                                               wsrep::transaction_id(1),
                                               wsrep::client_id(1)),
                                   wsrep::seqno(3),
-                                  wsrep::provider::flag::commit,
-                                  0);
+                                  wsrep::provider::flag::commit);
 
     BOOST_REQUIRE(ss.on_apply(hps, ws_handle, meta_commit_s3,
                               wsrep::const_buffer("1", 1)) == 0);

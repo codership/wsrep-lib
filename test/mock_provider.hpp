@@ -117,7 +117,7 @@ namespace wsrep
                 ++group_seqno_;
                 wsrep::gtid gtid(group_id_, wsrep::seqno(group_seqno_));
                 ws_meta = wsrep::ws_meta(
-                    gtid, stid, wsrep::seqno(group_seqno_ - 1), flags, 0);
+                    gtid, stid, wsrep::seqno(group_seqno_ - 1), flags);
                 return wsrep::provider::success;
             }
             else
@@ -126,7 +126,7 @@ namespace wsrep
                 if (it->second.is_undefined())
                 {
                     ws_meta = wsrep::ws_meta(wsrep::gtid(), wsrep::stid(),
-                                             wsrep::seqno::undefined(), 0, 0);
+                                             wsrep::seqno::undefined(), 0);
                     ret = wsrep::provider::error_certification_failed;
                 }
                 else
@@ -134,7 +134,7 @@ namespace wsrep
                     ++group_seqno_;
                     wsrep::gtid gtid(group_id_, wsrep::seqno(group_seqno_));
                     ws_meta = wsrep::ws_meta(
-                        gtid, stid, wsrep::seqno(group_seqno_ - 1), flags, 0);
+                        gtid, stid, wsrep::seqno(group_seqno_ - 1), flags);
                     ret = wsrep::provider::error_bf_abort;
                 }
                 bf_abort_map_.erase(it);
@@ -213,8 +213,7 @@ namespace wsrep
                         wsrep::stid(server_id_, tc.id(), cc.id()),
                         wsrep::seqno(group_seqno_ - 1),
                         wsrep::provider::flag::start_transaction
-                            | wsrep::provider::flag::commit,
-                        0);
+                            | wsrep::provider::flag::commit);
                 }
                 else
                 {
@@ -246,7 +245,7 @@ namespace wsrep
             wsrep::stid stid(server_id_, wsrep::transaction_id::undefined(),
                              client_id);
             toi_meta = wsrep::ws_meta(gtid, stid,
-                                      wsrep::seqno(group_seqno_ - 1), flags, 0);
+                                      wsrep::seqno(group_seqno_ - 1), flags);
             ++toi_write_sets_;
             if (flags & wsrep::provider::flag::start_transaction)
                 ++toi_start_transaction_;

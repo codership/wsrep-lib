@@ -1554,7 +1554,7 @@ void wsrep::server_state::close_orphaned_sr_transactions(
             wsrep::ws_meta ws_meta(
                 wsrep::gtid(),
                 wsrep::stid(server_id, transaction_id, wsrep::client_id()),
-                wsrep::seqno::undefined(), 0, 0);
+                wsrep::seqno::undefined(), 0);
             lock.unlock();
             if (adopt_error == 0)
             {

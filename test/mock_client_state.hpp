@@ -186,6 +186,14 @@ namespace wsrep
             return false;
         }
 
+        void call_in_operation_context(
+            const std::function<void(wsrep::operation_context&)>& fn) const
+            WSREP_OVERRIDE
+        {
+            wsrep::null_operation_context op;
+            fn(op);
+        }
+
         void debug_sync(const char* sync_point) WSREP_OVERRIDE
         {
             if (sync_point_enabled_ == sync_point)

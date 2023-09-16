@@ -28,9 +28,12 @@
 #define WSREP_CLIENT_SERVICE_HPP
 
 #include "buffer.hpp"
+#include "operation_context.hpp"
 #include "provider.hpp"
 #include "mutex.hpp"
 #include "lock.hpp"
+
+#include <functional>
 
 namespace wsrep
 {
@@ -211,6 +214,15 @@ namespace wsrep
          * by the DBMS.
          */
         virtual bool is_xa_rollback() = 0;
+
+        /**
+         * Perform a function call in operation context associated
+         * with the client service. The implementation must call @p fn
+         * with operation_context set appropriately.
+         */
+        virtual void call_in_operation_context(
+            const std::function<void(wsrep::operation_context&)>& fn) const
+            = 0;
 
         //
         // Debug interface

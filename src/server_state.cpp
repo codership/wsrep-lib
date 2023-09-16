@@ -1487,6 +1487,7 @@ void wsrep::server_state::close_orphaned_sr_transactions(
         {
             wsrep::client_id client_id(i->first);
             wsrep::transaction_id transaction_id(i->second->transaction().id());
+            auto& client_state = *i->second;
             // It is safe to unlock the server state temporarily here.
             // The processing happens inside view handler which is
             // protected by the provider commit ordering critical
@@ -1497,7 +1498,15 @@ void wsrep::server_state::close_orphaned_sr_transactions(
             // remains unlocked, so it should not be accessed after
             // the bf abort call.
             lock.unlock();
-            i->second->total_order_bf_abort(current_view_.view_seqno());
+            client_state.client_service().call_in_operation_context(
+                [&client_state, this](wsrep::operation_context& op_ctx)
+                {
+                    wsrep::unique_lock<wsrep::mutex> lock{
+                        client_state.mutex()
+                    };
+                    client_state.total_order_bf_abort(
+                        lock, current_view_.view_seqno(), op_ctx);
+                });
             lock.lock();
             streaming_clients_map::const_iterator found_i;
             while ((found_i = streaming_clients_.find(client_id)) !=

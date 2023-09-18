@@ -1134,6 +1134,9 @@ wsrep::wsrep_provider_v26::status() const
         }
         wsrep_->stats_free(wsrep_, stats);
     }
+    std::ostringstream id_os;
+    id_os << server_state_.id();
+    ret.push_back(status_variable{"own_id", id_os.str()});
     return ret;
 }
 

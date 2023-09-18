@@ -536,6 +536,19 @@ namespace wsrep
             return init_initialized_;
         }
 
+        /** Recover streaming appliers if not already recoverd yet.
+         *
+         * This method recovers streaming appliers from streaming log.
+         * It must be called before starting to apply events after
+         * connecting to the cluster.
+         *
+         * @param lock Lock object holding server_state mutex.
+         * @param service Either client or high priority service.
+         */
+        template <class C>
+        void recover_streaming_appliers_if_not_recovered(
+            wsrep::unique_lock<wsrep::mutex>& lock, C& service);
+
         /**
          * This method will be called by the provider when
          * a remote write set is being applied. It is the responsibility
@@ -653,11 +666,7 @@ namespace wsrep
         // Interrupt all threads which are waiting for state
         void interrupt_state_waiters(wsrep::unique_lock<wsrep::mutex>&);
 
-        // Recover streaming appliers if not already recoverd
-        template <class C>
-        void recover_streaming_appliers_if_not_recovered(
-            wsrep::unique_lock<wsrep::mutex>&, C&);
-
+      private:
         // Close SR transcations whose origin is outside of current
         // cluster view.
         void close_orphaned_sr_transactions(

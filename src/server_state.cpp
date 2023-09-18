@@ -307,7 +307,8 @@ static int apply_write_set(wsrep::server_state& server_state,
                                  wsrep::log::debug_level_server_state,
                                  "Could not find applier context for "
                                  << ws_meta.server_id()
-                                 << ": " << ws_meta.transaction_id());
+                                 << ": " << ws_meta.transaction_id()
+                                 << ", " << ws_meta.seqno());
                 ret = high_priority_service.log_dummy_write_set(
                     ws_handle, ws_meta, no_error);
             }
@@ -379,7 +380,8 @@ static int apply_write_set(wsrep::server_state& server_state,
             // it may be an indication of  a bug too.
             wsrep::log_warning() << "Could not find applier context for "
                                  << ws_meta.server_id()
-                                 << ": " << ws_meta.transaction_id();
+                                 << ": " << ws_meta.transaction_id()
+                                 << ", " << ws_meta.seqno();
             wsrep::mutable_buffer no_error;
             ret = high_priority_service.log_dummy_write_set(
                 ws_handle, ws_meta, no_error);
@@ -420,7 +422,8 @@ static int apply_write_set(wsrep::server_state& server_state,
                 wsrep::log_warning()
                     << "Could not find applier context for "
                     << ws_meta.server_id()
-                    << ": " << ws_meta.transaction_id();
+                    << ": " << ws_meta.transaction_id()
+                    << ", " << ws_meta.seqno();
                 wsrep::mutable_buffer no_error;
                 ret = high_priority_service.log_dummy_write_set(
                     ws_handle, ws_meta, no_error);

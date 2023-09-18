@@ -120,7 +120,7 @@ std::string wsrep::provider::capability::str(int caps)
     WSREP_PRINT_CAPABILITY(streaming,            "STREAMING");
     WSREP_PRINT_CAPABILITY(snapshot,             "READ_VIEW");
     WSREP_PRINT_CAPABILITY(nbo,                  "NBO");
-
+    WSREP_PRINT_CAPABILITY(streaming_log,        "STREAMING_LOG");
 #undef WSREP_PRINT_CAPABILITY
 
     if (caps)

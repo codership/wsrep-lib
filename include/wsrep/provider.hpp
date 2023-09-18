@@ -285,10 +285,14 @@ namespace wsrep
             static const int streaming = (1 << 15);
             static const int snapshot = (1 << 16);
             static const int nbo = (1 << 17);
-
+            static const int streaming_log = (1 << 18);
             /** decipher capability bitmask */
             static std::string str(int);
         };
+
+        bool has_streaming_log() const {
+            return (capabilities() & capability::streaming_log) != 0;
+        }
 
         provider(wsrep::server_state& server_state)
             : server_state_(server_state)

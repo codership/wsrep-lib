@@ -92,6 +92,17 @@ namespace wsrep
 
         virtual void store_globals() = 0;
         virtual void reset_globals() = 0;
+
+        /**
+         * Return true if the implementation requires storing
+         * and restoring global state. Return true by default
+         * since this is the original behavior. Stateless
+         * implementations may override.
+         */
+        virtual bool requires_globals() const {
+            return true;
+        }
+
     };
 }
 

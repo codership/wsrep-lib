@@ -63,8 +63,10 @@ namespace
             {
                 throw wsrep::runtime_error("Null client_state provided");
             }
-            client_service_.reset_globals();
-            storage_service_->store_globals();
+            if (storage_service_->requires_globals()) {
+              client_service_.reset_globals();
+              storage_service_->store_globals();
+            }
         }
 
         wsrep::storage_service& storage_service()
@@ -74,8 +76,11 @@ namespace
 
         ~scoped_storage_service()
         {
+            bool restore_globals = storage_service_->requires_globals();
             deleter_(storage_service_);
-            client_service_.store_globals();
+            if (restore_globals) {
+              client_service_.store_globals();
+            }
         }
     private:
         scoped_storage_service(const scoped_storage_service&);

@@ -93,6 +93,11 @@ namespace wsrep
         {
             return undefined_;
         }
+
+        /**
+         * Return id in string representation.
+         */
+        std::string to_string() const;
     private:
         static const wsrep::id undefined_;
         native_type data_;

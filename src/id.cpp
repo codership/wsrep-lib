@@ -50,6 +50,13 @@ wsrep::id::id(const std::string& str)
     }
 }
 
+std::string wsrep::id::to_string() const
+{
+  std::ostringstream os;
+  os << *this;
+  return os.str();
+}
+
 std::ostream& wsrep::operator<<(std::ostream& os, const wsrep::id& id)
 {
     const char* ptr(static_cast<const char*>(id.data()));

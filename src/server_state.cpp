@@ -1393,6 +1393,14 @@ void wsrep::server_state::wait_until_state(
     wsrep::unique_lock<wsrep::mutex>& lock,
     enum wsrep::server_state::state state) const
 {
+    if (!server_service_.sst_before_init() && state != s_disconnected
+        && state_ == s_disconnected)
+    {
+        std::ostringstream os;
+        os << "Found server disconnected while waiting state " << state;
+        throw wsrep::runtime_error(os.str());
+    }
+
     ++state_waiters_[state];
     while (state_ != state)
     {
@@ -1401,8 +1409,9 @@ void wsrep::server_state::wait_until_state(
         // or disconnected and the state has been changed to disconnecting,
         // this usually means that some error was encountered 
         if (state != s_disconnecting && state != s_disconnected
-            && state_ == s_disconnecting)
+            && (state_ == s_disconnecting || state_ == s_disconnected))
         {
+          --state_waiters_[state];
             throw wsrep::runtime_error("State wait was interrupted");
         }
     }

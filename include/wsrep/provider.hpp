@@ -290,10 +290,6 @@ namespace wsrep
             static std::string str(int);
         };
 
-        bool has_streaming_log() const {
-            return (capabilities() & capability::streaming_log) != 0;
-        }
-
         provider(wsrep::server_state& server_state)
             : server_state_(server_state)
         { }

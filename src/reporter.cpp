@@ -244,18 +244,6 @@ wsrep::reporter::write_file(double const tstamp)
             { "DISCONNECTING", "Disconnecting",   t_indefinite  }
         };
 
-    // prepare template for mkstemp()
-    file_name_.copy(template_, file_name_.length());
-    TEMP_EXTENSION.copy(template_ +file_name_.length(),TEMP_EXTENSION.length());
-
-    int const fd(mkstemp(template_));
-    if (fd < 0)
-    {
-        std::cerr << "Reporter could not open temporary file `" << template_
-                  << "': " << strerror(errno) << " (" << errno << ")\n";
-        return;
-    }
-
     double const seconds(floor(tstamp));
     time_t const tt = time_t(seconds);
     struct tm    date;
@@ -283,8 +271,21 @@ wsrep::reporter::write_file(double const tstamp)
     os << "\t}\n";
     os << "}\n";
 
-    std::string str(os.str());
+    std::string const str(os.str());
+
+    // prepare template for mkstemp()
+    file_name_.copy(template_, file_name_.length());
+    TEMP_EXTENSION.copy(template_ +file_name_.length(),TEMP_EXTENSION.length());
+
+    int const fd(mkstemp(template_));
+    if (fd < 0)
+    {
+        std::cerr << "Reporter could not open temporary file `" << template_
+                  << "': " << strerror(errno) << " (" << errno << ")\n";
+        return;
+    }
     ssize_t err(write(fd, str.c_str(), str.length()));
+    close(fd);
     if (err < 0)
     {
         std::cerr << "Could not write " << str.length()

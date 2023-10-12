@@ -26,6 +26,8 @@
 
 #include <iosfwd>
 
+#include <sys/types.h>
+
 /**
  * Minimum number of bytes guaratneed to store GTID string representation,
  * terminating '\0' not included (36 + 1 + 20).

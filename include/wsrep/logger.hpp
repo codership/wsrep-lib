@@ -86,7 +86,11 @@ namespace wsrep
         {
             if (logger_fn_)
             {
-                logger_fn_(level_, prefix_, oss_.str().c_str());
+                // Prolong the lifetime of the string so it doesn't get
+                // destroyed right after evaluating c_str() and before
+                // completing the logger function call.
+                const std::string& tmp = oss_.str();
+                logger_fn_(level_, prefix_, tmp.c_str());
             }
             else
             {

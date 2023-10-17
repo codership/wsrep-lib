@@ -85,7 +85,7 @@ namespace wsrep
         bool is_replaying() const WSREP_OVERRIDE { return replaying_; }
         void debug_crash(const char*) WSREP_OVERRIDE { /* Not in unit tests*/}
 
-        wsrep::client_state& client_state()
+        wsrep::client_state& client_state() const WSREP_OVERRIDE
         {
             return *client_state_;
         }

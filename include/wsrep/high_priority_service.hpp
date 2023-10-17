@@ -64,6 +64,11 @@ namespace wsrep
         virtual const wsrep::transaction& transaction() const = 0;
 
         /**
+         * Return the associated client_state object
+         */
+        virtual wsrep::client_state& client_state() const = 0;
+
+        /**
          * Adopt a transaction.
          */
         virtual int adopt_transaction(const wsrep::transaction&) = 0;

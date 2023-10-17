@@ -682,6 +682,8 @@ void wsrep::wsrep_provider_v26::init_services(
     {
         if (init_thread_service(wsrep_->dlh, services.thread_service))
         {
+            wsrep::log_warning() << "Provider " << wsrep_->provider_name << " " <<
+                wsrep_->provider_version << " used required at least 26.4.4";
             throw wsrep::runtime_error("Failed to initialize thread service");
         }
         services_enabled_.thread_service = services.thread_service;
@@ -690,6 +692,8 @@ void wsrep::wsrep_provider_v26::init_services(
     {
         if (init_tls_service(wsrep_->dlh, services.tls_service))
         {
+            wsrep::log_warning() << "Provider " << wsrep_->provider_name << " " <<
+                wsrep_->provider_version << " used required at least 26.4.8";
             throw wsrep::runtime_error("Failed to initialize TLS service");
         }
         services_enabled_.tls_service = services.tls_service;
@@ -698,6 +702,8 @@ void wsrep::wsrep_provider_v26::init_services(
     {
         if (init_allowlist_service(wsrep_->dlh, services.allowlist_service))
         {
+            wsrep::log_warning() << "Provider " << wsrep_->provider_name << " " <<
+                wsrep_->provider_version << " used required at least 26.4.11";
             throw wsrep::runtime_error("Failed to initialize allowlist service");
         }
         services_enabled_.allowlist_service = services.allowlist_service;
@@ -707,6 +713,8 @@ void wsrep::wsrep_provider_v26::init_services(
         if (init_event_service(wsrep_->dlh, services.event_service))
         {
             wsrep::log_warning() << "Failed to initialize event service";
+            wsrep::log_warning() << "Provider " << wsrep_->provider_name << " " <<
+                wsrep_->provider_version << " used required at least 26.4.11";
             // provider does not produce events, ignore
         }
         else

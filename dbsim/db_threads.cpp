@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Codership Oy <info@codership.com>
+ * Copyright (C) 2019-2023 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -113,12 +113,10 @@ namespace
             ::abort();
         }
     }
+
     static inline int append_key(const char* name, const char* type)
     {
-
         key_vec.push_back(std::string(name) + "_" + type);
-        wsrep::log_info() << "Register key " << name << "_" << type
-                          << " with index " << (key_cnt + 1);
         ops_map.push_back(std::vector<size_t>());
         ops_map_sync.push_back(new std::mutex());
         ops_map.back().resize(oc_max);
@@ -175,21 +173,6 @@ namespace
         void* args;
     };
 
-    pthread_key_t this_thread_key;
-    struct this_thread_key_initializer
-    {
-        this_thread_key_initializer()
-        {
-            pthread_key_create(&this_thread_key, nullptr);
-        }
-
-        ~this_thread_key_initializer()
-        {
-            pthread_key_delete(this_thread_key);
-        }
-    };
-
-
     class ti_thread : public ti_obj
     {
     public:
@@ -229,11 +212,7 @@ namespace
 
         void retval(void* retval) { retval_ = retval; }
 
-        static ti_thread* self()
-        {
-            return reinterpret_cast<ti_thread*>(
-                pthread_getspecific(this_thread_key));
-        }
+        static ti_thread* self();
 
         int setschedparam(int policy, const struct sched_param* param)
         {
@@ -255,6 +234,25 @@ namespace
         void* retval_;
         bool detached_;
     };
+
+    thread_local ti_thread* this_ti_thread = nullptr;
+
+    static bool main_thread_initializer()
+    {
+        const auto* main_thread_key
+            = reinterpret_cast<const wsrep::thread_service::thread_key*>(
+                append_key("main", "thread"));
+        static ti_thread main_thread(main_thread_key);
+        this_ti_thread = &main_thread;
+        return true;
+    }
+    static bool main_thread_init = main_thread_initializer();
+
+    ti_thread* ti_thread::self()
+    {
+        return this_ti_thread;
+    }
+
 
     class ti_mutex : public ti_obj
     {
@@ -472,12 +470,12 @@ static void* start_thread(void* args_ptr)
 {
     thread_args* ta(reinterpret_cast<thread_args*>(args_ptr));
     ti_thread* thread = reinterpret_cast<ti_thread*>(ta->this_thread);
-    pthread_setspecific(this_thread_key, thread);
+    this_ti_thread = thread;
     void* (*fn)(void*) = ta->fn;
     void* args = ta->args;
     delete ta;
     void* ret = (*fn)(args);
-    pthread_setspecific(this_thread_key, nullptr);
+    this_ti_thread = nullptr;
     // If we end here the thread returned instead of calling
     // pthread_exit()
     if (thread->detached())
@@ -488,7 +486,7 @@ static void* start_thread(void* args_ptr)
 WSREP_NORETURN
 static void exit_thread(wsrep::thread_service::thread* thread, void* retval)
 {
-    pthread_setspecific(this_thread_key, nullptr);
+    this_ti_thread = nullptr;
     ti_thread* th(reinterpret_cast<ti_thread*>(thread));
     th->retval(retval);
     if (th->detached())

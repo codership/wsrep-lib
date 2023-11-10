@@ -175,6 +175,8 @@ namespace wsrep
 
         int after_row();
 
+        int stream();
+
         int before_prepare(wsrep::unique_lock<wsrep::mutex>&);
 
         int after_prepare(wsrep::unique_lock<wsrep::mutex>&);

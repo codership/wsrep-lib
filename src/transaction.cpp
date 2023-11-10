@@ -273,6 +273,15 @@ int wsrep::transaction::after_row()
     return ret;
 }
 
+int wsrep::transaction::stream()
+{
+    wsrep::unique_lock<wsrep::mutex> lock(client_state_.mutex());
+    debug_log_state("stream_enter");
+    int ret(streaming_step(lock, true));
+    debug_log_state("stream_leave");
+    return ret;
+}
+
 int wsrep::transaction::before_prepare(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {

@@ -68,8 +68,7 @@ void wsrep::client_state::close()
     keep_command_error_ = false;
     lock.unlock();
     if (transaction_.active() &&
-        (mode_ != m_local ||
-         transaction_.state() != wsrep::transaction::s_prepared))
+        (mode_ != m_local || !client_service_.is_prepared_xa()))
     {
         client_service_.bf_rollback();
         transaction_.after_statement();

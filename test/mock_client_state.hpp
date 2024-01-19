@@ -176,6 +176,11 @@ namespace wsrep
             return false;
         }
 
+        bool is_prepared_xa() WSREP_OVERRIDE
+        {
+            return false;
+        }
+
         bool is_xa_rollback() WSREP_OVERRIDE
         {
             return false;

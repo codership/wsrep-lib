@@ -82,6 +82,11 @@ namespace db
             return false;
         }
 
+        bool is_prepared_xa() override
+        {
+            return false;
+        }
+
         bool is_xa_rollback() override
         {
             return false;

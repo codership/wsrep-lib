@@ -195,6 +195,16 @@ namespace wsrep
         virtual bool is_explicit_xa() = 0;
 
         /**
+         * Returns true if the client has an ongoing XA transaction
+         * in prepared state.
+         * Notice: one could simply check if wsrep::transaction is
+         * in s_prepared state. However, wsrep::transaction does not
+         * transition to prepared state for read-only / empty
+         * transactions.
+         */
+        virtual bool is_prepared_xa() = 0;
+
+        /**
          * Returns true if the currently executing command is
          * a rollback for XA. This is used to avoid setting a
          * a deadlock error rollback as it may be unexpected

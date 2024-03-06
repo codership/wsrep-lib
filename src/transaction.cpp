@@ -1400,10 +1400,19 @@ bool wsrep::transaction::abort_or_interrupt(
         }
         return true;
     }
-    else if (client_service_.interrupted(lock))
+
+    if (client_service_.interrupted(lock))
     {
+        assert(state() != s_must_abort &&
+               state() != s_aborting &&
+               state() != s_aborted);
+
+        // Client was interrupted. Set the appropriate error and abort.
+        // For transactions in prepared state, it is OK to interrupt the
+        // statement, but transaction must remain in prepared state until
+        // commit or rollback.
         client_state_.override_error(wsrep::e_interrupted_error);
-        if (state() != s_must_abort)
+        if (state() != s_prepared)
         {
             state(lock, s_must_abort);
         }

@@ -176,7 +176,7 @@ static std::string escape_json(const std::string& str)
 
 void
 wsrep::reporter::write_log_msg(std::ostream&  os,
-                               const log_msg& msg)
+                               const log_msg_t& msg)
 {
     os << "\t\t{\n";
     os << "\t\t\t\"timestamp\": " << std::showpoint << std::setprecision(18)
@@ -187,7 +187,7 @@ wsrep::reporter::write_log_msg(std::ostream&  os,
 
 void
 wsrep::reporter::write_event(std::ostream&  os,
-                             const log_msg& msg)
+                             const log_msg_t& msg)
 {
     os << "\t\t{\n";
     os << "\t\t\t\"timestamp\": " << std::showpoint << std::setprecision(18)
@@ -199,9 +199,9 @@ wsrep::reporter::write_event(std::ostream&  os,
 void
 wsrep::reporter::write_array(std::ostream&              os,
                              const std::string&         label,
-                             const std::deque<log_msg>& msgs,
+                             const std::deque<log_msg_t>& msgs,
                              void (*element_writer)(std::ostream& os,
-                                                    const log_msg& msg))
+                                                    const log_msg_t& msg))
 {
     os << "\t\"" << label << "\": [\n";
     for (size_t i(0); i < msgs.size(); ++i)
@@ -351,7 +351,7 @@ wsrep::reporter::report_log_msg(log_level const    lvl,
                                 const std::string& msg,
                                 double             tstamp)
 {
-    std::deque<log_msg>& deque(lvl == error ? err_msg_ : warn_msg_);
+    std::deque<log_msg_t>& deque(lvl == error ? err_msg_ : warn_msg_);
 
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
 
@@ -363,7 +363,7 @@ wsrep::reporter::report_log_msg(log_level const    lvl,
 
         /* Log messages are not expected to be json formatted, so we escape
            the message strings here to keep the report file well formatted. */
-        log_msg entry({tstamp, escape_json(msg)});
+        log_msg_t entry({tstamp, escape_json(msg)});
         deque.push_back(entry);
         write_file(tstamp);
     }

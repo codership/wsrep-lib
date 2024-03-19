@@ -105,21 +105,21 @@ namespace wsrep
         typedef struct {
             double tstamp;
             std::string msg;
-        } log_msg;
+        } log_msg_t ;
 
-        std::deque<log_msg> err_msg_;
-        std::deque<log_msg> warn_msg_;
-        std::deque<log_msg> events_;
+        std::deque<log_msg_t> err_msg_;
+        std::deque<log_msg_t> warn_msg_;
+        std::deque<log_msg_t> events_;
         size_t const        max_msg_;
 
         static void write_log_msg(std::ostream& os,
-                                  const log_msg& msg);
+                                  const log_msg_t& msg);
         static void write_event(std::ostream& os,
-                                const log_msg& msg);
+                                const log_msg_t& msg);
         static void write_array(std::ostream& os, const std::string& label,
-                                const std::deque<log_msg>& events,
+                                const std::deque<log_msg_t>& events,
                                 void (*element_writer)(std::ostream& os,
-                                                       const log_msg& msg));
+                                                       const log_msg_t& msg));
         substates substate_map(enum server_state::state state);
         float     progress_map(float progress) const;
         void      write_file(double timestamp);

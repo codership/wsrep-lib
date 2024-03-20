@@ -282,6 +282,11 @@ int wsrep::transaction::before_prepare(
     assert(state() == s_executing || state() == s_must_abort ||
            state() == s_replaying);
 
+    if (is_bf_immutable_) /* Was marked read-only */
+    {
+        return 1;
+    }
+
     if (state() == s_must_abort)
     {
         assert(client_state_.mode() == wsrep::client_state::m_local);
@@ -453,6 +458,11 @@ int wsrep::transaction::before_commit()
            state() == s_replaying);
     assert((state() != s_committing && state() != s_replaying) ||
            certified());
+
+    if (is_bf_immutable_) /* Was marked read-only */
+    {
+        return 1;
+    }
 
     switch (client_state_.mode())
     {
@@ -1115,6 +1125,24 @@ bool wsrep::transaction::total_order_bf_abort(
         bf_aborted_in_total_order_ = false;
     }
     return ret;
+}
+
+int wsrep::transaction::disable_bf_abort()
+{
+    wsrep::unique_lock<wsrep::mutex> lock{client_state_.mutex()};
+    assert(active());
+    assert(state() == s_executing || state() == s_must_abort);
+    if (not is_empty())
+    {
+        return 1;
+    }
+    if (state() == s_must_abort)
+    {
+        return 1;
+    }
+
+    is_bf_immutable_ = true;
+    return 0;
 }
 
 void wsrep::transaction::clone_for_replay(const wsrep::transaction& other)

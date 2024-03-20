@@ -202,6 +202,8 @@ namespace wsrep
                       wsrep::seqno bf_seqno);
         bool total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>&,
                                   wsrep::seqno bf_seqno);
+        int disable_bf_abort();
+
 
         void clone_for_replay(const wsrep::transaction& other);
 

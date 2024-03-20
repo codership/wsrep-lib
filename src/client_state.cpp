@@ -538,6 +538,13 @@ int wsrep::client_state::total_order_bf_abort(wsrep::seqno bf_seqno)
     return total_order_bf_abort(lock, bf_seqno);
 }
 
+int wsrep::client_state::disable_bf_abort()
+{
+    assert(owning_thread_id_ == wsrep::this_thread::get_id());
+    assert(state_ == s_exec || mode_ == m_local);
+    return transaction_.disable_bf_abort();
+}
+
 void wsrep::client_state::adopt_transaction(
     const wsrep::transaction& transaction)
 {

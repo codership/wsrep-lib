@@ -1267,6 +1267,49 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(transaction_keep_error_bf_after_after_command_b
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
 }
 
+BOOST_FIXTURE_TEST_CASE(transaction_disable_bf_abort,
+                        replicating_client_fixture_sync_rm)
+{
+  cc.start_transaction(wsrep::transaction_id(1));
+  BOOST_REQUIRE_EQUAL(cc.disable_bf_abort(), 0);
+
+  BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
+  BOOST_REQUIRE_EQUAL(cc.before_prepare(), 1);
+  BOOST_REQUIRE_EQUAL(cc.before_commit(), 1);
+
+  cc.before_rollback();
+  cc.after_rollback();
+  cc.after_statement();
+}
+
+BOOST_FIXTURE_TEST_CASE(transaction_disable_bf_abort_bf_aborted,
+                        replicating_client_fixture_sync_rm)
+{
+  cc.start_transaction(wsrep::transaction_id(1));
+  wsrep_test::bf_abort_unordered(cc);
+  BOOST_REQUIRE_EQUAL(cc.disable_bf_abort(), 1);
+  cc.before_rollback();
+  cc.after_rollback();
+  cc.after_statement();
+}
+
+BOOST_FIXTURE_TEST_CASE(transaction_disable_bf_abort_key_appended,
+                        replicating_client_fixture_sync_rm)
+{
+  cc.start_transaction(wsrep::transaction_id(1));
+  int vals[3] = {1, 2, 3};
+  wsrep::key key(wsrep::key::exclusive);
+  for (int i(0); i < 3; ++i)
+  {
+    key.append_key_part(&vals[i], sizeof(vals[i]));
+  }
+  BOOST_REQUIRE_EQUAL(cc.append_key(key), 0);
+  BOOST_REQUIRE_EQUAL(cc.disable_bf_abort(), 1);
+  cc.before_rollback();
+  cc.after_rollback();
+  cc.after_statement();
+}
+
 BOOST_FIXTURE_TEST_CASE(transaction_1pc_applying,
                         applying_client_fixture)
 {

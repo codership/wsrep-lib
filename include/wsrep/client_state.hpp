@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2024 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -422,6 +422,7 @@ namespace wsrep
         int ordered_commit();
 
         int after_commit();
+
         /** @} */
         int before_rollback();
 
@@ -561,6 +562,22 @@ namespace wsrep
          * Wrapper to total_order_bf_abort(), grabs lock internally.
          */
         int total_order_bf_abort(wsrep::seqno bf_seqno);
+
+        /*
+         * Disable BF aborts for an active transaction. This method
+         * may be called several times during the transaction lifetime.
+         * Calling before_prepare() or before_commit() after calling
+         * this method will result error. The BF aborts are enabled again
+         * in the next call to after_statement().
+         *
+         * BF aborts cannot be disabled in the following cases: 1) The
+         * transactions has already been BF aborted. 2) The transaction
+         * has generated a write set.
+         *
+         * @return Zero on success, non-zero if the transaction was found
+         *         BF aborted.
+         */
+        int disable_bf_abort();
 
         /**
          * Adopt a streaming transaction state. This is must be

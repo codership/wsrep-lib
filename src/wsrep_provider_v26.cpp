@@ -29,12 +29,13 @@
 #include "wsrep/tls_service.hpp"
 #include "wsrep/allowlist_service.hpp"
 
+#include "service_helpers.hpp"
 #include "thread_service_v1.hpp"
 #include "tls_service_v1.hpp"
 #include "allowlist_service_v1.hpp"
 #include "event_service_v1.hpp"
 #include "v26/wsrep_api.h"
-
+#include "v26/wsrep_node_isolation.h"
 
 #include <dlfcn.h>
 #include <cassert>
@@ -671,6 +672,8 @@ namespace
     {
         wsrep::event_service_v1_deinit(dlh);
     }
+
+    wsrep_node_isolation_mode_set_fn_v1 node_isolation_mode_set;
 }
 
 
@@ -714,6 +717,10 @@ void wsrep::wsrep_provider_v26::init_services(
             services_enabled_.event_service = services.event_service;
         }
     }
+
+    node_isolation_mode_set
+        = wsrep_impl::resolve_function<wsrep_node_isolation_mode_set_fn_v1>(
+            wsrep_->dlh, WSREP_NODE_ISOLATION_MODE_SET_V1);
 }
 
 void wsrep::wsrep_provider_v26::deinit_services()
@@ -726,6 +733,7 @@ void wsrep::wsrep_provider_v26::deinit_services()
         deinit_thread_service(wsrep_->dlh);
     if (services_enabled_.allowlist_service)
         deinit_allowlist_service(wsrep_->dlh);
+    node_isolation_mode_set = nullptr;
 }
 
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
@@ -1160,6 +1168,40 @@ enum wsrep::provider::status
 wsrep::wsrep_provider_v26::options(const std::string& opts)
 {
     return map_return_value(wsrep_->options_set(wsrep_, opts.c_str()));
+}
+
+/*
+ * Set node isolation mode in the provider. This function may be called from
+ * signal handler, so make sure that only 'safe' system calls and library
+ * functions are used. See
+ * https://pubs.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html
+ */
+enum wsrep::provider::status
+wsrep::wsrep_provider_v26::set_node_isolation(node_isolation mode)
+{
+    if (not node_isolation_mode_set)
+    {
+        return error_not_implemented;
+    }
+
+    enum wsrep_node_isolation_mode ws_mode = WSREP_NODE_ISOLATION_NOT_ISOLATED;
+    switch (mode)
+    {
+    case node_isolation::not_isolated:
+        ws_mode = WSREP_NODE_ISOLATION_NOT_ISOLATED;
+        break;
+    case node_isolation::isolated:
+        ws_mode = WSREP_NODE_ISOLATION_ISOLATED;
+        break;
+    case node_isolation::force_disconnect:
+        ws_mode = WSREP_NODE_ISOLATION_FORCE_DISCONNECT;
+        break;
+    }
+    if ((*node_isolation_mode_set)(ws_mode) != WSREP_NODE_ISOLATION_SUCCESS)
+    {
+        return error_warning;
+    }
+    return success;
 }
 
 std::string wsrep::wsrep_provider_v26::name() const

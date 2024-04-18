@@ -288,6 +288,21 @@ namespace wsrep
             static std::string str(int);
         };
 
+        /**
+         * Node isolation mode.
+         */
+        enum node_isolation
+        {
+            /** Node is not isolated. */
+            not_isolated,
+            /** Node is isolated from the rest of the cluster on
+             * network level. */
+            isolated,
+            /** As on, but also force the provider to deliver a view with
+             * disconnected status. */
+            force_disconnect
+        };
+
         provider(wsrep::server_state& server_state)
             : server_state_(server_state)
         { }
@@ -389,6 +404,16 @@ namespace wsrep
 
         virtual std::string options() const = 0;
         virtual enum status options(const std::string&) = 0;
+
+
+        /**
+         * Set node isolation mode.
+         *
+         * @param mode node_isolation mode.
+         * @return Provider status indicating the result of the call.
+         */
+        virtual enum status set_node_isolation(enum node_isolation mode) = 0;
+
         /**
          * Get provider name.
          *

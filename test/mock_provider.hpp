@@ -294,6 +294,9 @@ namespace wsrep
         enum wsrep::provider::status options(const std::string&)
             WSREP_OVERRIDE
         { return wsrep::provider::success; }
+        enum status set_node_isolation(enum node_isolation) WSREP_OVERRIDE {
+          return error_not_implemented;
+        }
         std::string name() const WSREP_OVERRIDE { return "mock"; }
         std::string version() const WSREP_OVERRIDE { return "0.0"; }
         std::string vendor() const WSREP_OVERRIDE { return "mock"; }

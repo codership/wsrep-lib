@@ -100,7 +100,29 @@ namespace wsrep_impl
                 << service_name;
         }
     }
-}
+
+    template <typename Fn> Fn resolve_function(void* dlh, const char* symbol)
+    {
+        union
+        {
+            Fn fun;
+            void* obj;
+        } alias;
+        (void)dlerror();
+        alias.obj = dlsym(dlh, symbol);
+        if (alias.obj)
+        {
+            wsrep::log_info() << "Resolved symbol '" << symbol << "'";
+            return alias.fun;
+        }
+        else
+        {
+            wsrep::log_info()
+                << "Symbol '" << symbol << "' not found from provider";
+            return nullptr;
+        }
+    }
+} // namespace wsrep_impl
 
 #endif // WSREP_SERVICE_HELPERS_HPP
 

@@ -100,6 +100,7 @@ namespace wsrep
         void reset_status() WSREP_OVERRIDE;
         std::string options() const WSREP_OVERRIDE;
         enum wsrep::provider::status options(const std::string&) WSREP_OVERRIDE;
+        enum status set_node_isolation(enum node_isolation mode) WSREP_OVERRIDE;
         std::string name() const WSREP_OVERRIDE;
         std::string version() const WSREP_OVERRIDE;
         std::string vendor() const WSREP_OVERRIDE;

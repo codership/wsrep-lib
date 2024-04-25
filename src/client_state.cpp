@@ -1038,8 +1038,9 @@ void wsrep::client_state::state(
         };
     if (!allowed[state_][state])
     {
-        wsrep::log_warning() << "client_state: Unallowed state transition: "
-                             << state_ << " -> " << state;
+        wsrep::log_warning()
+            << "client_state: Unallowed state transition: "
+            << wsrep::to_string(state_) << " -> " << wsrep::to_string(state);
         assert(0);
     }
     state_hist_.push_back(state_);

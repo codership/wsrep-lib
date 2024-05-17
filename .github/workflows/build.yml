@@ -45,11 +45,11 @@ jobs:
             CC: gcc
             version: "10"
             type: Release
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             CC: gcc
             version: "11"
             type: Debug
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             CC: gcc
             version: "11"
             type: Release
@@ -60,6 +60,22 @@ jobs:
           - os: ubuntu-22.04
             CC: gcc
             version: "12"
+            type: Release
+          - os: ubuntu-24.04
+            CC: gcc
+            version: "13"
+            type: Debug
+          - os: ubuntu-24.04
+            CC: gcc
+            version: "13"
+            type: Release
+          - os: ubuntu-24.04
+            CC: gcc
+            version: "14"
+            type: Debug
+          - os: ubuntu-24.04
+            CC: gcc
+            version: "14"
             type: Release
           # Clang
           - os: ubuntu-20.04

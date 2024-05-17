@@ -23,9 +23,11 @@
 
 #include <boost/json/src.hpp>
 
-#include <fstream>
 #include <deque>
+#include <fstream>
+#include <iomanip>
 #include <vector>
+
 #include <unistd.h> // unlink() for cleanup
 
 namespace json = boost::json;

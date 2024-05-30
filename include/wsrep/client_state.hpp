@@ -355,6 +355,14 @@ namespace wsrep
         int after_row();
 
         /**
+         * Force a streaming step
+         *
+         * This method can be used to replicate a fragment in the
+         * current context.
+         */
+        int stream();
+
+        /**
          * Set streaming parameters.
          *
          * @param fragment_unit Desired fragment unit

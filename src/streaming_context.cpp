@@ -81,10 +81,10 @@ void wsrep::streaming_context::rolled_back(wsrep::transaction_id id)
 void wsrep::streaming_context::cleanup()
 {
     fragments_certified_ = 0;
+    bytes_certified_ = 0;
     fragments_.clear();
     rollback_replicated_for_ = wsrep::transaction_id::undefined();
     unit_counter_ = 0;
-    log_position_ = 0;
 }
 
 void wsrep::streaming_context::check_fragment_seqno(

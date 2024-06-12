@@ -1112,6 +1112,26 @@ int wsrep::server_state::on_apply(
     const wsrep::ws_meta& ws_meta,
     const wsrep::const_buffer& data)
 {
+    if (not init_initialized_.load())
+    {
+        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        if (state(lock) == s_connected)
+        {
+            state(lock, s_initializing);
+            lock.unlock();
+            server_service_.debug_sync("on_view_wait_initialized");
+            lock.lock();
+        }
+        while (not init_initialized_.load())
+        {
+            wait_until_state(lock, s_initialized);
+        }
+        if (state(lock) == s_initialized)
+        {
+            state(lock, s_joined);
+        }
+    }
+
     if (is_toi(ws_meta.flags()))
     {
         return apply_toi(provider(), high_priority_service,
@@ -1351,7 +1371,7 @@ void wsrep::server_state::state(
             {  0,   1,   0,    1,    0,   0,   0,   0,   0}, /* dis */
             {  1,   0,   1,    0,    0,   0,   0,   0,   1}, /* ing */
             {  1,   0,   0,    1,    0,   1,   0,   0,   1}, /* ized */
-            {  1,   0,   0,    1,    1,   0,   0,   1,   1}, /* cted */
+            {  1,   1,   0,    1,    1,   0,   0,   1,   1}, /* cted */
             {  1,   1,   0,    0,    0,   1,   0,   0,   1}, /* jer */
             {  1,   0,   0,    1,    0,   0,   1,   1,   1}, /* jed */
             {  1,   0,   0,    1,    0,   1,   0,   0,   1}, /* dor */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2025 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -49,6 +49,7 @@ namespace wsrep
     class allowlist_service;
     class event_service;
     class client_service;
+    class connection_monitor_service;
     class stid
     {
     public:
@@ -479,6 +480,7 @@ namespace wsrep
             wsrep::tls_service* tls_service;
             wsrep::allowlist_service* allowlist_service;
             wsrep::event_service* event_service;
+            wsrep::connection_monitor_service* connection_monitor_service;
 
             // some GCC and clang versions don't support C++11 default
             // initializers fully, so we need to use explicit constructors
@@ -490,17 +492,20 @@ namespace wsrep
                 , tls_service()
                 , allowlist_service()
                 , event_service()
+                , connection_monitor_service()
             {
             }
 
             services(wsrep::thread_service* thr,
                      wsrep::tls_service*    tls,
                      wsrep::allowlist_service* all,
-                     wsrep::event_service*  event)
+                     wsrep::event_service*  event,
+                     wsrep::connection_monitor_service* con)
                 : thread_service(thr)
                 , tls_service(tls)
                 , allowlist_service(all)
                 , event_service(event)
+                , connection_monitor_service(con)
             {
             }
         };

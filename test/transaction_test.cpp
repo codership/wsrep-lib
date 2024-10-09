@@ -1389,6 +1389,52 @@ BOOST_FIXTURE_TEST_CASE(transaction_streaming_1pc_bf_abort_during_fragment_remov
 }
 
 //
+// Test error during fragment removal.
+//
+
+BOOST_FIXTURE_TEST_CASE(transaction_streaming_1pc_error_during_fragment_removal,
+                        streaming_client_fixture_row)
+{
+    BOOST_REQUIRE(cc.start_transaction(wsrep::transaction_id(1)) == 0);
+    BOOST_REQUIRE(cc.after_row() == 0);
+    BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
+
+    cc.error_during_fragment_removal_ = true;
+
+    // Run before commit
+    BOOST_REQUIRE(cc.before_commit());
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_must_abort);
+
+    cc.error_during_fragment_removal_ = false;
+
+    BOOST_REQUIRE(cc.current_error() == wsrep::e_deadlock_error);
+    BOOST_REQUIRE(tc.certified() == false);
+    BOOST_REQUIRE(tc.ordered() == false);
+
+    // Rollback sequence
+    BOOST_REQUIRE(cc.before_rollback() == 0);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborting);
+    BOOST_REQUIRE(cc.after_rollback() == 0);
+    BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
+
+    // Cleanup after statement
+    cc.after_statement();
+    BOOST_REQUIRE(tc.active() == false);
+    BOOST_REQUIRE(tc.ordered() == false);
+    BOOST_REQUIRE(tc.certified() == false);
+    BOOST_REQUIRE(cc.current_error());
+
+
+    wsrep::high_priority_service* hps(
+        sc.find_streaming_applier(sc.id(), wsrep::transaction_id(1)));
+    BOOST_REQUIRE(hps);
+    hps->rollback(wsrep::ws_handle(), wsrep::ws_meta());
+    hps->after_apply();
+    sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
+    server_service.release_high_priority_service(hps);
+}
+
+//
 // Test streaming rollback
 //
 BOOST_FIXTURE_TEST_CASE(transaction_row_streaming_rollback,

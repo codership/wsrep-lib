@@ -312,6 +312,12 @@ int wsrep::transaction::before_prepare(
                 ret = client_service_.remove_fragments();
                 if (ret)
                 {
+                    lock.lock();
+                    if (state() == s_executing)
+                    {
+                        state(lock, s_must_abort);
+                    }
+                    lock.unlock();
                     client_state_.override_error(wsrep::e_deadlock_error);
                 }
             }

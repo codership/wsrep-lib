@@ -28,6 +28,7 @@
 #include "wsrep/thread_service.hpp"
 #include "wsrep/tls_service.hpp"
 #include "wsrep/allowlist_service.hpp"
+#include "wsrep/connection_monitor_service.hpp"
 
 #include "service_helpers.hpp"
 #include "thread_service_v1.hpp"
@@ -36,6 +37,7 @@
 #include "event_service_v1.hpp"
 #include "v26/wsrep_api.h"
 #include "v26/wsrep_node_isolation.h"
+#include "connection_monitor_service_v1.hpp"
 
 #include <dlfcn.h>
 #include <cassert>
@@ -674,6 +676,22 @@ namespace
     }
 
     wsrep_node_isolation_mode_set_fn_v1 node_isolation_mode_set;
+
+    static int init_connection_monitor_service(void* dlh,
+                                      wsrep::connection_monitor_service* connection_monitor_service)
+    {
+        assert(connection_monitor_service);
+        if (not wsrep::connection_monitor_service_v1_probe(dlh))
+        {
+            return wsrep::connection_monitor_service_v1_init(dlh, connection_monitor_service);
+        }
+        return 1;
+    }
+
+    static void deinit_connection_monitor_service(void* dlh)
+    {
+        wsrep::connection_monitor_service_v1_deinit(dlh);
+    }
 }
 
 
@@ -721,6 +739,15 @@ void wsrep::wsrep_provider_v26::init_services(
     node_isolation_mode_set
         = wsrep_impl::resolve_function<wsrep_node_isolation_mode_set_fn_v1>(
             wsrep_->dlh, WSREP_NODE_ISOLATION_MODE_SET_V1);
+
+    if (services.connection_monitor_service)
+    {
+        if (init_connection_monitor_service(wsrep_->dlh, services.connection_monitor_service))
+        {
+            throw wsrep::runtime_error("Failed to initialize connection monitor service");
+        }
+        services_enabled_.connection_monitor_service = services.connection_monitor_service;
+    }
 }
 
 void wsrep::wsrep_provider_v26::deinit_services()
@@ -734,6 +761,8 @@ void wsrep::wsrep_provider_v26::deinit_services()
     if (services_enabled_.allowlist_service)
         deinit_allowlist_service(wsrep_->dlh);
     node_isolation_mode_set = nullptr;
+    if (services_enabled_.connection_monitor_service)
+        deinit_connection_monitor_service(wsrep_->dlh);
 }
 
 wsrep::wsrep_provider_v26::wsrep_provider_v26(

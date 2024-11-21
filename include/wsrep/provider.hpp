@@ -332,10 +332,37 @@ namespace wsrep
         virtual int append_key(wsrep::ws_handle&, const wsrep::key&) = 0;
         virtual enum status append_data(
             wsrep::ws_handle&, const wsrep::const_buffer&) = 0;
+
+        /**
+         * Callback for application defined sequential consistency.
+         * The provider will call
+         * the callback once it can guarantee sequential consistency. */
+        typedef struct seq_cb {
+            /** Opaque caller context */
+            void *ctx;
+            /** Function to be called by the provider when sequential
+             * consistency is guaranteed. */
+            void (*fn)(void *ctx);
+        } seq_cb_t;
+
+        /**
+         * Certify the write set. 
+         *
+         * @param client_id[in] Id of the client session.
+         * @param ws_handle[in,out] Write set handle associated to the current
+         *                 transaction.
+         * @param flags[in] Flags associated to the write set (see struct flag).
+         * @param ws_meta[out] Write set meta data associated to the
+         *                     replicated write set.
+         * @param seq_cb[in] Optional callback for application defined
+         *                   sequential consistency.
+         *
+         * @return Status code defined in struct status.
+         */
         virtual enum status
-        certify(wsrep::client_id, wsrep::ws_handle&,
-                int,
-                wsrep::ws_meta&) = 0;
+        certify(wsrep::client_id client_id, wsrep::ws_handle& ws_handle,
+                int flags, wsrep::ws_meta& ws_meta, const seq_cb_t* seq_cb)
+            = 0;
         /**
          * BF abort a transaction inside provider.
          *

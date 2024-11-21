@@ -175,11 +175,12 @@ namespace wsrep
 
         int after_row();
 
-        int before_prepare(wsrep::unique_lock<wsrep::mutex>&);
+        int before_prepare(wsrep::unique_lock<wsrep::mutex>&,
+                           const wsrep::provider::seq_cb_t*);
 
         int after_prepare(wsrep::unique_lock<wsrep::mutex>&);
 
-        int before_commit();
+        int before_commit(const wsrep::provider::seq_cb_t*);
 
         int ordered_commit();
 
@@ -248,7 +249,8 @@ namespace wsrep
         bool abort_or_interrupt(wsrep::unique_lock<wsrep::mutex>&);
         int streaming_step(wsrep::unique_lock<wsrep::mutex>&, bool force = false);
         int certify_fragment(wsrep::unique_lock<wsrep::mutex>&);
-        int certify_commit(wsrep::unique_lock<wsrep::mutex>&);
+        int certify_commit(wsrep::unique_lock<wsrep::mutex>&,
+                           const wsrep::provider::seq_cb_t*);
         int append_sr_keys_for_commit();
         int release_commit_order(wsrep::unique_lock<wsrep::mutex>&);
         void remove_fragments_in_storage_service_scope(

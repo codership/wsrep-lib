@@ -79,7 +79,8 @@ namespace wsrep
         certify(wsrep::client_id client_id,
                 wsrep::ws_handle& ws_handle,
                 int flags,
-                wsrep::ws_meta& ws_meta)
+                wsrep::ws_meta& ws_meta,
+                const seq_cb* /* Ignored in unit tests. */)
             WSREP_OVERRIDE
         {
             ws_handle = wsrep::ws_handle(ws_handle.transaction_id(), (void*)1);

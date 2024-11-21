@@ -365,12 +365,12 @@ int wsrep::client_state::next_fragment(const wsrep::ws_meta& meta)
     return transaction_.next_fragment(meta);
 }
 
-int wsrep::client_state::before_prepare()
+int wsrep::client_state::before_prepare(const wsrep::provider::seq_cb_t* seq_cb)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     assert(owning_thread_id_ == wsrep::this_thread::get_id());
     assert(state_ == s_exec);
-    return transaction_.before_prepare(lock);
+    return transaction_.before_prepare(lock, seq_cb);
 }
 
 int wsrep::client_state::after_prepare()
@@ -381,11 +381,11 @@ int wsrep::client_state::after_prepare()
     return transaction_.after_prepare(lock);
 }
 
-int wsrep::client_state::before_commit()
+int wsrep::client_state::before_commit(const wsrep::provider::seq_cb_t* seq_cb)
 {
     assert(owning_thread_id_ == wsrep::this_thread::get_id());
     assert(state_ == s_exec || mode_ == m_local);
-    return transaction_.before_commit();
+    return transaction_.before_commit(seq_cb);
 }
 
 int wsrep::client_state::ordered_commit()

@@ -674,6 +674,7 @@ namespace
     }
 
     wsrep_node_isolation_mode_set_fn_v1 node_isolation_mode_set;
+    wsrep_certify_fn_v1 certify_v1;
 }
 
 
@@ -721,6 +722,9 @@ void wsrep::wsrep_provider_v26::init_services(
     node_isolation_mode_set
         = wsrep_impl::resolve_function<wsrep_node_isolation_mode_set_fn_v1>(
             wsrep_->dlh, WSREP_NODE_ISOLATION_MODE_SET_V1);
+
+    certify_v1 = wsrep_impl::resolve_function<wsrep_certify_fn_v1>(
+        wsrep_->dlh, WSREP_CERTIFY_V1);
 }
 
 void wsrep::wsrep_provider_v26::deinit_services()
@@ -922,14 +926,24 @@ enum wsrep::provider::status
 wsrep::wsrep_provider_v26::certify(wsrep::client_id client_id,
                                    wsrep::ws_handle& ws_handle,
                                    int flags,
-                                   wsrep::ws_meta& ws_meta)
+                                   wsrep::ws_meta& ws_meta,
+                                   const seq_cb_t* seq_cb)
 {
     mutable_ws_handle mwsh(ws_handle);
     mutable_ws_meta mmeta(ws_meta, flags);
-    return map_return_value(
-        wsrep_->certify(wsrep_, client_id.get(), mwsh.native(),
-                        mmeta.native_flags(),
-                        mmeta.native()));
+    if (seq_cb && certify_v1)
+    {
+        wsrep_seq_cb_t wseq_cb{seq_cb->ctx, seq_cb->fn};
+        return map_return_value(certify_v1(wsrep_, client_id.get(),
+                                           mwsh.native(), mmeta.native_flags(),
+                                           mmeta.native(), &wseq_cb));
+    }
+    else
+    {
+        return map_return_value(
+            wsrep_->certify(wsrep_, client_id.get(), mwsh.native(),
+                            mmeta.native_flags(), mmeta.native()));
+    }
 }
 
 enum wsrep::provider::status

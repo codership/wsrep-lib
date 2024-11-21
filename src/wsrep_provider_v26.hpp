@@ -59,7 +59,7 @@ namespace wsrep
         enum wsrep::provider::status
         certify(wsrep::client_id, wsrep::ws_handle&,
                 int,
-                wsrep::ws_meta&) WSREP_OVERRIDE;
+                wsrep::ws_meta&, const seq_cb_t*) WSREP_OVERRIDE;
         enum wsrep::provider::status
         bf_abort(wsrep::seqno,
                  wsrep::transaction_id,

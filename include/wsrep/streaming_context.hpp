@@ -42,12 +42,12 @@ namespace wsrep
 
         streaming_context()
             : fragments_certified_()
+            , bytes_certified_()
             , fragments_()
             , rollback_replicated_for_()
             , fragment_unit_()
             , fragment_size_()
             , unit_counter_()
-            , log_position_()
         { }
 
         /**
@@ -78,16 +78,26 @@ namespace wsrep
         /** Disable streaming replication. */
         void disable();
 
-        /** Increment counter for certified fragments. */
-        void certified()
+        /**
+         *  Increment counter for certified fragments and total
+         *  number of bytes.
+         */
+        void certified(size_t bytes)
         {
             ++fragments_certified_;
+            bytes_certified_ += bytes;
         }
 
         /** Return number of certified fragments. */
         size_t fragments_certified() const
         {
             return fragments_certified_;
+        }
+
+        /** Return total number of bytes replicated. */
+        size_t bytes_certified() const
+        {
+            return bytes_certified_;
         }
 
         /** Mark fragment with seqno as stored in fragment store. */
@@ -137,18 +147,6 @@ namespace wsrep
             unit_counter_ = 0;
         }
 
-        /** Return current log position. */
-        size_t log_position() const
-        {
-            return log_position_;
-        }
-
-        /** Set log position. */
-        void set_log_position(size_t position)
-        {
-            log_position_ = position;
-        }
-
         /** Return vector of stored fragments. */
         const std::vector<wsrep::seqno>& fragments() const
         {
@@ -168,12 +166,12 @@ namespace wsrep
         void check_fragment_seqno(wsrep::seqno seqno);
 
         size_t fragments_certified_;
+        size_t bytes_certified_;
         std::vector<wsrep::seqno> fragments_;
         wsrep::transaction_id rollback_replicated_for_;
         enum fragment_unit fragment_unit_;
         size_t fragment_size_;
         size_t unit_counter_;
-        size_t log_position_;
     };
 }
 

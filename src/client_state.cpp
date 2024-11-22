@@ -335,6 +335,13 @@ int wsrep::client_state::after_row()
                 : 0);
 }
 
+int wsrep::client_state::stream()
+{
+    assert(mode_ == m_local);
+    assert(state_ == s_exec);
+    return transaction_.stream();
+}
+
 void wsrep::client_state::fragment_applied(wsrep::seqno seqno)
 {
     assert(mode_ == m_high_priority);

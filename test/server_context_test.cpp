@@ -502,6 +502,22 @@ BOOST_FIXTURE_TEST_CASE(
     BOOST_REQUIRE(ss.state() == wsrep::server_state::s_disconnected);
 }
 
+BOOST_FIXTURE_TEST_CASE(
+    server_state_sst_first_init_on_apply,
+    sst_first_server_fixture)
+{
+    connect_in_view(second_view);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_connected);
+    sst_received_action();
+    char buf[1] = { 1 };
+    BOOST_REQUIRE(ss.on_apply(hps, ws_handle, ws_meta,
+                              wsrep::const_buffer(buf, 1)) == 0);
+    const wsrep::transaction& txc(cc.transaction());
+    BOOST_REQUIRE(txc.state() == wsrep::transaction::s_committed);
+    BOOST_REQUIRE(ss.state() == wsrep::server_state::s_joined);
+
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //                     Test cases for init first                             //
 ///////////////////////////////////////////////////////////////////////////////

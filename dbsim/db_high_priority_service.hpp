@@ -69,6 +69,7 @@ namespace db
         high_priority_service& operator=(const high_priority_service&);
         db::server& server_;
         db::client& client_;
+        uint64_t commit_seqno_;
     };
 
     class replayer_service : public db::high_priority_service

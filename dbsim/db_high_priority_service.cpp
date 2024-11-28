@@ -26,6 +26,7 @@ db::high_priority_service::high_priority_service(
     : wsrep::high_priority_service(server.server_state())
     , server_(server)
     , client_(client)
+    , commit_seqno_()
 { }
 
 int db::high_priority_service::start_transaction(
@@ -52,11 +53,14 @@ int db::high_priority_service::adopt_transaction(const wsrep::transaction&)
 
 int db::high_priority_service::apply_write_set(
     const wsrep::ws_meta&,
-    const wsrep::const_buffer&,
+    const wsrep::const_buffer& buf,
     wsrep::mutable_buffer&)
 {
     client_.se_trx_.start(&client_);
     client_.se_trx_.apply(client_.client_state().transaction());
+    assert(buf.size() > sizeof(uint64_t));
+    ::memcpy(&commit_seqno_, buf.data() + buf.size() - sizeof(uint64_t),
+             sizeof(uint64_t));
     return 0;
 }
 
@@ -82,6 +86,14 @@ int db::high_priority_service::commit(const wsrep::ws_handle& ws_handle,
     client_.client_state_.prepare_for_ordering(ws_handle, ws_meta, true);
     int ret(client_.client_state_.before_commit());
     if (ret == 0) client_.se_trx_.commit(ws_meta.gtid());
+
+    /* Local client session replaying. */
+    if (ws_meta.server_id() == server_.server_state().id()
+        && client_.params_.check_sequential_consistency)
+    {
+        server_.check_sequential_consistency(ws_meta.client_id(),
+                                             commit_seqno_);
+    }
     ret = ret || client_.client_state_.ordered_commit();
     ret = ret || client_.client_state_.after_commit();
     return ret;

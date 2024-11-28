@@ -62,7 +62,6 @@ namespace db
         void start();
         wsrep::client_state& client_state() { return client_state_; }
         wsrep::client_service& client_service() { return client_service_; }
-        bool do_2pc() const { return false; }
     private:
         friend class db::server_state;
         friend class db::client_service;

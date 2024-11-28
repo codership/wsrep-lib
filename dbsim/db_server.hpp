@@ -61,6 +61,27 @@ namespace db
         wsrep::high_priority_service* streaming_applier_service();
         void log_state_change(enum wsrep::server_state::state,
                               enum wsrep::server_state::state);
+
+        /* Sequential consistency checks */
+        struct commit_critical_section
+        {
+            wsrep::unique_lock<wsrep::default_mutex> lock;
+            uint64_t commit_seqno;
+            commit_critical_section(wsrep::default_mutex& mutex,
+                                    uint64_t& next_commit_seqno)
+                : lock{ mutex }
+                , commit_seqno{ ++next_commit_seqno }
+            {
+            }
+            commit_critical_section(commit_critical_section&&) = default;
+        };
+        commit_critical_section get_commit_critical_section() {
+            return { commit_mutex_, next_commit_seqno_ };
+        }
+        /* Check that commits remain sequential according commit_seqno.
+         * This method must be called inside commit order critical section. */
+        void check_sequential_consistency(wsrep::client_id client_id,
+                                          uint64_t commit_seqno);
     private:
         void start_client(size_t id);
 
@@ -76,6 +97,10 @@ namespace db
         std::vector<boost::thread> appliers_;
         std::vector<std::shared_ptr<db::client>> clients_;
         std::vector<boost::thread> client_threads_;
+
+        wsrep::default_mutex commit_mutex_;
+        uint64_t next_commit_seqno_;
+        uint64_t committed_seqno_;
     };
 }
 

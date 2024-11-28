@@ -95,6 +95,12 @@ db::params db::parse_args(int argc, char** argv)
          "Configure TLS service stubs.\n0 default disabled\n1 enabled\n"
          "2 enabled with short read/write and renegotiation simulation\n"
          "3 enabled with error simulation.")
+        ("check-sequential-consistency",
+         po::value<bool>(&params.check_sequential_consistency),
+         "Check if the provider provides sequential consistency")
+        ("do-2pc",
+         po::value<bool>(&params.do_2pc),
+         "Run commits in 2pc")
         ;
     try
     {

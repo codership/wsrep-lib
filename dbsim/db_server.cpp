@@ -68,6 +68,9 @@ db::server::server(simulator& simulator,
     , appliers_()
     , clients_()
     , client_threads_()
+    , commit_mutex_()
+    , next_commit_seqno_()
+    , committed_seqno_()
 {
     wsrep::log::logger_fn(logger_fn);
 }
@@ -164,4 +167,17 @@ void db::server::log_state_change(enum wsrep::server_state::state from,
 {
     wsrep::log_info() << "State changed " << from << " -> " << to;
     reporter_.report_state(to);
+}
+
+void db::server::check_sequential_consistency(wsrep::client_id client_id,
+                                              uint64_t commit_seqno)
+{
+    if (committed_seqno_ >= commit_seqno)
+    {
+        wsrep::log_error() << "Sequentiality violation for " << client_id
+                           << " commit seqno " << commit_seqno << " previous "
+                           << committed_seqno_;
+        ::abort();
+    }
+    committed_seqno_ = commit_seqno;
 }

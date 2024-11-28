@@ -91,6 +91,15 @@ int db::client::client_command(F f)
     return err;
 }
 
+static void release_commit_critical_section(void* ptr)
+{
+    auto* crit = static_cast<db::server::commit_critical_section*>(ptr);
+    if (crit->lock.owns_lock())
+    {
+        crit->lock.unlock();
+    }
+}
+
 void db::client::run_one_transaction()
 {
     if (params_.sync_wait)
@@ -145,15 +154,35 @@ void db::client::run_one_transaction()
     err = err || client_command(
         [&]()
         {
-            // wsrep::log_debug() << "Commit";
+            auto commit_crit = server_.get_commit_critical_section();
+            if (not params_.check_sequential_consistency) {
+                commit_crit.lock.unlock();
+            }
+
+            client_state_.append_data({&commit_crit.commit_seqno,
+                    sizeof(commit_crit.commit_seqno)});
+
+            wsrep::provider::seq_cb seq_cb {
+                &commit_crit,
+                release_commit_critical_section
+            };
+
             assert(err == 0);
-            if (do_2pc())
+            if (params_.do_2pc)
             {
-                err = err || client_state_.before_prepare();
+                err = err || client_state_.before_prepare(&seq_cb);
                 err = err || client_state_.after_prepare();
             }
-            err = err || client_state_.before_commit();
-            if (err == 0) se_trx_.commit(transaction.ws_meta().gtid());
+            err = err || client_state_.before_commit(&seq_cb);
+            if (err == 0)
+            {
+                se_trx_.commit(transaction.ws_meta().gtid());
+                if (params_.check_sequential_consistency)
+                {
+                    server_.check_sequential_consistency(
+                        client_state_.id(), commit_crit.commit_seqno);
+                }
+            }
             err = err || client_state_.ordered_commit();
             err = err || client_state_.after_commit();
             if (err)

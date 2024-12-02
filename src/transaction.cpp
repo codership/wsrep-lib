@@ -995,6 +995,7 @@ bool wsrep::transaction::bf_abort(
     bool ret(false);
     const enum wsrep::transaction::state state_at_enter(state());
     assert(lock.owns_lock());
+    assert(!bf_seqno.is_undefined());
 
     if (active() == false)
     {

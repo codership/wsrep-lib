@@ -14,6 +14,7 @@ set(TEST_SOURCES
   nbo_test.cpp
   rsu_test.cpp
   server_context_test.cpp
+  sr_key_set_test.cpp
   toi_test.cpp
   transaction_test.cpp
   transaction_test_2pc.cpp

@@ -171,6 +171,8 @@ namespace wsrep
 
         int append_key(const wsrep::key&);
 
+        bool has_key(const wsrep::key&) const;
+
         int append_data(const wsrep::const_buffer&);
 
         int after_row();

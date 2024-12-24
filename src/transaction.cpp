@@ -253,6 +253,12 @@ int wsrep::transaction::append_key(const wsrep::key& key)
     }
 }
 
+bool wsrep::transaction::has_key(const wsrep::key& key) const
+{
+    assert(active());
+    return sr_keys_.contains(key);
+}
+
 int wsrep::transaction::append_data(const wsrep::const_buffer& data)
 {
     assert(active());

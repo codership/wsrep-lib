@@ -36,6 +36,7 @@ namespace wsrep
             : root_()
         { }
         void insert(const wsrep::key& key);
+        bool contains(const wsrep::key& key) const;
         const branch_type& root() const { return root_; }
         void clear();
         bool empty() const { return root_.empty(); }

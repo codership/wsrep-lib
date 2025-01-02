@@ -117,9 +117,9 @@ namespace wsrep
         /**
          * Return true if the view is final
          */
-        bool final() const
+        bool is_final() const
         {
-            return (members_.empty() && own_index_ == -1);
+            return (status_ != status::primary && members_.empty() && own_index_ == -1);
         }
 
         /**

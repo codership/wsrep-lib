@@ -918,7 +918,7 @@ void wsrep::server_state::on_primary_view(
     wsrep::high_priority_service* high_priority_service)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    assert(view.final() == false);
+    assert(view.is_final() == false);
     //
     // Reached primary from connected state. This may mean the following
     //
@@ -999,7 +999,7 @@ void wsrep::server_state::on_non_primary_view(
 {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
         wsrep::log_info() << "Non-primary view";
-        if (view.final())
+        if (view.is_final())
         {
             go_final(lock, view, high_priority_service);
         }
@@ -1014,7 +1014,7 @@ void wsrep::server_state::go_final(wsrep::unique_lock<wsrep::mutex>& lock,
                                    wsrep::high_priority_service* hps)
 {
     (void)view; // avoid compiler warning "unused parameter 'view'"
-    assert(view.final());
+    assert(view.is_final());
     assert(hps);
     if (hps)
     {

@@ -57,7 +57,7 @@ void wsrep::view::print(std::ostream& os) const
        << "  status: " << to_c_string(status()) << "\n"
        << "  protocol_version: " << protocol_version() << "\n"
        << "  capabilities: " << provider::capability::str(capabilities())<<"\n"
-       << "  final: " << (final() ? "yes" : "no") << "\n"
+       << "  final: " << (is_final() ? "yes" : "no") << "\n"
        << "  own_index: " << own_index() << "\n"
        << "  members(" << members().size() << "):\n";
 

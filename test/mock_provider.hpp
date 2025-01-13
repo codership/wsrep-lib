@@ -117,9 +117,8 @@ namespace wsrep
             {
                 ++group_seqno_;
                 wsrep::gtid gtid(group_id_, wsrep::seqno(group_seqno_));
-                ws_meta = wsrep::ws_meta(gtid, stid,
-                                         wsrep::seqno(group_seqno_ - 1),
-                                         flags);
+                ws_meta = wsrep::ws_meta(
+                    gtid, stid, wsrep::seqno(group_seqno_ - 1), flags);
                 return wsrep::provider::success;
             }
             else
@@ -135,9 +134,8 @@ namespace wsrep
                 {
                     ++group_seqno_;
                     wsrep::gtid gtid(group_id_, wsrep::seqno(group_seqno_));
-                    ws_meta = wsrep::ws_meta(gtid, stid,
-                                             wsrep::seqno(group_seqno_ - 1),
-                                             flags);
+                    ws_meta = wsrep::ws_meta(
+                        gtid, stid, wsrep::seqno(group_seqno_ - 1), flags);
                     ret = wsrep::provider::error_bf_abort;
                 }
                 bf_abort_map_.erase(it);
@@ -215,8 +213,8 @@ namespace wsrep
                         wsrep::gtid(group_id_, wsrep::seqno(group_seqno_)),
                         wsrep::stid(server_id_, tc.id(), cc.id()),
                         wsrep::seqno(group_seqno_ - 1),
-                        wsrep::provider::flag::start_transaction |
-                        wsrep::provider::flag::commit);
+                        wsrep::provider::flag::start_transaction
+                            | wsrep::provider::flag::commit);
                 }
                 else
                 {
@@ -245,12 +243,10 @@ namespace wsrep
         {
             ++group_seqno_;
             wsrep::gtid gtid(group_id_, wsrep::seqno(group_seqno_));
-            wsrep::stid stid(server_id_,
-                             wsrep::transaction_id::undefined(),
+            wsrep::stid stid(server_id_, wsrep::transaction_id::undefined(),
                              client_id);
             toi_meta = wsrep::ws_meta(gtid, stid,
-                                      wsrep::seqno(group_seqno_ - 1),
-                                      flags);
+                                      wsrep::seqno(group_seqno_ - 1), flags);
             ++toi_write_sets_;
             if (flags & wsrep::provider::flag::start_transaction)
                 ++toi_start_transaction_;
@@ -260,6 +256,7 @@ namespace wsrep
         }
 
         enum wsrep::provider::status leave_toi(wsrep::client_id,
+                                               const wsrep::ws_meta&,
                                                const wsrep::mutable_buffer&)
             WSREP_OVERRIDE
         { return wsrep::provider::success; }
@@ -315,6 +312,7 @@ namespace wsrep
         enum wsrep::provider::status
         bf_abort(wsrep::seqno bf_seqno,
                  wsrep::transaction_id trx_id,
+                 wsrep::client_service&,
                  wsrep::seqno& victim_seqno)
             WSREP_OVERRIDE
         {

@@ -582,7 +582,8 @@ namespace wsrep
          * @param lock Lock to protect client state.
          * @param bf_seqno Seqno of the BF aborter.
          */
-        int bf_abort(wsrep::unique_lock<wsrep::mutex>& lock, wsrep::seqno bf_seqno);
+        int bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
+                     wsrep::seqno bf_seqno);
         /**
          * Wrapper to bf_abort() call, grabs lock internally.
          */
@@ -593,7 +594,8 @@ namespace wsrep
          * should be called by the TOI operation which needs to
          * BF abort a transaction.
          */
-        int total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>& lock, wsrep::seqno bf_seqno);
+        int total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
+                                 wsrep::seqno bf_seqno);
 
         /**
          * Wrapper to total_order_bf_abort(), grabs lock internally.

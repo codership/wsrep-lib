@@ -92,7 +92,9 @@
 #include "compiler.hpp"
 #include "xid.hpp"
 
+#include <memory>
 #include <deque>
+#include <functional>
 #include <vector>
 #include <string>
 #include <map>
@@ -187,8 +189,6 @@ namespace wsrep
             /** Synchronous rollback mode */
             rm_sync
         };
-
-        virtual ~server_state();
 
         wsrep::encryption_service* encryption_service()
         { return encryption_service_; }
@@ -299,6 +299,17 @@ namespace wsrep
                           const wsrep::provider::services& services
                           = wsrep::provider::services());
 
+        using provider_factory_func =
+            std::function<decltype(wsrep::provider::make_provider)>;
+
+        /**
+         * Set provider factory method.
+         *
+         * @param Factory method to create a provider.
+         */
+        void set_provider_factory(const provider_factory_func&);
+
+        /** Unload/unset provider. */
         void unload_provider();
 
         bool is_provider_loaded() const { return provider_ != 0; }
@@ -310,12 +321,8 @@ namespace wsrep
          *
          * @throw wsrep::runtime_error if provider has not been loaded
          *
-         * @todo This should not be virtual. However, currently there
-         *       is no mechanism for tests and integrations to provide
-         *       their own provider implementations, so this is kept virtual
-         *       for time being.
          */
-        virtual wsrep::provider& provider() const
+        wsrep::provider& provider() const
         {
             if (provider_ == 0)
             {
@@ -529,6 +536,19 @@ namespace wsrep
             return init_initialized_;
         }
 
+        /** Recover streaming appliers if not already recoverd yet.
+         *
+         * This method recovers streaming appliers from streaming log.
+         * It must be called before starting to apply events after
+         * connecting to the cluster.
+         *
+         * @param lock Lock object holding server_state mutex.
+         * @param service Either client or high priority service.
+         */
+        template <class C>
+        void recover_streaming_appliers_if_not_recovered(
+            wsrep::unique_lock<wsrep::mutex>& lock, C& service);
+
         /**
          * This method will be called by the provider when
          * a remote write set is being applied. It is the responsibility
@@ -618,6 +638,7 @@ namespace wsrep
             , streaming_appliers_()
             , streaming_appliers_recovered_()
             , provider_()
+            , provider_factory_(wsrep::provider::make_provider)
             , name_(name)
             , id_(wsrep::id::undefined())
             , incoming_address_(incoming_address)
@@ -645,11 +666,7 @@ namespace wsrep
         // Interrupt all threads which are waiting for state
         void interrupt_state_waiters(wsrep::unique_lock<wsrep::mutex>&);
 
-        // Recover streaming appliers if not already recoverd
-        template <class C>
-        void recover_streaming_appliers_if_not_recovered(
-            wsrep::unique_lock<wsrep::mutex>&, C&);
-
+      private:
         // Close SR transcations whose origin is outside of current
         // cluster view.
         void close_orphaned_sr_transactions(
@@ -702,7 +719,8 @@ namespace wsrep
                          wsrep::high_priority_service*> streaming_appliers_map;
         streaming_appliers_map streaming_appliers_;
         bool streaming_appliers_recovered_;
-        wsrep::provider* provider_;
+        std::unique_ptr<wsrep::provider> provider_;
+        provider_factory_func provider_factory_;
         std::string name_;
         wsrep::id id_;
         std::string incoming_address_;

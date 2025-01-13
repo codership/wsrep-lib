@@ -200,9 +200,11 @@ namespace wsrep
         void after_applying();
 
         bool bf_abort(wsrep::unique_lock<wsrep::mutex>& lock,
-                      wsrep::seqno bf_seqno);
+                      wsrep::seqno bf_seqno,
+                      wsrep::client_service&);
         bool total_order_bf_abort(wsrep::unique_lock<wsrep::mutex>&,
-                                  wsrep::seqno bf_seqno);
+                                  wsrep::seqno bf_seqno,
+                                  wsrep::client_service&);
 
         void clone_for_replay(const wsrep::transaction& other);
 

@@ -307,7 +307,8 @@ static int apply_write_set(wsrep::server_state& server_state,
                                  wsrep::log::debug_level_server_state,
                                  "Could not find applier context for "
                                  << ws_meta.server_id()
-                                 << ": " << ws_meta.transaction_id());
+                                 << ": " << ws_meta.transaction_id()
+                                 << ", " << ws_meta.seqno());
                 ret = high_priority_service.log_dummy_write_set(
                     ws_handle, ws_meta, no_error);
             }
@@ -379,7 +380,8 @@ static int apply_write_set(wsrep::server_state& server_state,
             // it may be an indication of  a bug too.
             wsrep::log_warning() << "Could not find applier context for "
                                  << ws_meta.server_id()
-                                 << ": " << ws_meta.transaction_id();
+                                 << ": " << ws_meta.transaction_id()
+                                 << ", " << ws_meta.seqno();
             wsrep::mutable_buffer no_error;
             ret = high_priority_service.log_dummy_write_set(
                 ws_handle, ws_meta, no_error);
@@ -420,7 +422,8 @@ static int apply_write_set(wsrep::server_state& server_state,
                 wsrep::log_warning()
                     << "Could not find applier context for "
                     << ws_meta.server_id()
-                    << ": " << ws_meta.transaction_id();
+                    << ": " << ws_meta.transaction_id()
+                    << ", " << ws_meta.seqno();
                 wsrep::mutable_buffer no_error;
                 ret = high_priority_service.log_dummy_write_set(
                     ws_handle, ws_meta, no_error);
@@ -501,18 +504,21 @@ int wsrep::server_state::load_provider(
 {
     wsrep::log_info() << "Loading provider " << provider_spec
                       << " initial position: " << initial_position_;
-
-    provider_ = wsrep::provider::make_provider(*this,
-                                               provider_spec,
-                                               provider_options,
-                                               services);
+    provider_
+        = provider_factory_(*this, provider_spec, provider_options, services);
     return (provider_ ? 0 : 1);
+}
+
+void wsrep::server_state::set_provider_factory(
+    const provider_factory_func& provider_factory)
+{
+    assert(provider_factory);
+    provider_factory_ = provider_factory;
 }
 
 void wsrep::server_state::unload_provider()
 {
-    delete provider_;
-    provider_ = 0;
+    provider_.reset();
 }
 
 int wsrep::server_state::connect(const std::string& cluster_name,
@@ -543,11 +549,6 @@ int wsrep::server_state::disconnect()
         interrupt_state_waiters(lock);
     }
     return provider().disconnect();
-}
-
-wsrep::server_state::~server_state()
-{
-    delete provider_;
 }
 
 std::vector<wsrep::provider::status_variable>
@@ -914,7 +915,7 @@ void wsrep::server_state::on_primary_view(
     wsrep::high_priority_service* high_priority_service)
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
-    assert(view.final() == false);
+    assert(view.is_final() == false);
     //
     // Reached primary from connected state. This may mean the following
     //
@@ -995,7 +996,7 @@ void wsrep::server_state::on_non_primary_view(
 {
         wsrep::unique_lock<wsrep::mutex> lock(mutex_);
         wsrep::log_info() << "Non-primary view";
-        if (view.final())
+        if (view.is_final())
         {
             go_final(lock, view, high_priority_service);
         }
@@ -1010,7 +1011,7 @@ void wsrep::server_state::go_final(wsrep::unique_lock<wsrep::mutex>& lock,
                                    wsrep::high_priority_service* hps)
 {
     (void)view; // avoid compiler warning "unused parameter 'view'"
-    assert(view.final());
+    assert(view.is_final());
     assert(hps);
     if (hps)
     {
@@ -1064,6 +1065,8 @@ void wsrep::server_state::on_sync()
     {
         switch (state_)
         {
+        case s_disconnecting:
+            break;
         case s_synced:
             break;
         case s_connected:                 // Seed node path: provider becomes
@@ -1090,7 +1093,7 @@ void wsrep::server_state::on_sync()
         // Calls to on_sync() in synced state are possible if
         // server desyncs itself from the group. Provider does not
         // inform about this through callbacks.
-        if (state_ != s_synced)
+        if (state_ != s_synced && state_ != s_disconnecting)
         {
             state(lock, s_synced);
         }
@@ -1395,8 +1398,9 @@ void wsrep::server_state::wait_until_state(
         // or disconnected and the state has been changed to disconnecting,
         // this usually means that some error was encountered 
         if (state != s_disconnecting && state != s_disconnected
-            && state_ == s_disconnecting)
+            && (state_ == s_disconnecting || state_ == s_disconnected))
         {
+          --state_waiters_[state];
             throw wsrep::runtime_error("State wait was interrupted");
         }
     }
@@ -1484,6 +1488,7 @@ void wsrep::server_state::close_orphaned_sr_transactions(
         {
             wsrep::client_id client_id(i->first);
             wsrep::transaction_id transaction_id(i->second->transaction().id());
+            auto& client_state = *i->second;
             // It is safe to unlock the server state temporarily here.
             // The processing happens inside view handler which is
             // protected by the provider commit ordering critical
@@ -1494,7 +1499,7 @@ void wsrep::server_state::close_orphaned_sr_transactions(
             // remains unlocked, so it should not be accessed after
             // the bf abort call.
             lock.unlock();
-            i->second->total_order_bf_abort(current_view_.view_seqno());
+            client_state.total_order_bf_abort(current_view_.view_seqno());
             lock.lock();
             streaming_clients_map::const_iterator found_i;
             while ((found_i = streaming_clients_.find(client_id)) !=

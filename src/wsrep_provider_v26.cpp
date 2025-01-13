@@ -950,6 +950,7 @@ enum wsrep::provider::status
 wsrep::wsrep_provider_v26::bf_abort(
     wsrep::seqno bf_seqno,
     wsrep::transaction_id victim_id,
+    wsrep::client_service& /* Ignored here */,
     wsrep::seqno& victim_seqno)
 {
     wsrep_seqno_t wsrep_victim_seqno;
@@ -1047,6 +1048,7 @@ wsrep::wsrep_provider_v26::enter_toi(
 
 enum wsrep::provider::status
 wsrep::wsrep_provider_v26::leave_toi(wsrep::client_id client_id,
+                                     const wsrep::ws_meta&,
                                      const wsrep::mutable_buffer& err)
 {
     const wsrep_buf_t err_buf = { err.data(), err.size() };

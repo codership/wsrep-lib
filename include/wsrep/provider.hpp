@@ -29,6 +29,7 @@
 
 #include <cstring>
 
+#include <memory>
 #include <string>
 #include <vector>
 #include <ostream>
@@ -47,7 +48,7 @@ namespace wsrep
     class tls_service;
     class allowlist_service;
     class event_service;
-
+    class client_service;
     class stid
     {
     public:
@@ -283,7 +284,6 @@ namespace wsrep
             static const int streaming = (1 << 15);
             static const int snapshot = (1 << 16);
             static const int nbo = (1 << 17);
-
             /** decipher capability bitmask */
             static std::string str(int);
         };
@@ -375,6 +375,7 @@ namespace wsrep
          */
         virtual enum status bf_abort(wsrep::seqno bf_seqno,
                                      wsrep::transaction_id victim_trx,
+                                     wsrep::client_service& victim_ctx,
                                      wsrep::seqno& victim_seqno) = 0;
         virtual enum status rollback(wsrep::transaction_id) = 0;
         virtual enum status commit_order_enter(const wsrep::ws_handle&,
@@ -407,6 +408,7 @@ namespace wsrep
          * Leave total order isolation critical section
          */
         virtual enum status leave_toi(wsrep::client_id,
+                                      const wsrep::ws_meta& ws_meta,
                                       const wsrep::mutable_buffer& err) = 0;
 
         /**
@@ -509,11 +511,12 @@ namespace wsrep
          * @param provider_options Initial options to provider
          * @param thread_service Optional thread service implementation.
          */
-        static provider* make_provider(wsrep::server_state&,
-                                       const std::string& provider_spec,
-                                       const std::string& provider_options,
-                                       const wsrep::provider::services& services
-                                       = wsrep::provider::services());
+        static std::unique_ptr<provider> make_provider(
+            wsrep::server_state&,
+            const std::string& provider_spec,
+            const std::string& provider_options,
+            const wsrep::provider::services& services
+            = wsrep::provider::services());
 
     protected:
         wsrep::server_state& server_state_;

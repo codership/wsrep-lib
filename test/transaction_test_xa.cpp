@@ -1,11 +1,28 @@
+/*
+ * Copyright (C) 2019-2025 Codership Oy <info@codership.com>
+ *
+ * This file is part of wsrep-lib.
+ *
+ * Wsrep-lib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * Wsrep-lib is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with wsrep-lib.  If not, see <https://www.gnu.org/licenses/>.
+ */
 #include "client_state_fixture.hpp"
 #include <iostream>
 
 //
 // Test a successful XA transaction lifecycle
 //
-BOOST_FIXTURE_TEST_CASE(transaction_xa,
-                        replicating_client_fixture_sync_rm)
+BOOST_FIXTURE_TEST_CASE(transaction_xa, replicating_client_fixture_sync_rm)
 {
     wsrep::xid xid(1, 9, 0, "test xid");
 
@@ -46,7 +63,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa,
     BOOST_REQUIRE(tc.certified() == false);
     BOOST_REQUIRE(cc.current_error() == wsrep::e_success);
 }
-
 
 //
 // Test detaching of XA transactions
@@ -118,7 +134,6 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_rollback_by_xid,
     sc.stop_streaming_applier(sc.id(), wsrep::transaction_id(1));
     server_service.release_high_priority_service(hps);
 }
-
 
 //
 // Test XA replay
@@ -214,8 +229,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_replay_after_command_after_result,
 //
 // Test a successful XA transaction lifecycle (applying side)
 //
-BOOST_FIXTURE_TEST_CASE(transaction_xa_applying,
-                        applying_client_fixture)
+BOOST_FIXTURE_TEST_CASE(transaction_xa_applying, applying_client_fixture)
 {
     wsrep::xid xid(1, 9, 0, "test xid");
 
@@ -249,8 +263,7 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_applying,
 //
 // Test a successful XA transaction lifecycle
 //
-BOOST_FIXTURE_TEST_CASE(transaction_xa_sr,
-                        streaming_client_fixture_byte)
+BOOST_FIXTURE_TEST_CASE(transaction_xa_sr, streaming_client_fixture_byte)
 {
     wsrep::xid xid(1, 9, 0, "test xid");
 

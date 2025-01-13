@@ -41,11 +41,12 @@ void wsrep_test::bf_abort_in_total_order(wsrep::client_state& cc)
 }
 // BF abort method to abort transactions via provider
 void wsrep_test::bf_abort_provider(wsrep::mock_server_state& sc,
-                                   const wsrep::transaction& tc,
+                                   const wsrep::client_state& victim_cs,
                                    wsrep::seqno bf_seqno)
 {
     wsrep::seqno victim_seqno;
-    sc.provider().bf_abort(bf_seqno, tc.id(), victim_seqno);
+    sc.provider().bf_abort(bf_seqno, victim_cs.transaction().id(), victim_cs.client_service(),
+                           victim_seqno);
     (void)victim_seqno;
 }
 
@@ -63,13 +64,10 @@ void wsrep_test::terminate_streaming_applier(
     mc.before_command();
     wsrep::mock_high_priority_service hps(sc, &mc, false);
     wsrep::ws_handle ws_handle(transaction_id, (void*)(1));
-    wsrep::ws_meta ws_meta(wsrep::gtid(wsrep::id("cluster1"),
-                                       wsrep::seqno(100)),
-                           wsrep::stid(server_id,
-                                       transaction_id,
-                                       wsrep::client_id(1)),
-                           wsrep::seqno(0),
-                           wsrep::provider::flag::rollback);
+    wsrep::ws_meta ws_meta(
+        wsrep::gtid(wsrep::id("cluster1"), wsrep::seqno(100)),
+        wsrep::stid(server_id, transaction_id, wsrep::client_id(1)),
+        wsrep::seqno(0), wsrep::provider::flag::rollback);
     wsrep::const_buffer data(0, 0);
     sc.on_apply(hps, ws_handle, ws_meta, data);
 }

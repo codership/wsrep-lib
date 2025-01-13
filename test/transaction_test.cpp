@@ -188,7 +188,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
 
-    wsrep_test::bf_abort_provider(sc, tc, wsrep::seqno::undefined());
+    wsrep_test::bf_abort_provider(sc, cc, wsrep::seqno::undefined());
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());
@@ -454,7 +454,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(
     BOOST_REQUIRE(tc.id() == wsrep::transaction_id(1));
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_executing);
 
-    wsrep_test::bf_abort_provider(sc, tc, wsrep::seqno(1));
+    wsrep_test::bf_abort_provider(sc, cc, wsrep::seqno(1));
 
     // Run before commit
     BOOST_REQUIRE(cc.before_commit());

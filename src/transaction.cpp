@@ -63,8 +63,10 @@ namespace
             {
                 throw wsrep::runtime_error("Null client_state provided");
             }
-            client_service_.reset_globals();
-            storage_service_->store_globals();
+            if (storage_service_->requires_globals()) {
+              client_service_.reset_globals();
+              storage_service_->store_globals();
+            }
         }
 
         wsrep::storage_service& storage_service()
@@ -74,8 +76,11 @@ namespace
 
         ~scoped_storage_service()
         {
+            bool restore_globals = storage_service_->requires_globals();
             deleter_(storage_service_);
-            client_service_.store_globals();
+            if (restore_globals) {
+              client_service_.store_globals();
+            }
         }
     private:
         scoped_storage_service(const scoped_storage_service&);
@@ -990,7 +995,8 @@ void wsrep::transaction::after_applying()
 
 bool wsrep::transaction::bf_abort(
     wsrep::unique_lock<wsrep::mutex>& lock,
-    wsrep::seqno bf_seqno)
+    wsrep::seqno bf_seqno,
+    wsrep::client_service& victim_ctx)
 {
     bool ret(false);
     const enum wsrep::transaction::state state_at_enter(state());
@@ -1021,7 +1027,7 @@ bool wsrep::transaction::bf_abort(
             wsrep::seqno victim_seqno;
             enum wsrep::provider::status
                 status(client_state_.provider().bf_abort(
-                           bf_seqno, id_, victim_seqno));
+                           bf_seqno, id_, victim_ctx, victim_seqno));
             switch (status)
             {
             case wsrep::provider::success:
@@ -1108,14 +1114,15 @@ bool wsrep::transaction::bf_abort(
 
 bool wsrep::transaction::total_order_bf_abort(
     wsrep::unique_lock<wsrep::mutex>& lock WSREP_UNUSED,
-    wsrep::seqno bf_seqno)
+    wsrep::seqno bf_seqno,
+    wsrep::client_service& victim_ctx)
 {
     /* We must set this flag before entering bf_abort() in order
      * to streaming_rollback() work correctly. The flag will be
      * unset if BF abort was not allowed. Note that we rely in
      * bf_abort() not to release lock if the BF abort is not allowed. */
     bf_aborted_in_total_order_ = true;
-    bool ret(bf_abort(lock, bf_seqno));
+    bool ret(bf_abort(lock, bf_seqno, victim_ctx));
     if (not ret)
     {
         bf_aborted_in_total_order_ = false;

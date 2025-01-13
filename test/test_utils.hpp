@@ -41,7 +41,7 @@ namespace wsrep_test
 
     // BF abort method to abort transactions via provider
     void bf_abort_provider(wsrep::mock_server_state& sc,
-                           const wsrep::transaction& tc,
+                           const wsrep::client_state& victim_cs,
                            wsrep::seqno bf_seqno);
 
     // BF abort in total order

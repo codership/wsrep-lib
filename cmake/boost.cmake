@@ -53,7 +53,7 @@ SET(BOOST_PATCH "0")
 SET(BOOST_PACKAGE_NAME "boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}")
 SET(BOOST_TARBALL "${BOOST_PACKAGE_NAME}.tar.gz")
 SET(BOOST_DOWNLOAD_URL
-  "https://boostorg.jfrog.io/artifactory/main/release/${BOOST_MAJOR}.${BOOST_MINOR}.${BOOST_PATCH}/source/${BOOST_TARBALL}"
+  "https://archives.boost.io/release/${BOOST_MAJOR}.${BOOST_MINOR}.${BOOST_PATCH}/source/${BOOST_TARBALL}"
   )
 
 MACRO(RESET_BOOST_VARIABLES)

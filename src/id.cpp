@@ -57,14 +57,34 @@ std::string wsrep::id::to_string() const
   return os.str();
 }
 
+
+/*
+ * If the buffer pointed by ptr contains only alphanumeric chars followed by
+ * one or more null terminators, consider it a valid alphanumeric string.
+ *
+ * A string starting with null is not an alphanumeric string.
+ */
+static bool is_alphanumeric_string(const char* ptr, size_t size)
+{
+    if (size == 0)
+        return false;
+    if (ptr[0] == '\0')
+        return false;
+    const char* first_not_alphanumeric = std::find_if_not(
+        ptr, ptr + size, [](char c) { return ::isalnum(c); });
+    if (static_cast<size_t>(std::distance(ptr, first_not_alphanumeric)) == size)
+        return false;
+    return std::all_of(first_not_alphanumeric, ptr + size,
+                       [](char c) { return (c == '\0'); });
+}
+
 std::ostream& wsrep::operator<<(std::ostream& os, const wsrep::id& id)
 {
     const char* ptr(static_cast<const char*>(id.data()));
     size_t size(id.size());
-    if (static_cast<size_t>(
-            std::count_if(ptr, ptr + size,
-                          [](char c) { return (::isalnum(c) || c == '\0'); }))
-        == size)
+    /* If the buffer pointed by ptr contains only alphanumeric chars followed by
+     * one or more null terminators, return the string. */
+    if (is_alphanumeric_string(ptr, size))
     {
         return (os << std::string(ptr, ::strnlen(ptr, size)));
     }

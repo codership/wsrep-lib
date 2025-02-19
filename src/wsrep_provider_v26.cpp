@@ -775,8 +775,8 @@ void wsrep::wsrep_provider_v26::deinit_services()
 
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
     wsrep::server_state& server_state,
-    const std::string& provider_options,
     const std::string& provider_spec,
+    const std::function<std::string()>& provider_options_cb,
     const wsrep::provider::services& services)
     : provider(server_state)
     , wsrep_()
@@ -796,6 +796,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     init_args.node_address = server_state_.address().c_str();
     init_args.node_incoming = server_state_.incoming_address().c_str();
     init_args.data_dir = server_state_.working_dir().c_str();
+    const auto& provider_options = provider_options_cb();
     init_args.options = provider_options.c_str();
     init_args.proto_ver = server_state.max_protocol_version();
     init_args.state_id = &state_id;

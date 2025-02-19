@@ -287,17 +287,42 @@ namespace wsrep
          * Load WSRep provider.
          *
          * @param provider WSRep provider library to be loaded.
-         * @param provider_options Provider specific options string
-         *        to be passed for provider during initialization.
+         * @param provider_options_cb Callback to get provider options.
+         *                            The function to be called must be
+         *                            idempotent.
          * @param services Application defined services passed to
          *                 the provider.
          *
          * @return Zero on success, non-zero on error.
          */
         int load_provider(const std::string& provider,
-                          const std::string& provider_options,
+                          const std::function<std::string()>& provider_options_cb,
                           const wsrep::provider::services& services
                           = wsrep::provider::services());
+
+
+        /**
+         * Load WSRep provider.
+         *
+         * @param provider WSRep provider library to be loaded.
+         * @param provider_options Provider specific options string
+         *        to be passed for provider during initialization.
+         * @param services Application defined services passed to
+         *                 the provider.
+         *
+         * @return Zero on success, non-zero on error.
+         *
+         * @note Provided for backward compatibility.
+         */
+        int load_provider(const std::string& provider,
+                          const std::string& provider_options,
+                          const wsrep::provider::services& services
+                          = wsrep::provider::services())
+        {
+            return load_provider(provider,
+                                [provider_options]() { return provider_options; },
+                                services);
+        }
 
         using provider_factory_func =
             std::function<decltype(wsrep::provider::make_provider)>;

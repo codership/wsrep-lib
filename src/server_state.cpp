@@ -500,13 +500,13 @@ static int apply_toi(wsrep::provider& provider,
 
 int wsrep::server_state::load_provider(
     const std::string& provider_spec,
-    const std::function<std::string()>& provider_options_cb,
+    const std::function<std::string(provider_options&)>& provider_options_cb,
     const wsrep::provider::services& services)
 {
     wsrep::log_info() << "Loading provider " << provider_spec
                       << " initial position: " << initial_position_;
-    provider_
-        = provider_factory_(*this, provider_spec, provider_options_cb, services);
+    provider_ = provider_factory_(*this, provider_spec, provider_options_cb,
+                                  services);
     return (provider_ ? 0 : 1);
 }
 

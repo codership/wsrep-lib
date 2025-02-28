@@ -117,6 +117,7 @@ namespace wsrep
     class server_service;
     class client_service;
     class encryption_service;
+    class provider_options;
 
     /** @class Server Context
      *
@@ -296,16 +297,15 @@ namespace wsrep
          * @return Zero on success, non-zero on error.
          */
         int load_provider(const std::string& provider,
-                          const std::function<std::string()>& provider_options_cb,
+                          const std::function<std::string(provider_options&)>&,
                           const wsrep::provider::services& services
                           = wsrep::provider::services());
-
 
         /**
          * Load WSRep provider.
          *
          * @param provider WSRep provider library to be loaded.
-         * @param provider_options Provider specific options string
+         * @param options Provider specific options string
          *        to be passed for provider during initialization.
          * @param services Application defined services passed to
          *                 the provider.
@@ -315,13 +315,13 @@ namespace wsrep
          * @note Provided for backward compatibility.
          */
         int load_provider(const std::string& provider,
-                          const std::string& provider_options,
+                          const std::string& options,
                           const wsrep::provider::services& services
                           = wsrep::provider::services())
         {
-            return load_provider(provider,
-                                [provider_options]() { return provider_options; },
-                                services);
+            return load_provider(
+                provider, [options](provider_options&) { return options; },
+                services);
         }
 
         using provider_factory_func =

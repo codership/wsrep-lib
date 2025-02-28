@@ -19,6 +19,7 @@
 
 #include "config_service_v1.hpp"
 #include "service_helpers.hpp"
+#include "v26/wsrep_api.h"
 #include "v26/wsrep_config_service.h"
 #include "wsrep/logger.hpp"
 #include "wsrep/provider_options.hpp"
@@ -147,10 +148,9 @@ static void config_service_v1_deinit(void* dlh)
         dlh, WSREP_CONFIG_SERVICE_DEINIT_FUNC_V1, "config service v1");
 }
 
-int wsrep::config_service_v1_fetch(wsrep::provider& provider,
+int wsrep::config_service_v1_fetch(struct wsrep_st* wsrep,
                                    wsrep::provider_options* options)
 {
-    struct wsrep_st* wsrep = (struct wsrep_st*)provider.native();
     if (wsrep == nullptr)
     {
         // Not a provider which was loaded via wsrep-API
@@ -178,4 +178,11 @@ int wsrep::config_service_v1_fetch(wsrep::provider& provider,
     }
 
     return 0;
+}
+
+int wsrep::config_service_v1_fetch(wsrep::provider& provider,
+                                   wsrep::provider_options* options)
+{
+  struct wsrep_st* wsrep = (struct wsrep_st*)provider.native();
+  return config_service_v1_fetch(wsrep, options);
 }

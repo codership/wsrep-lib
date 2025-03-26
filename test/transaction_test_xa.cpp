@@ -79,7 +79,8 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_commit_by_xid,
     BOOST_REQUIRE(sc.provider().fragments() == 1);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
 
-    cc1.xa_detach();
+    cc1.before_xa_detach();
+    cc1.after_xa_detach();
 
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
     BOOST_REQUIRE(cc1.after_statement() == 0);
@@ -113,7 +114,8 @@ BOOST_FIXTURE_TEST_CASE(transaction_xa_detach_rollback_by_xid,
     BOOST_REQUIRE(sc.provider().fragments() == 1);
     BOOST_REQUIRE(tc.streaming_context().fragments_certified() == 1);
 
-    cc1.xa_detach();
+    cc1.before_xa_detach();
+    cc1.after_xa_detach();
 
     BOOST_REQUIRE(tc.state() == wsrep::transaction::s_aborted);
     BOOST_REQUIRE(cc1.after_statement() == 0);

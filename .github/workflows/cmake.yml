@@ -1,0 +1,71 @@
+name: CMake Compatibility Check
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          # Ubuntu 20.04
+          - version: v3.16.3
+            bintar: cmake-3.16.3-linux-x86_64.tar.gz
+          # v3.17.5
+          - version: v3.17.5
+            bintar: cmake-3.17.5-linux-x86_64.tar.gz
+          # Debian bullseye
+          - version: v3.18.4
+            bintar: cmake-3.18.4-linux-x86_64.tar.gz
+          # v3.20.6
+          - version: v3.20.6
+            bintar: cmake-3.20.6-linux-x86_64.tar.gz
+          # Ubuntu 22.04
+          - version: v3.22.1
+            bintar: cmake-3.22.1-linux-x86_64.tar.gz
+          # Debian bookworm
+          - version: v3.25.1
+            bintar: cmake-3.25.1-linux-x86_64.tar.gz
+          # Rockylinux 8, 9
+          - version: v3.26.5
+            bintar: cmake-3.26.5-linux-x86_64.tar.gz
+          # Ubuntu 24.04
+          - version: v3.28.3
+            bintar: cmake-3.28.3-linux-x86_64.tar.gz
+          # Latest v3 as of 2025-04-02
+          - version: v3.31.6
+            bintar: cmake-3.31.6-linux-x86_64.tar.gz
+          # Latest v4 as of 2025-04-02
+          - version: v4.0.0
+            bintar: cmake-4.0.0-linux-x86_64.tar.gz
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: "recursive"
+
+    - name: Update packages
+      run: sudo apt update
+
+    - name: Download and Install CMake
+      run: |
+        wget https://github.com/Kitware/CMake/releases/download/${{ matrix.config.version }}/${{ matrix.config.bintar }}
+        sudo tar xf ${{ matrix.config.bintar }} --strip-components=1 -C /usr/local
+        cmake --version
+
+    - name: Install build dependencies
+      run: sudo apt-get install -y libboost-filesystem-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: Configure CMake
+      shell: bash
+      run: |
+        cmake --version
+        cmake -B ${{runner.workspace}}/build -DCMAKE_BUILD_TYPE=RelWithDebInfo

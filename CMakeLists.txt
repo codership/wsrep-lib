@@ -2,7 +2,7 @@
 # Copyright (C) 2021 Codership Oy <info@codership.com>
 #
 
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.8...4.0)
 
 # Parse version from version header file and store it into
 # WSREP_LIB_VERSION.

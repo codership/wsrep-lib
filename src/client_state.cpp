@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2025 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -1047,6 +1047,7 @@ void wsrep::client_state::state(
     }
     state_hist_.push_back(state_);
     state_ = state;
+    client_service_.notify_state_change();
     if (state_hist_.size() > 10)
     {
         state_hist_.erase(state_hist_.begin());
@@ -1076,6 +1077,7 @@ void wsrep::client_state::mode(
         assert(0);
     }
     mode_ = mode;
+    client_service_.notify_state_change();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

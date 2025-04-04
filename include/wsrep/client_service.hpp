@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2025 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -227,7 +227,13 @@ namespace wsrep
          * been enabled.
          */
         virtual void debug_crash(const char* crash_point) = 0;
+
+        //
+        // Notify state change interface
+        //
+        virtual void notify_state_change() = 0;
     };
+
 }
 
 #endif // WSREP_CLIENT_SERVICE_HPP

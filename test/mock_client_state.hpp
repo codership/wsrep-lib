@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2025 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -211,6 +211,10 @@ namespace wsrep
             // Not going to do this while unit testing
         }
 
+        void notify_state_change() WSREP_OVERRIDE
+        {
+            // Not going to do this while unit testing
+        }
 
         //
         // Knobs to tune the behavior

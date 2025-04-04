@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2025 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -138,6 +138,7 @@ int wsrep::transaction::start_transaction(
     state_hist_.clear();
     ws_handle_ = wsrep::ws_handle(id);
     flags(wsrep::provider::flag::start_transaction);
+    client_service_.notify_state_change();
     switch (client_state_.mode())
     {
     case wsrep::client_state::m_high_priority:
@@ -167,6 +168,7 @@ int wsrep::transaction::start_transaction(
         id_ = ws_meta.transaction_id();
         assert(client_state_.mode() == wsrep::client_state::m_high_priority);
         state_ = s_executing;
+        client_service_.notify_state_change();
         state_hist_.clear();
         ws_handle_ = ws_handle;
         ws_meta_ = ws_meta;
@@ -1140,6 +1142,7 @@ void wsrep::transaction::clone_for_replay(const wsrep::transaction& other)
     ws_meta_ = other.ws_meta_;
     streaming_context_ = other.streaming_context_;
     state_ = s_replaying;
+    client_service_.notify_state_change();
 }
 
 void wsrep::transaction::assign_xid(const wsrep::xid& xid)
@@ -1383,6 +1386,7 @@ void wsrep::transaction::state(
         state_hist_.erase(state_hist_.begin());
     }
     state_ = next_state;
+    client_service_.notify_state_change();
 
     if (state_ == s_must_replay)
     {

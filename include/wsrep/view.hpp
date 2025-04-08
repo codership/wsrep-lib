@@ -119,7 +119,7 @@ namespace wsrep
          */
         bool is_final() const
         {
-            return (status_ != status::primary && members_.empty() && own_index_ == -1);
+            return (status_ != primary && members_.empty() && own_index_ == -1);
         }
 
         /**

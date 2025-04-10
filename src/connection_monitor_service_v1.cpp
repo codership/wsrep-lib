@@ -100,7 +100,6 @@ int wsrep::connection_monitor_service_v1_probe(void* dlh)
         wsrep_impl::service_probe<deinit_fn>(
             dlh, WSREP_CONNECTION_MONITOR_SERVICE_DEINIT_FUNC_V1, "connection monitor service v1"))
     {
-        wsrep::log_warning() << "Provider does not support connection monitor service v1";
         return 1;
     }
 

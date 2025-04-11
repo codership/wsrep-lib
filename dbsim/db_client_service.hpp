@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Codership Oy <info@codership.com>
+ * Copyright (C) 2018-2025 Codership Oy <info@codership.com>
  *
  * This file is part of wsrep-lib.
  *
@@ -94,6 +94,8 @@ namespace db
 
         void debug_sync(const char*) override { }
         void debug_crash(const char*) override { }
+        void notify_state_change() override { }
+
     private:
         db::client& client_;
         wsrep::client_state& client_state_;

@@ -43,7 +43,7 @@ namespace wsrep_impl
         }
         else
         {
-            wsrep::log_warning() << "Support for " << service_name
+            wsrep::log_info()    << "Support for " << service_name
                                  << " " << symbol
                                  << " not found from provider: "
                                  << dlerror();

@@ -748,9 +748,13 @@ void wsrep::wsrep_provider_v26::init_services(
     {
         if (init_connection_monitor_service(wsrep_->dlh, services.connection_monitor_service))
         {
-            throw wsrep::runtime_error("Failed to initialize connection monitor service");
+            wsrep::log_info() << "Provider does not support connection monitor service";
+            // provider does not support connection monitoring
         }
-        services_enabled_.connection_monitor_service = services.connection_monitor_service;
+        else
+        {
+            services_enabled_.connection_monitor_service = services.connection_monitor_service;
+        }
     }
 }
 

@@ -557,17 +557,31 @@ namespace wsrep
          * transaction disconnects, and the transaction must not rollback.
          * After this call, a different client may later attempt to terminate
          * the transaction by calling method commit_by_xid() or rollback_by_xid().
+         *
+         * @return Zero on success, non-zero if the transaction was BF aborted
+         */
+        int before_xa_detach();
+
+        /**
+         * This method should be called to conclude the XA detach operation,
+         * after the DBMS has detached the transaction.
+         *
+         * @return Zero on success, non-zero if transaction was BF aborted
+         */
+        int after_xa_detach();
+
+        /**
+         * @deprecated Use before_xa_detach() and after_xa_detach()
          */
         void xa_detach();
 
         /**
          * Replay a XA transaction
          *
-         * Replay a XA transaction that is in s_idle state.
+         * Replay a local XA transaction in s_idle state,
+         * or detached.
          * This may happen if the transaction is BF aborted
          * between prepare and commit.
-         * Since the victim is idle, this method can be called
-         * by the BF aborter or the backround rollbacker.
          */
         void xa_replay();
 

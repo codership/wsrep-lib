@@ -13,35 +13,19 @@ jobs:
       matrix:
         config:
           # GCC/G++
-          - os: ubuntu-20.04
-            CC: gcc
-            version: "7"
-            type: Debug
-          - os: ubuntu-20.04
-            CC: gcc
-            version: "7"
-            type: Release
-          - os: ubuntu-20.04
-            CC: gcc
-            version: "8"
-            type: Debug
-          - os: ubuntu-20.04
-            CC: gcc
-            version: "8"
-            type: Release
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             CC: gcc
             version: "9"
             type: Debug
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             CC: gcc
             version: "9"
             type: Release
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             CC: gcc
             version: "10"
             type: Debug
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             CC: gcc
             version: "10"
             type: Release
@@ -78,35 +62,11 @@ jobs:
             version: "14"
             type: Release
           # Clang
-          - os: ubuntu-20.04
-            CC: clang
-            version: "6.0"
-            type: Debug
-          - os: ubuntu-20.04
-            CC: clang
-            version: "6.0"
-            type: Release
-          - os: ubuntu-20.04
-            CC: clang
-            version: "10"
-            type: Debug
-          - os: ubuntu-20.04
-            CC: clang
-            version: "10"
-            type: Release
-          - os: ubuntu-20.04
-            CC: clang
-            version: "11"
-            type: Debug
-          - os: ubuntu-20.04
-            CC: clang
-            version: "11"
-            type: Release
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             CC: clang
             version: "12"
             type: Debug
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             CC: clang
             version: "12"
             type: Release

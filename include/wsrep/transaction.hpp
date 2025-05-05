@@ -127,6 +127,11 @@ namespace wsrep
             return !xid_.is_null();
         }
 
+        /**
+         * Return true if the transaction has completed the prepare step.
+         */
+        bool is_prepared_xa() const;
+
         void assign_xid(const wsrep::xid& xid);
 
         const wsrep::xid& xid() const
@@ -138,7 +143,9 @@ namespace wsrep
 
         int commit_or_rollback_by_xid(const wsrep::xid& xid, bool commit);
 
-        void xa_detach();
+        int before_xa_detach(wsrep::unique_lock<mutex>&);
+
+        int after_xa_detach(wsrep::unique_lock<mutex>&);
 
         int xa_replay(wsrep::unique_lock<wsrep::mutex>&);
 
@@ -218,6 +225,11 @@ namespace wsrep
             return bf_aborted_in_total_order_;
         }
 
+        wsrep::seqno bf_seqno() const
+        {
+            return bf_seqno_;
+        }
+
         int flags() const
         {
             return flags_;
@@ -276,6 +288,7 @@ namespace wsrep
         enum wsrep::provider::status bf_abort_provider_status_;
         int bf_abort_client_state_;
         bool bf_aborted_in_total_order_;
+        wsrep::seqno bf_seqno_;
         wsrep::ws_handle ws_handle_;
         wsrep::ws_meta ws_meta_;
         int flags_;

@@ -186,3 +186,71 @@ int wsrep::config_service_v1_fetch(wsrep::provider& provider,
   struct wsrep_st* wsrep = (struct wsrep_st*)provider.native();
   return config_service_v1_fetch(wsrep, options);
 }
+
+
+namespace wsrep_config_service_v2
+{
+    wsrep_config_service_v2_t service{ 0 };
+
+    wsrep_status_t service_callback(const wsrep_parameter* p, void* context)
+    {
+        return wsrep_config_service_v1::service_callback(p, context);
+    }
+} // namespace wsrep_config_service_v2
+
+static int config_service_v2_probe(void* dlh)
+{
+    typedef int (*init_fn)(wsrep_config_service_v2_t*);
+    typedef void (*deinit_fn)();
+    return wsrep_impl::service_probe<init_fn>(
+               dlh, WSREP_CONFIG_SERVICE_INIT_FUNC_V2, "config service v2")
+           || wsrep_impl::service_probe<deinit_fn>(
+               dlh, WSREP_CONFIG_SERVICE_DEINIT_FUNC_V2, "config service v2");
+}
+
+static int config_service_v2_init(void* dlh)
+{
+    typedef int (*init_fn)(wsrep_config_service_v2_t*);
+    return wsrep_impl::service_init<init_fn>(
+        dlh, WSREP_CONFIG_SERVICE_INIT_FUNC_V2,
+        &wsrep_config_service_v2::service, "config service v2");
+}
+
+static void config_service_v2_deinit(void* dlh)
+{
+    typedef int (*deinit_fn)();
+    wsrep_impl::service_deinit<deinit_fn>(
+        dlh, WSREP_CONFIG_SERVICE_DEINIT_FUNC_V2, "config service v2");
+}
+
+int wsrep::config_service_v2_fetch(struct wsrep_st* wsrep,
+                                   wsrep::provider_options* options)
+{
+    if (wsrep == nullptr)
+    {
+        // Not a provider which was loaded via wsrep-API
+        return 0;
+    }
+    if (config_service_v2_probe(wsrep->dlh))
+    {
+        wsrep::log_warning() << "Provider does not support config service v2";
+        return 1;
+    }
+    if (config_service_v2_init(wsrep->dlh))
+    {
+        wsrep::log_warning() << "Failed to initialize config service v2";
+        return 1;
+    }
+
+    wsrep_status_t ret = wsrep_config_service_v2::service.get_parameters(
+        wsrep, &wsrep_config_service_v2::service_callback, options);
+
+    config_service_v2_deinit(wsrep->dlh);
+
+    if (ret != WSREP_OK)
+    {
+        return 1;
+    }
+
+    return 0;
+}

@@ -799,7 +799,7 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
 
     init_services(services);
     provider_options options;
-    config_service_v1_fetch(wsrep_, &options);
+    config_service_v2_fetch(wsrep_, &options);
 
     struct wsrep_init_args init_args;
     memset(&init_args, 0, sizeof(init_args));

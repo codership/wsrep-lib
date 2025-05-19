@@ -161,9 +161,10 @@ enum wsrep::provider::status wsrep::provider_options::set_default(
     return wsrep::provider::success;
 }
 
-void wsrep::provider_options::for_each(const std::function<void(option*)>& fn)
+void wsrep::provider_options::for_each(
+    const std::function<void(option*)>& fn) const
 {
-    std::for_each(
-        options_.begin(), options_.end(),
-        [&fn](const options_map::value_type& opt) { fn(opt.second.get()); });
+    std::for_each(options_.begin(), options_.end(),
+                  [&fn](const options_map::value_type& opt)
+                  { fn(opt.second.get()); });
 }

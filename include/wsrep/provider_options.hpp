@@ -253,7 +253,13 @@ namespace wsrep
                     std::unique_ptr<option_value> value,
                     std::unique_ptr<option_value> default_value, int flags);
 
-        void for_each(const std::function<void(option*)>& fn);
+        /**
+         * Invoke the given function with each provider option
+         * as argument.
+         *
+         * @param fn Function to call for each option
+         */
+        void for_each(const std::function<void(option*)>& fn) const;
 
     private:
         using options_map = std::map<std::string, std::unique_ptr<option>>;

@@ -28,9 +28,9 @@
 #include <memory>
 
 std::unique_ptr<wsrep::provider> wsrep::provider::make_provider(
-    wsrep::server_state& server_state,
-    const std::string& provider_spec,
-    const std::function<std::string(provider_options&)>& provider_options_cb,
+    wsrep::server_state& server_state, const std::string& provider_spec,
+    const std::function<std::string(const provider_options&)>&
+        provider_options_cb,
     const wsrep::provider::services& services)
 {
     try

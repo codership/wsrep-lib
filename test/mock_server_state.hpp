@@ -263,7 +263,7 @@ namespace wsrep
         {
             set_provider_factory(
                 [&](wsrep::server_state&, const std::string&,
-                    const std::function<std::string(wsrep::provider_options&)>&,
+                    const std::function<std::string(const wsrep::provider_options&)>&,
                     const wsrep::provider::services&)
                 {
                     // The provider object is destroyed upon server state

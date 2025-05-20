@@ -523,7 +523,7 @@ namespace wsrep
          * Create a new provider.
          *
          * @param provider_spec Provider specification
-         * @param provider_options Initial options to provider
+         * @param provider_options_cb Callback to get initial provider options
          * @param thread_service Optional thread service implementation.
          */
         static std::unique_ptr<provider>

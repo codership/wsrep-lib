@@ -233,7 +233,7 @@ int wsrep::config_service_v2_fetch(struct wsrep_st* wsrep,
     }
     if (config_service_v2_probe(wsrep->dlh))
     {
-        wsrep::log_warning() << "Provider does not support config service v2";
+        wsrep::log_info() << "Provider does not support config service v2";
         return 1;
     }
     if (config_service_v2_init(wsrep->dlh))

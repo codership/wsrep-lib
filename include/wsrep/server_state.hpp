@@ -297,7 +297,7 @@ namespace wsrep
          * @return Zero on success, non-zero on error.
          */
         int load_provider(const std::string& provider,
-                          const std::function<std::string(provider_options&)>&,
+                          const std::function<std::string(const provider_options&)>&,
                           const wsrep::provider::services& services
                           = wsrep::provider::services());
 
@@ -320,7 +320,7 @@ namespace wsrep
                           = wsrep::provider::services())
         {
             return load_provider(
-                provider, [options](provider_options&) { return options; },
+                provider, [options](const provider_options&) { return options; },
                 services);
         }
 

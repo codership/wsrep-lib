@@ -23,6 +23,7 @@
 #include "wsrep/server_state.hpp"
 #include "wsrep/server_service.hpp"
 #include "wsrep/client_service.hpp"
+#include "wsrep/high_priority_service.hpp"
 
 #include <unistd.h> // usleep()
 #include <cassert>
@@ -426,8 +427,9 @@ void wsrep::client_state::sync_rollback_complete()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("sync_rollback_complete: enter");
-    assert(state_ == s_idle && mode_ == m_local &&
-           transaction_.state() == wsrep::transaction::s_aborted);
+    assert((state_ == s_idle && mode_ == m_local &&
+            transaction_.state() == wsrep::transaction::s_aborted) ||
+           mode_ == m_high_priority);
     set_rollbacker_active(false);
     cond_.notify_all();
     debug_log_state("sync_rollback_complete: leave");
@@ -437,7 +439,7 @@ void wsrep::client_state::wait_rollback_complete_and_acquire_ownership()
 {
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     debug_log_state("wait_rollback_complete_and_acquire_ownership: enter");
-    if (state_ == s_idle)
+    if (state_ == s_idle || mode_ == m_high_priority)
     {
         do_wait_rollback_complete_and_acquire_ownership(lock);
     }
@@ -487,17 +489,72 @@ void wsrep::client_state::disable_streaming()
 //                                 XA                                       //
 //////////////////////////////////////////////////////////////////////////////
 
+int wsrep::client_state::before_xa_detach()
+{
+    int ret(0);
+    client_service_.debug_sync("wsrep_before_xa_detach_enter");
+    {
+        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        assert(mode_ == m_local);
+        assert(state_ == s_none || state_ == s_exec || state_ == s_quitting);
+        if (transaction_.state() == wsrep::transaction::s_must_abort)
+        {
+            transaction_.state(lock, wsrep::transaction::s_must_replay);
+            lock.unlock();
+            client_service_.bf_rollback();
+            lock.lock();
+            ret = 1;
+        }
+        else
+        {
+            ret = transaction_.before_xa_detach(lock);
+        }
+    }
+    client_service_.debug_sync("wsrep_before_xa_detach_leave");
+    return ret;
+}
+
+int wsrep::client_state::after_xa_detach()
+{
+    int ret(0);
+    client_service_.debug_sync("wsrep_after_xa_detach_enter");
+    {
+        wsrep::unique_lock<wsrep::mutex> lock(mutex_);
+        assert(mode_ == m_local);
+        if (transaction_.state() == wsrep::transaction::s_must_abort)
+        {
+            wsrep::high_priority_service* sa(
+                server_state_.find_streaming_applier(transaction_.server_id(),
+                                                     transaction_.id()));
+            assert(sa);
+            if (sa)
+            {
+                wsrep::client_state& cs(sa->client_state());
+                cs.transaction_.state(lock, wsrep::transaction::s_must_abort);
+                cs.transaction_.state(lock, wsrep::transaction::s_must_replay);
+                cs.set_rollbacker_active(true);
+                lock.unlock();
+                server_state_.server_service().background_rollback(
+                    sa->client_state());
+                lock.lock();
+            }
+        }
+        ret = transaction_.after_xa_detach(lock);
+    }
+    client_service_.debug_sync("wsrep_after_xa_detach_leave");
+    return ret;
+}
+
 void wsrep::client_state::xa_detach()
 {
-    assert(mode_ == m_local);
-    assert(state_ == s_none || state_ == s_exec || state_ == s_quitting);
-    transaction_.xa_detach();
+    before_xa_detach();
+    after_xa_detach();
 }
 
 void wsrep::client_state::xa_replay()
 {
-    assert(mode_ == m_local);
-    assert(state_ == s_idle);
+    assert((mode_ == m_local && state_ == s_idle) ||
+           (mode_ == m_high_priority));
     wsrep::unique_lock<wsrep::mutex> lock(mutex_);
     transaction_.xa_replay(lock);
 }
@@ -978,13 +1035,16 @@ void wsrep::client_state::do_wait_rollback_complete_and_acquire_ownership(
     wsrep::unique_lock<wsrep::mutex>& lock)
 {
     assert(lock.owns_lock());
-    assert(state_ == s_idle);
+    assert(state_ == s_idle || mode_ == m_high_priority);
     while (is_rollbacker_active())
     {
         cond_.wait(lock);
     }
     do_acquire_ownership(lock);
-    state(lock, s_exec);
+    if (state_ == s_idle)
+    {
+        state(lock, s_exec);
+    }
 }
 
 void wsrep::client_state::update_last_written_gtid(const wsrep::gtid& gtid)

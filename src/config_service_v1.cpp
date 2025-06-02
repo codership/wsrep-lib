@@ -148,9 +148,10 @@ static void config_service_v1_deinit(void* dlh)
         dlh, WSREP_CONFIG_SERVICE_DEINIT_FUNC_V1, "config service v1");
 }
 
-int wsrep::config_service_v1_fetch(struct wsrep_st* wsrep,
+int wsrep::config_service_v1_fetch(wsrep::provider& provider,
                                    wsrep::provider_options* options)
 {
+    struct wsrep_st* wsrep = static_cast<struct wsrep_st*>(provider.native());
     if (wsrep == nullptr)
     {
         // Not a provider which was loaded via wsrep-API
@@ -179,14 +180,6 @@ int wsrep::config_service_v1_fetch(struct wsrep_st* wsrep,
 
     return 0;
 }
-
-int wsrep::config_service_v1_fetch(wsrep::provider& provider,
-                                   wsrep::provider_options* options)
-{
-  struct wsrep_st* wsrep = (struct wsrep_st*)provider.native();
-  return config_service_v1_fetch(wsrep, options);
-}
-
 
 namespace wsrep_config_service_v2
 {

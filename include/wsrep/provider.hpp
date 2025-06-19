@@ -471,6 +471,14 @@ namespace wsrep
         virtual void* native() const = 0;
 
         /**
+         * Get conflicting gtid for the given transaction handle, if any.
+         */
+        virtual wsrep::gtid conflict_gtid(const wsrep::ws_handle&) const
+        {
+            return wsrep::gtid::undefined();
+        }
+
+        /**
          * Services argument passed to make_provider. This struct contains
          * optional services which are passed to the provider.
          */

@@ -37,6 +37,26 @@ void wsrep::sr_key_set::insert(const wsrep::key& key)
                             key.key_parts()[1].size()));
 }
 
+bool wsrep::sr_key_set::contains(const wsrep::key& key) const
+{
+    assert(key.size() >= 2);
+    if (key.size() < 2)
+    {
+        throw wsrep::runtime_error("Invalid key size");
+    }
+
+    std::string key_part_1(static_cast<const char*>(key.key_parts()[0].data()),
+                           key.key_parts()[0].size());
+    std::string key_part_2(static_cast<const char*>(key.key_parts()[1].data()),
+                           key.key_parts()[1].size());
+
+    auto it(root_.find(key_part_1));
+    if (it == root_.end())
+        return false;
+    leaf_type leafs(it->second);
+    return (leafs.find(key_part_2) != leafs.end());
+}
+
 void wsrep::sr_key_set::clear()
 {
     root_.clear();

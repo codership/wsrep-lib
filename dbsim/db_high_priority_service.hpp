@@ -34,6 +34,7 @@ namespace db
                               const wsrep::ws_meta&) override;
         int next_fragment(const wsrep::ws_meta&) override;
         const wsrep::transaction& transaction() const override;
+        wsrep::client_state& client_state() const override;
         int adopt_transaction(const wsrep::transaction&) override;
         int apply_write_set(const wsrep::ws_meta&,
                             const wsrep::const_buffer&,

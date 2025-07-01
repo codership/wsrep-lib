@@ -29,7 +29,7 @@
 
 std::unique_ptr<wsrep::provider> wsrep::provider::make_provider(
     wsrep::server_state& server_state, const std::string& provider_spec,
-    const std::function<std::string(const provider_options&)>&
+    const std::function<int(const provider_options&, std::string&)>&
         provider_options_cb,
     const wsrep::provider::services& services)
 {
@@ -41,19 +41,23 @@ std::unique_ptr<wsrep::provider> wsrep::provider::make_provider(
     }
     catch (const wsrep::runtime_error& e)
     {
-        provider_options opts;
+        provider_options options;
+        std::string options_string;
         wsrep::log_error() << "Failed to create a new provider '"
                            << provider_spec << "'"
-                           << " with options '" << provider_options_cb(opts)
+                           << " with options '"
+                           << provider_options_cb(options, options_string)
                            << "': " << e.what();
     }
     catch (...)
     {
-        provider_options opts;
+        provider_options options;
+        std::string options_string;
         wsrep::log_error() << "Caught unknown exception when trying to "
                            << "create a new provider '"
                            << provider_spec << "'"
-                           << " with options '" << provider_options_cb(opts);
+                           << " with options '"
+                           << provider_options_cb(options, options_string);
     }
     return 0;
 }

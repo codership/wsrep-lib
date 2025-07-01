@@ -778,7 +778,7 @@ void wsrep::wsrep_provider_v26::deinit_services()
 wsrep::wsrep_provider_v26::wsrep_provider_v26(
     wsrep::server_state& server_state,
     const std::string& provider_spec,
-    const std::function<std::string(provider_options&)>& provider_options_cb,
+    const std::function<int(provider_options&, std::string&)>& provider_options_cb,
     const wsrep::provider::services& services)
     : provider(server_state)
     , wsrep_()
@@ -798,8 +798,6 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     }
 
     init_services(services);
-    provider_options options;
-    config_service_v2_fetch(wsrep_, &options);
 
     struct wsrep_init_args init_args;
     memset(&init_args, 0, sizeof(init_args));
@@ -808,8 +806,6 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     init_args.node_address = server_state_.address().c_str();
     init_args.node_incoming = server_state_.incoming_address().c_str();
     init_args.data_dir = server_state_.working_dir().c_str();
-    const auto& provider_options = provider_options_cb(options);
-    init_args.options = provider_options.c_str();
     init_args.proto_ver = server_state.max_protocol_version();
     init_args.state_id = &state_id;
     init_args.state = 0;
@@ -822,6 +818,16 @@ wsrep::wsrep_provider_v26::wsrep_provider_v26(
     init_args.unordered_cb = 0;
     init_args.sst_donate_cb = &sst_donate_cb;
     init_args.synced_cb = &synced_cb;
+
+    provider_options options;
+    config_service_v2_fetch(wsrep_, &options);
+
+    std::string provider_options;
+    if (provider_options_cb(options, provider_options))
+    {
+        throw wsrep::runtime_error("Failed to initialize wsrep provider options");
+    }
+    init_args.options = provider_options.c_str();
 
     if (wsrep_->init(wsrep_, &init_args) != WSREP_OK)
     {

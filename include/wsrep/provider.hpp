@@ -526,12 +526,12 @@ namespace wsrep
          * @param provider_options_cb Callback to get initial provider options
          * @param thread_service Optional thread service implementation.
          */
-        static std::unique_ptr<provider>
-        make_provider(wsrep::server_state&, const std::string& provider_spec,
-                      const std::function<std::string(const provider_options&)>&
-                          provider_options_cb,
-                      const wsrep::provider::services& services
-                      = wsrep::provider::services());
+        static std::unique_ptr<provider> make_provider(
+            wsrep::server_state&, const std::string& provider_spec,
+            const std::function<int(const provider_options&, std::string&)>&
+                provider_options_cb,
+            const wsrep::provider::services& services
+            = wsrep::provider::services());
 
     protected:
         wsrep::server_state& server_state_;

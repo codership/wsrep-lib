@@ -26,15 +26,17 @@ struct wsrep_st;
 
 namespace wsrep
 {
-    class thread_service;
+    class provider_options;
+
     class wsrep_provider_v26 : public wsrep::provider
     {
     public:
         void init_services(const wsrep::provider::services& services);
         void deinit_services();
-        wsrep_provider_v26(wsrep::server_state&, const std::string&,
-                           const std::string&,
-                           const wsrep::provider::services& services);
+        wsrep_provider_v26(
+            wsrep::server_state&, const std::string&,
+            const std::function<int(provider_options&, std::string&)>&,
+            const wsrep::provider::services& services);
         ~wsrep_provider_v26() WSREP_OVERRIDE;
         enum wsrep::provider::status
         connect(const std::string&, const std::string&, const std::string&,
